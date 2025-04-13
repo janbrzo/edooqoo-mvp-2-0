@@ -276,7 +276,7 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
       {!generatedWorksheet ? (
         <div className="container mx-auto py-6">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
@@ -284,7 +284,10 @@ export default function Index() {
               <Sidebar />
             </div>
             <div className="md:col-span-4">
-              <WorksheetForm onSubmit={handleFormSubmit} />
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h1 className="text-2xl font-bold text-blue-600 mb-6">Create Your Worksheet</h1>
+                <WorksheetForm onSubmit={handleFormSubmit} />
+              </div>
             </div>
           </div>
         </div>

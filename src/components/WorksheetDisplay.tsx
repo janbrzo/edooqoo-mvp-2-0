@@ -174,18 +174,18 @@ export default function WorksheetDisplay({
           <div className="flex flex-col md:flex-row justify-between">
             <div>
               <h1 className="text-2xl font-bold mb-1">Your Generated Worksheet</h1>
-              <p className="text-white/80">AI-powered learning materials tailored to your specifications</p>
+              <p className="text-white/80">Tailored to your specifications</p>
             </div>
             <div className="flex gap-4 mt-4 md:mt-0">
-              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md h-8">
+              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md h-7">
                 <Zap className="h-4 w-4 text-yellow-300" />
                 <span className="text-sm">Generated in {generationTime}s</span>
               </div>
-              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md h-8">
+              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md h-7">
                 <Database className="h-4 w-4 text-blue-300" />
                 <span className="text-sm">Based on {sourceCount} sources</span>
               </div>
-              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md h-8">
+              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md h-7">
                 <Clock className="h-4 w-4 text-green-300" />
                 <span className="text-sm">{inputParams.lessonTime} lesson</span>
               </div>
@@ -208,7 +208,9 @@ export default function WorksheetDisplay({
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Lesson Duration</p>
-                  <p className="font-medium">{inputParams.lessonTime}</p>
+                  <p className="font-medium text-sm">
+                    {inputParams.lessonTime}
+                  </p>
                 </div>
               </div>
               
@@ -217,8 +219,10 @@ export default function WorksheetDisplay({
                   <Database className="h-4 w-4 text-worksheet-purple" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Topic</p>
-                  <p className="font-medium">{inputParams.lessonTopic}</p>
+                  <p className="text-sm text-gray-500">Lesson Topic</p>
+                  <p className="font-medium text-sm">
+                    {inputParams.lessonTopic}
+                  </p>
                 </div>
               </div>
               
@@ -227,8 +231,10 @@ export default function WorksheetDisplay({
                   <Star className="h-4 w-4 text-worksheet-purple" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Objective</p>
-                  <p className="font-medium">{inputParams.lessonGoal}</p>
+                  <p className="text-sm text-gray-500">Lesson Goal</p>
+                  <p className="font-medium text-sm">
+                    {inputParams.lessonGoal}
+                  </p>
                 </div>
               </div>
               
@@ -238,7 +244,9 @@ export default function WorksheetDisplay({
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Teaching Preferences</p>
-                  <p className="font-medium">{inputParams.teachingPreferences}</p>
+                  <p className="font-medium text-sm">
+                    {inputParams.teachingPreferences}
+                  </p>
                 </div>
               </div>
               
@@ -249,7 +257,9 @@ export default function WorksheetDisplay({
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Student Profile</p>
-                    <p className="font-medium">{inputParams.studentProfile}</p>
+                    <p className="font-medium text-sm">
+                      {inputParams.studentProfile}
+                    </p>
                   </div>
                 </div>
               )}
@@ -261,7 +271,9 @@ export default function WorksheetDisplay({
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Main Struggles</p>
-                    <p className="font-medium">{inputParams.studentStruggles}</p>
+                    <p className="font-medium text-sm">
+                      {inputParams.studentStruggles}
+                    </p>
                   </div>
                 </div>
               )}
@@ -332,7 +344,7 @@ export default function WorksheetDisplay({
 
         <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>
           <div className="bg-white p-6 border rounded-lg shadow-sm mb-6">
-            <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark">
+            <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight">
               {isEditing ? (
                 <input
                   type="text"
@@ -345,7 +357,7 @@ export default function WorksheetDisplay({
               )}
             </h1>
             
-            <h2 className="text-xl text-worksheet-purple mb-4">
+            <h2 className="text-xl text-worksheet-purple mb-3 leading-tight">
               {isEditing ? (
                 <input
                   type="text"
@@ -366,7 +378,7 @@ export default function WorksheetDisplay({
                   className="w-full h-20 border p-2 editable-content"
                 />
               ) : (
-                <p>{editableWorksheet.introduction}</p>
+                <p className="leading-snug">{editableWorksheet.introduction}</p>
               )}
             </div>
           </div>
@@ -374,9 +386,9 @@ export default function WorksheetDisplay({
           {editableWorksheet.exercises.map((exercise, index) => (
             <div 
               key={index} 
-              className="mb-8 bg-white border rounded-lg overflow-hidden shadow-sm"
+              className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm"
             >
-              <div className="bg-worksheet-purple text-white p-4 flex justify-between items-center">
+              <div className="bg-worksheet-purple text-white p-3 flex justify-between items-center">
                 <div className="flex items-center">
                   <div className="p-2 bg-white/20 rounded-full mr-3">
                     {getIconComponent(exercise.icon)}
@@ -400,8 +412,8 @@ export default function WorksheetDisplay({
                 </div>
               </div>
               
-              <div className="p-6">
-                <p className="font-medium mb-4">
+              <div className="p-5">
+                <p className="font-medium mb-3 leading-snug">
                   {isEditing ? (
                     <input
                       type="text"
@@ -423,19 +435,21 @@ export default function WorksheetDisplay({
                         className="w-full h-32 border p-2 editable-content"
                       />
                     ) : (
-                      <p className="whitespace-pre-line">{exercise.content}</p>
+                      <p className="whitespace-pre-line leading-snug">{exercise.content}</p>
                     )}
                   </div>
                 )}
                 
                 {exercise.type === 'reading' && exercise.questions && (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {exercise.questions.map((question, qIndex) => (
-                      <div key={qIndex} className="border-b pb-2 flex flex-row justify-between">
-                        <p className="font-medium">{qIndex + 1}. {question.text}</p>
-                        {viewMode === 'teacher' && (
-                          <p className="text-green-600 italic ml-4">Answer: {question.answer}</p>
-                        )}
+                      <div key={qIndex} className="border-b pb-2">
+                        <div className="flex flex-row justify-between items-start">
+                          <p className="font-medium leading-snug">{qIndex + 1}. {question.text}</p>
+                          {viewMode === 'teacher' && (
+                            <p className="text-green-600 italic ml-3 text-sm">({question.answer})</p>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -453,17 +467,20 @@ export default function WorksheetDisplay({
                       ))}
                     </div>
                     
-                    <div className="md:col-span-2 space-y-2">
-                      <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Answers</h4>
+                    <div className="md:col-span-1 space-y-2">
+                      <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md text-center">Answers</h4>
                       {exercise.items.map((_, iIndex) => (
-                        <div key={iIndex} className="p-2 border rounded-md bg-white h-10">
-                          <span className="text-worksheet-purple font-medium mr-2">{iIndex + 1}.</span>
-                          <span className="text-gray-300">_____</span>
+                        <div key={iIndex} className="p-2 border rounded-md bg-white h-10 flex justify-center">
+                          {viewMode === 'teacher' ? (
+                            <span className="text-green-600 font-medium">{String.fromCharCode(65 + iIndex)}</span>
+                          ) : (
+                            <span className="text-gray-300">_____</span>
+                          )}
                         </div>
                       ))}
                     </div>
                     
-                    <div className="md:col-span-5 space-y-2">
+                    <div className="md:col-span-6 space-y-2">
                       <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Definitions</h4>
                       {exercise.items.map((item, iIndex) => (
                         <div key={iIndex} className="p-2 border rounded-md bg-white">
@@ -490,13 +507,15 @@ export default function WorksheetDisplay({
                       </div>
                     )}
                     
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {exercise.sentences.map((sentence, sIndex) => (
-                        <div key={sIndex} className="border-b pb-2 flex flex-row justify-between">
-                          <p>{sIndex + 1}. {sentence.text}</p>
-                          {viewMode === 'teacher' && (
-                            <p className="text-green-600 italic ml-4">Answer: {sentence.answer}</p>
-                          )}
+                        <div key={sIndex} className="border-b pb-2">
+                          <div className="flex flex-row justify-between items-center">
+                            <p className="leading-snug">{sIndex + 1}. {sentence.text}</p>
+                            {viewMode === 'teacher' && (
+                              <p className="text-green-600 italic ml-3 text-sm">({sentence.answer})</p>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -504,10 +523,10 @@ export default function WorksheetDisplay({
                 )}
                 
                 {exercise.type === 'multiple-choice' && exercise.questions && (
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {exercise.questions.map((question, qIndex) => (
-                      <div key={qIndex} className="border-b pb-4">
-                        <p className="font-medium mb-2">{qIndex + 1}. {question.text}</p>
+                      <div key={qIndex} className="border-b pb-3">
+                        <p className="font-medium mb-2 leading-snug">{qIndex + 1}. {question.text}</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           {question.options.map((option: any, oIndex: number) => (
                             <div 
@@ -538,7 +557,7 @@ export default function WorksheetDisplay({
                       {exercise.dialogue.map((line, lIndex) => (
                         <div key={lIndex} className="mb-2">
                           <span className="font-semibold">{line.speaker}: </span>
-                          <span>{line.text}</span>
+                          <span className="leading-snug">{line.text}</span>
                         </div>
                       ))}
                     </div>
@@ -560,34 +579,34 @@ export default function WorksheetDisplay({
                 )}
                 
                 {exercise.type === 'discussion' && exercise.questions && (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {exercise.questions.map((question, qIndex) => (
                       <div key={qIndex} className="p-2 border-b">
-                        <p>{qIndex + 1}. {question}</p>
+                        <p className="leading-snug">{qIndex + 1}. {question}</p>
                       </div>
                     ))}
                   </div>
                 )}
                 
                 {viewMode === 'teacher' && (
-                  <div className="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <div className="mt-5 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                     <p className="font-medium text-amber-800">Teacher Tip:</p>
-                    <p className="text-amber-700">{exercise.teacher_tip}</p>
+                    <p className="text-amber-700 leading-snug">{exercise.teacher_tip}</p>
                   </div>
                 )}
               </div>
             </div>
           ))}
 
-          <div className="mb-8 bg-white border rounded-lg overflow-hidden shadow-sm">
-            <div className="bg-worksheet-purple text-white p-4 flex items-center">
+          <div className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
+            <div className="bg-worksheet-purple text-white p-3 flex items-center">
               <div className="p-2 bg-white/20 rounded-full mr-3">
                 <FileText className="h-4 w-4" />
               </div>
               <h3 className="text-lg font-semibold">Vocabulary Sheet</h3>
             </div>
             
-            <div className="p-6">
+            <div className="p-5">
               <p className="mb-4 italic">Fill in the definitions for these key vocabulary items from the lesson.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -608,9 +627,9 @@ export default function WorksheetDisplay({
                       <p className="font-medium text-worksheet-purple mb-2">{item.term}</p>
                     )}
                     {viewMode === 'teacher' ? (
-                      <p className="text-sm text-gray-600">{item.meaning}</p>
+                      <p className="text-sm text-gray-600">{item.meaning !== "Empty Space for Definition" ? item.meaning : "Definition needed"}</p>
                     ) : (
-                      <p className="text-sm text-gray-500">Definition:<span className="text-gray-300">_______________________</span></p>
+                      <p className="text-sm text-gray-500">Definition:</p>
                     )}
                   </div>
                 ))}
@@ -618,21 +637,11 @@ export default function WorksheetDisplay({
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h3 className="font-medium text-blue-800 mb-2">Notes for Teachers</h3>
-            <ul className="space-y-2 text-blue-700">
-              <li>This worksheet was generated based on your specified parameters.</li>
-              <li>Feel free to modify any exercises or vocabulary to better suit your student's level.</li>
-              <li>Consider verifying industry-specific terminology for accuracy before use.</li>
-              <li>You can rearrange exercises or adjust timing as needed for your teaching style.</li>
-            </ul>
-          </div>
-
-          <div className="bg-blue-50 rounded-lg p-6 my-8">
+          <div className="bg-blue-50 rounded-lg p-6 my-6">
             <h3 className="text-xl font-semibold text-center text-blue-800 mb-2">How would you rate this worksheet?</h3>
-            <p className="text-center text-blue-600 mb-4">Your feedback helps us improve our AI-generated worksheets</p>
+            <p className="text-center text-blue-600 mb-4">Your feedback helps us improve our worksheet generator</p>
             
-            <div className="flex justify-center space-x-2 mb-6">
+            <div className="flex justify-center space-x-2 mb-4">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
@@ -646,6 +655,16 @@ export default function WorksheetDisplay({
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h3 className="font-medium text-blue-800 mb-2">Notes for Teachers</h3>
+            <ul className="space-y-2 text-blue-700">
+              <li>This worksheet was generated based on your specified parameters.</li>
+              <li>Feel free to modify any exercises or vocabulary to better suit your student's level.</li>
+              <li>Consider verifying industry-specific terminology for accuracy before use.</li>
+              <li>You can rearrange exercises or adjust timing as needed for your teaching style.</li>
+            </ul>
           </div>
         </div>
       </div>
