@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +9,13 @@ import {
   Edit,
   Eye,
   Star,
-  FileText
+  Zap,
+  FileText,
+  Info,
+  Lightbulb,
+  Pencil,
+  User,
+  UserCog
 } from "lucide-react";
 import {
   Card,
@@ -122,13 +129,13 @@ export default function WorksheetDisplay({
       case "fa-link":
         return <Database className="h-5 w-5" />;
       case "fa-pencil-alt":
-        return <Edit className="h-5 w-5" />;
+        return <Pencil className="h-5 w-5" />;
       case "fa-check-square":
         return <Star className="h-5 w-5" />;
       case "fa-comments":
-        return <Eye className="h-5 w-5" />;
+        return <User className="h-5 w-5" />;
       case "fa-question-circle":
-        return <Eye className="h-5 w-5" />;
+        return <Lightbulb className="h-5 w-5" />;
       default:
         return <Eye className="h-5 w-5" />;
     }
@@ -170,16 +177,16 @@ export default function WorksheetDisplay({
               <p className="text-white/80">AI-powered learning materials tailored to your specifications</p>
             </div>
             <div className="flex gap-4 mt-4 md:mt-0">
-              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md">
-                <Clock className="h-4 w-4" />
+              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md h-8">
+                <Zap className="h-4 w-4 text-yellow-300" />
                 <span className="text-sm">Generated in {generationTime}s</span>
               </div>
-              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md">
-                <Database className="h-4 w-4" />
+              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md h-8">
+                <Database className="h-4 w-4 text-blue-300" />
                 <span className="text-sm">Based on {sourceCount} sources</span>
               </div>
-              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md">
-                <Clock className="h-4 w-4" />
+              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md h-8">
+                <Clock className="h-4 w-4 text-green-300" />
                 <span className="text-sm">{inputParams.lessonTime} lesson</span>
               </div>
             </div>
@@ -189,7 +196,7 @@ export default function WorksheetDisplay({
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-worksheet-purple" />
+              <Info className="h-5 w-5 text-worksheet-purple" />
               Your Input Parameters
             </CardTitle>
           </CardHeader>
@@ -227,7 +234,7 @@ export default function WorksheetDisplay({
               
               <div className="flex items-center gap-3">
                 <div className="bg-worksheet-purpleLight rounded-full p-2">
-                  <Eye className="h-4 w-5 text-worksheet-purple" />
+                  <User className="h-4 w-4 text-worksheet-purple" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Teaching Preferences</p>
@@ -238,11 +245,23 @@ export default function WorksheetDisplay({
               {inputParams.studentProfile && (
                 <div className="flex items-center gap-3">
                   <div className="bg-worksheet-purpleLight rounded-full p-2">
-                    <Star className="h-4 w-4 text-worksheet-purple" />
+                    <UserCog className="h-4 w-4 text-worksheet-purple" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Student Profile</p>
                     <p className="font-medium">{inputParams.studentProfile}</p>
+                  </div>
+                </div>
+              )}
+              
+              {inputParams.studentStruggles && (
+                <div className="flex items-center gap-3">
+                  <div className="bg-worksheet-purpleLight rounded-full p-2">
+                    <Edit className="h-4 w-4 text-worksheet-purple" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Main Struggles</p>
+                    <p className="font-medium">{inputParams.studentStruggles}</p>
                   </div>
                 </div>
               )}
@@ -257,28 +276,33 @@ export default function WorksheetDisplay({
                 variant={viewMode === 'student' ? 'default' : 'outline'} 
                 onClick={() => setViewMode('student')}
                 className={viewMode === 'student' ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' : ''}
+                size="sm"
               >
+                <User className="mr-2 h-4 w-4" />
                 Student View
               </Button>
               <Button 
                 variant={viewMode === 'teacher' ? 'default' : 'outline'} 
                 onClick={() => setViewMode('teacher')}
                 className={viewMode === 'teacher' ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' : ''}
+                size="sm"
               >
+                <UserCog className="mr-2 h-4 w-4" />
                 Teacher View
               </Button>
             </div>
             
-            <div className="flex space-x-2">
+            <div className="flex items-center">
               {!isEditing && (
                 <>
-                  <p className="text-muted-foreground flex items-center mr-2">
+                  <p className="text-amber-600 flex items-center mr-4 text-sm italic">
                     Click the Edit button to modify the worksheet →
                   </p>
                   <Button 
                     variant="outline"
                     onClick={handleEdit}
-                    className="border-worksheet-purple text-worksheet-purple"
+                    className="border-worksheet-purple text-worksheet-purple mr-2"
+                    size="sm"
                   >
                     <Edit className="mr-2 h-4 w-4" /> Edit Worksheet
                   </Button>
@@ -288,7 +312,8 @@ export default function WorksheetDisplay({
               {isEditing && (
                 <Button 
                   onClick={handleSave}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-green-600 hover:bg-green-700 mr-2"
+                  size="sm"
                 >
                   Save Changes
                 </Button>
@@ -297,6 +322,7 @@ export default function WorksheetDisplay({
               <Button 
                 onClick={handleDownloadPDF}
                 className="bg-worksheet-purple hover:bg-worksheet-purpleDark"
+                size="sm"
               >
                 <Download className="mr-2 h-4 w-4" /> Download PDF
               </Button>
@@ -305,42 +331,44 @@ export default function WorksheetDisplay({
         </div>
 
         <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>
-          <h1 className="text-3xl font-bold mb-2">
-            {isEditing ? (
-              <input
-                type="text"
-                value={editableWorksheet.title}
-                onChange={(e) => setEditableWorksheet({...editableWorksheet, title: e.target.value})}
-                className="w-full border p-2 editable-content"
-              />
-            ) : (
-              editableWorksheet.title
-            )}
-          </h1>
-          
-          <h2 className="text-xl text-gray-600 mb-6">
-            {isEditing ? (
-              <input
-                type="text"
-                value={editableWorksheet.subtitle}
-                onChange={(e) => setEditableWorksheet({...editableWorksheet, subtitle: e.target.value})}
-                className="w-full border p-2 editable-content"
-              />
-            ) : (
-              editableWorksheet.subtitle
-            )}
-          </h2>
-          
-          <div className="mb-6 p-4 bg-gray-50 rounded-md border">
-            {isEditing ? (
-              <textarea
-                value={editableWorksheet.introduction}
-                onChange={(e) => setEditableWorksheet({...editableWorksheet, introduction: e.target.value})}
-                className="w-full h-20 border p-2 editable-content"
-              />
-            ) : (
-              <p>{editableWorksheet.introduction}</p>
-            )}
+          <div className="bg-white p-6 border rounded-lg shadow-sm mb-6">
+            <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark">
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editableWorksheet.title}
+                  onChange={(e) => setEditableWorksheet({...editableWorksheet, title: e.target.value})}
+                  className="w-full border p-2 editable-content"
+                />
+              ) : (
+                editableWorksheet.title
+              )}
+            </h1>
+            
+            <h2 className="text-xl text-worksheet-purple mb-4">
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editableWorksheet.subtitle}
+                  onChange={(e) => setEditableWorksheet({...editableWorksheet, subtitle: e.target.value})}
+                  className="w-full border p-2 editable-content"
+                />
+              ) : (
+                editableWorksheet.subtitle
+              )}
+            </h2>
+            
+            <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-md">
+              {isEditing ? (
+                <textarea
+                  value={editableWorksheet.introduction}
+                  onChange={(e) => setEditableWorksheet({...editableWorksheet, introduction: e.target.value})}
+                  className="w-full h-20 border p-2 editable-content"
+                />
+              ) : (
+                <p>{editableWorksheet.introduction}</p>
+              )}
+            </div>
           </div>
 
           {editableWorksheet.exercises.map((exercise, index) => (
@@ -403,10 +431,10 @@ export default function WorksheetDisplay({
                 {exercise.type === 'reading' && exercise.questions && (
                   <div className="space-y-3">
                     {exercise.questions.map((question, qIndex) => (
-                      <div key={qIndex} className="border-b pb-2">
+                      <div key={qIndex} className="border-b pb-2 flex flex-row justify-between">
                         <p className="font-medium">{qIndex + 1}. {question.text}</p>
                         {viewMode === 'teacher' && (
-                          <p className="text-green-600 italic mt-1">Answer: {question.answer}</p>
+                          <p className="text-green-600 italic ml-4">Answer: {question.answer}</p>
                         )}
                       </div>
                     ))}
@@ -414,8 +442,8 @@ export default function WorksheetDisplay({
                 )}
                 
                 {exercise.type === 'matching' && exercise.items && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div className="md:col-span-5 space-y-2">
                       <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Terms</h4>
                       {exercise.items.map((item, iIndex) => (
                         <div key={iIndex} className="p-2 border rounded-md bg-white">
@@ -425,7 +453,7 @@ export default function WorksheetDisplay({
                       ))}
                     </div>
                     
-                    <div className="space-y-2">
+                    <div className="md:col-span-2 space-y-2">
                       <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Answers</h4>
                       {exercise.items.map((_, iIndex) => (
                         <div key={iIndex} className="p-2 border rounded-md bg-white h-10">
@@ -435,7 +463,7 @@ export default function WorksheetDisplay({
                       ))}
                     </div>
                     
-                    <div className="space-y-2">
+                    <div className="md:col-span-5 space-y-2">
                       <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Definitions</h4>
                       {exercise.items.map((item, iIndex) => (
                         <div key={iIndex} className="p-2 border rounded-md bg-white">
@@ -464,10 +492,10 @@ export default function WorksheetDisplay({
                     
                     <div className="space-y-3">
                       {exercise.sentences.map((sentence, sIndex) => (
-                        <div key={sIndex} className="border-b pb-2">
+                        <div key={sIndex} className="border-b pb-2 flex flex-row justify-between">
                           <p>{sIndex + 1}. {sentence.text}</p>
                           {viewMode === 'teacher' && (
-                            <p className="text-green-600 italic mt-1">Answer: {sentence.answer}</p>
+                            <p className="text-green-600 italic ml-4">Answer: {sentence.answer}</p>
                           )}
                         </div>
                       ))}
@@ -565,7 +593,6 @@ export default function WorksheetDisplay({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {editableWorksheet.vocabulary_sheet.map((item, vIndex) => (
                   <div key={vIndex} className="border rounded-md p-3">
-                    <p className="font-medium text-worksheet-purple mb-1">Term {vIndex + 1}</p>
                     {isEditing ? (
                       <input
                         type="text"
@@ -575,12 +602,16 @@ export default function WorksheetDisplay({
                           newVocab[vIndex].term = e.target.value;
                           setEditableWorksheet({...editableWorksheet, vocabulary_sheet: newVocab});
                         }}
-                        className="w-full border p-1 mb-2 editable-content"
+                        className="w-full font-medium text-worksheet-purple mb-2 editable-content"
                       />
                     ) : (
-                      <p>{item.term}</p>
+                      <p className="font-medium text-worksheet-purple mb-2">{item.term}</p>
                     )}
-                    <p className="text-sm text-gray-500">Definition:<span className="text-gray-300">_______________________</span></p>
+                    {viewMode === 'teacher' ? (
+                      <p className="text-sm text-gray-600">{item.meaning}</p>
+                    ) : (
+                      <p className="text-sm text-gray-500">Definition:<span className="text-gray-300">_______________________</span></p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -597,9 +628,9 @@ export default function WorksheetDisplay({
             </ul>
           </div>
 
-          <div className="bg-worksheet-purpleLight rounded-lg p-6 my-8">
-            <h3 className="text-xl font-semibold text-worksheet-purpleDark mb-2">How would you rate this worksheet?</h3>
-            <p className="text-gray-600 mb-4">Your feedback helps us improve our AI-generated worksheets</p>
+          <div className="bg-blue-50 rounded-lg p-6 my-8">
+            <h3 className="text-xl font-semibold text-center text-blue-800 mb-2">How would you rate this worksheet?</h3>
+            <p className="text-center text-blue-600 mb-4">Your feedback helps us improve our AI-generated worksheets</p>
             
             <div className="flex justify-center space-x-2 mb-6">
               {[1, 2, 3, 4, 5].map((star) => (

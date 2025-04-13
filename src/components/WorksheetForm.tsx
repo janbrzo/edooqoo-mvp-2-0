@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 type LessonTime = "30 min" | "45 min" | "60 min";
 
@@ -170,188 +170,192 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   };
 
   return (
-    <div className="w-full px-4 py-6">
-      <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Create Your Worksheet</h1>
-        <div className="flex gap-2">
-          <Button 
-            variant={lessonTime === "30 min" ? "default" : "outline"} 
-            onClick={() => setLessonTime("30 min")}
-            className={lessonTime === "30 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
-          >
-            30 min
-          </Button>
-          <Button 
-            variant={lessonTime === "45 min" ? "default" : "outline"} 
-            onClick={() => setLessonTime("45 min")}
-            className={lessonTime === "45 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
-          >
-            45 min
-          </Button>
-          <Button 
-            variant={lessonTime === "60 min" ? "default" : "outline"} 
-            onClick={() => setLessonTime("60 min")}
-            className={lessonTime === "60 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
-          >
-            60 min
-          </Button>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Lesson Topic */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Lesson Topic</label>
-            <Input 
-              type="text" 
-              placeholder="E.g. IT: debugging code"
-              value={lessonTopic}
-              onChange={(e) => setLessonTopic(e.target.value)}
-              className="mb-3"
-            />
-            <div className="flex flex-wrap gap-2">
-              {randomTopics.map(topic => (
-                <Button 
-                  key={topic.id} 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => setLessonTopic(topic.title)}
-                >
-                  {topic.title}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Lesson Goal */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Lesson Goal</label>
-            <Input 
-              type="text" 
-              placeholder="E.g. Preparing for a work presentation on AI"
-              value={lessonGoal}
-              onChange={(e) => setLessonGoal(e.target.value)}
-              className="mb-3"
-            />
-            <div className="flex flex-wrap gap-2">
-              {randomGoals.map(goal => (
-                <Button 
-                  key={goal.id} 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => setLessonGoal(goal.title)}
-                >
-                  {goal.title}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Teaching Preferences */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Teaching Preferences</label>
-          <Input 
-            type="text" 
-            placeholder="E.g. Writing exercises, dialogues"
-            value={teachingPreferences}
-            onChange={(e) => setTeachingPreferences(e.target.value)}
-            className="mb-3"
-          />
-          <div className="flex flex-wrap gap-2">
-            {randomPreferences.map(preference => (
+    <div className="w-full py-6">
+      <Card className="bg-white shadow-sm">
+        <CardContent className="p-8">
+          <div className="mb-6 flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Create Your Worksheet</h1>
+            <div className="flex gap-2">
               <Button 
-                key={preference.id} 
+                variant={lessonTime === "30 min" ? "default" : "outline"} 
+                onClick={() => setLessonTime("30 min")}
+                className={lessonTime === "30 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+              >
+                30 min
+              </Button>
+              <Button 
+                variant={lessonTime === "45 min" ? "default" : "outline"} 
+                onClick={() => setLessonTime("45 min")}
+                className={lessonTime === "45 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+              >
+                45 min
+              </Button>
+              <Button 
+                variant={lessonTime === "60 min" ? "default" : "outline"} 
+                onClick={() => setLessonTime("60 min")}
+                className={lessonTime === "60 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+              >
+                60 min
+              </Button>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Lesson Topic */}
+              <div>
+                <label className="block text-sm font-medium mb-2">What is the main subject of the lesson?</label>
+                <Input 
+                  type="text" 
+                  placeholder="E.g. IT: debugging code"
+                  value={lessonTopic}
+                  onChange={(e) => setLessonTopic(e.target.value)}
+                  className="mb-3"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {randomTopics.map(topic => (
+                    <Button 
+                      key={topic.id} 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => setLessonTopic(topic.title)}
+                    >
+                      {topic.title}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Lesson Goal */}
+              <div>
+                <label className="block text-sm font-medium mb-2">What would you like to focus on during this lesson?</label>
+                <Input 
+                  type="text" 
+                  placeholder="E.g. Preparing for a work presentation on AI"
+                  value={lessonGoal}
+                  onChange={(e) => setLessonGoal(e.target.value)}
+                  className="mb-3"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {randomGoals.map(goal => (
+                    <Button 
+                      key={goal.id} 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => setLessonGoal(goal.title)}
+                    >
+                      {goal.title}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Teaching Preferences */}
+            <div>
+              <label className="block text-sm font-medium mb-2">What stimulates your student best?</label>
+              <Input 
+                type="text" 
+                placeholder="E.g. Writing exercises, dialogues"
+                value={teachingPreferences}
+                onChange={(e) => setTeachingPreferences(e.target.value)}
+                className="mb-3"
+              />
+              <div className="flex flex-wrap gap-2">
+                {randomPreferences.map(preference => (
+                  <Button 
+                    key={preference.id} 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => setTeachingPreferences(preference.title)}
+                  >
+                    {preference.title}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <h3 className="text-lg font-medium text-muted-foreground pt-2">Optional Details</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Student Profile */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Student Profile</label>
+                <Input 
+                  type="text" 
+                  placeholder="E.g. Goal: IT career advancement..."
+                  value={studentProfile}
+                  onChange={(e) => setStudentProfile(e.target.value)}
+                  className="mb-3"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {randomProfiles.map(profile => (
+                    <Button 
+                      key={profile.id} 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => setStudentProfile(profile.title)}
+                    >
+                      {profile.title.substring(0, 50)}...
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Student Struggles */}
+              <div>
+                <label className="block text-sm font-medium mb-2">What does your student struggle with during lessons?</label>
+                <Input 
+                  type="text" 
+                  placeholder="E.g. Student struggles with 'r' pronunciation"
+                  value={studentStruggles}
+                  onChange={(e) => setStudentStruggles(e.target.value)}
+                  className="mb-3"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {randomStruggles.map(struggle => (
+                    <Button 
+                      key={struggle.id} 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => setStudentStruggles(struggle.title)}
+                    >
+                      {struggle.title}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button 
                 type="button" 
                 variant="outline" 
-                size="sm"
-                className="text-xs"
-                onClick={() => setTeachingPreferences(preference.title)}
+                onClick={refreshTiles}
+                className="border-worksheet-purple text-worksheet-purple hover:bg-worksheet-purpleLight"
               >
-                {preference.title}
+                Refresh Suggestions
               </Button>
-            ))}
-          </div>
-        </div>
-
-        <h3 className="text-lg font-medium text-muted-foreground pt-2">Optional Details</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Student Profile */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Student Profile</label>
-            <Input 
-              type="text" 
-              placeholder="E.g. Goal: IT career advancement..."
-              value={studentProfile}
-              onChange={(e) => setStudentProfile(e.target.value)}
-              className="mb-3"
-            />
-            <div className="flex flex-wrap gap-2">
-              {randomProfiles.map(profile => (
-                <Button 
-                  key={profile.id} 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => setStudentProfile(profile.title)}
-                >
-                  {profile.title.substring(0, 50)}...
-                </Button>
-              ))}
+              <Button 
+                type="submit" 
+                className="bg-worksheet-purple hover:bg-worksheet-purpleDark"
+              >
+                Generate Custom Worksheet
+              </Button>
             </div>
-          </div>
-
-          {/* Student Struggles */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Main Struggles</label>
-            <Input 
-              type="text" 
-              placeholder="E.g. Student struggles with 'r' pronunciation"
-              value={studentStruggles}
-              onChange={(e) => setStudentStruggles(e.target.value)}
-              className="mb-3"
-            />
-            <div className="flex flex-wrap gap-2">
-              {randomStruggles.map(struggle => (
-                <Button 
-                  key={struggle.id} 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => setStudentStruggles(struggle.title)}
-                >
-                  {struggle.title}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-between pt-4">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={refreshTiles}
-            className="border-worksheet-purple text-worksheet-purple hover:bg-worksheet-purpleLight"
-          >
-            Refresh Suggestions
-          </Button>
-          <Button 
-            type="submit" 
-            className="bg-worksheet-purple hover:bg-worksheet-purpleDark"
-          >
-            Generate Custom Worksheet
-          </Button>
-        </div>
-      </form>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import WorksheetForm, { FormData } from "@/components/WorksheetForm";
 import Sidebar from "@/components/Sidebar";
@@ -279,11 +280,11 @@ export default function Index() {
       {!generatedWorksheet ? (
         <div className="container mx-auto py-6">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            <div className="md:col-span-4">
-              <WorksheetForm onSubmit={handleFormSubmit} />
-            </div>
             <div className="md:col-span-1">
               <Sidebar />
+            </div>
+            <div className="md:col-span-4">
+              <WorksheetForm onSubmit={handleFormSubmit} />
             </div>
           </div>
         </div>
