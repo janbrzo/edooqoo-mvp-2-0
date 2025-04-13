@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +19,7 @@ import {
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { generatePDF } from "@/utils/pdfUtils";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface Exercise {
   type: string;
@@ -228,7 +227,7 @@ export default function WorksheetDisplay({
               
               <div className="flex items-center gap-3">
                 <div className="bg-worksheet-purpleLight rounded-full p-2">
-                  <Eye className="h-4 w-4 text-worksheet-purple" />
+                  <Eye className="h-4 w-5 text-worksheet-purple" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Teaching Preferences</p>

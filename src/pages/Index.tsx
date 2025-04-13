@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import WorksheetForm, { FormData } from "@/components/WorksheetForm";
 import Sidebar from "@/components/Sidebar";
 import GeneratingModal from "@/components/GeneratingModal";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data for initial development
 const mockWorksheetData = {
