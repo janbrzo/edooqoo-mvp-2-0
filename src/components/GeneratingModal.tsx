@@ -58,7 +58,7 @@ export default function GeneratingModal({ isOpen }: GeneratingModalProps) {
 
   return (
     <Dialog open={isOpen}>
-      <DialogContent className="sm:max-w-md" showClose={false}>
+      <DialogContent className="sm:max-w-md">
         <div className="text-center py-6">
           <h2 className="text-xl font-bold mb-6">Generating your worksheet...</h2>
           
