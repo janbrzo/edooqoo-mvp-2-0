@@ -174,7 +174,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
       <Card className="bg-white shadow-sm">
         <CardContent className="p-8">
           <div className="mb-6 flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Create Your Worksheet</h1>
+            <h1 className="text-2xl font-bold text-worksheet-purple">Create Your Worksheet</h1>
             <div className="flex gap-2">
               <Button 
                 variant={lessonTime === "30 min" ? "default" : "outline"} 
@@ -204,7 +204,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Lesson Topic */}
               <div>
-                <label className="block text-sm font-medium mb-2">What is the main subject of the lesson?</label>
+                <label className="block text-sm font-medium mb-2">Lesson topic: What is the main subject of the lesson?</label>
                 <Input 
                   type="text" 
                   placeholder="E.g. IT: debugging code"
@@ -219,7 +219,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                       type="button" 
                       variant="outline" 
                       size="sm"
-                      className="text-xs"
+                      className="text-xs font-light"
                       onClick={() => setLessonTopic(topic.title)}
                     >
                       {topic.title}
@@ -230,7 +230,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
 
               {/* Lesson Goal */}
               <div>
-                <label className="block text-sm font-medium mb-2">What would you like to focus on during this lesson?</label>
+                <label className="block text-sm font-medium mb-2">Lesson goal: What would you like to focus on during this lesson?</label>
                 <Input 
                   type="text" 
                   placeholder="E.g. Preparing for a work presentation on AI"
@@ -245,7 +245,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                       type="button" 
                       variant="outline" 
                       size="sm"
-                      className="text-xs"
+                      className="text-xs font-light"
                       onClick={() => setLessonGoal(goal.title)}
                     >
                       {goal.title}
@@ -257,7 +257,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
 
             {/* Teaching Preferences */}
             <div>
-              <label className="block text-sm font-medium mb-2">What stimulates your student best?</label>
+              <label className="block text-sm font-medium mb-2">Teaching preferences: What stimulates your student best?</label>
               <Input 
                 type="text" 
                 placeholder="E.g. Writing exercises, dialogues"
@@ -272,7 +272,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                     type="button" 
                     variant="outline" 
                     size="sm"
-                    className="text-xs"
+                    className="text-xs font-light"
                     onClick={() => setTeachingPreferences(preference.title)}
                   >
                     {preference.title}
@@ -301,7 +301,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                       type="button" 
                       variant="outline" 
                       size="sm"
-                      className="text-xs"
+                      className="text-xs font-light"
                       onClick={() => setStudentProfile(profile.title)}
                     >
                       {profile.title.substring(0, 50)}...
@@ -312,7 +312,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
 
               {/* Student Struggles */}
               <div>
-                <label className="block text-sm font-medium mb-2">What does your student struggle with during lessons?</label>
+                <label className="block text-sm font-medium mb-2">Main Struggles: What does your student struggle with during lessons?</label>
                 <Input 
                   type="text" 
                   placeholder="E.g. Student struggles with 'r' pronunciation"
@@ -327,7 +327,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                       type="button" 
                       variant="outline" 
                       size="sm"
-                      className="text-xs"
+                      className="text-xs font-light"
                       onClick={() => setStudentStruggles(struggle.title)}
                     >
                       {struggle.title}

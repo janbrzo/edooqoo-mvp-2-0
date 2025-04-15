@@ -3,7 +3,7 @@ import { Clock, FileText, Settings, Star } from "lucide-react";
 
 export default function Sidebar() {
   return (
-    <div className="h-[calc(100vh-20px)] bg-worksheet-purpleLight p-6 rounded-lg ml-2.5 mt-2.5 mb-2.5">
+    <div className="h-screen bg-worksheet-purpleLight p-6 rounded-tr-lg rounded-br-lg ml-0 mt-0 mb-0">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-blue-600 mb-2">English Worksheet Generator</h1>
         <p className="text-gray-600 text-sm">Create professional, tailored worksheets in minutes instead of hours.</p>

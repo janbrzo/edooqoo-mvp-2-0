@@ -219,22 +219,34 @@ const mockWorksheetData = {
     }
   ],
   vocabulary_sheet: [
-    { term: "Active listening", meaning: "Empty Space for Definition" },
-    { term: "Empathy", meaning: "Empty Space for Definition" },
-    { term: "Customer retention", meaning: "Empty Space for Definition" },
-    { term: "Professional etiquette", meaning: "Empty Space for Definition" },
-    { term: "Service recovery", meaning: "Empty Space for Definition" },
-    { term: "Conflict resolution", meaning: "Empty Space for Definition" },
-    { term: "Virtual meeting", meaning: "Empty Space for Definition" },
-    { term: "Customer satisfaction", meaning: "Empty Space for Definition" },
-    { term: "Problem-solving", meaning: "Empty Space for Definition" },
-    { term: "Rapport building", meaning: "Empty Space for Definition" },
-    { term: "Troubleshooting", meaning: "Empty Space for Definition" },
-    { term: "Service quality", meaning: "Empty Space for Definition" },
-    { term: "Client communication", meaning: "Empty Space for Definition" },
-    { term: "Feedback mechanism", meaning: "Empty Space for Definition" },
-    { term: "Customer loyalty", meaning: "Empty Space for Definition" }
+    { term: "Active listening", meaning: "Fully concentrating on what is being said rather than just passively hearing" },
+    { term: "Empathy", meaning: "The ability to understand and share the feelings of another" },
+    { term: "Customer retention", meaning: "Keeping existing customers over time" },
+    { term: "Professional etiquette", meaning: "Expected conduct in a business environment" },
+    { term: "Service recovery", meaning: "The process of converting a poor customer experience into a positive one" },
+    { term: "Conflict resolution", meaning: "The process of finding a peaceful solution to a disagreement" },
+    { term: "Virtual meeting", meaning: "A meeting that takes place over the internet rather than in person" },
+    { term: "Customer satisfaction", meaning: "Measure of how products and services meet or exceed customer expectation" },
+    { term: "Problem-solving", meaning: "The process of finding solutions to difficult or complex issues" },
+    { term: "Rapport building", meaning: "Developing a relationship of mutual trust and understanding" },
+    { term: "Troubleshooting", meaning: "The process of identifying and resolving problems" },
+    { term: "Service quality", meaning: "The assessment of how well a delivered service conforms to expectations" },
+    { term: "Client communication", meaning: "The exchange of information between service providers and clients" },
+    { term: "Feedback mechanism", meaning: "A system that allows information to be collected and analyzed" },
+    { term: "Customer loyalty", meaning: "A customer's willingness to continue to do business with a company" }
   ]
+};
+
+// Function to get a subset of exercises based on lesson time
+const getExercisesByTime = (exercises: any[], lessonTime: string) => {
+  if (lessonTime === "30 min") {
+    return exercises.slice(0, 4); // First 4 exercises for 30 min
+  } else if (lessonTime === "45 min") {
+    return exercises.slice(0, 6); // First 6 exercises for 45 min
+  } else if (lessonTime === "60 min") {
+    return exercises; // All exercises (up to 8) for 60 min
+  }
+  return exercises.slice(0, 6); // Default to 6 exercises
 };
 
 export default function Index() {
@@ -261,7 +273,14 @@ export default function Index() {
     // Simulate API call with timeout
     setTimeout(() => {
       setIsGenerating(false);
-      setGeneratedWorksheet(mockWorksheetData);
+      
+      // Modify worksheet data based on lesson time
+      const worksheetWithCorrectExercises = {
+        ...mockWorksheetData,
+        exercises: getExercisesByTime(mockWorksheetData.exercises, data.lessonTime)
+      };
+      
+      setGeneratedWorksheet(worksheetWithCorrectExercises);
       
       toast({
         title: "Worksheet generated successfully!",
@@ -278,16 +297,13 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-gray-100">
       {!generatedWorksheet ? (
-        <div className="container mx-auto py-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            <div className="md:col-span-1">
+        <div className="container mx-auto">
+          <div className="flex">
+            <div className="min-w-[300px]">
               <Sidebar />
             </div>
-            <div className="md:col-span-4">
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h1 className="text-2xl font-bold text-blue-600 mb-6">Create Your Worksheet</h1>
-                <WorksheetForm onSubmit={handleFormSubmit} />
-              </div>
+            <div className="flex-1 px-6 py-6">
+              <WorksheetForm onSubmit={handleFormSubmit} />
             </div>
           </div>
         </div>
