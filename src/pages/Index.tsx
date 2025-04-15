@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import WorksheetForm, { FormData } from "@/components/WorksheetForm";
 import Sidebar from "@/components/Sidebar";
@@ -136,33 +137,6 @@ const mockWorksheetData = {
             { label: "C", text: "Being timely", correct: true },
             { label: "D", text: "Avoiding details", correct: false }
           ]
-        },
-        {
-          text: "What skill helps resolve customer complaints?",
-          options: [
-            { label: "A", text: "Defensiveness", correct: false },
-            { label: "B", text: "Problem-solving", correct: true },
-            { label: "C", text: "Blame shifting", correct: false },
-            { label: "D", text: "Procrastination", correct: false }
-          ]
-        },
-        {
-          text: "Which metric measures customer happiness?",
-          options: [
-            { label: "A", text: "Profit margin", correct: false },
-            { label: "B", text: "Employee turnover", correct: false },
-            { label: "C", text: "Satisfaction score", correct: true },
-            { label: "D", text: "Marketing budget", correct: false }
-          ]
-        },
-        {
-          text: "What does empathetic communication involve?",
-          options: [
-            { label: "A", text: "Acknowledging feelings", correct: true },
-            { label: "B", text: "Dismissing concerns", correct: false },
-            { label: "C", text: "Speaking quickly", correct: false },
-            { label: "D", text: "Using complex terminology", correct: false }
-          ]
         }
       ],
       teacher_tip: "For each question, ask your student to explain why the correct answer is appropriate and why the other options are not suitable in a customer service context."
@@ -214,6 +188,87 @@ const mockWorksheetData = {
         "In what ways has technology changed customer service in recent years?"
       ],
       teacher_tip: "Encourage your student to provide specific examples and detailed explanations. This exercise works well as a warm-up or conclusion to the lesson."
+    },
+    // Additional exercises for 60-minute lessons
+    {
+      type: "error-correction",
+      title: "Exercise 7: Error Correction",
+      icon: "fa-pencil-alt",
+      time: 8,
+      instructions: "Find and correct the error in each sentence.",
+      sentences: [
+        { text: "The customer have complained about the delivery time.", correction: "The customer has complained about the delivery time." },
+        { text: "We discussed about the new project yesterday.", correction: "We discussed the new project yesterday." },
+        { text: "She don't understand the company's refund policy.", correction: "She doesn't understand the company's refund policy." },
+        { text: "They was very satisfied with our service.", correction: "They were very satisfied with our service." },
+        { text: "The manager which I spoke to was very helpful.", correction: "The manager who/that I spoke to was very helpful." },
+        { text: "We need to improve our communication skills everyday.", correction: "We need to improve our communication skills every day." },
+        { text: "She's working in this company since 2015.", correction: "She's been working in this company since 2015." },
+        { text: "If I would have known about the issue, I would have fixed it.", correction: "If I had known about the issue, I would have fixed it." }
+      ],
+      teacher_tip: "Ask your student to explain the grammar rule that was broken in each sentence. This helps reinforce their understanding of English grammar in a business context."
+    },
+    {
+      type: "word-formation",
+      title: "Exercise 8: Word Formation",
+      icon: "fa-link",
+      time: 7,
+      instructions: "Complete each sentence with the correct form of the word in brackets.",
+      sentences: [
+        { text: "The _____ of the customer is our top priority. (SATISFY)", answer: "satisfaction" },
+        { text: "She spoke very _____ during the presentation. (PROFESSION)", answer: "professionally" },
+        { text: "Their _____ to detail is what makes them stand out. (ATTEND)", answer: "attention" },
+        { text: "We need to improve the _____ of our service. (EFFICIENT)", answer: "efficiency" },
+        { text: "Her _____ helped her understand the customer's concerns. (PATIENT)", answer: "patience" },
+        { text: "The company offers _____ training for all new employees. (COMPREHEND)", answer: "comprehensive" },
+        { text: "His _____ approach to problem-solving impressed the managers. (CREATE)", answer: "creative" },
+        { text: "The team showed great _____ when facing the crisis. (FLEXIBLE)", answer: "flexibility" },
+        { text: "Our _____ system needs to be upgraded. (COMMUNICATE)", answer: "communication" },
+        { text: "She has excellent _____ skills with international clients. (NEGOTIATE)", answer: "negotiation" }
+      ],
+      teacher_tip: "This exercise helps students practice word families and understand how different parts of speech are formed in English. Review common suffixes that create nouns, adjectives, adverbs, and verbs."
+    },
+    {
+      type: "word-order",
+      title: "Exercise 9: Word Order",
+      icon: "fa-pencil-alt",
+      time: 8,
+      instructions: "Arrange the words to form correct sentences.",
+      sentences: [
+        { 
+          words: ["always", "customers", "should", "we", "listen", "to", "carefully"],
+          answer: "We should always listen to customers carefully."
+        },
+        { 
+          words: ["meeting", "tomorrow", "the", "has", "been", "to", "rescheduled"],
+          answer: "The meeting has been rescheduled to tomorrow."
+        },
+        { 
+          words: ["they", "a", "new", "have", "marketing", "strategy", "developed"],
+          answer: "They have developed a new marketing strategy."
+        },
+        { 
+          words: ["you", "could", "please", "the", "details", "explain", "again"],
+          answer: "Could you please explain the details again."
+        },
+        { 
+          words: ["we", "are", "currently", "on", "project", "working", "a", "new"],
+          answer: "We are currently working on a new project."
+        },
+        { 
+          words: ["customer", "our", "policy", "satisfaction", "guarantees", "refunds"],
+          answer: "Our customer satisfaction policy guarantees refunds."
+        },
+        { 
+          words: ["yesterday", "I", "with", "the", "manager", "spoke", "regional"],
+          answer: "I spoke with the regional manager yesterday."
+        },
+        { 
+          words: ["they", "for", "have", "been", "waiting", "response", "a", "still", "are"],
+          answer: "They are still waiting for a response."
+        }
+      ],
+      teacher_tip: "This exercise helps students practice English word order, which can be particularly challenging for non-native speakers. Review basic sentence structure patterns like Subject-Verb-Object and the correct placement of adverbs."
     }
   ],
   vocabulary_sheet: [
@@ -241,9 +296,19 @@ const getExercisesByTime = (exercises: any[], lessonTime: string) => {
   } else if (lessonTime === "45 min") {
     return exercises.slice(0, 6); // First 6 exercises for 45 min
   } else if (lessonTime === "60 min") {
-    return exercises; // All exercises (up to 8) for 60 min
+    return exercises.slice(0, 8); // First 8 exercises for 60 min
   }
   return exercises.slice(0, 6); // Default to 6 exercises
+};
+
+// Function to shuffle an array
+const shuffleArray = (array: any[]) => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
 };
 
 export default function Index() {
@@ -268,16 +333,26 @@ export default function Index() {
     setTimeout(() => {
       setIsGenerating(false);
       
-      const worksheetWithCorrectExercises = {
-        ...mockWorksheetData,
-        exercises: getExercisesByTime(mockWorksheetData.exercises, data.lessonTime)
-      };
+      // Process the worksheet data
+      const worksheetCopy = JSON.parse(JSON.stringify(mockWorksheetData));
       
-      setGeneratedWorksheet(worksheetWithCorrectExercises);
+      // Get exercises based on lesson time
+      worksheetCopy.exercises = getExercisesByTime(worksheetCopy.exercises, data.lessonTime);
+      
+      // Shuffle matching exercise terms and definitions
+      worksheetCopy.exercises.forEach((exercise: any) => {
+        if (exercise.type === "matching" && exercise.items) {
+          // Shuffle both terms and definitions
+          exercise.shuffledItems = shuffleArray(exercise.items);
+        }
+      });
+      
+      setGeneratedWorksheet(worksheetCopy);
       
       toast({
         title: "Worksheet generated successfully!",
-        description: "Your custom worksheet is now ready to use."
+        description: "Your custom worksheet is now ready to use.",
+        className: "bg-white border border-green-200 text-green-800 shadow-lg"
       });
     }, 5000);
   };
@@ -291,9 +366,7 @@ export default function Index() {
     <div className="min-h-screen bg-gray-100">
       {!generatedWorksheet ? (
         <div className="container mx-auto flex">
-          <div className="h-full">
-            <Sidebar />
-          </div>
+          <Sidebar />
           <div className="flex-1 px-6 py-6">
             <WorksheetForm onSubmit={handleFormSubmit} />
           </div>

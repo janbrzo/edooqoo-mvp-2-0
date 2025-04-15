@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -174,7 +173,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
       <Card className="bg-white shadow-sm">
         <CardContent className="p-8">
           <div className="mb-6 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-worksheet-purple">Create Your Worksheet</h1>
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500">Create Your Worksheet</h1>
             <div className="flex gap-2">
               <Button 
                 variant={lessonTime === "30 min" ? "default" : "outline"} 
