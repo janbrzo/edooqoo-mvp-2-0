@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -77,7 +76,6 @@ export default function WorksheetDisplay({
   const worksheetRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Function to shuffle an array (for vocabulary matching)
   const shuffleArray = (array: any[]) => {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
@@ -256,6 +254,12 @@ export default function WorksheetDisplay({
     });
   };
 
+  const getExercisesByTime = (exercises: Exercise[], time: string) => {
+    if (time === "30 min") return exercises.slice(0, 4);
+    if (time === "45 min") return exercises.slice(0, 6);
+    return exercises.slice(0, 8); // 60 min gets 8 exercises
+  };
+
   const handleSubmitRating = () => {
     console.log("Submitted rating:", rating, "with feedback:", feedback);
     setRatingDialogOpen(false);
@@ -278,15 +282,15 @@ export default function WorksheetDisplay({
               <h1 className="text-2xl font-bold mb-1">Your Generated Worksheet</h1>
             </div>
             <div className="flex gap-4 mt-4 md:mt-0">
-              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md h-6">
+              <div className="flex items-center gap-1 bg-white/20 px-4 py-2 rounded-md">
                 <Zap className="h-4 w-4 text-yellow-300" />
                 <span className="text-sm">Generated in {generationTime}s</span>
               </div>
-              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md h-6">
+              <div className="flex items-center gap-1 bg-white/20 px-4 py-2 rounded-md">
                 <Database className="h-4 w-4 text-blue-300" />
                 <span className="text-sm">Based on {sourceCount} sources</span>
               </div>
-              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-md h-6">
+              <div className="flex items-center gap-1 bg-white/20 px-4 py-2 rounded-md">
                 <Clock className="h-4 w-4 text-green-300" />
                 <span className="text-sm">{inputParams.lessonTime} lesson</span>
               </div>
@@ -382,8 +386,8 @@ export default function WorksheetDisplay({
           </CardContent>
         </Card>
 
-        <div className="sticky top-0 z-10 bg-white border-b mb-6 py-2">
-          <div className="flex justify-between items-center">
+        <div className="sticky top-0 z-10 bg-white border-b mb-6 py-3 px-4">
+          <div className="flex justify-between items-center max-w-[98%] mx-auto">
             <div className="flex space-x-2">
               <Button 
                 variant={viewMode === 'student' ? 'default' : 'outline'} 
@@ -408,7 +412,7 @@ export default function WorksheetDisplay({
             <div className="flex items-center">
               {!isEditing && (
                 <>
-                  <div className="text-amber-600 flex items-center mr-4 text-sm italic px-2 py-1 bg-amber-50 rounded">
+                  <div className="text-amber-600 flex items-center mr-4 text-sm italic px-3 py-1.5 bg-amber-50 rounded">
                     Click the Edit button to modify the worksheet →
                   </div>
                   <Button 
@@ -602,7 +606,7 @@ export default function WorksheetDisplay({
                     </div>
                     
                     <div className="md:col-span-1 space-y-2">
-                      <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md text-center">Answers</h4>
+                      <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Answers</h4>
                       {exercise.items.map((_, iIndex) => (
                         <div key={iIndex} className="p-2 border rounded-md bg-white h-10 flex justify-center">
                           {viewMode === 'teacher' ? (
@@ -624,7 +628,6 @@ export default function WorksheetDisplay({
                               type="text"
                               value={item.definition}
                               onChange={(e) => {
-                                // Find the original index to update the correct item
                                 const originalIndex = exercise.items.findIndex(i => i.term === item.term);
                                 if (originalIndex !== -1) {
                                   handleItemChange(index, originalIndex, 'definition', e.target.value);
@@ -970,7 +973,7 @@ export default function WorksheetDisplay({
             </div>
           </div>
 
-          <div className="bg-blue-100 rounded-lg p-6 mb-6 border border-blue-200">
+          <div className="bg-blue-200 rounded-lg p-6 mb-6 border border-blue-300">
             <h3 className="text-xl font-semibold text-center text-blue-800 mb-2">How would you rate this worksheet?</h3>
             <p className="text-center text-blue-600 mb-4">Your feedback helps us improve our worksheet generator</p>
             
@@ -990,7 +993,7 @@ export default function WorksheetDisplay({
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="bg-blue-100 border border-blue-200 rounded-lg p-4 mb-6">
             <h3 className="font-medium text-blue-800 mb-2">Notes for Teachers</h3>
             <ul className="space-y-2 text-blue-700">
               <li>This worksheet was generated based on your specified parameters.</li>

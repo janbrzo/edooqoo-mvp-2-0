@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import WorksheetForm, { FormData } from "@/components/WorksheetForm";
 import Sidebar from "@/components/Sidebar";
@@ -6,7 +5,6 @@ import GeneratingModal from "@/components/GeneratingModal";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
 import { useToast } from "@/hooks/use-toast";
 
-// Mock data for initial development
 const mockWorksheetData = {
   title: "Professional Communication in Customer Service",
   subtitle: "Improving Service Quality through Effective Communication",
@@ -237,7 +235,6 @@ const mockWorksheetData = {
   ]
 };
 
-// Function to get a subset of exercises based on lesson time
 const getExercisesByTime = (exercises: any[], lessonTime: string) => {
   if (lessonTime === "30 min") {
     return exercises.slice(0, 4); // First 4 exercises for 30 min
@@ -262,19 +259,15 @@ export default function Index() {
     setInputParams(data);
     setIsGenerating(true);
     
-    // Simulate generation time (between 30-60 seconds)
     const genTime = Math.floor(Math.random() * (65 - 31) + 31);
     setGenerationTime(genTime);
     
-    // Simulate source count (between 50-90 sources)
     const sources = Math.floor(Math.random() * (90 - 50) + 50);
     setSourceCount(sources);
     
-    // Simulate API call with timeout
     setTimeout(() => {
       setIsGenerating(false);
       
-      // Modify worksheet data based on lesson time
       const worksheetWithCorrectExercises = {
         ...mockWorksheetData,
         exercises: getExercisesByTime(mockWorksheetData.exercises, data.lessonTime)
@@ -286,7 +279,7 @@ export default function Index() {
         title: "Worksheet generated successfully!",
         description: "Your custom worksheet is now ready to use."
       });
-    }, 5000); // Show loading for 5 seconds in the demo
+    }, 5000);
   };
 
   const handleBack = () => {
@@ -297,14 +290,12 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-gray-100">
       {!generatedWorksheet ? (
-        <div className="container mx-auto">
-          <div className="flex">
-            <div className="min-w-[300px]">
-              <Sidebar />
-            </div>
-            <div className="flex-1 px-6 py-6">
-              <WorksheetForm onSubmit={handleFormSubmit} />
-            </div>
+        <div className="container mx-auto flex">
+          <div className="h-full">
+            <Sidebar />
+          </div>
+          <div className="flex-1 px-6 py-6">
+            <WorksheetForm onSubmit={handleFormSubmit} />
           </div>
         </div>
       ) : (

@@ -3,13 +3,13 @@ import { Clock, FileText, Settings, Star } from "lucide-react";
 
 export default function Sidebar() {
   return (
-    <div className="h-screen bg-worksheet-purpleLight p-6 rounded-tr-lg rounded-br-lg ml-0 mt-0 mb-0">
+    <div className="h-full bg-worksheet-purpleLight p-6 rounded-tr-lg rounded-br-lg w-[20%]">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-blue-600 mb-2">English Worksheet Generator</h1>
-        <p className="text-gray-600 text-sm">Create professional, tailored worksheets in minutes instead of hours.</p>
+        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500">English Worksheet Generator</h1>
+        <p className="text-gray-600 text-sm mt-2">Create professional worksheets in minutes instead of hours.</p>
       </div>
       
-      <div className="space-y-5">
+      <div className="space-y-8 mt-12">
         <div className="flex items-start gap-3">
           <div className="p-2 bg-white rounded-full text-worksheet-purple">
             <Clock size={20} />
