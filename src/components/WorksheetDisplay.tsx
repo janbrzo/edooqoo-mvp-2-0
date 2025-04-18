@@ -624,7 +624,7 @@ export default function WorksheetDisplay({
                     ...editableWorksheet,
                     vocabulary_sheet: newVocab
                   });
-                }} className="w-full font-medium text-worksheet-purple mb-2 editable-content" /> : <p className="font-medium text-worksheet-purple text-left py-2 pt-1 pb-3">{item.term}</p>}
+                }} className="w-full font-medium text-worksheet-purple mb-2 editable-content" /> : <p className="font-medium text-worksheet-purple text-left py-2 pt-0 pb-4">{item.term}</p>}
                     {viewMode === 'teacher' ? isEditing ? <input type="text" value={item.meaning} onChange={e => {
                   const newVocab = [...editableWorksheet.vocabulary_sheet];
                   newVocab[vIndex].meaning = e.target.value;
@@ -638,9 +638,9 @@ export default function WorksheetDisplay({
             </div>
           </div>
 
-          <div className="bg-blue-200 rounded-lg p-6 mb-6 border border-blue-300">
-            <h3 className="text-xl font-semibold text-center text-blue-800 mb-2">How would you rate this worksheet?</h3>
-            <p className="text-center text-blue-600 mb-4">Your feedback helps us improve our worksheet generator</p>
+          <div className="rounded-lg p-6 mb-6 border border-zinc-200 bg-gray-50">
+            <h3 className="text-xl font-semibold text-center mb-2 text-zinc-800">How would you rate this worksheet?</h3>
+            <p className="text-center mb-4 text-zinc-800">Your feedback helps us improve our worksheet generator</p>
             
             <div className="flex justify-center space-x-2 mb-4">
               {[1, 2, 3, 4, 5].map(star => <button key={star} onClick={() => {
@@ -652,8 +652,8 @@ export default function WorksheetDisplay({
             </div>
           </div>
 
-          <div className="bg-blue-100 border border-blue-200 rounded-lg p-4 mb-6">
-            <h3 className="font-medium text-blue-800 mb-2">Notes for Teachers</h3>
+          <div className="border border-blue-200 rounded-lg p-4 mb-6 bg-amber-50 ">
+            <h3 className="font-medium mb-2 text-bleu-800">Notes for Teachers</h3>
             <ul className="space-y-2 text-blue-700">
               <li>This worksheet was generated based on your specified parameters.</li>
               <li>Feel free to modify any exercises or vocabulary to better suit your student's level.</li>
