@@ -1,12 +1,9 @@
-
 import { Clock, FileText, Settings, Star } from "lucide-react";
-
 export default function Sidebar() {
-  return (
-    <div className="bg-worksheet-purpleLight p-6 rounded-tr-lg rounded-br-lg h-full">
+  return <div className="bg-worksheet-purpleLight p-6 rounded-tr-lg rounded-br-lg h-full mx-0 py-[24px]">
       <div className="mb-8">
         <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500">English Worksheet Generator</h1>
-        <p className="text-gray-600 text-sm mt-2">Create professional worksheets in minutes instead of hours.</p>
+        <p className="text-gray-600 text-sm mt-2">Create professional worksheets in less than 5 minutes</p>
       </div>
       
       <div className="space-y-8 mt-12">
@@ -50,6 +47,5 @@ export default function Sidebar() {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }
