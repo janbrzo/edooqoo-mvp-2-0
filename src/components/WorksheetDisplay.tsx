@@ -440,12 +440,7 @@ export default function WorksheetDisplay({
                         </div>)}
                     </div>
                     
-                    <div className="md:col-span-1 space-y-2">
-                      <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Answers</h4>
-                      {exercise.items.map((_, iIndex) => <div key={iIndex} className="p-2 border rounded-md bg-white h-10 flex justify-center">
-                          {viewMode === 'teacher' ? <span className="text-green-600 font-medium">{String.fromCharCode(65 + iIndex)}</span> : <span className="text-gray-300">_____</span>}
-                        </div>)}
-                    </div>
+                    
                     
                     <div className="md:col-span-6 space-y-2">
                       <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Definitions</h4>
