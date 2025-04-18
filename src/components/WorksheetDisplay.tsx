@@ -4,7 +4,7 @@ import { ArrowLeft, Clock, Database, Download, Edit, Eye, Star, Zap, FileText, I
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { generatePDF } from "@/utils/pdfUtils";
+import { generatePDF, exportAsHTML } from "@/utils/pdfUtils";
 import { useToast } from "@/hooks/use-toast";
 interface Exercise {
   type: string;
@@ -64,6 +64,10 @@ export default function WorksheetDisplay({
     }
     return newArray;
   };
+
+  const getMatchedItems = (items: any[]) => {
+    return viewMode === 'teacher' ? items : shuffleArray([...items]);
+  };
   const handleEdit = () => {
     setIsEditing(true);
   };
@@ -81,7 +85,7 @@ export default function WorksheetDisplay({
         description: "Your worksheet is being converted to PDF..."
       });
       try {
-        const result = await generatePDF('worksheet-content', `${editableWorksheet.title.replace(/\s+/g, '_')}.pdf`);
+        const result = await generatePDF('worksheet-content', `${editableWorksheet.title.replace(/\s+/g, '_')}.pdf`, viewMode === 'teacher', editableWorksheet.title);
         if (result) {
           toast({
             title: "PDF Downloaded",
@@ -100,6 +104,34 @@ export default function WorksheetDisplay({
           title: "PDF Generation Failed",
           description: "There was an error generating your PDF. Please try again.",
           variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const handleDownloadHTML = async () => {
+    if (worksheetRef.current) {
+      toast({
+        title: "Preparing HTML",
+        description: "Your worksheet is being converted to HTML...",
+        className: "modern-toast bg-white shadow-lg rounded-xl border-l-4 border-l-worksheet-purple"
+      });
+      try {
+        const result = await exportAsHTML('worksheet-content', `${editableWorksheet.title.replace(/\s+/g, '_')}.html`, editableWorksheet.title);
+        if (result) {
+          toast({
+            title: "HTML Downloaded",
+            description: "Your worksheet has been downloaded successfully.",
+            className: "modern-toast bg-white shadow-lg rounded-xl border-l-4 border-l-green-500"
+          });
+        }
+      } catch (error) {
+        console.error('HTML generation error:', error);
+        toast({
+          title: "HTML Generation Failed",
+          description: "There was an error generating your HTML. Please try again.",
+          variant: "destructive",
+          className: "modern-toast bg-white shadow-lg rounded-xl border-l-4 border-l-red-500"
         });
       }
     }
@@ -360,6 +392,9 @@ export default function WorksheetDisplay({
                   Save Changes
                 </Button>}
               
+              <Button onClick={handleDownloadHTML} className="bg-worksheet-purple hover:bg-worksheet-purpleDark mr-2" size="sm">
+                <Download className="mr-2 h-4 w-4" /> Download HTML
+              </Button>
               <Button onClick={handleDownloadPDF} className="bg-worksheet-purple hover:bg-worksheet-purpleDark" size="sm">
                 <Download className="mr-2 h-4 w-4" /> Download PDF
               </Button>
@@ -444,7 +479,7 @@ export default function WorksheetDisplay({
                     
                     <div className="md:col-span-6 space-y-2">
                       <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Definitions</h4>
-                      {shuffleArray([...exercise.items]).map((item, iIndex) => <div key={iIndex} className="p-2 border rounded-md bg-white">
+                      {getMatchedItems(exercise.items).map((item, iIndex) => <div key={iIndex} className="p-2 border rounded-md bg-white">
                           <span className="text-worksheet-purple font-medium mr-2">{String.fromCharCode(65 + iIndex)}.</span> 
                           {isEditing ? <input type="text" value={item.definition} onChange={e => {
                     const originalIndex = exercise.items.findIndex(i => i.term === item.term);
@@ -590,99 +625,40 @@ export default function WorksheetDisplay({
                       </div>)}
                   </div>}
                 
-                {viewMode === 'teacher' && <div className="mt-5 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                    <p className="font-medium text-amber-800">Teacher Tip:</p>
-                    <p className="text-amber-700 leading-snug">
-                      {isEditing ? <textarea value={exercise.teacher_tip} onChange={e => handleTeacherTipChange(index, e.target.value)} className="w-full h-16 border p-1 editable-content" /> : exercise.teacher_tip}
-                    </p>
+                {exercise.type === 'error-correction' && exercise.sentences && <div>
+                    <div className="space-y-0.5">
+                      {exercise.sentences.map((sentence, sIndex) => <div key={sIndex} className="border-b pb-1">
+                          <div className="flex flex-row items-start">
+                            <div className="flex-grow">
+                              <p className="leading-snug">
+                                {isEditing ? <input type="text" value={sentence.text} onChange={e => handleSentenceChange(index, sIndex, 'text', e.target.value)} className="w-full border p-1 editable-content" /> : <>{sIndex + 1}. {sentence.text}</>}
+                              </p>
+                            </div>
+                            {viewMode === 'teacher' && <div className="text-green-600 italic ml-3 text-sm">
+                                {isEditing ? <input type="text" value={sentence.correction} onChange={e => handleSentenceChange(index, sIndex, 'answer', e.target.value)} className="border p-1 editable-content w-full" /> : <span>({sentence.correction})</span>}
+                              </div>}
+                          </div>
+                        </div>)}
+                    </div>
                   </div>}
-              </div>
-            </div>)}
 
-          <div className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
-            <div className="bg-worksheet-purple text-white p-2 flex items-center">
-              <div className="p-2 bg-white/20 rounded-full mr-3">
-                <FileText className="h-4 w-4" />
-              </div>
-              <h3 className="text-lg font-semibold">Vocabulary Sheet</h3>
-            </div>
-            
-            <div className="p-5">
-              <p className="mb-4 italic">Fill in the definitions for these key vocabulary items from the lesson.</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {editableWorksheet.vocabulary_sheet.map((item, vIndex) => <div key={vIndex} className="border rounded-md p-3 py-[5px]">
-                    {isEditing ? <input type="text" value={item.term} onChange={e => {
-                  const newVocab = [...editableWorksheet.vocabulary_sheet];
-                  newVocab[vIndex].term = e.target.value;
-                  setEditableWorksheet({
-                    ...editableWorksheet,
-                    vocabulary_sheet: newVocab
-                  });
-                }} className="w-full font-medium text-worksheet-purple mb-2 editable-content" /> : <p className="font-medium text-worksheet-purple text-left py-2 pt-0 pb-0">{item.term}</p>}
-                    {viewMode === 'teacher' ? isEditing ? <input type="text" value={item.meaning} onChange={e => {
-                  const newVocab = [...editableWorksheet.vocabulary_sheet];
-                  newVocab[vIndex].meaning = e.target.value;
-                  setEditableWorksheet({
-                    ...editableWorksheet,
-                    vocabulary_sheet: newVocab
-                  });
-                }} className="w-full text-sm text-gray-600 editable-content" /> : <p className="text-sm text-gray-600">{item.meaning}</p> : null}
-                  </div>)}
-              </div>
-            </div>
-          </div>
+                {exercise.type === 'word-formation' && exercise.sentences && <div>
+                    <div className="space-y-0.5">
+                      {exercise.sentences.map((sentence, sIndex) => <div key={sIndex} className="border-b pb-1">
+                          <div className="flex flex-row items-start">
+                            <div className="flex-grow">
+                              <p className="leading-snug">
+                                {isEditing ? <input type="text" value={sentence.text} onChange={e => handleSentenceChange(index, sIndex, 'text', e.target.value)} className="w-full border p-1 editable-content" /> : <>{sIndex + 1}. {sentence.text}</>}
+                              </p>
+                            </div>
+                            {viewMode === 'teacher' && <div className="text-green-600 italic ml-3 text-sm">
+                                {isEditing ? <input type="text" value={sentence.answer} onChange={e => handleSentenceChange(index, sIndex, 'answer', e.target.value)} className="border p-1 editable-content w-full" /> : <span>({sentence.answer})</span>}
+                              </div>}
+                          </div>
+                        </div>)}
+                    </div>
+                  </div>}
 
-          <div className="rounded-lg p-6 mb-6 border border-zinc-200 bg-white py-[25px] px-[24px]">
-            <h3 className="text-xl font-semibold text-center mb-2 text-black">How would you rate this worksheet?</h3>
-            <p className="text-center mb-4 text-zinc-500">Your feedback helps us improve our worksheet generator</p>
-            
-            <div className="flex justify-center space-x-2 mb-4">
-              {[1, 2, 3, 4, 5].map(star => <button key={star} onClick={() => {
-              setRating(star);
-              setRatingDialogOpen(true);
-            }} className="text-3xl text-gray-300 hover:text-yellow-400 transition-colors">
-                  ★
-                </button>)}
-            </div>
-          </div>
-
-          <div className="border border-blue-200 rounded-lg p-4 mb-6 bg-amber-50 ">
-            <h3 className="font-medium mb-2 text-bleu-800">Notes for Teachers</h3>
-            <ul className="space-y-2 text-blue-700">
-              <li>This worksheet was generated based on your specified parameters.</li>
-              <li>Feel free to modify any exercises or vocabulary to better suit your student's level.</li>
-              <li>Consider verifying industry-specific terminology for accuracy before use.</li>
-              <li>You can rearrange exercises or adjust timing as needed for your teaching style.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <Dialog open={ratingDialogOpen} onOpenChange={setRatingDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogTitle>Your feedback is important!</DialogTitle>
-          <DialogDescription>
-            What did you think about this worksheet? (optional)
-          </DialogDescription>
-          
-          <div className="flex justify-center space-x-2 my-4">
-            {[1, 2, 3, 4, 5].map(star => <button key={star} onClick={() => setRating(star)} className={`text-3xl ${star <= rating ? 'text-yellow-400' : 'text-gray-300'} transition-colors`}>
-                ★
-              </button>)}
-          </div>
-          
-          <Textarea placeholder="Your feedback helps us improve our worksheet generator" value={feedback} onChange={e => setFeedback(e.target.value)} className="h-32" />
-          
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button onClick={handleSubmitRating} className="bg-worksheet-purple hover:bg-worksheet-purpleDark">
-              Submit Feedback
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>;
-}
+                {exercise.type === 'word-order' && exercise.sentences && <div>
+                    <div className="space-y-0.5">
+                      {exercise.sentences.map((sentence,

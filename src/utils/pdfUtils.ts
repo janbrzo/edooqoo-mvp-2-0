@@ -1,4 +1,3 @@
-
 import html2pdf from 'html2pdf.js';
 
 const getCurrentDate = (): string => {
@@ -9,7 +8,6 @@ const getCurrentDate = (): string => {
   return `${year}-${month}-${day}`;
 };
 
-// Extract keywords from title for filename
 const extractKeywords = (title: string): string => {
   const words = title.split(' ')
     .filter(word => word.length > 3) // Filter out short words
@@ -25,17 +23,14 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     throw new Error('Element not found');
   }
   
-  // Generate a descriptive filename with keywords
   const datePart = getCurrentDate();
   const viewPart = isTeacherView ? 'Teacher' : 'Student';
   const keywords = extractKeywords(title);
   
   const finalFilename = `${datePart}-${viewPart}-worksheet-${keywords}.pdf`;
   
-  // Clone the element to avoid modifying the original
   const clonedElement = element.cloneNode(true) as HTMLElement;
   
-  // Remove any edit buttons, contenteditable attributes, etc.
   const buttons = clonedElement.querySelectorAll('button');
   buttons.forEach(button => button.remove());
   
@@ -44,28 +39,24 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     (el as HTMLElement).removeAttribute('contenteditable');
   });
   
-  // Remove elements that shouldn't be in the PDF
   const elementsToRemove = clonedElement.querySelectorAll('.rating-section, .teacher-notes');
   elementsToRemove.forEach(section => section.remove());
   
-  // Apply PDF-specific styling
   clonedElement.style.width = '100%';
   clonedElement.style.padding = '20px';
   clonedElement.style.boxSizing = 'border-box';
   
-  // Fix exercise headers in PDF
   const exerciseHeaders = clonedElement.querySelectorAll('.exercise-header');
   exerciseHeaders.forEach(header => {
     const headerEl = header as HTMLElement;
     headerEl.style.display = 'flex';
     headerEl.style.alignItems = 'center';
-    headerEl.style.height = '60px';
-    headerEl.style.minHeight = '60px';
-    headerEl.style.maxHeight = '60px';
-    headerEl.style.overflow = 'hidden';
+    headerEl.style.height = '48px';
+    headerEl.style.maxHeight = '48px';
+    headerEl.style.minHeight = '48px';
+    headerEl.style.overflow = 'visible';
   });
   
-  // Fix vocabulary matching layout (remove middle column for answers)
   const vocabMatching = clonedElement.querySelectorAll('.vocabulary-matching-container');
   vocabMatching.forEach(container => {
     const containerEl = container as HTMLElement;
@@ -74,12 +65,10 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     containerEl.style.gap = '20px';
     containerEl.style.width = '100%';
     
-    // Remove the middle 'answers' column if it exists
     const answerColumns = containerEl.querySelectorAll('.answer-column');
     answerColumns.forEach(col => col.remove());
   });
   
-  // Fix word bank styling
   const wordBanks = clonedElement.querySelectorAll('.word-bank-container');
   wordBanks.forEach(bank => {
     const bankEl = bank as HTMLElement;
@@ -89,15 +78,14 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     bankEl.style.padding = '15px';
   });
   
-  // Fix blank spaces in Fill in the Blanks
   const blanks = clonedElement.querySelectorAll('.fill-blank');
   blanks.forEach(blank => {
     const blankEl = blank as HTMLElement;
-    blankEl.style.minWidth = '150px';
+    blankEl.style.minWidth = '200px';
     blankEl.style.display = 'inline-block';
+    blankEl.style.borderBottom = '1px solid #000';
   });
   
-  // Fix multiple choice checkmarks
   const mcOptions = clonedElement.querySelectorAll('.multiple-choice-option');
   mcOptions.forEach(option => {
     const optionEl = option as HTMLElement;
@@ -116,13 +104,11 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     iconEl.style.height = '24px';
   });
   
-  // Prevent page breaks inside elements
   const avoidBreakElements = clonedElement.querySelectorAll('.exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section');
   avoidBreakElements.forEach(el => {
     (el as HTMLElement).style.pageBreakInside = 'avoid';
   });
   
-  // Convert checkboxes to text if needed
   const checkboxes = clonedElement.querySelectorAll('input[type="checkbox"]');
   checkboxes.forEach(checkbox => {
     const span = document.createElement('span');
@@ -130,35 +116,29 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     checkbox.parentNode?.replaceChild(span, checkbox);
   });
   
-  // Add CSS for PDF printing
   const style = document.createElement('style');
   style.textContent = `
     @media print {
       .exercise-header {
         display: flex !important;
         align-items: center !important;
-        height: 60px !important;
-        max-height: 60px !important;
+        height: 48px !important;
+        max-height: 48px !important;
+        min-height: 48px !important;
         overflow: visible !important;
       }
       
-      .vocabulary-matching-container {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
-        width: 100% !important;
-        gap: 20px !important;
+      .fill-blank {
+        min-width: 200px !important;
+        display: inline-block !important;
+        border-bottom: 1px solid #000 !important;
       }
       
       .word-bank-container {
         display: flex !important;
         align-items: center !important;
-        justifyContent: center !important;
+        justify-content: center !important;
         padding: 15px !important;
-      }
-      
-      .fill-blank {
-        min-width: 150px !important;
-        display: inline-block !important;
       }
       
       .multiple-choice-option {
@@ -175,18 +155,17 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
         height: 24px !important;
       }
       
-      .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section {
-        page-break-inside: avoid !important;
-      }
-      
       .rating-section, .teacher-notes {
         display: none !important;
+      }
+      
+      .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section {
+        page-break-inside: avoid !important;
       }
     }
   `;
   clonedElement.appendChild(style);
   
-  // Configure pdf options
   const options = {
     margin: [15, 15, 15, 15],
     filename: finalFilename,
@@ -195,7 +174,6 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
   
-  // Generate and download PDF
   try {
     await html2pdf().from(clonedElement).set(options).save();
     return true;
@@ -212,14 +190,11 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
     throw new Error('Element not found');
   }
   
-  // Generate a descriptive filename
   const datePart = getCurrentDate();
   const keywords = extractKeywords(title);
   
-  // Clone the element to avoid modifying the original
   const clonedElement = element.cloneNode(true) as HTMLElement;
   
-  // Remove any edit buttons, contenteditable attributes, etc.
   const buttons = clonedElement.querySelectorAll('button');
   buttons.forEach(button => button.remove());
   
@@ -228,7 +203,6 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
     (el as HTMLElement).removeAttribute('contenteditable');
   });
   
-  // Create full HTML document
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
@@ -254,7 +228,7 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
           justify-content: space-between;
           border-radius: 5px;
           margin-bottom: 15px;
-          height: 60px;
+          height: 48px;
         }
         .exercise-content {
           margin-bottom: 30px;
@@ -274,8 +248,8 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
         }
         .fill-blank {
           display: inline-block;
-          min-width: 150px;
-          border-bottom: 1px solid #333;
+          min-width: 200px;
+          border-bottom: 1px solid #000;
           text-align: center;
         }
         .multiple-choice-option {
@@ -295,7 +269,6 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
     </html>
   `;
   
-  // Create a download link
   const blob = new Blob([htmlContent], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
