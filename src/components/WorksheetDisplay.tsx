@@ -611,7 +611,7 @@ export default function WorksheetDisplay({
               <p className="mb-4 italic">Fill in the definitions for these key vocabulary items from the lesson.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {editableWorksheet.vocabulary_sheet.map((item, vIndex) => <div key={vIndex} className="border rounded-md p-3 py-[20px]">
+                {editableWorksheet.vocabulary_sheet.map((item, vIndex) => <div key={vIndex} className="border rounded-md p-3 py-[5px]">
                     {isEditing ? <input type="text" value={item.term} onChange={e => {
                   const newVocab = [...editableWorksheet.vocabulary_sheet];
                   newVocab[vIndex].term = e.target.value;
@@ -619,7 +619,7 @@ export default function WorksheetDisplay({
                     ...editableWorksheet,
                     vocabulary_sheet: newVocab
                   });
-                }} className="w-full font-medium text-worksheet-purple mb-2 editable-content" /> : <p className="font-medium text-worksheet-purple text-left py-2 pt-0 pb-4">{item.term}</p>}
+                }} className="w-full font-medium text-worksheet-purple mb-2 editable-content" /> : <p className="font-medium text-worksheet-purple text-left py-2 pt-0 pb-0">{item.term}</p>}
                     {viewMode === 'teacher' ? isEditing ? <input type="text" value={item.meaning} onChange={e => {
                   const newVocab = [...editableWorksheet.vocabulary_sheet];
                   newVocab[vIndex].meaning = e.target.value;
