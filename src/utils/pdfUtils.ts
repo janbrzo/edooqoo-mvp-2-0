@@ -9,6 +9,15 @@ const getCurrentDate = (): string => {
   return `${year}-${month}-${day}`;
 };
 
+// Extract keywords from title for filename
+const extractKeywords = (title: string): string => {
+  const words = title.split(' ')
+    .filter(word => word.length > 3) // Filter out short words
+    .slice(0, 3); // Take first 3 significant words
+  
+  return words.join('-').toLowerCase().replace(/[^a-z0-9-]/g, '');
+};
+
 export const generatePDF = async (elementId: string, filename: string = 'worksheet.pdf', isTeacherView: boolean = true, title: string = 'worksheet') => {
   const element = document.getElementById(elementId);
   
@@ -16,15 +25,12 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     throw new Error('Element not found');
   }
   
-  // Generate a descriptive filename
+  // Generate a descriptive filename with keywords
   const datePart = getCurrentDate();
   const viewPart = isTeacherView ? 'Teacher' : 'Student';
+  const keywords = extractKeywords(title);
   
-  // Take first 3-5 words from title
-  const titleWords = title.split(' ');
-  const shortTitle = titleWords.slice(0, Math.min(5, titleWords.length)).join('-').toLowerCase();
-  
-  const finalFilename = `${datePart}-${viewPart}-${shortTitle}.pdf`;
+  const finalFilename = `${datePart}-${viewPart}-worksheet-${keywords}.pdf`;
   
   // Clone the element to avoid modifying the original
   const clonedElement = element.cloneNode(true) as HTMLElement;
@@ -39,8 +45,8 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
   });
   
   // Remove elements that shouldn't be in the PDF
-  const ratingSections = clonedElement.querySelectorAll('.rating-section, .teacher-notes');
-  ratingSections.forEach(section => section.remove());
+  const elementsToRemove = clonedElement.querySelectorAll('.rating-section, .teacher-notes');
+  elementsToRemove.forEach(section => section.remove());
   
   // Apply PDF-specific styling
   clonedElement.style.width = '100%';
@@ -54,17 +60,23 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     headerEl.style.display = 'flex';
     headerEl.style.alignItems = 'center';
     headerEl.style.height = '60px';
+    headerEl.style.minHeight = '60px';
     headerEl.style.maxHeight = '60px';
+    headerEl.style.overflow = 'hidden';
   });
   
-  // Fix vocabulary matching layout
+  // Fix vocabulary matching layout (remove middle column for answers)
   const vocabMatching = clonedElement.querySelectorAll('.vocabulary-matching-container');
   vocabMatching.forEach(container => {
     const containerEl = container as HTMLElement;
     containerEl.style.display = 'grid';
-    containerEl.style.gridTemplateColumns = '1fr 0.5fr 1fr';
-    containerEl.style.gap = '10px';
+    containerEl.style.gridTemplateColumns = '1fr 1fr';
+    containerEl.style.gap = '20px';
     containerEl.style.width = '100%';
+    
+    // Remove the middle 'answers' column if it exists
+    const answerColumns = containerEl.querySelectorAll('.answer-column');
+    answerColumns.forEach(col => col.remove());
   });
   
   // Fix word bank styling
@@ -73,6 +85,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     const bankEl = bank as HTMLElement;
     bankEl.style.display = 'flex';
     bankEl.style.alignItems = 'center';
+    bankEl.style.justifyContent = 'center';
     bankEl.style.padding = '15px';
   });
   
@@ -80,11 +93,19 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
   const blanks = clonedElement.querySelectorAll('.fill-blank');
   blanks.forEach(blank => {
     const blankEl = blank as HTMLElement;
-    blankEl.style.minWidth = '100px';
+    blankEl.style.minWidth = '150px';
     blankEl.style.display = 'inline-block';
   });
   
   // Fix multiple choice checkmarks
+  const mcOptions = clonedElement.querySelectorAll('.multiple-choice-option');
+  mcOptions.forEach(option => {
+    const optionEl = option as HTMLElement;
+    optionEl.style.display = 'flex';
+    optionEl.style.alignItems = 'center';
+    optionEl.style.gap = '10px';
+  });
+  
   const checkmarks = clonedElement.querySelectorAll('.option-icon');
   checkmarks.forEach(icon => {
     const iconEl = icon as HTMLElement;
@@ -123,20 +144,27 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
       
       .vocabulary-matching-container {
         display: grid !important;
-        grid-template-columns: 1fr 0.5fr 1fr !important;
+        grid-template-columns: 1fr 1fr !important;
         width: 100% !important;
-        gap: 10px !important;
+        gap: 20px !important;
       }
       
       .word-bank-container {
         display: flex !important;
         align-items: center !important;
+        justifyContent: center !important;
         padding: 15px !important;
       }
       
       .fill-blank {
-        min-width: 100px !important;
+        min-width: 150px !important;
         display: inline-block !important;
+      }
+      
+      .multiple-choice-option {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
       }
       
       .option-icon {
@@ -149,6 +177,10 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
       
       .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section {
         page-break-inside: avoid !important;
+      }
+      
+      .rating-section, .teacher-notes {
+        display: none !important;
       }
     }
   `;
@@ -173,7 +205,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
   }
 };
 
-export const exportAsHTML = (elementId: string, filename: string = 'worksheet.html') => {
+export const exportAsHTML = (elementId: string, filename: string = 'worksheet.html', title: string = 'worksheet') => {
   const element = document.getElementById(elementId);
   
   if (!element) {
@@ -182,6 +214,7 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
   
   // Generate a descriptive filename
   const datePart = getCurrentDate();
+  const keywords = extractKeywords(title);
   
   // Clone the element to avoid modifying the original
   const clonedElement = element.cloneNode(true) as HTMLElement;
@@ -202,7 +235,7 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>English Worksheet</title>
+      <title>English Worksheet - ${title}</title>
       <style>
         body {
           font-family: Arial, sans-serif;
@@ -221,29 +254,38 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
           justify-content: space-between;
           border-radius: 5px;
           margin-bottom: 15px;
+          height: 60px;
         }
         .exercise-content {
           margin-bottom: 30px;
         }
         .vocabulary-matching-container {
           display: grid;
-          grid-template-columns: 1fr 0.5fr 1fr;
-          gap: 10px;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
         }
         .word-bank-container {
           background-color: #f5f5f5;
           padding: 15px;
           border-radius: 5px;
           margin-bottom: 15px;
+          display: flex;
+          align-items: center;
         }
         .fill-blank {
           display: inline-block;
-          min-width: 100px;
+          min-width: 150px;
           border-bottom: 1px solid #333;
           text-align: center;
         }
         .multiple-choice-option {
           margin-bottom: 10px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section {
+          page-break-inside: avoid;
         }
       </style>
     </head>
@@ -258,7 +300,7 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${datePart}-worksheet.html`;
+  a.download = `${datePart}-worksheet-${keywords}.html`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

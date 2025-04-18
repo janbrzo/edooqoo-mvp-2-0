@@ -67,17 +67,17 @@ export default function GeneratingModal({ isOpen }: GeneratingModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white p-8 rounded-lg shadow-xl w-[450px] space-y-6">
-        <h2 className="text-2xl font-semibold text-center text-worksheet-purple">Generating Your Worksheet</h2>
+        <h2 className="text-2xl font-semibold text-center bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 bg-clip-text text-transparent">Generating Your Worksheet</h2>
         <Progress 
           value={progress} 
-          className="h-2 bg-gray-200"
-          indicatorClassName="bg-gradient-to-r from-worksheet-purple to-violet-400"
+          className="h-3 bg-gray-200"
+          indicatorClassName="bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500"
         />
         <div className="flex justify-between items-center text-sm text-gray-500">
           <span>Time: {formatTime(elapsedTime)}</span>
           <span>{progress}%</span>
         </div>
-        <p className="text-center text-gray-600 min-h-[24px]">{generationSteps[currentStep]}</p>
+        <p className="text-center text-gray-600 min-h-[24px] animate-pulse">{generationSteps[currentStep]}</p>
       </div>
     </div>
   );

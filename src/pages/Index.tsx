@@ -1,5 +1,5 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ArrowUp } from "lucide-react";
 import WorksheetForm, { FormData } from "@/components/WorksheetForm";
 import Sidebar from "@/components/Sidebar";
 import GeneratingModal from "@/components/GeneratingModal";
@@ -189,7 +189,6 @@ const mockWorksheetData = {
       ],
       teacher_tip: "Encourage your student to provide specific examples and detailed explanations. This exercise works well as a warm-up or conclusion to the lesson."
     },
-    // Additional exercises for 60-minute lessons
     {
       type: "error-correction",
       title: "Exercise 7: Error Correction",
@@ -204,7 +203,9 @@ const mockWorksheetData = {
         { text: "The manager which I spoke to was very helpful.", correction: "The manager who/that I spoke to was very helpful." },
         { text: "We need to improve our communication skills everyday.", correction: "We need to improve our communication skills every day." },
         { text: "She's working in this company since 2015.", correction: "She's been working in this company since 2015." },
-        { text: "If I would have known about the issue, I would have fixed it.", correction: "If I had known about the issue, I would have fixed it." }
+        { text: "If I would have known about the issue, I would have fixed it.", correction: "If I had known about the issue, I would have fixed it." },
+        { text: "The documents needs to be signed by all parties.", correction: "The documents need to be signed by all parties." },
+        { text: "Neither of the proposals were accepted by the client.", correction: "Neither of the proposals was accepted by the client." }
       ],
       teacher_tip: "Ask your student to explain the grammar rule that was broken in each sentence. This helps reinforce their understanding of English grammar in a business context."
     },
@@ -266,6 +267,14 @@ const mockWorksheetData = {
         { 
           words: ["they", "for", "have", "been", "waiting", "response", "a", "still", "are"],
           answer: "They are still waiting for a response."
+        },
+        { 
+          words: ["service", "quality", "to", "training", "is", "essential", "good"],
+          answer: "Training is essential to good service quality."
+        },
+        { 
+          words: ["feedback", "customers", "from", "helps", "improve", "services", "our"],
+          answer: "Feedback from customers helps improve our services."
         }
       ],
       teacher_tip: "This exercise helps students practice English word order, which can be particularly challenging for non-native speakers. Review basic sentence structure patterns like Subject-Verb-Object and the correct placement of adverbs."
@@ -296,7 +305,7 @@ const getExercisesByTime = (exercises: any[], lessonTime: string) => {
   } else if (lessonTime === "45 min") {
     return exercises.slice(0, 6); // First 6 exercises for 45 min
   } else if (lessonTime === "60 min") {
-    return exercises.slice(0, 8); // First 8 exercises for 60 min
+    return exercises.slice(0, 9); // First 9 exercises for 60 min (all exercises)
   }
   return exercises.slice(0, 6); // Default to 6 exercises
 };
@@ -319,6 +328,24 @@ export default function Index() {
   
   const [generationTime, setGenerationTime] = useState(0);
   const [sourceCount, setSourceCount] = useState(0);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Handle scroll to top button visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
   const handleFormSubmit = (data: FormData) => {
     setInputParams(data);
@@ -342,8 +369,14 @@ export default function Index() {
       // Shuffle matching exercise terms and definitions
       worksheetCopy.exercises.forEach((exercise: any) => {
         if (exercise.type === "matching" && exercise.items) {
-          // Shuffle both terms and definitions
-          exercise.shuffledItems = shuffleArray(exercise.items);
+          // Create shuffled arrays for both terms and definitions
+          const shuffledTerms = shuffleArray([...exercise.items]);
+          const shuffledDefs = shuffleArray([...exercise.items]);
+          
+          // Store original items and the shuffled versions
+          exercise.originalItems = [...exercise.items];
+          exercise.shuffledTerms = shuffledTerms;
+          exercise.shuffledDefinitions = shuffledDefs;
         }
       });
       
@@ -352,7 +385,7 @@ export default function Index() {
       toast({
         title: "Worksheet generated successfully!",
         description: "Your custom worksheet is now ready to use.",
-        className: "bg-white border border-green-200 text-green-800 shadow-lg"
+        className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
       });
     }, 5000);
   };
@@ -365,20 +398,33 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-gray-100">
       {!generatedWorksheet ? (
-        <div className="container mx-auto flex">
+        <div className="container mx-auto flex main-container">
           <Sidebar />
-          <div className="flex-1 px-6 py-6">
+          <div className="flex-1 px-6 py-6 form-container">
+            <h1 className="text-3xl font-bold mb-6 rainbow-gradient-text">Create Your Worksheet</h1>
             <WorksheetForm onSubmit={handleFormSubmit} />
           </div>
         </div>
       ) : (
-        <WorksheetDisplay 
-          worksheet={generatedWorksheet} 
-          inputParams={inputParams} 
-          generationTime={generationTime}
-          sourceCount={sourceCount}
-          onBack={handleBack}
-        />
+        <>
+          <WorksheetDisplay 
+            worksheet={generatedWorksheet} 
+            inputParams={inputParams} 
+            generationTime={generationTime}
+            sourceCount={sourceCount}
+            onBack={handleBack}
+          />
+          
+          {showScrollTop && (
+            <button 
+              onClick={scrollToTop} 
+              className="scroll-to-top-button"
+              aria-label="Scroll to top"
+            >
+              <ArrowUp size={24} />
+            </button>
+          )}
+        </>
       )}
       
       <GeneratingModal isOpen={isGenerating} />
