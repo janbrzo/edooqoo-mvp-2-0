@@ -633,9 +633,9 @@ export default function WorksheetDisplay({
             </div>
           </div>
 
-          <div className="rounded-lg p-6 mb-6 border border-zinc-200 bg-gray-50">
-            <h3 className="text-xl font-semibold text-center mb-2 text-zinc-800">How would you rate this worksheet?</h3>
-            <p className="text-center mb-4 text-zinc-800">Your feedback helps us improve our worksheet generator</p>
+          <div className="rounded-lg p-6 mb-6 border border-zinc-200 bg-white py-[25px] px-[24px]">
+            <h3 className="text-xl font-semibold text-center mb-2 text-black">How would you rate this worksheet?</h3>
+            <p className="text-center mb-4 text-zinc-500">Your feedback helps us improve our worksheet generator</p>
             
             <div className="flex justify-center space-x-2 mb-4">
               {[1, 2, 3, 4, 5].map(star => <button key={star} onClick={() => {
