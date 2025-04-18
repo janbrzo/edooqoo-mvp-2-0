@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -154,9 +155,9 @@
   @apply bg-white border border-gray-200 rounded-lg p-4 shadow-sm my-4;
 }
 
-/* Toast styling */
-.custom-toast {
-  @apply bg-white border shadow-lg rounded-lg overflow-hidden transform transition-all;
+/* Modern toast styling */
+.modern-toast {
+  @apply bg-white border shadow-lg rounded-xl overflow-hidden transform transition-all;
   animation: toast-enter 0.3s ease-out;
 }
 
@@ -226,7 +227,7 @@
 
 /* Rating section styling */
 .rating-section, .teacher-notes {
-  @apply bg-white border border-gray-200 rounded-lg p-4 shadow-sm my-4;
+  @apply bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm my-4;
 }
 
 /* Exercise header for PDF */

@@ -1,3 +1,4 @@
+
 import html2pdf from 'html2pdf.js';
 
 const getCurrentDate = (): string => {
@@ -51,9 +52,9 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     const headerEl = header as HTMLElement;
     headerEl.style.display = 'flex';
     headerEl.style.alignItems = 'center';
-    headerEl.style.height = '48px';
-    headerEl.style.maxHeight = '48px';
-    headerEl.style.minHeight = '48px';
+    headerEl.style.height = '60px';
+    headerEl.style.maxHeight = '60px';
+    headerEl.style.minHeight = '60px';
     headerEl.style.overflow = 'visible';
   });
   
@@ -122,9 +123,9 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
       .exercise-header {
         display: flex !important;
         align-items: center !important;
-        height: 48px !important;
-        max-height: 48px !important;
-        min-height: 48px !important;
+        height: 60px !important;
+        max-height: 60px !important;
+        min-height: 60px !important;
         overflow: visible !important;
       }
       
