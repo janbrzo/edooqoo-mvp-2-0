@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock, Database, Download, Edit, Eye, Star, Zap, FileText, Info, Lightbulb, Pencil, User, UserCog, ArrowUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,14 +70,14 @@ export default function WorksheetDisplay({
   };
   
   // Handle scroll event to show/hide scroll to top button
-  useState(() => {
+  useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 300);
     };
     
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  });
+  }, []);
   
   const shuffleArray = (array: any[]) => {
     const newArray = [...array];
@@ -839,3 +840,318 @@ export default function WorksheetDisplay({
                           ))}
                         </div>
                       </div>
+                    )}
+                  </div>
+                )}
+                
+                {exercise.type === 'discussion' && exercise.questions && (
+                  <div className="space-y-0.5">
+                    {exercise.questions.map((question, qIndex) => (
+                      <div key={qIndex} className="p-1 border-b">
+                        <p className="leading-snug">
+                          {isEditing ? (
+                            <input 
+                              type="text" 
+                              value={question} 
+                              onChange={e => {
+                                const updatedExercises = [...editableWorksheet.exercises];
+                                const newQuestions = [...exercise.questions!];
+                                newQuestions[qIndex] = e.target.value;
+                                updatedExercises[index] = {
+                                  ...updatedExercises[index],
+                                  questions: newQuestions
+                                };
+                                setEditableWorksheet({
+                                  ...editableWorksheet,
+                                  exercises: updatedExercises
+                                });
+                              }} 
+                              className="w-full border p-1 editable-content" 
+                            />
+                          ) : (
+                            <>{qIndex + 1}. {question}</>
+                          )}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {exercise.type === 'error-correction' && exercise.sentences && (
+                  <div>
+                    <div className="space-y-0.5">
+                      {exercise.sentences.map((sentence, sIndex) => (
+                        <div key={sIndex} className="border-b pb-1">
+                          <div className="flex flex-row items-start">
+                            <div className="flex-grow">
+                              <p className="leading-snug">
+                                {isEditing ? (
+                                  <input 
+                                    type="text" 
+                                    value={sentence.text} 
+                                    onChange={e => handleSentenceChange(index, sIndex, 'text', e.target.value)} 
+                                    className="w-full border p-1 editable-content" 
+                                  />
+                                ) : (
+                                  <>{sIndex + 1}. {sentence.text}</>
+                                )}
+                              </p>
+                            </div>
+                            {viewMode === 'teacher' && (
+                              <div className="text-green-600 italic ml-3 text-sm">
+                                {isEditing ? (
+                                  <input 
+                                    type="text" 
+                                    value={sentence.correction} 
+                                    onChange={e => handleSentenceChange(index, sIndex, 'correction', e.target.value)} 
+                                    className="border p-1 editable-content w-full" 
+                                  />
+                                ) : (
+                                  <span>({sentence.correction})</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {exercise.type === 'word-formation' && exercise.sentences && (
+                  <div>
+                    <div className="space-y-0.5">
+                      {exercise.sentences.map((sentence, sIndex) => (
+                        <div key={sIndex} className="border-b pb-1">
+                          <div className="flex flex-row items-start">
+                            <div className="flex-grow">
+                              <p className="leading-snug">
+                                {isEditing ? (
+                                  <input 
+                                    type="text" 
+                                    value={sentence.text} 
+                                    onChange={e => handleSentenceChange(index, sIndex, 'text', e.target.value)} 
+                                    className="w-full border p-1 editable-content" 
+                                  />
+                                ) : (
+                                  <>{sIndex + 1}. {sentence.text}</>
+                                )}
+                              </p>
+                            </div>
+                            {viewMode === 'teacher' && (
+                              <div className="text-green-600 italic ml-3 text-sm">
+                                {isEditing ? (
+                                  <input 
+                                    type="text" 
+                                    value={sentence.answer} 
+                                    onChange={e => handleSentenceChange(index, sIndex, 'answer', e.target.value)} 
+                                    className="border p-1 editable-content w-full" 
+                                  />
+                                ) : (
+                                  <span>({sentence.answer})</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {exercise.type === 'word-order' && exercise.sentences && (
+                  <div>
+                    <div className="space-y-0.5">
+                      {exercise.sentences.map((sentence, sIndex) => (
+                        <div key={sIndex} className="border-b pb-1">
+                          <div className="flex flex-row items-start">
+                            <div className="flex-grow">
+                              <p className="leading-snug">
+                                {isEditing ? (
+                                  <input 
+                                    type="text" 
+                                    value={sentence.text} 
+                                    onChange={e => handleSentenceChange(index, sIndex, 'text', e.target.value)} 
+                                    className="w-full border p-1 editable-content" 
+                                  />
+                                ) : (
+                                  <>{sIndex + 1}. {sentence.text}</>
+                                )}
+                              </p>
+                            </div>
+                            {viewMode === 'teacher' && (
+                              <div className="text-green-600 italic ml-3 text-sm">
+                                {isEditing ? (
+                                  <input 
+                                    type="text" 
+                                    value={sentence.answer} 
+                                    onChange={e => handleSentenceChange(index, sIndex, 'answer', e.target.value)} 
+                                    className="border p-1 editable-content w-full" 
+                                  />
+                                ) : (
+                                  <span>({sentence.answer})</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {viewMode === 'teacher' && (
+                  <div className="mt-4 p-3 bg-gray-50 border-l-4 border-gray-300 rounded-md teacher-notes">
+                    <p className="font-medium mb-1 text-gray-700">Teacher's Tip:</p>
+                    <p className="text-gray-600 text-sm">
+                      {isEditing ? (
+                        <textarea 
+                          value={exercise.teacher_tip} 
+                          onChange={e => handleTeacherTipChange(index, e.target.value)} 
+                          className="w-full border p-2 editable-content h-16" 
+                        />
+                      ) : exercise.teacher_tip}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* Vocabulary sheet display */}
+          {editableWorksheet.vocabulary_sheet && editableWorksheet.vocabulary_sheet.length > 0 && (
+            <div className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
+              <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center exercise-header">
+                <div className="flex items-center">
+                  <div className="p-2 bg-white/20 rounded-full mr-3">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold">Vocabulary Sheet</h3>
+                </div>
+                <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
+                  <Clock className="h-4 w-4 mr-1" />
+                  <span className="text-sm">10 min</span>
+                </div>
+              </div>
+              
+              <div className="p-5">
+                <p className="font-medium mb-4">Learn and practice these key vocabulary terms related to the topic.</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {editableWorksheet.vocabulary_sheet.map((item, index) => (
+                    <div key={index} className="border rounded-md p-4 vocabulary-card">
+                      <p className="font-semibold text-worksheet-purple">
+                        {isEditing ? (
+                          <input 
+                            type="text" 
+                            value={item.term} 
+                            onChange={e => {
+                              const updatedVocab = [...editableWorksheet.vocabulary_sheet];
+                              updatedVocab[index] = {
+                                ...updatedVocab[index],
+                                term: e.target.value
+                              };
+                              setEditableWorksheet({
+                                ...editableWorksheet,
+                                vocabulary_sheet: updatedVocab
+                              });
+                            }} 
+                            className="w-full border p-1 editable-content" 
+                          />
+                        ) : item.term}
+                      </p>
+                      
+                      {viewMode === 'teacher' ? (
+                        <p className="text-sm text-gray-600 mt-2">
+                          {isEditing ? (
+                            <textarea 
+                              value={item.meaning} 
+                              onChange={e => {
+                                const updatedVocab = [...editableWorksheet.vocabulary_sheet];
+                                updatedVocab[index] = {
+                                  ...updatedVocab[index],
+                                  meaning: e.target.value
+                                };
+                                setEditableWorksheet({
+                                  ...editableWorksheet,
+                                  vocabulary_sheet: updatedVocab
+                                });
+                              }} 
+                              className="w-full border p-1 editable-content h-12" 
+                            />
+                          ) : item.meaning}
+                        </p>
+                      ) : (
+                        <>
+                          <span className="vocabulary-definition-label">Definition:</span>
+                          <span className="text-sm text-gray-500">_____________________</span>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Rating section */}
+          <div className="rating-section mb-4 bg-gray-50">
+            <h3 className="font-semibold text-lg mb-3">How would you rate this worksheet?</h3>
+            <div className="flex items-center gap-1 mb-4">
+              {[1, 2, 3, 4, 5].map(value => (
+                <button 
+                  key={value}
+                  onClick={() => setRating(value)}
+                  className={`
+                    p-2 h-10 w-10 rounded-full flex items-center justify-center transition-colors
+                    ${rating >= value ? 'bg-worksheet-purple text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}
+                  `}
+                >
+                  {value}
+                </button>
+              ))}
+              <span className="ml-2 text-sm text-gray-500">
+                {rating === 0 && "Select a rating"}
+                {rating === 1 && "Poor"}
+                {rating === 2 && "Fair"}
+                {rating === 3 && "Good"}
+                {rating === 4 && "Very good"}
+                {rating === 5 && "Excellent"}
+              </span>
+            </div>
+            
+            <div className="mb-3">
+              <label className="block text-sm font-medium mb-1 text-gray-700">
+                Share your feedback or suggestions:
+              </label>
+              <Textarea 
+                value={feedback}
+                onChange={e => setFeedback(e.target.value)}
+                placeholder="What did you like or what could be improved?"
+                className="w-full"
+              />
+            </div>
+            
+            <Button 
+              onClick={handleSubmitRating} 
+              className="bg-worksheet-purple hover:bg-worksheet-purpleDark"
+            >
+              Submit Feedback
+            </Button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Scroll to top button */}
+      {showScrollTop && (
+        <button 
+          onClick={scrollToTop}
+          className="scroll-to-top"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </button>
+      )}
+    </div>
+  );
+}
