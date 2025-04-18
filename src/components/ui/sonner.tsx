@@ -21,10 +21,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
           cancelButton:
             "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
-          success: "group-[.toast]:border-l-green-500",
-          error: "group-[.toast]:border-l-red-500",
-          warning: "group-[.toast]:border-l-yellow-500",
-          info: "group-[.toast]:border-l-blue-500",
+          success: "group-[.toast]:border-l-green-500 group-[.toast]:animate-in group-[.toast]:fade-in-50 group-[.toast]:slide-in-from-right-10",
+          error: "group-[.toast]:border-l-red-500 group-[.toast]:animate-in group-[.toast]:fade-in-50 group-[.toast]:slide-in-from-right-10",
+          warning: "group-[.toast]:border-l-yellow-500 group-[.toast]:animate-in group-[.toast]:fade-in-50 group-[.toast]:slide-in-from-right-10",
+          info: "group-[.toast]:border-l-blue-500 group-[.toast]:animate-in group-[.toast]:fade-in-50 group-[.toast]:slide-in-from-right-10",
         },
       }}
       {...props}

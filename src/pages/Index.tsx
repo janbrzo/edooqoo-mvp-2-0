@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ArrowUp } from "lucide-react";
 import WorksheetForm, { FormData } from "@/components/WorksheetForm";
@@ -305,7 +306,7 @@ const getExercisesByTime = (exercises: any[], lessonTime: string) => {
   } else if (lessonTime === "45 min") {
     return exercises.slice(0, 6); // First 6 exercises for 45 min
   } else if (lessonTime === "60 min") {
-    return exercises.slice(0, 9); // First 9 exercises for 60 min (all exercises)
+    return exercises.slice(0, 8); // First 8 exercises for 60 min (changed from 6 to 8)
   }
   return exercises.slice(0, 6); // Default to 6 exercises
 };
@@ -399,9 +400,11 @@ export default function Index() {
     <div className="min-h-screen bg-gray-100">
       {!generatedWorksheet ? (
         <div className="container mx-auto flex main-container">
-          <Sidebar />
-          <div className="flex-1 px-6 py-6 form-container">
-            <h1 className="text-3xl font-bold mb-6 rainbow-gradient-text">Create Your Worksheet</h1>
+          <div className="w-1/5">
+            <Sidebar />
+          </div>
+          <div className="w-4/5 px-6 py-6 form-container">
+            <h1 className="text-3xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500">Create Your Worksheet</h1>
             <WorksheetForm onSubmit={handleFormSubmit} />
           </div>
         </div>
@@ -418,7 +421,7 @@ export default function Index() {
           {showScrollTop && (
             <button 
               onClick={scrollToTop} 
-              className="scroll-to-top-button"
+              className="fixed bottom-6 right-6 z-50 bg-worksheet-purple text-white p-3 rounded-full shadow-lg hover:bg-worksheet-purpleDark transition-colors"
               aria-label="Scroll to top"
             >
               <ArrowUp size={24} />
