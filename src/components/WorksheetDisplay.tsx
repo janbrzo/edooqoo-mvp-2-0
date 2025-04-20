@@ -1146,7 +1146,7 @@ export default function WorksheetDisplay({
       {showScrollTop && (
         <button 
           onClick={scrollToTop}
-          className="scroll-to-top"
+          className="fixed bottom-6 right-6 rounded-full bg-worksheet-purple text-white p-3 shadow-lg cursor-pointer opacity-80 hover:opacity-100 transition-opacity z-50"
           aria-label="Scroll to top"
         >
           <ArrowUp className="h-5 w-5" />
