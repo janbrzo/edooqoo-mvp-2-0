@@ -1,3 +1,4 @@
+
 import html2pdf from 'html2pdf.js';
 
 const getCurrentDate = (): string => {
@@ -31,7 +32,11 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
   
   const clonedElement = element.cloneNode(true) as HTMLElement;
 
-  // Usuwanie sekcji .rating-section (How would you rate...) na stałe z PDF
+  // Remove elements with data-no-pdf attribute
+  const noPdfElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
+  noPdfElements.forEach(element => element.remove());
+
+  // Usuwanie sekcji .rating-section (How would you rate...) z PDF
   const ratingSections = clonedElement.querySelectorAll('.rating-section');
   ratingSections.forEach(section => section.remove());
 
@@ -162,9 +167,22 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     checkbox.parentNode?.replaceChild(span, checkbox);
   });
   
+  // Add Canva-like styling for PDF
   const style = document.createElement('style');
   style.textContent = `
     @media print {
+      body {
+        font-family: 'Arial', sans-serif;
+        color: #333;
+        line-height: 1.5;
+      }
+      
+      h1, h2, h3, h4, h5, h6 {
+        margin-top: 0;
+        color: #333;
+        page-break-after: avoid;
+      }
+      
       .exercise-header {
         display: flex !important;
         align-items: center !important;
@@ -174,6 +192,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
         overflow: visible !important;
         padding: 10px 15px !important;
         line-height: 1 !important;
+        page-break-after: avoid !important;
       }
       
       .fill-blank {
@@ -195,6 +214,9 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
         align-items: center !important;
         padding: 15px !important;
         min-height: 50px !important;
+        background-color: #f5f5f5 !important;
+        border-radius: 4px !important;
+        margin-bottom: 15px !important;
       }
       
       .word-bank {
@@ -214,6 +236,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
         align-items: center !important;
         gap: 10px !important;
         margin-bottom: 8px !important;
+        padding: 4px 0 !important;
       }
       
       .option-icon {
@@ -227,7 +250,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
         margin-right: 6px !important;
       }
       
-      .rating-section, .teacher-notes {
+      [data-no-pdf="true"], .rating-section, .teacher-notes {
         display: none !important;
       }
       
@@ -238,23 +261,104 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
       .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question {
         page-break-inside: avoid !important;
       }
+      
+      /* Canva-like styling */
+      .exercise-content {
+        margin-bottom: 20px !important;
+        page-break-inside: avoid !important;
+      }
+      
+      img {
+        max-width: 100% !important;
+        height: auto !important;
+      }
+      
+      table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+      }
+      
+      td, th {
+        padding: 8px !important;
+        border: 1px solid #ddd !important;
+      }
+      
+      /* Add page numbers */
+      @page {
+        margin: 0.5in;
+        @bottom-center {
+          content: counter(page);
+        }
+      }
     }
   `;
   clonedElement.appendChild(style);
   
+  // Set PDF options similar to Canva
   const options = {
-    margin: [15, 15, 15, 15],
+    margin: [10, 10, 15, 10], // Top, right, bottom, left margins in mm
     filename: finalFilename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    image: { type: 'jpeg', quality: 1.0 }, // Higher quality
+    html2canvas: { 
+      scale: 2, 
+      useCORS: true,
+      letterRendering: true,
+      logging: false,
+      dpi: 300, // Higher DPI for better quality
+      imageTimeout: 0 // No timeout
+    },
+    jsPDF: { 
+      unit: 'mm', 
+      format: 'a4', 
+      orientation: 'portrait',
+      compress: true,
+      precision: 16,
+      hotfixes: ["px_scaling"] // Fix scaling issues
+    }
   };
   
   try {
+    // Show loading indicator (Canva-like behavior)
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.style.position = 'fixed';
+    loadingIndicator.style.top = '0';
+    loadingIndicator.style.left = '0';
+    loadingIndicator.style.width = '100%';
+    loadingIndicator.style.height = '100%';
+    loadingIndicator.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+    loadingIndicator.style.display = 'flex';
+    loadingIndicator.style.alignItems = 'center';
+    loadingIndicator.style.justifyContent = 'center';
+    loadingIndicator.style.zIndex = '9999';
+    loadingIndicator.innerHTML = `
+      <div style="text-align: center; background: white; padding: 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <div style="margin-bottom: 16px; font-size: 18px; font-weight: bold; color: #3d348b;">Preparing your PDF...</div>
+        <div style="width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #3d348b; border-radius: 50%; margin: 0 auto; animation: spin 1s linear infinite;"></div>
+      </div>
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+    `;
+    document.body.appendChild(loadingIndicator);
+    
     await html2pdf().from(clonedElement).set(options).save();
+    
+    // Remove loading indicator
+    setTimeout(() => {
+      document.body.removeChild(loadingIndicator);
+    }, 500); // Give a slight delay to ensure PDF has started downloading
+    
     return true;
   } catch (error) {
     console.error('Error generating PDF:', error);
+    // Remove loading indicator if error
+    const loadingIndicator = document.querySelector('[style*="position: fixed"]');
+    if (loadingIndicator && loadingIndicator.parentNode) {
+      loadingIndicator.parentNode.removeChild(loadingIndicator);
+    }
     return false;
   }
 };
