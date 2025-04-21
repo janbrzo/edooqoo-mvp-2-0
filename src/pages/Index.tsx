@@ -4,6 +4,8 @@ import WorksheetForm, { FormData } from "@/components/WorksheetForm";
 import Sidebar from "@/components/Sidebar";
 import GeneratingModal from "@/components/GeneratingModal";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
+import WorksheetRating from "@/components/WorksheetRating";
+import TeacherTipBox from "@/components/TeacherTipBox";
 import { useToast } from "@/hooks/use-toast";
 
 const mockWorksheetData = {
@@ -570,14 +572,20 @@ export default function Index() {
         </div>
       ) : (
         <>
-          <WorksheetDisplay 
-            worksheet={generatedWorksheet} 
-            inputParams={inputParams} 
-            generationTime={generationTime} 
-            sourceCount={sourceCount} 
-            onBack={handleBack} 
+          <h1 className="text-3xl font-bold worksheet-title mb-6" style={{ color: "white" }}>
+            Your Generated Worksheet
+          </h1>
+          <WorksheetDisplay
+            worksheet={generatedWorksheet}
+            inputParams={inputParams}
+            generationTime={generationTime}
+            sourceCount={sourceCount}
+            onBack={handleBack}
+            showTeacherTipsModern
+            wordBankOrder={generatedWorksheet?.exercises
+              ?.find((ex: any) => ex.type === "matching")?.shuffledTerms?.map((item: any) => item.definition)}
           />
-          
+          <WorksheetRating />
           {showScrollTop && (
             <button 
               onClick={scrollToTop} 

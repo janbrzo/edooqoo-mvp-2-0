@@ -57,10 +57,10 @@
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
   display: flex;
-  padding: 10px;
+  padding: 8px 10px;
   max-width: 400px;
-  max-height: 42px;
-  min-height: 35px;
+  max-height: 32px;
+  min-height: 24px;
   align-items: center;
   animation: toast-slide-in 0.3s ease-out forwards;
 }

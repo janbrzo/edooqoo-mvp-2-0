@@ -1,18 +1,20 @@
 
 import React, { useState } from "react";
-import { Star } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-const STAR_TOTAL = 5;
-
+/**
+ * A modern-looking worksheet rating section with 1-5 stars and feedback modal.
+ * Should not display on PDF.
+ */
 const WorksheetRating = () => {
   const [hovered, setHovered] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const [thanks, setThanks] = useState(false);
+  const [thanksOpen, setThanksOpen] = useState(false);
 
   const handleStarClick = (value: number) => {
     setSelected(value);
@@ -21,33 +23,35 @@ const WorksheetRating = () => {
 
   const handleSubmit = () => {
     setIsDialogOpen(false);
-    setThanks(true);
-    setTimeout(() => setThanks(false), 3000);
+    setThanksOpen(true);
+    setTimeout(() => setThanksOpen(false), 2500);
+    setFeedback("");
   };
 
   return (
     <>
       <div
-        className="w-full rounded-xl py-10 px-6 mb-8 mt-4"
         style={{
-          background: "linear-gradient(135deg, #F7F7FF 0%, #ededfa 100%)"
+          background: "linear-gradient(135deg, #f4f4fc 0%, #ededfa 100%)",
+          borderRadius: 14,
         }}
+        className="w-full py-10 px-6 mb-8 mt-4 flex flex-col items-center shadow-none"
         data-no-pdf="true"
       >
-        <h3 className="text-2xl text-center font-bold text-[#3d348b] mb-1" style={{ fontWeight: 700 }}>
+        <h3 className="text-2xl text-center font-bold mb-1" style={{ fontWeight: 700, color: "#3d348b" }}>
           How would you rate this worksheet?
         </h3>
         <p className="text-center text-[#6457b5] text-base mb-6">
           Your feedback helps us improve our AI-generated worksheets
         </p>
         <div className="flex justify-center pb-2">
-          {[...Array(STAR_TOTAL)].map((_, idx) => (
+          {[1, 2, 3, 4, 5].map((idx) => (
             <button
               key={idx}
               className="focus:outline-none"
-              aria-label={`Give ${idx + 1} star rating`}
-              onClick={() => handleStarClick(idx + 1)}
-              onMouseEnter={() => setHovered(idx + 1)}
+              aria-label={`Give ${idx} star rating`}
+              onClick={() => handleStarClick(idx)}
+              onMouseEnter={() => setHovered(idx)}
               onMouseLeave={() => setHovered(null)}
               style={{ background: "transparent" }}
               type="button"
@@ -56,7 +60,7 @@ const WorksheetRating = () => {
                 size={42}
                 strokeWidth={1.3}
                 className={
-                  (hovered ?? selected ?? 0) > idx
+                  (hovered ?? selected ?? 0) >= idx
                     ? "text-yellow-400 fill-yellow-400 transition"
                     : "text-gray-300 transition"
                 }
@@ -64,7 +68,7 @@ const WorksheetRating = () => {
             </button>
           ))}
         </div>
-        {thanks && (
+        {thanksOpen && (
           <p className="text-green-600 transition-all text-center font-medium mt-2">Thank you for your feedback!</p>
         )}
       </div>
@@ -76,12 +80,12 @@ const WorksheetRating = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="flex justify-center mt-3 mb-4">
-            {[...Array(STAR_TOTAL)].map((_, idx) => (
+            {[1, 2, 3, 4, 5].map((idx) => (
               <Star
-                size={38}
                 key={idx}
+                size={38}
                 strokeWidth={1.3}
-                className={selected !== null && selected > idx ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
+                className={selected && selected >= idx ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
               />
             ))}
           </div>
