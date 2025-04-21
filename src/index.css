@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -279,51 +280,4 @@
   .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section {
     page-break-inside: avoid !important;
   }
-}
-
-/* Rainbow text for worksheet header */
-.rainbow-gradient-text {
-  background: linear-gradient(
-    to right,
-    #ff0000,
-    #ff8000,
-    #ffff00,
-    #80ff00,
-    #00ff00,
-    #00ffff,
-    #0000ff,
-    #8000ff,
-    #ff00ff
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: bold;
-}
-
-/* Rating section styles */
-.rating-button {
-  @apply p-2 h-10 w-10 rounded-full flex items-center justify-center transition-colors;
-}
-
-.rating-button[data-selected="true"] {
-  @apply bg-worksheet-purple text-white;
-}
-
-.rating-button[data-selected="false"] {
-  @apply bg-gray-100 hover:bg-gray-200 text-gray-600;
-}
-
-/* Mobile container adjustments */
-.mobile-container {
-  @apply mx-auto max-w-3xl px-4;
-}
-
-/* Mobile sidebar banner */
-.mobile-banner {
-  @apply fixed top-0 left-0 right-0 bg-white shadow-md z-50 px-4 py-3 md:hidden;
-}
-
-.mobile-main-content {
-  @apply pt-16 md:pt-0; /* Add padding for mobile banner */
 }

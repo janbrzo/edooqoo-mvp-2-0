@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock, Database, Download, Edit, Eye, Star, Zap, FileText, Info, Lightbulb, Pencil, User, UserCog, ArrowUp } from "lucide-react";
@@ -68,6 +69,7 @@ export default function WorksheetDisplay({
     });
   };
   
+  // Handle scroll event to show/hide scroll to top button
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 300);
@@ -289,7 +291,7 @@ export default function WorksheetDisplay({
   };
 
   return (
-    <div className="mobile-container">
+    <div className="container mx-auto py-6">
       <div className="mb-6">
         <Button variant="ghost" onClick={onBack} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" /> Create New Worksheet
@@ -298,9 +300,9 @@ export default function WorksheetDisplay({
         <div className="bg-worksheet-purple text-white rounded-lg p-6 mb-6">
           <div className="flex flex-col md:flex-row justify-between">
             <div>
-              <h1 className="text-2xl font-bold mb-1 rainbow-gradient-text">Your Generated Worksheet</h1>
+              <h1 className="text-2xl font-bold mb-1">Your Generated Worksheet</h1>
             </div>
-            <div className="flex flex-wrap gap-4 mt-4 md:mt-0">
+            <div className="flex gap-4 mt-4 md:mt-0">
               <div className="flex items-center gap-1 bg-white/20 px-4 py-2 rounded-md">
                 <Zap className="h-4 w-4 text-yellow-300" />
                 <span className="text-sm">Generated in {generationTime}s</span>
@@ -1093,15 +1095,17 @@ export default function WorksheetDisplay({
           )}
 
           {/* Rating section */}
-          <div className="rating-section bg-gray-50 rounded-lg p-6 my-8">
+          <div className="rating-section mb-4 bg-gray-50">
             <h3 className="font-semibold text-lg mb-3">How would you rate this worksheet?</h3>
             <div className="flex items-center gap-1 mb-4">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
+              {[1, 2, 3, 4, 5].map(value => (
+                <button 
                   key={value}
                   onClick={() => setRating(value)}
-                  className="rating-button"
-                  data-selected={rating >= value}
+                  className={`
+                    p-2 h-10 w-10 rounded-full flex items-center justify-center transition-colors
+                    ${rating >= value ? 'bg-worksheet-purple text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}
+                  `}
                 >
                   {value}
                 </button>
@@ -1120,16 +1124,16 @@ export default function WorksheetDisplay({
               <label className="block text-sm font-medium mb-1 text-gray-700">
                 Share your feedback or suggestions:
               </label>
-              <Textarea
+              <Textarea 
                 value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
+                onChange={e => setFeedback(e.target.value)}
                 placeholder="What did you like or what could be improved?"
                 className="w-full"
               />
             </div>
             
-            <Button
-              onClick={handleSubmitRating}
+            <Button 
+              onClick={handleSubmitRating} 
               className="bg-worksheet-purple hover:bg-worksheet-purpleDark"
             >
               Submit Feedback
