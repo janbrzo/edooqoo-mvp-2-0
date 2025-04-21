@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock, Database, Download, Edit, Eye, Star, Zap, FileText, Info, Lightbulb, Pencil, User, UserCog, ArrowUp } from "lucide-react";
@@ -69,7 +68,6 @@ export default function WorksheetDisplay({
     });
   };
   
-  // Handle scroll event to show/hide scroll to top button
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 300);
@@ -147,7 +145,7 @@ export default function WorksheetDisplay({
           toast({
             title: "HTML Downloaded",
             description: "Your worksheet has been downloaded successfully.",
-            variant: "success"
+            variant: "default"
           });
         }
       } catch (error) {
