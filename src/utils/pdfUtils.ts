@@ -32,6 +32,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
   
   const clonedElement = element.cloneNode(true) as HTMLElement;
   
+  // Remove buttons, rating section, and other non-printable elements
   const buttons = clonedElement.querySelectorAll('button');
   buttons.forEach(button => button.remove());
   
@@ -40,13 +41,15 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     (el as HTMLElement).removeAttribute('contenteditable');
   });
   
-  const elementsToRemove = clonedElement.querySelectorAll('.rating-section, .teacher-notes');
+  const elementsToRemove = clonedElement.querySelectorAll('.rating-section, .teacher-notes, .input-parameters');
   elementsToRemove.forEach(section => section.remove());
   
+  // Fix layout and styling for PDF
   clonedElement.style.width = '100%';
   clonedElement.style.padding = '20px';
   clonedElement.style.boxSizing = 'border-box';
   
+  // Fix exercise headers
   const exerciseHeaders = clonedElement.querySelectorAll('.exercise-header');
   exerciseHeaders.forEach(header => {
     const headerEl = header as HTMLElement;
@@ -58,6 +61,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     headerEl.style.overflow = 'visible';
   });
   
+  // Fix vocabulary matching
   const vocabMatching = clonedElement.querySelectorAll('.vocabulary-matching-container');
   vocabMatching.forEach(container => {
     const containerEl = container as HTMLElement;
@@ -65,11 +69,9 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     containerEl.style.gridTemplateColumns = '1fr 1fr';
     containerEl.style.gap = '20px';
     containerEl.style.width = '100%';
-    
-    const answerColumns = containerEl.querySelectorAll('.answer-column');
-    answerColumns.forEach(col => col.remove());
   });
   
+  // Fix word banks
   const wordBanks = clonedElement.querySelectorAll('.word-bank-container');
   wordBanks.forEach(bank => {
     const bankEl = bank as HTMLElement;
@@ -77,8 +79,17 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     bankEl.style.alignItems = 'center';
     bankEl.style.justifyContent = 'center';
     bankEl.style.padding = '15px';
+    
+    // Fix vertical alignment of text
+    const textNodes = bankEl.querySelectorAll('span');
+    textNodes.forEach(node => {
+      (node as HTMLElement).style.lineHeight = '1.6';
+      (node as HTMLElement).style.display = 'inline-block';
+      (node as HTMLElement).style.verticalAlign = 'middle';
+    });
   });
   
+  // Fix fill-in blanks
   const blanks = clonedElement.querySelectorAll('.fill-blank');
   blanks.forEach(blank => {
     const blankEl = blank as HTMLElement;
@@ -87,6 +98,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     blankEl.style.borderBottom = '1px solid #000';
   });
   
+  // Fix multiple choice options alignment
   const mcOptions = clonedElement.querySelectorAll('.multiple-choice-option');
   mcOptions.forEach(option => {
     const optionEl = option as HTMLElement;
@@ -95,6 +107,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     optionEl.style.gap = '10px';
   });
   
+  // Fix checkmark icons alignment
   const checkmarks = clonedElement.querySelectorAll('.option-icon');
   checkmarks.forEach(icon => {
     const iconEl = icon as HTMLElement;
@@ -103,13 +116,42 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     iconEl.style.justifyContent = 'center';
     iconEl.style.width = '24px';
     iconEl.style.height = '24px';
+    iconEl.style.verticalAlign = 'middle';
+    iconEl.style.marginTop = '-2px';
   });
   
+  // Fix error correction layout
+  const errorCorrections = clonedElement.querySelectorAll('.error-correction-container');
+  errorCorrections.forEach(container => {
+    (container as HTMLElement).style.display = 'flex';
+    (container as HTMLElement).style.flexDirection = 'row';
+    (container as HTMLElement).style.gap = '10px';
+    (container as HTMLElement).style.alignItems = 'flex-start';
+    (container as HTMLElement).style.marginBottom = '10px';
+  });
+  
+  // Fix dialogue spacing and page breaks
+  const dialogueSections = clonedElement.querySelectorAll('.dialogue-section');
+  dialogueSections.forEach(section => {
+    (section as HTMLElement).style.pageBreakInside = 'avoid';
+    (section as HTMLElement).style.marginTop = '10px';
+  });
+  
+  // Prevent bad page breaks for exercise components
   const avoidBreakElements = clonedElement.querySelectorAll('.exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section');
   avoidBreakElements.forEach(el => {
     (el as HTMLElement).style.pageBreakInside = 'avoid';
   });
   
+  // Fix exercise layout for better page usage
+  const exercises = clonedElement.querySelectorAll('.exercise-container');
+  exercises.forEach(exercise => {
+    // Ensure exercise doesn't start at the very bottom of page
+    (exercise as HTMLElement).style.pageBreakBefore = 'auto';
+    (exercise as HTMLElement).style.margin = '15px 0';
+  });
+  
+  // Fix checkboxes for PDF
   const checkboxes = clonedElement.querySelectorAll('input[type="checkbox"]');
   checkboxes.forEach(checkbox => {
     const span = document.createElement('span');
@@ -117,6 +159,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     checkbox.parentNode?.replaceChild(span, checkbox);
   });
   
+  // Add print styles
   const style = document.createElement('style');
   style.textContent = `
     @media print {
@@ -154,14 +197,41 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
         justify-content: center !important;
         width: 24px !important;
         height: 24px !important;
+        vertical-align: middle !important;
+        margin-top: -2px !important;
       }
       
-      .rating-section, .teacher-notes {
+      .rating-section, .teacher-notes, .input-parameters {
         display: none !important;
       }
       
       .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section {
         page-break-inside: avoid !important;
+      }
+      
+      .error-correction-container {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 10px !important;
+        align-items: flex-start !important;
+        margin-bottom: 10px !important;
+      }
+      
+      body {
+        font-size: 12pt !important;
+      }
+      
+      .vocabulary-definition-label {
+        font-weight: normal !important;
+        font-size: 0.9rem !important;
+      }
+      
+      .matching-answer-space {
+        display: inline-block !important;
+        width: 25px !important;
+        border-bottom: 1px solid #000 !important;
+        margin-right: 5px !important;
+        text-align: center !important;
       }
     }
   `;
@@ -171,7 +241,20 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     margin: [15, 15, 15, 15],
     filename: finalFilename,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
+    html2canvas: { 
+      scale: 2, 
+      useCORS: true,
+      letterRendering: true,
+      // Fix exercise header height issues
+      onclone: (clonedDoc) => {
+        const headers = clonedDoc.querySelectorAll('.exercise-header');
+        headers.forEach(header => {
+          (header as HTMLElement).style.height = '60px';
+          (header as HTMLElement).style.minHeight = '60px';
+          (header as HTMLElement).style.maxHeight = '60px';
+        });
+      }
+    },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
   
@@ -196,6 +279,7 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
   
   const clonedElement = element.cloneNode(true) as HTMLElement;
   
+  // Remove buttons, rating section, and other elements not needed for HTML export
   const buttons = clonedElement.querySelectorAll('button');
   buttons.forEach(button => button.remove());
   
@@ -203,6 +287,10 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
   editableElements.forEach(el => {
     (el as HTMLElement).removeAttribute('contenteditable');
   });
+  
+  // Remove input parameters, top header, and action buttons
+  const elementsToRemove = clonedElement.querySelectorAll('.rating-section, .input-parameters, .action-buttons, h1.rainbow-text, .worksheet-header');
+  elementsToRemove.forEach(section => section.remove());
   
   const htmlContent = `
     <!DOCTYPE html>
@@ -261,6 +349,27 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
         }
         .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section {
           page-break-inside: avoid;
+        }
+        .error-correction-container {
+          display: flex;
+          flex-direction: row;
+          gap: 10px;
+          align-items: flex-start;
+          margin-bottom: 10px;
+        }
+        .matching-answer-space {
+          display: inline-block;
+          width: 25px;
+          border-bottom: 1px solid #000;
+          margin-right: 5px;
+          text-align: center;
+        }
+        .vocabulary-definition-label {
+          font-weight: normal;
+          font-size: 0.9rem;
+          display: block;
+          margin-top: 8px;
+          color: #666;
         }
       </style>
     </head>
