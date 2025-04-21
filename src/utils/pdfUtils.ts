@@ -1,4 +1,3 @@
-
 import html2pdf from 'html2pdf.js';
 
 const getCurrentDate = (): string => {
@@ -55,10 +54,11 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     const headerEl = header as HTMLElement;
     headerEl.style.display = 'flex';
     headerEl.style.alignItems = 'center';
-    headerEl.style.height = '50px';
-    headerEl.style.maxHeight = '50px';
-    headerEl.style.minHeight = '50px';
+    headerEl.style.height = '48px';
+    headerEl.style.maxHeight = '48px';
+    headerEl.style.minHeight = '48px';
     headerEl.style.overflow = 'visible';
+    headerEl.style.padding = '10px 15px';
   });
   
   // Fix vocabulary matching layout
@@ -85,6 +85,12 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     if (wordBank) {
       (wordBank as HTMLElement).style.margin = 'auto 0';
       (wordBank as HTMLElement).style.lineHeight = '1.5';
+      (wordBank as HTMLElement).style.display = 'flex';
+      (wordBank as HTMLElement).style.alignItems = 'center';
+      (wordBank as HTMLElement).style.justifyContent = 'center';
+      (wordBank as HTMLElement).style.width = '100%';
+      (wordBank as HTMLElement).style.textAlign = 'center';
+      (wordBank as HTMLElement).style.verticalAlign = 'middle';
     }
   });
   
@@ -113,6 +119,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     optionEl.style.display = 'flex';
     optionEl.style.alignItems = 'center';
     optionEl.style.gap = '10px';
+    optionEl.style.marginBottom = '8px';
   });
   
   // Fix checkmark alignment
@@ -125,6 +132,8 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     iconEl.style.width = '24px';
     iconEl.style.height = '24px';
     iconEl.style.verticalAlign = 'middle';
+    iconEl.style.position = 'relative';
+    iconEl.style.top = '0';
   });
   
   // Make dialogue lines individual page-break-avoid elements
@@ -139,6 +148,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     (el as HTMLElement).style.pageBreakInside = 'avoid';
   });
   
+  // Convert checkboxes to text characters for PDF
   const checkboxes = clonedElement.querySelectorAll('input[type="checkbox"]');
   checkboxes.forEach(checkbox => {
     const span = document.createElement('span');
@@ -152,10 +162,11 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
       .exercise-header {
         display: flex !important;
         align-items: center !important;
-        height: 50px !important;
-        max-height: 50px !important;
-        min-height: 50px !important;
+        height: 48px !important;
+        max-height: 48px !important;
+        min-height: 48px !important;
         overflow: visible !important;
+        padding: 10px 15px !important;
       }
       
       .fill-blank {
@@ -180,12 +191,19 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
       .word-bank {
         margin: auto 0 !important;
         line-height: 1.5 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        text-align: center !important;
+        vertical-align: middle !important;
       }
       
       .multiple-choice-option {
         display: flex !important;
         align-items: center !important;
         gap: 10px !important;
+        margin-bottom: 8px !important;
       }
       
       .option-icon {
@@ -195,6 +213,8 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
         width: 24px !important;
         height: 24px !important;
         vertical-align: middle !important;
+        position: relative !important;
+        top: 0 !important;
       }
       
       .rating-section, .teacher-notes {
@@ -241,24 +261,16 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
   
   const clonedElement = element.cloneNode(true) as HTMLElement;
   
-  // Remove buttons
-  const buttons = clonedElement.querySelectorAll('button');
-  buttons.forEach(button => button.remove());
+  // Don't remove buttons and interactive elements for HTML export
+  // This way the HTML will look identical to the web version, just without interactivity
   
-  // Remove editable attributes
+  // We should still remove editable attributes
   const editableElements = clonedElement.querySelectorAll('[contenteditable="true"]');
   editableElements.forEach(el => {
     (el as HTMLElement).removeAttribute('contenteditable');
   });
   
-  // Remove rating section and teacher notes
-  const elementsToRemove = clonedElement.querySelectorAll('.rating-section, .teacher-notes');
-  elementsToRemove.forEach(section => section.remove());
-  
-  // Remove header and input parameters
-  const headers = clonedElement.querySelectorAll('.worksheet-header');
-  headers.forEach(header => header.remove());
-  
+  // Remove input parameters but keep the rest of the content
   const inputParams = clonedElement.querySelectorAll('.input-params');
   inputParams.forEach(param => param.remove());
   
@@ -311,6 +323,15 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
           display: flex;
           align-items: center;
         }
+        .word-bank {
+          margin: auto 0;
+          line-height: 1.5;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          text-align: center;
+        }
         .fill-blank {
           display: inline-block;
           min-width: 200px;
@@ -328,6 +349,13 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
           display: flex;
           align-items: center;
           gap: 10px;
+        }
+        .option-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
         }
         .student-answer-blank {
           display: inline-block;
@@ -350,6 +378,16 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
         }
         .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-line {
           page-break-inside: avoid;
+        }
+        .teacher-notes {
+          background-color: #FEF7CD;
+          border: 1px solid #f7e3a1;
+          border-radius: 5px;
+          padding: 10px;
+          margin: 10px 0;
+        }
+        .worksheet-title {
+          color: white;
         }
       </style>
     </head>
