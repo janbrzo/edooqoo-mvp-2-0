@@ -1,3 +1,4 @@
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -146,71 +147,4 @@
 .scroll-to-top-button:hover {
   transform: translateY(-3px);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-/* Star rating + Teacher tip modifications */
-.rating-section {
-  background-color: #F1F0FB;
-  border-radius: 15px;
-  padding: 2rem 1rem 1.5rem 1rem;
-  margin-bottom: 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-height: 185px;
-  box-shadow: 0 2px 10px rgba(169,154,249,0.07);
-}
-
-.star-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  margin: 0 1px;
-}
-
-.star-rating {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  margin-bottom: 0.6rem;
-}
-
-.star-yellow {
-  color: #fde047;
-}
-
-.star-gray {
-  color: #d1d5db;
-}
-
-.teacher-tip-box {
-  background-color: #FEF7CD !important;
-  border-radius: 10px;
-  min-height: 44px;
-  padding: 12px 18px;
-  margin-bottom: 10px;
-  margin-top: 10px;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  box-shadow: 0 1px 6px rgba(223,222,176,0.1);
-}
-
-.teacher-tip-box .teacher-icon {
-  color: #facc15;
-  min-width: 22px;
-  margin-top: 1px;
-}
-
-.teacher-tip-box .teacher-label {
-  color: #c39c15;
-  font-weight: 600;
-  margin-right: 6px;
-}
-
-/* Remove list style from teacher tips */
-ul.teacher-tips-list {
-  list-style-type: none;
-  padding-left: 0!important;
-  margin-left: 0!important;
 }

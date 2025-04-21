@@ -32,10 +32,10 @@ export function Toaster() {
         return (
           <Toast 
             key={id} 
-            className="bg-white shadow-md rounded-lg group min-h-[34px] px-3 py-2"
+            className="bg-white shadow-lg rounded-lg group"
             {...props}
           >
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-3">
               <div className="flex-shrink-0 pt-0.5">
                 {getIcon(variant)}
               </div>
