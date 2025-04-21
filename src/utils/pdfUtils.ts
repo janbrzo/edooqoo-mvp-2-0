@@ -1,4 +1,3 @@
-
 import html2pdf from 'html2pdf.js';
 
 const getCurrentDate = (): string => {
@@ -49,9 +48,75 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
   clonedElement.style.padding = '20px';
   clonedElement.style.boxSizing = 'border-box';
   
-  // Fix exercise headers
+  // REMOVE RATING SECTION AND TIPS BOXES FROM PDF:
+  const ratingSection = clonedElement.querySelector('.rating-section');
+  if (ratingSection) ratingSection.remove();
+
+  const teacherTipBoxes = clonedElement.querySelectorAll('.teacher-tip-box');
+  teacherTipBoxes.forEach(el => el.remove());
+
+  // TIPS (li) dots: already none due to class, ensure no left dots
+  const teacherTipLists = clonedElement.querySelectorAll(".teacher-tips-list");
+  teacherTipLists.forEach(list => {
+    (list as HTMLElement).style.listStyleType = "none";
+    (list as HTMLElement).style.paddingLeft = "0";
+    (list as HTMLElement).style.marginLeft = "0";
+  });
+
+  // Fix exercise headers height for PDF
   const exerciseHeaders = clonedElement.querySelectorAll('.exercise-header');
   exerciseHeaders.forEach(header => {
+    const headerEl = header as HTMLElement;
+    headerEl.style.display = 'flex';
+    headerEl.style.alignItems = 'center';
+    headerEl.style.height = '48px';
+    headerEl.style.maxHeight = '48px';
+    headerEl.style.minHeight = '48px';
+    headerEl.style.overflow = 'visible';
+  });
+
+  // Fix word bank vertical alignment for PDF
+  const wordBanks = clonedElement.querySelectorAll('.word-bank-container');
+  wordBanks.forEach(bank => {
+    const bankEl = bank as HTMLElement;
+    bankEl.style.display = 'flex';
+    bankEl.style.alignItems = 'center';
+    bankEl.style.justifyContent = 'center';
+    bankEl.style.padding = '15px';
+    // Center the text vertically
+    const wordBank = bankEl.querySelector('.word-bank');
+    if (wordBank) {
+      (wordBank as HTMLElement).style.margin = 'auto 0';
+      (wordBank as HTMLElement).style.lineHeight = '1.5';
+      (wordBank as HTMLElement).style.display = "flex";
+      (wordBank as HTMLElement).style.alignItems = "center";
+      (wordBank as HTMLElement).style.justifyContent = "center";
+      (wordBank as HTMLElement).style.height = "calc(100% - 24px)";
+    }
+  });
+
+  // Fix multiple choice option icon alignment for PDF
+  const mcOptions = clonedElement.querySelectorAll('.multiple-choice-option');
+  mcOptions.forEach(option => {
+    const optionEl = option as HTMLElement;
+    optionEl.style.display = 'flex';
+    optionEl.style.alignItems = 'center';
+    optionEl.style.gap = '10px';
+    const icon = optionEl.querySelector('.option-icon');
+    if (icon) {
+      (icon as HTMLElement).style.display = 'inline-flex';
+      (icon as HTMLElement).style.alignItems = 'center';
+      (icon as HTMLElement).style.justifyContent = 'center';
+      (icon as HTMLElement).style.width = '24px';
+      (icon as HTMLElement).style.height = '24px';
+      (icon as HTMLElement).style.verticalAlign = 'middle';
+      (icon as HTMLElement).style.flexShrink = "0";
+    }
+  });
+  
+  // Fix exercise headers
+  const exerciseHeadersOld = clonedElement.querySelectorAll('.exercise-header');
+  exerciseHeadersOld.forEach(header => {
     const headerEl = header as HTMLElement;
     headerEl.style.display = 'flex';
     headerEl.style.alignItems = 'center';
@@ -72,8 +137,8 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
   });
   
   // Fix word bank alignment
-  const wordBanks = clonedElement.querySelectorAll('.word-bank-container');
-  wordBanks.forEach(bank => {
+  const wordBanksOld = clonedElement.querySelectorAll('.word-bank-container');
+  wordBanksOld.forEach(bank => {
     const bankEl = bank as HTMLElement;
     bankEl.style.display = 'flex';
     bankEl.style.alignItems = 'center';
@@ -107,8 +172,8 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
   });
   
   // Fix multiple choice options alignment
-  const mcOptions = clonedElement.querySelectorAll('.multiple-choice-option');
-  mcOptions.forEach(option => {
+  const mcOptionsOld = clonedElement.querySelectorAll('.multiple-choice-option');
+  mcOptionsOld.forEach(option => {
     const optionEl = option as HTMLElement;
     optionEl.style.display = 'flex';
     optionEl.style.alignItems = 'center';
@@ -229,13 +294,14 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
   }
 };
 
+// HTML export updated: match real result page, remove rating and teacher tip sections
 export const exportAsHTML = (elementId: string, filename: string = 'worksheet.html', title: string = 'worksheet') => {
   const element = document.getElementById(elementId);
-  
+
   if (!element) {
     throw new Error('Element not found');
   }
-  
+
   const datePart = getCurrentDate();
   const keywords = extractKeywords(title);
   
@@ -261,6 +327,13 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
   
   const inputParams = clonedElement.querySelectorAll('.input-params');
   inputParams.forEach(param => param.remove());
+  
+  // REMOVE RATING SECTION AND TEACHER TIP BOXES FROM HTML EXPORT
+  const ratingSection = clonedElement.querySelector('.rating-section');
+  if (ratingSection) ratingSection.remove();
+
+  const teacherTipBoxes = clonedElement.querySelectorAll('.teacher-tip-box');
+  teacherTipBoxes.forEach(el => el.remove());
   
   const htmlContent = `
     <!DOCTYPE html>
