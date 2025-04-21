@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock, Database, Download, Edit, Eye, Star, Zap, FileText, Info, Lightbulb, Pencil, User, UserCog, ArrowUp } from "lucide-react";
@@ -299,12 +300,12 @@ export default function WorksheetDisplay({
     <div className="container mx-auto py-6">
       <div className="mb-6">
         <WorksheetHeader
-          onBack={props.onBack}
-          generationTime={props.generationTime}
-          sourceCount={props.sourceCount}
-          inputParams={props.inputParams}
+          onBack={onBack}
+          generationTime={generationTime}
+          sourceCount={sourceCount}
+          inputParams={inputParams}
         />
-        <InputParamsCard inputParams={props.inputParams} />
+        <InputParamsCard inputParams={inputParams} />
         <WorksheetToolbar
           viewMode={viewMode}
           setViewMode={setViewMode}
