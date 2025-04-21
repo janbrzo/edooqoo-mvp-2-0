@@ -138,7 +138,21 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  font-weight: bold;
+}
+
+/* Styling for fill-in-the-blanks */
+.fill-blank {
+  display: inline-block;
+  min-width: 200px;
+  height: 1.5em;
+  border-bottom: 1px solid #333;
+  margin: 0 5px;
+  text-align: center;
+}
+
+/* Teacher/student view sections */
+.rating-section, .teacher-notes {
+  @apply bg-white border border-gray-200 rounded-lg p-4 shadow-sm my-4;
 }
 
 /* Modern toast styling */
@@ -164,31 +178,40 @@
   min-height: 100px;
 }
 
+/* Scroll to top button */
+.scroll-to-top {
+  @apply fixed bottom-6 right-6 rounded-full bg-worksheet-purple text-white p-3 shadow-lg cursor-pointer opacity-80 hover:opacity-100 transition-opacity z-50;
+}
+
+/* Sidebar and main container styling */
+.main-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.sidebar-container {
+  height: 100%;
+  min-height: 100%;
+  width: 100%;
+}
+
+.form-container {
+  width: 100%;
+}
+
+/* Vocabulary sheet student view styling */
 .vocabulary-definition-label {
-  font-weight: normal;
-  font-size: 0.9rem;
+  font-weight: bold;
   display: block;
   margin-top: 8px;
   color: #666;
-}
-
-/* Rating section styling */
-.rating-section, .teacher-notes {
-  @apply bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm my-4;
 }
 
 /* Modern toast styling */
 .modern-toast {
   @apply bg-white shadow-lg rounded-xl border-l-4 px-4 py-3;
   animation: slide-in 0.3s ease-out;
-}
-
-.modern-toast .toast-icon {
-  @apply mr-3 flex-shrink-0;
-}
-
-.modern-toast .toast-content {
-  @apply font-medium;
 }
 
 @keyframes slide-in {
@@ -202,6 +225,11 @@
   }
 }
 
+/* Rating section styling */
+.rating-section, .teacher-notes {
+  @apply bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm my-4;
+}
+
 /* Exercise header for PDF */
 @media print {
   .exercise-header {
@@ -209,7 +237,6 @@
     align-items: center !important;
     height: 60px !important;
     max-height: 60px !important;
-    min-height: 60px !important;
     overflow: visible !important;
   }
   
@@ -253,36 +280,4 @@
   .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section {
     page-break-inside: avoid !important;
   }
-}
-
-/* Improved matching exercise styling */
-.matching-answer-space {
-  display: inline-block;
-  width: 25px;
-  border-bottom: 1px solid #000;
-  margin-right: 5px;
-  text-align: center;
-}
-
-/* Horizontal layout for error correction */
-.error-correction-container {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.error-sentence {
-  flex: 1;
-}
-
-.error-correction {
-  flex: 1;
-}
-
-/* Teacher tip boxes */
-.teacher-tip-box {
-  @apply bg-blue-50 border border-blue-100 p-3 rounded-md mt-2;
-  max-height: 120px;
-  overflow-y: auto;
 }

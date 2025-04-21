@@ -1,14 +1,10 @@
 import { useState, useEffect } from "react";
 import { ArrowUp } from "lucide-react";
-import { toast } from "sonner";
 import WorksheetForm, { FormData } from "@/components/WorksheetForm";
 import Sidebar from "@/components/Sidebar";
 import GeneratingModal from "@/components/GeneratingModal";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
 import { useToast } from "@/hooks/use-toast";
-import ToastIcon from "@/components/ToastIcon";
-import { useMobile } from "@/hooks/use-mobile";
-
 const mockWorksheetData = {
   title: "Professional Communication in Customer Service",
   subtitle: "Improving Service Quality through Effective Communication",
@@ -465,7 +461,6 @@ const mockWorksheetData = {
     meaning: "A customer's willingness to continue to do business with a company"
   }]
 };
-
 const getExercisesByTime = (exercises: any[], lessonTime: string) => {
   if (lessonTime === "30 min") {
     return exercises.slice(0, 4); // First 4 exercises for 30 min
@@ -486,16 +481,16 @@ const shuffleArray = (array: any[]) => {
   }
   return newArray;
 };
-
 export default function Index() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedWorksheet, setGeneratedWorksheet] = useState<any>(null);
   const [inputParams, setInputParams] = useState<FormData | null>(null);
-  const { toast: uiToast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [generationTime, setGenerationTime] = useState(0);
   const [sourceCount, setSourceCount] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const isMobile = useMobile();
 
   // Handle scroll to top button visibility
   useEffect(() => {
@@ -505,14 +500,12 @@ export default function Index() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     });
   };
-  
   const handleFormSubmit = (data: FormData) => {
     setInputParams(data);
     setIsGenerating(true);
@@ -520,7 +513,6 @@ export default function Index() {
     setGenerationTime(genTime);
     const sources = Math.floor(Math.random() * (90 - 50) + 50);
     setSourceCount(sources);
-    
     setTimeout(() => {
       setIsGenerating(false);
 
@@ -543,61 +535,35 @@ export default function Index() {
           exercise.shuffledDefinitions = shuffledDefs;
         }
       });
-      
       setGeneratedWorksheet(worksheetCopy);
-      
-      // Show modern toast notification with icon
-      uiToast.custom(() => (
-        <div className="modern-toast border-l-green-500 flex items-center">
-          <ToastIcon type="success" />
-          <div className="toast-content">
-            <div className="font-medium">Worksheet generated successfully!</div>
-            <div className="text-sm text-gray-500">Your custom worksheet is now ready to use.</div>
-          </div>
-        </div>
-      ), { duration: 4000 });
+      toast({
+        title: "Worksheet generated successfully!",
+        description: "Your custom worksheet is now ready to use.",
+        className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
+      });
     }, 5000);
   };
-  
   const handleBack = () => {
     setGeneratedWorksheet(null);
     setInputParams(null);
   };
-  
-  return (
-    <div className="min-h-screen bg-gray-100">
-      {!generatedWorksheet ? (
-        <div className="container mx-auto flex main-container flex-col md:flex-row">
-          <div className={`${isMobile ? 'w-full' : 'w-1/5'} mx-0 ${isMobile ? 'pb-4' : 'py-[48px]'}`}>
+  return <div className="min-h-screen bg-gray-100">
+      {!generatedWorksheet ? <div className="container mx-auto flex main-container">
+          <div className="w-1/5 mx-0 py-[48px]">
             <Sidebar />
           </div>
-          <div className={`${isMobile ? 'w-full' : 'w-4/5'} px-6 py-6 form-container`}>
+          <div className="w-4/5 px-6 py-6 form-container">
+            
             <WorksheetForm onSubmit={handleFormSubmit} />
           </div>
-        </div>
-      ) : (
-        <>
-          <WorksheetDisplay
-            worksheet={generatedWorksheet}
-            inputParams={inputParams}
-            generationTime={generationTime}
-            sourceCount={sourceCount}
-            onBack={handleBack}
-          />
+        </div> : <>
+          <WorksheetDisplay worksheet={generatedWorksheet} inputParams={inputParams} generationTime={generationTime} sourceCount={sourceCount} onBack={handleBack} />
           
-          {showScrollTop && (
-            <button
-              onClick={scrollToTop}
-              className="fixed bottom-6 right-6 z-50 bg-worksheet-purple text-white p-3 rounded-full shadow-lg hover:bg-worksheet-purpleDark transition-colors"
-              aria-label="Scroll to top"
-            >
+          {showScrollTop && <button onClick={scrollToTop} className="fixed bottom-6 right-6 z-50 bg-worksheet-purple text-white p-3 rounded-full shadow-lg hover:bg-worksheet-purpleDark transition-colors" aria-label="Scroll to top">
               <ArrowUp size={24} />
-            </button>
-          )}
-        </>
-      )}
+            </button>}
+        </>}
       
       <GeneratingModal isOpen={isGenerating} />
-    </div>
-  );
+    </div>;
 }
