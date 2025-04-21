@@ -7,7 +7,7 @@ import GeneratingModal from "@/components/GeneratingModal";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
 import { useToast } from "@/hooks/use-toast";
 import ToastIcon from "@/components/ToastIcon";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobile } from "@/hooks/use-mobile";
 
 const mockWorksheetData = {
   title: "Professional Communication in Customer Service",
@@ -495,7 +495,7 @@ export default function Index() {
   const [generationTime, setGenerationTime] = useState(0);
   const [sourceCount, setSourceCount] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const isMobile = useIsMobile();
+  const isMobile = useMobile();
 
   // Handle scroll to top button visibility
   useEffect(() => {
@@ -546,8 +546,8 @@ export default function Index() {
       
       setGeneratedWorksheet(worksheetCopy);
       
-      // Show toast notification with icon (using sonner toast instead of useToast custom)
-      toast(
+      // Show modern toast notification with icon
+      uiToast.custom(() => (
         <div className="modern-toast border-l-green-500 flex items-center">
           <ToastIcon type="success" />
           <div className="toast-content">
@@ -555,7 +555,7 @@ export default function Index() {
             <div className="text-sm text-gray-500">Your custom worksheet is now ready to use.</div>
           </div>
         </div>
-      );
+      ), { duration: 4000 });
     }, 5000);
   };
   
