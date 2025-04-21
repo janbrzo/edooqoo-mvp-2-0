@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock, Database, Download, Edit, Eye, Star, Zap, FileText, Info, Lightbulb, Pencil, User, UserCog, ArrowUp } from "lucide-react";
@@ -143,32 +142,6 @@ export default function WorksheetDisplay({
     }
   };
 
-  const handleDownloadHTML = async () => {
-    if (worksheetRef.current) {
-      toast({
-        title: "Preparing HTML",
-        description: "Your worksheet is being converted to HTML..."
-      });
-      try {
-        const result = await exportAsHTML('worksheet-content', `${editableWorksheet.title.replace(/\s+/g, '_')}.html`, editableWorksheet.title);
-        if (result) {
-          toast({
-            title: "HTML Downloaded",
-            description: "Your worksheet has been downloaded successfully.",
-            variant: "default"
-          });
-        }
-      } catch (error) {
-        console.error('HTML generation error:', error);
-        toast({
-          title: "HTML Generation Failed",
-          description: "There was an error generating your HTML. Please try again.",
-          variant: "destructive"
-        });
-      }
-    }
-  };
-  
   const getIconComponent = (iconName: string) => {
     switch (iconName) {
       case "fa-book-open":
@@ -312,7 +285,6 @@ export default function WorksheetDisplay({
           isEditing={isEditing}
           handleEdit={handleEdit}
           handleSave={handleSave}
-          handleDownloadHTML={handleDownloadHTML}
           handleDownloadPDF={handleDownloadPDF}
         />
         <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>

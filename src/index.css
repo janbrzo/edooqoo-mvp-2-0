@@ -1,4 +1,4 @@
-
+/* Poprawki tylko! */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -254,9 +254,9 @@
   width: 100%;
 }
 
-/* Modern toast styling - updated without left border */
+/* Poprawiona wysokość toast */
 .modern-toast {
-  @apply bg-white shadow-lg rounded-xl px-4 py-3;
+  @apply bg-white shadow-lg rounded-xl px-4 py-2; /* padding-y-2 = 0.5rem = około 8px */
   animation: slide-in 0.3s ease-out;
 }
 

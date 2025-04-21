@@ -1,5 +1,6 @@
 
 import React from "react";
+import { Info } from "lucide-react";
 
 interface TeacherTipSectionProps {
   tip: string;
@@ -8,19 +9,33 @@ interface TeacherTipSectionProps {
 }
 
 const TeacherTipSection: React.FC<TeacherTipSectionProps> = ({
-  tip, isEditing, onChange
+  tip,
+  isEditing,
+  onChange,
 }) => (
-  <div className="mt-4 p-3 bg-gray-50 border-l-4 border-gray-300 rounded-md teacher-tip">
-    <p className="font-medium mb-1 text-gray-700">Teacher's Tip:</p>
-    <p className="text-gray-600 text-sm">
-      {isEditing ? (
-        <textarea
-          value={tip}
-          onChange={e => onChange(e.target.value)}
-          className="w-full border p-2 editable-content h-16"
-        />
-      ) : tip}
-    </p>
+  <div
+    className="mt-4 p-3 rounded-md teacher-tip flex items-start"
+    style={{
+      background: "#FEF7CD",
+      borderLeft: "4px solid #ffeab9",
+    }}
+    data-no-pdf="true"
+  >
+    <Info className="text-amber-400 mr-2 mt-1" size={19} />
+    <div className="flex-1 min-w-0">
+      <p className="font-medium mb-1 text-amber-800 flex items-center leading-tight text-sm" style={{marginBottom:2}}>
+        Teacher&#39;s Tip:
+      </p>
+      <p className="text-amber-800 text-[13.5px] leading-tight">
+        {isEditing ? (
+          <textarea
+            value={tip}
+            onChange={e => onChange(e.target.value)}
+            className="w-full border p-2 editable-content h-16"
+          />
+        ) : tip}
+      </p>
+    </div>
   </div>
 );
 
