@@ -1,3 +1,4 @@
+
 /* Poprawki tylko! */
 @tailwind base;
 @tailwind components;
@@ -288,15 +289,24 @@
 
 /* Exercise header for PDF */
 @media print {
+  /* Hide rating section in PDF */
+  [data-no-pdf="true"] {
+    display: none !important;
+  }
+  
+  /* Fix exercise header height in PDF */
   .exercise-header {
     display: flex !important;
     align-items: center !important;
-    height: 50px !important;
-    max-height: 50px !important;
-    min-height: 50px !important;
-    overflow: visible !important;
+    height: 40px !important; /* Fixed height */
+    max-height: 40px !important;
+    min-height: 40px !important;
+    overflow: hidden !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
   }
   
+  /* Fix vocabulary matching container in PDF */
   .vocabulary-matching-container {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -304,13 +314,32 @@
     gap: 20px !important;
   }
   
+  /* Fix word bank container in PDF */
   .word-bank-container {
     display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    flex-direction: column !important;
     padding: 15px !important;
   }
   
+  .word-bank-container p {
+    margin-bottom: 8px !important;
+  }
+  
+  .word-bank-container div {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+  }
+  
+  .word-bank-container div span {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 28px !important;
+    margin: 2px 5px !important;
+  }
+  
+  /* Fix fill-in-the-blank and word formation blank sizes */
   .fill-blank {
     min-width: 150px !important;
     display: inline-block !important;
@@ -321,10 +350,12 @@
     display: inline-block !important;
   }
   
+  /* Fix multiple choice options in PDF */
   .multiple-choice-option {
     display: flex !important;
     align-items: center !important;
     gap: 10px !important;
+    page-break-inside: avoid !important;
   }
   
   .option-icon {
@@ -333,13 +364,13 @@
     justify-content: center !important;
     width: 24px !important;
     height: 24px !important;
+    margin-right: 5px !important;
     vertical-align: middle !important;
+    position: relative !important; 
+    top: 0 !important;
   }
   
-  .rating-section, .teacher-notes {
-    display: none !important;
-  }
-  
+  /* Fix page breaks */
   .dialogue-line {
     page-break-inside: avoid !important;
   }
