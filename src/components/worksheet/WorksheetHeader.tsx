@@ -1,32 +1,26 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Zap, Database, Clock } from "lucide-react";
-
 interface WorksheetHeaderProps {
   onBack: () => void;
   generationTime: number;
   sourceCount: number;
   inputParams: any;
 }
-
 function WorksheetHeader({
   onBack,
   generationTime,
   sourceCount,
   inputParams
 }: WorksheetHeaderProps) {
-  return (
-    <>
+  return <>
       <Button variant="ghost" onClick={onBack} className="mb-4">
         <ArrowLeft className="mr-2 h-4 w-4" /> Create New Worksheet
       </Button>
       <div className="bg-worksheet-purple rounded-lg p-6 mb-6">
         <div className="flex flex-col md:flex-row justify-between">
           <div>
-            <h1 className="text-2xl font-bold mb-1 rainbow-text text-white">
-              Your Generated Worksheet
-            </h1>
+            <h1 className="mb-1 font-bald text-white text-2xl">Your Generated Worksheet</h1>
           </div>
           <div className="flex gap-4 mt-4 md:mt-0">
             <div className="flex items-center gap-1 bg-white/20 px-4 py-2 rounded-md">
@@ -44,8 +38,6 @@ function WorksheetHeader({
           </div>
         </div>
       </div>
-    </>
-  );
+    </>;
 }
-
 export default WorksheetHeader;
