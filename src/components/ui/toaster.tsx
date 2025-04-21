@@ -26,7 +26,7 @@ export function Toaster() {
       variant,
       ...props
     }) {
-      return <Toast key={id} className="bg-white shadow-lg rounded-lg group max-h-12 min-h-[36px] h-[80px] py-[8px] px-[9px]">
+      return <Toast key={id} className="bg-white shadow-lg rounded-lg group max-h-12 min-h-[36px] h-[80px] py-[12px] px-[8px]">
             <div className="flex items-center gap-2 h-full">
               <div className="flex-shrink-0 pt-0.5">
                 {getIcon(variant)}
