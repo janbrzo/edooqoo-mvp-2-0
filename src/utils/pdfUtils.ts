@@ -1,3 +1,4 @@
+
 import html2pdf from 'html2pdf.js';
 
 const getCurrentDate = (): string => {
@@ -48,7 +49,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
   clonedElement.style.padding = '20px';
   clonedElement.style.boxSizing = 'border-box';
   
-  // Fix exercise headers
+  // Fix exercise headers - problem #7
   const exerciseHeaders = clonedElement.querySelectorAll('.exercise-header');
   exerciseHeaders.forEach(header => {
     const headerEl = header as HTMLElement;
@@ -59,6 +60,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     headerEl.style.minHeight = '48px';
     headerEl.style.overflow = 'visible';
     headerEl.style.padding = '10px 15px';
+    headerEl.style.lineHeight = '1';
   });
   
   // Fix vocabulary matching layout
@@ -71,19 +73,22 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     containerEl.style.width = '100%';
   });
   
-  // Fix word bank alignment
+  // Fix word bank alignment - problem #8
   const wordBanks = clonedElement.querySelectorAll('.word-bank-container');
   wordBanks.forEach(bank => {
     const bankEl = bank as HTMLElement;
     bankEl.style.display = 'flex';
-    bankEl.style.alignItems = 'center';
+    bankEl.style.flexDirection = 'column';
     bankEl.style.justifyContent = 'center';
+    bankEl.style.alignItems = 'center';
     bankEl.style.padding = '15px';
+    bankEl.style.minHeight = '50px';
     
     // Center the text vertically
     const wordBank = bankEl.querySelector('.word-bank');
     if (wordBank) {
-      (wordBank as HTMLElement).style.margin = 'auto 0';
+      (wordBank as HTMLElement).style.margin = '0';
+      (wordBank as HTMLElement).style.padding = '0';
       (wordBank as HTMLElement).style.lineHeight = '1.5';
       (wordBank as HTMLElement).style.display = 'flex';
       (wordBank as HTMLElement).style.alignItems = 'center';
@@ -112,7 +117,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     blankEl.style.borderBottom = '1px solid #000';
   });
   
-  // Fix multiple choice options alignment
+  // Fix multiple choice options alignment - problem #9
   const mcOptions = clonedElement.querySelectorAll('.multiple-choice-option');
   mcOptions.forEach(option => {
     const optionEl = option as HTMLElement;
@@ -122,7 +127,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     optionEl.style.marginBottom = '8px';
   });
   
-  // Fix checkmark alignment
+  // Fix checkmark alignment - problem #9
   const checkmarks = clonedElement.querySelectorAll('.option-icon');
   checkmarks.forEach(icon => {
     const iconEl = icon as HTMLElement;
@@ -132,8 +137,8 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     iconEl.style.width = '24px';
     iconEl.style.height = '24px';
     iconEl.style.verticalAlign = 'middle';
-    iconEl.style.position = 'relative';
-    iconEl.style.top = '0';
+    iconEl.style.position = 'static';
+    iconEl.style.marginRight = '6px';
   });
   
   // Make dialogue lines individual page-break-avoid elements
@@ -167,6 +172,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
         min-height: 48px !important;
         overflow: visible !important;
         padding: 10px 15px !important;
+        line-height: 1 !important;
       }
       
       .fill-blank {
@@ -183,13 +189,16 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
       
       .word-bank-container {
         display: flex !important;
-        align-items: center !important;
+        flex-direction: column !important;
         justify-content: center !important;
+        align-items: center !important;
         padding: 15px !important;
+        min-height: 50px !important;
       }
       
       .word-bank {
-        margin: auto 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
         line-height: 1.5 !important;
         display: flex !important;
         align-items: center !important;
@@ -213,8 +222,8 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
         width: 24px !important;
         height: 24px !important;
         vertical-align: middle !important;
-        position: relative !important;
-        top: 0 !important;
+        position: static !important;
+        margin-right: 6px !important;
       }
       
       .rating-section, .teacher-notes {
@@ -261,7 +270,7 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
   
   const clonedElement = element.cloneNode(true) as HTMLElement;
   
-  // Don't remove buttons and interactive elements for HTML export
+  // Don't remove buttons and interactive elements for HTML export - problem #10
   // This way the HTML will look identical to the web version, just without interactivity
   
   // We should still remove editable attributes
@@ -388,6 +397,22 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
         }
         .worksheet-title {
           color: white;
+        }
+        .rating-section {
+          background-color: #f0f5ff;
+          border-radius: 8px;
+          padding: 20px;
+          margin: 20px auto;
+          text-align: center;
+          max-width: 800px;
+        }
+        .rating-section h3 {
+          color: #4338ca;
+          margin-bottom: 10px;
+        }
+        .rating-section p {
+          color: #6366f1;
+          margin-bottom: 15px;
         }
       </style>
     </head>

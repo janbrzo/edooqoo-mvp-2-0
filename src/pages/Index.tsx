@@ -5,6 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import GeneratingModal from "@/components/GeneratingModal";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
 import { useToast } from "@/hooks/use-toast";
+
 const mockWorksheetData = {
   title: "Professional Communication in Customer Service",
   subtitle: "Improving Service Quality through Effective Communication",
@@ -461,6 +462,7 @@ const mockWorksheetData = {
     meaning: "A customer's willingness to continue to do business with a company"
   }]
 };
+
 const getExercisesByTime = (exercises: any[], lessonTime: string) => {
   if (lessonTime === "30 min") {
     return exercises.slice(0, 4); // First 4 exercises for 30 min
@@ -481,13 +483,12 @@ const shuffleArray = (array: any[]) => {
   }
   return newArray;
 };
+
 export default function Index() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedWorksheet, setGeneratedWorksheet] = useState<any>(null);
   const [inputParams, setInputParams] = useState<FormData | null>(null);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const [generationTime, setGenerationTime] = useState(0);
   const [sourceCount, setSourceCount] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -500,12 +501,14 @@ export default function Index() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     });
   };
+
   const handleFormSubmit = (data: FormData) => {
     setInputParams(data);
     setIsGenerating(true);
@@ -513,6 +516,7 @@ export default function Index() {
     setGenerationTime(genTime);
     const sources = Math.floor(Math.random() * (90 - 50) + 50);
     setSourceCount(sources);
+    
     setTimeout(() => {
       setIsGenerating(false);
 
@@ -522,20 +526,24 @@ export default function Index() {
       // Get exercises based on lesson time
       worksheetCopy.exercises = getExercisesByTime(worksheetCopy.exercises, data.lessonTime);
 
-      // Shuffle matching exercise terms and definitions
+      // For vocabulary matching exercises (problem #6), instead of shuffling the definitions for teacher view
+      // we'll keep the original pairing but add attribute to indicate matching
       worksheetCopy.exercises.forEach((exercise: any) => {
         if (exercise.type === "matching" && exercise.items) {
-          // Create shuffled arrays for both terms and definitions
-          const shuffledTerms = shuffleArray([...exercise.items]);
-          const shuffledDefs = shuffleArray([...exercise.items]);
-
-          // Store original items and the shuffled versions
+          // Create a copy of original items for reference
           exercise.originalItems = [...exercise.items];
-          exercise.shuffledTerms = shuffledTerms;
-          exercise.shuffledDefinitions = shuffledDefs;
+          
+          // Create shuffled terms array only - for student view
+          exercise.shuffledTerms = shuffleArray([...exercise.items]);
+          
+          // For teacher view, we'll use the original items in order
+          // This ensures teacher and student see the same order of definitions
+          // but teacher also sees which terms match with which definitions
         }
       });
+      
       setGeneratedWorksheet(worksheetCopy);
+      
       toast({
         title: "Worksheet generated successfully!",
         description: "Your custom worksheet is now ready to use.",
@@ -543,27 +551,46 @@ export default function Index() {
       });
     }, 5000);
   };
+
   const handleBack = () => {
     setGeneratedWorksheet(null);
     setInputParams(null);
   };
-  return <div className="min-h-screen bg-gray-100">
-      {!generatedWorksheet ? <div className="container mx-auto flex main-container">
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {!generatedWorksheet ? (
+        <div className="container mx-auto flex main-container">
           <div className="w-1/5 mx-0 py-[48px]">
             <Sidebar />
           </div>
           <div className="w-4/5 px-6 py-6 form-container">
-            
             <WorksheetForm onSubmit={handleFormSubmit} />
           </div>
-        </div> : <>
-          <WorksheetDisplay worksheet={generatedWorksheet} inputParams={inputParams} generationTime={generationTime} sourceCount={sourceCount} onBack={handleBack} />
+        </div>
+      ) : (
+        <>
+          <WorksheetDisplay 
+            worksheet={generatedWorksheet} 
+            inputParams={inputParams} 
+            generationTime={generationTime} 
+            sourceCount={sourceCount} 
+            onBack={handleBack} 
+          />
           
-          {showScrollTop && <button onClick={scrollToTop} className="fixed bottom-6 right-6 z-50 bg-worksheet-purple text-white p-3 rounded-full shadow-lg hover:bg-worksheet-purpleDark transition-colors" aria-label="Scroll to top">
+          {showScrollTop && (
+            <button 
+              onClick={scrollToTop} 
+              className="fixed bottom-6 right-6 z-50 bg-worksheet-purple text-white p-3 rounded-full shadow-lg hover:bg-worksheet-purpleDark transition-colors" 
+              aria-label="Scroll to top"
+            >
               <ArrowUp size={24} />
-            </button>}
-        </>}
+            </button>
+          )}
+        </>
+      )}
       
       <GeneratingModal isOpen={isGenerating} />
-    </div>;
+    </div>
+  );
 }
