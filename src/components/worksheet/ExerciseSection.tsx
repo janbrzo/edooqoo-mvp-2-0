@@ -1,3 +1,4 @@
+
 import React from "react";
 import ExerciseHeader from "./ExerciseHeader";
 import ExerciseContent from "./ExerciseContent";
@@ -6,6 +7,7 @@ import ExerciseMatching from "./ExerciseMatching";
 import ExerciseFillInBlanks from "./ExerciseFillInBlanks";
 import ExerciseMultipleChoice from "./ExerciseMultipleChoice";
 import TeacherTipSection from "./TeacherTipSection";
+import ExerciseDialogue from "./ExerciseDialogue";
 
 interface Exercise {
   type: string;
@@ -66,10 +68,10 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
 
   const handleQuestionChange = (questionIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
-    const exercise = updatedExercises[index];
-    if (exercise.questions) {
-      exercise.questions[questionIndex] = {
-        ...exercise.questions[questionIndex],
+    const exerciseCopy = updatedExercises[index];
+    if (exerciseCopy.questions) {
+      exerciseCopy.questions[questionIndex] = {
+        ...exerciseCopy.questions[questionIndex],
         [field]: value
       };
       setEditableWorksheet({
@@ -81,10 +83,10 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
 
   const handleItemChange = (itemIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
-    const exercise = updatedExercises[index];
-    if (exercise.items) {
-      exercise.items[itemIndex] = {
-        ...exercise.items[itemIndex],
+    const exerciseCopy = updatedExercises[index];
+    if (exerciseCopy.items) {
+      exerciseCopy.items[itemIndex] = {
+        ...exerciseCopy.items[itemIndex],
         [field]: value
       };
       setEditableWorksheet({
@@ -96,10 +98,10 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
 
   const handleSentenceChange = (sentenceIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
-    const exercise = updatedExercises[index];
-    if (exercise.sentences) {
-      exercise.sentences[sentenceIndex] = {
-        ...exercise.sentences[sentenceIndex],
+    const exerciseCopy = updatedExercises[index];
+    if (exerciseCopy.sentences) {
+      exerciseCopy.sentences[sentenceIndex] = {
+        ...exerciseCopy.sentences[sentenceIndex],
         [field]: value
       };
       setEditableWorksheet({
@@ -111,9 +113,9 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
 
   const handleExpressionChange = (expressionIndex: number, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
-    const exercise = updatedExercises[index];
-    if (exercise.expressions) {
-      exercise.expressions[expressionIndex] = value;
+    const exerciseCopy = updatedExercises[index];
+    if (exerciseCopy.expressions) {
+      exerciseCopy.expressions[expressionIndex] = value;
       setEditableWorksheet({
         ...editableWorksheet,
         exercises: updatedExercises
@@ -128,6 +130,21 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
       ...editableWorksheet,
       exercises: updatedExercises
     });
+  };
+
+  const handleDialogueChange = (dialogueIndex: number, field: string, value: string) => {
+    const updatedExercises = [...editableWorksheet.exercises];
+    const exerciseCopy = updatedExercises[index];
+    if (exerciseCopy.dialogue) {
+      exerciseCopy.dialogue[dialogueIndex] = {
+        ...exerciseCopy.dialogue[dialogueIndex],
+        [field]: value
+      };
+      setEditableWorksheet({
+        ...editableWorksheet,
+        exercises: updatedExercises
+      });
+    }
   };
 
   const getMatchedItems = (items: any[]) => {
@@ -233,78 +250,16 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
         )}
 
         {exercise.type === 'dialogue' && exercise.dialogue && (
-          <div>
-            <div className="mb-4 p-4 bg-gray-50 rounded-md dialogue-section">
-              {exercise.dialogue.map((line, lIndex) => (
-                <div key={lIndex} className="mb-1 dialogue-line">
-                  <span className="font-semibold">
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={line.speaker}
-                        onChange={e => handleDialogueChange(lIndex, 'speaker', e.target.value)}
-                        className="border p-1 editable-content w-32"
-                      />
-                    ) : (
-                      <>{line.speaker}:</>
-                    )}
-                  </span>
-                  <span className="leading-snug">
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={line.text}
-                        onChange={e => handleDialogueChange(lIndex, 'text', e.target.value)}
-                        className="border p-1 editable-content ml-1 w-full"
-                      />
-                    ) : (
-                      <> {line.text}</>
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {exercise.expressions && (
-              <div>
-                <p className="font-medium mb-2">
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={exercise.expression_instruction || ""}
-                      onChange={e => {
-                        const updatedExercises = [...editableWorksheet.exercises];
-                        updatedExercises[index] = {
-                          ...updatedExercises[index],
-                          expression_instruction: e.target.value
-                        };
-                        setEditableWorksheet({
-                          ...editableWorksheet,
-                          exercises: updatedExercises
-                        });
-                      }}
-                      className="w-full border p-1 editable-content"
-                    />
-                  ) : exercise.expression_instruction}
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                  {exercise.expressions.map((expr, eIndex) => (
-                    <div key={eIndex} className="p-2 border rounded-md bg-white">
-                      <span className="text-worksheet-purple font-medium mr-2">{eIndex + 1}.</span>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={expr}
-                          onChange={e => handleExpressionChange(eIndex, e.target.value)}
-                          className="border p-1 editable-content w-full"
-                        />
-                      ) : expr}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <ExerciseDialogue
+            dialogue={exercise.dialogue}
+            expressions={exercise.expressions}
+            expression_instruction={exercise.expression_instruction}
+            isEditing={isEditing}
+            viewMode={viewMode}
+            onDialogueChange={handleDialogueChange}
+            onExpressionChange={handleExpressionChange}
+            onExpressionInstructionChange={val => handleExerciseChange('expression_instruction', val)}
+          />
         )}
 
         {exercise.type === 'discussion' && exercise.questions && (
@@ -467,14 +422,7 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
           <TeacherTipSection
             tip={exercise.teacher_tip}
             isEditing={isEditing}
-            onChange={val => {
-              const updatedExercises = [...editableWorksheet.exercises];
-              updatedExercises[index].teacher_tip = val;
-              setEditableWorksheet({
-                ...editableWorksheet,
-                exercises: updatedExercises
-              });
-            }}
+            onChange={handleTeacherTipChange}
           />
         )}
       </div>
@@ -483,3 +431,4 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
 };
 
 export default ExerciseSection;
+
