@@ -1,4 +1,3 @@
-
 import html2pdf from 'html2pdf.js';
 
 const getCurrentDate = (): string => {
@@ -31,18 +30,13 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
   const finalFilename = `${datePart}-${viewPart}-worksheet-${keywords}.pdf`;
   
   const clonedElement = element.cloneNode(true) as HTMLElement;
-  
-  // Remove buttons and unnecessary elements
-  const buttons = clonedElement.querySelectorAll('button');
-  buttons.forEach(button => button.remove());
-  
-  const editableElements = clonedElement.querySelectorAll('[contenteditable="true"]');
-  editableElements.forEach(el => {
-    (el as HTMLElement).removeAttribute('contenteditable');
-  });
-  
-  // Remove rating section and teacher notes
-  const elementsToRemove = clonedElement.querySelectorAll('.rating-section, .teacher-notes');
+
+  // Usuwanie sekcji .rating-section (How would you rate...) na stałe z PDF
+  const ratingSections = clonedElement.querySelectorAll('.rating-section');
+  ratingSections.forEach(section => section.remove());
+
+  // Usuwanie .teacher-notes jeśli potrzebne
+  const elementsToRemove = clonedElement.querySelectorAll('.teacher-notes');
   elementsToRemove.forEach(section => section.remove());
   
   clonedElement.style.width = '100%';
@@ -55,12 +49,15 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     const headerEl = header as HTMLElement;
     headerEl.style.display = 'flex';
     headerEl.style.alignItems = 'center';
+    headerEl.style.justifyContent = 'space-between';
     headerEl.style.height = '48px';
     headerEl.style.maxHeight = '48px';
     headerEl.style.minHeight = '48px';
     headerEl.style.overflow = 'visible';
     headerEl.style.padding = '10px 15px';
     headerEl.style.lineHeight = '1';
+    // DODATKOWO resetujemy gapy, marginesy
+    headerEl.style.gap = '12px';
   });
   
   // Fix vocabulary matching layout
@@ -73,7 +70,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     containerEl.style.width = '100%';
   });
   
-  // Fix word bank alignment - problem #8
+  // FIX: Word Bank - idealne centrowanie w boxie
   const wordBanks = clonedElement.querySelectorAll('.word-bank-container');
   wordBanks.forEach(bank => {
     const bankEl = bank as HTMLElement;
@@ -83,8 +80,9 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     bankEl.style.alignItems = 'center';
     bankEl.style.padding = '15px';
     bankEl.style.minHeight = '50px';
-    
-    // Center the text vertically
+    bankEl.style.height = '100%';
+
+    // Odpowiednie centrowanie tekstu
     const wordBank = bankEl.querySelector('.word-bank');
     if (wordBank) {
       (wordBank as HTMLElement).style.margin = '0';
@@ -96,6 +94,8 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
       (wordBank as HTMLElement).style.width = '100%';
       (wordBank as HTMLElement).style.textAlign = 'center';
       (wordBank as HTMLElement).style.verticalAlign = 'middle';
+      (wordBank as HTMLElement).style.height = '100%';
+      (wordBank as HTMLElement).style.minHeight = '30px';
     }
   });
   
@@ -117,7 +117,7 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     blankEl.style.borderBottom = '1px solid #000';
   });
   
-  // Fix multiple choice options alignment - problem #9
+  // FIX: Multiple choice option icon alignment - stała pozycja i rozmiar
   const mcOptions = clonedElement.querySelectorAll('.multiple-choice-option');
   mcOptions.forEach(option => {
     const optionEl = option as HTMLElement;
@@ -126,8 +126,6 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     optionEl.style.gap = '10px';
     optionEl.style.marginBottom = '8px';
   });
-  
-  // Fix checkmark alignment - problem #9
   const checkmarks = clonedElement.querySelectorAll('.option-icon');
   checkmarks.forEach(icon => {
     const iconEl = icon as HTMLElement;
@@ -139,6 +137,9 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     iconEl.style.verticalAlign = 'middle';
     iconEl.style.position = 'static';
     iconEl.style.marginRight = '6px';
+    // Stały padding dla idealnego wyrównania PDF
+    iconEl.style.marginTop = '0';
+    iconEl.style.marginBottom = '0';
   });
   
   // Make dialogue lines individual page-break-avoid elements

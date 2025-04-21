@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+
 type LessonTime = "30 min" | "45 min" | "60 min";
 type Tile = {
   id: string;
   title: string;
 };
+
 const LESSON_TOPICS: Tile[] = [{
   id: "it-debug",
   title: "IT: debugging code"
@@ -63,6 +65,7 @@ const LESSON_TOPICS: Tile[] = [{
   id: "hospitality-guest",
   title: "Hospitality: guest relations"
 }];
+
 const LESSON_GOALS: Tile[] = [{
   id: "presentation",
   title: "Preparing for a presentation"
@@ -118,6 +121,7 @@ const LESSON_GOALS: Tile[] = [{
   id: "email-writing",
   title: "Improving email writing skills"
 }];
+
 const TEACHING_PREFERENCES: Tile[] = [{
   id: "writing",
   title: "Writing exercises"
@@ -173,6 +177,7 @@ const TEACHING_PREFERENCES: Tile[] = [{
   id: "case-studies",
   title: "Case studies with vocabulary focus"
 }];
+
 const STUDENT_PROFILES: Tile[] = [{
   id: "it-career",
   title: "Goal: IT career advancement, prefers writing, interested in programming, knows Present Simple, struggles with Future Tenses"
@@ -210,6 +215,7 @@ const STUDENT_PROFILES: Tile[] = [{
   id: "hospitality",
   title: "Goal: hospitality skills, outgoing personality, tourism background, good speaking skills, needs work on written communication"
 }];
+
 const STUDENT_STRUGGLES: Tile[] = [{
   id: "pronunciation",
   title: "Student struggles with 'r' pronunciation"
@@ -244,10 +250,12 @@ const STUDENT_STRUGGLES: Tile[] = [{
   id: "vocabulary",
   title: "Student gets overwhelmed with too much new vocabulary at once"
 }];
+
 const getRandomTiles = (tiles: Tile[], count = 5): Tile[] => {
   const shuffled = [...tiles].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);
 };
+
 export interface FormData {
   lessonTime: LessonTime;
   lessonTopic: string;
@@ -256,13 +264,15 @@ export interface FormData {
   studentProfile?: string;
   studentStruggles?: string;
 }
+
 interface WorksheetFormProps {
   onSubmit: (data: FormData) => void;
 }
+
 export default function WorksheetForm({
   onSubmit
 }: WorksheetFormProps) {
-  const [lessonTime, setLessonTime] = useState<LessonTime>("45 min");
+  const [lessonTime, setLessonTime] = useState<LessonTime>("60 min");
   const [lessonTopic, setLessonTopic] = useState("");
   const [lessonGoal, setLessonGoal] = useState("");
   const [teachingPreferences, setTeachingPreferences] = useState("");
@@ -273,13 +283,14 @@ export default function WorksheetForm({
   const [randomPreferences, setRandomPreferences] = useState(getRandomTiles(TEACHING_PREFERENCES));
   const [randomProfiles, setRandomProfiles] = useState(getRandomTiles(STUDENT_PROFILES));
   const [randomStruggles, setRandomStruggles] = useState(getRandomTiles(STUDENT_STRUGGLES));
+
   const {
     toast
   } = useToast();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Basic validation
     if (!lessonTopic || !lessonGoal || !teachingPreferences) {
       toast({
         title: "Missing information",
@@ -297,6 +308,7 @@ export default function WorksheetForm({
       studentStruggles
     });
   };
+
   const refreshTiles = () => {
     setRandomTopics(getRandomTiles(LESSON_TOPICS));
     setRandomGoals(getRandomTiles(LESSON_GOALS));
@@ -304,6 +316,7 @@ export default function WorksheetForm({
     setRandomProfiles(getRandomTiles(STUDENT_PROFILES));
     setRandomStruggles(getRandomTiles(STUDENT_STRUGGLES));
   };
+
   return <div className="w-full py-[24px]">
       <Card className="bg-white shadow-sm">
         <CardContent className="p-8">
@@ -324,7 +337,6 @@ export default function WorksheetForm({
 
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Lesson Topic */}
               <div>
                 <label className="block text-sm font-medium mb-2">Lesson topic: What is the main subject of the lesson?</label>
                 <Input type="text" placeholder="E.g. IT: debugging code" value={lessonTopic} onChange={e => setLessonTopic(e.target.value)} className="mb-3" />
@@ -335,7 +347,6 @@ export default function WorksheetForm({
                 </div>
               </div>
 
-              {/* Lesson Goal */}
               <div>
                 <label className="block text-sm font-medium mb-2">Lesson goal: What would you like to focus on during this lesson?</label>
                 <Input type="text" placeholder="E.g. Preparing for a work presentation on AI" value={lessonGoal} onChange={e => setLessonGoal(e.target.value)} className="mb-3" />
@@ -347,7 +358,6 @@ export default function WorksheetForm({
               </div>
             </div>
 
-            {/* Teaching Preferences */}
             <div>
               <label className="block text-sm font-medium mb-2">Teaching preferences: What stimulates your student best?</label>
               <Input type="text" placeholder="E.g. Writing exercises, dialogues" value={teachingPreferences} onChange={e => setTeachingPreferences(e.target.value)} className="mb-3" />
@@ -361,7 +371,6 @@ export default function WorksheetForm({
             <h3 className="font-medium text-muted-foreground pt-0 text-base">Optional Details</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Student Profile */}
               <div>
                 <label className="block text-sm font-medium mb-2">Student Profile</label>
                 <Input type="text" placeholder="E.g. Goal: IT career advancement..." value={studentProfile} onChange={e => setStudentProfile(e.target.value)} className="mb-3" />
@@ -372,7 +381,6 @@ export default function WorksheetForm({
                 </div>
               </div>
 
-              {/* Student Struggles */}
               <div>
                 <label className="block text-sm font-medium mb-2">Main Struggles: What does your student struggle with during lessons?</label>
                 <Input type="text" placeholder="E.g. Student struggles with 'r' pronunciation" value={studentStruggles} onChange={e => setStudentStruggles(e.target.value)} className="mb-3" />

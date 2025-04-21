@@ -38,7 +38,9 @@ const VocabularySheet = ({
     </div>
 
     <div className="p-5">
-      <p className="font-medium mb-4">Learn and practice these key vocabulary terms related to the topic.</p>
+      <p className="font-medium mb-4">
+        Learn and practice these key vocabulary terms related to the topic.
+      </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {vocabularySheet.map((item, index) => (
@@ -63,7 +65,6 @@ const VocabularySheet = ({
                 />
               ) : item.term}
             </p>
-
             {viewMode === 'teacher' ? (
               <p className="text-sm text-gray-600 mt-2">
                 {isEditing ? (
@@ -86,7 +87,7 @@ const VocabularySheet = ({
               </p>
             ) : (
               <>
-                <span className="vocabulary-definition-label">Definition:</span>
+                <span className="vocabulary-definition-label">Definition or translation:</span>
                 <span className="text-sm text-gray-500">_____________________</span>
               </>
             )}
