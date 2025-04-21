@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
-import { ArrowUp, Check, Info, Star } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import WorksheetForm, { FormData } from "@/components/WorksheetForm";
 import Sidebar from "@/components/Sidebar";
 import GeneratingModal from "@/components/GeneratingModal";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
-import { toast } from "sonner";
-import { useMobile } from "@/hooks/use-mobile";
-
+import { useToast } from "@/hooks/use-toast";
 const mockWorksheetData = {
   title: "Professional Communication in Customer Service",
   subtitle: "Improving Service Quality through Effective Communication",
@@ -463,7 +461,6 @@ const mockWorksheetData = {
     meaning: "A customer's willingness to continue to do business with a company"
   }]
 };
-
 const getExercisesByTime = (exercises: any[], lessonTime: string) => {
   if (lessonTime === "30 min") {
     return exercises.slice(0, 4); // First 4 exercises for 30 min
@@ -475,6 +472,7 @@ const getExercisesByTime = (exercises: any[], lessonTime: string) => {
   return exercises.slice(0, 6); // Default to 6 exercises
 };
 
+// Function to shuffle an array
 const shuffleArray = (array: any[]) => {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -483,16 +481,18 @@ const shuffleArray = (array: any[]) => {
   }
   return newArray;
 };
-
 export default function Index() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedWorksheet, setGeneratedWorksheet] = useState<any>(null);
   const [inputParams, setInputParams] = useState<FormData | null>(null);
+  const {
+    toast
+  } = useToast();
   const [generationTime, setGenerationTime] = useState(0);
   const [sourceCount, setSourceCount] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const isMobile = useMobile();
 
+  // Handle scroll to top button visibility
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 300);
@@ -500,14 +500,12 @@ export default function Index() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     });
   };
-
   const handleFormSubmit = (data: FormData) => {
     setInputParams(data);
     setIsGenerating(true);
@@ -515,74 +513,57 @@ export default function Index() {
     setGenerationTime(genTime);
     const sources = Math.floor(Math.random() * (90 - 50) + 50);
     setSourceCount(sources);
-
     setTimeout(() => {
       setIsGenerating(false);
 
+      // Process the worksheet data
       const worksheetCopy = JSON.parse(JSON.stringify(mockWorksheetData));
 
+      // Get exercises based on lesson time
       worksheetCopy.exercises = getExercisesByTime(worksheetCopy.exercises, data.lessonTime);
 
+      // Shuffle matching exercise terms and definitions
       worksheetCopy.exercises.forEach((exercise: any) => {
         if (exercise.type === "matching" && exercise.items) {
+          // Create shuffled arrays for both terms and definitions
           const shuffledTerms = shuffleArray([...exercise.items]);
           const shuffledDefs = shuffleArray([...exercise.items]);
 
+          // Store original items and the shuffled versions
           exercise.originalItems = [...exercise.items];
           exercise.shuffledTerms = shuffledTerms;
           exercise.shuffledDefinitions = shuffledDefs;
         }
       });
-
       setGeneratedWorksheet(worksheetCopy);
-
-      toast.success("Worksheet generated successfully!", {
+      toast({
+        title: "Worksheet generated successfully!",
         description: "Your custom worksheet is now ready to use.",
-        icon: <Check className="h-5 w-5" />,
-        duration: 4000
+        className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
       });
     }, 5000);
   };
-
   const handleBack = () => {
     setGeneratedWorksheet(null);
     setInputParams(null);
   };
-
-  return (
-    <div className="min-h-screen bg-gray-100">
-      {!generatedWorksheet ? (
-        <div className="container mx-auto flex main-container">
-          <div className={isMobile ? "hidden" : "w-1/5 mx-0 py-[48px]"}>
+  return <div className="min-h-screen bg-gray-100">
+      {!generatedWorksheet ? <div className="container mx-auto flex main-container">
+          <div className="w-1/5 mx-0 py-[48px]">
             <Sidebar />
           </div>
-          <div className={isMobile ? "w-full px-4 py-4" : "w-4/5 px-6 py-6 form-container"}>
+          <div className="w-4/5 px-6 py-6 form-container">
+            
             <WorksheetForm onSubmit={handleFormSubmit} />
           </div>
-        </div>
-      ) : (
-        <>
-          <WorksheetDisplay 
-            worksheet={generatedWorksheet} 
-            inputParams={inputParams}
-            generationTime={generationTime} 
-            sourceCount={sourceCount} 
-            onBack={handleBack}
-          />
+        </div> : <>
+          <WorksheetDisplay worksheet={generatedWorksheet} inputParams={inputParams} generationTime={generationTime} sourceCount={sourceCount} onBack={handleBack} />
           
-          {showScrollTop && (
-            <button 
-              onClick={scrollToTop} 
-              className="fixed bottom-6 right-6 z-50 bg-worksheet-purple text-white p-3 rounded-full shadow-lg hover:bg-worksheet-purpleDark transition-colors" 
-              aria-label="Scroll to top"
-            >
+          {showScrollTop && <button onClick={scrollToTop} className="fixed bottom-6 right-6 z-50 bg-worksheet-purple text-white p-3 rounded-full shadow-lg hover:bg-worksheet-purpleDark transition-colors" aria-label="Scroll to top">
               <ArrowUp size={24} />
-            </button>
-          )}
-        </>
-      )}
+            </button>}
+        </>}
       
       <GeneratingModal isOpen={isGenerating} />
-    </div>
-  );
+    </div>;
 }

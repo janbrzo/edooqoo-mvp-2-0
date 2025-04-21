@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -139,11 +140,78 @@
   background-clip: text;
 }
 
-/* Improve toast styling */
+/* Styling for fill-in-the-blanks */
+.fill-blank {
+  display: inline-block;
+  min-width: 200px;
+  height: 1.5em;
+  border-bottom: 1px solid #333;
+  margin: 0 5px;
+  text-align: center;
+}
+
+/* Teacher/student view sections */
+.rating-section, .teacher-notes {
+  @apply bg-white border border-gray-200 rounded-lg p-4 shadow-sm my-4;
+}
+
+/* Modern toast styling */
 .modern-toast {
-  @apply bg-white border-l-4 shadow-lg rounded-xl px-4 py-3;
+  @apply bg-white border shadow-lg rounded-xl overflow-hidden transform transition-all;
+  animation: toast-enter 0.3s ease-out;
+}
+
+@keyframes toast-enter {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Vocabulary sheet styling */
+.vocabulary-card {
+  height: 100%;
+  min-height: 100px;
+}
+
+/* Scroll to top button */
+.scroll-to-top {
+  @apply fixed bottom-6 right-6 rounded-full bg-worksheet-purple text-white p-3 shadow-lg cursor-pointer opacity-80 hover:opacity-100 transition-opacity z-50;
+}
+
+/* Sidebar and main container styling */
+.main-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.sidebar-container {
+  height: 100%;
+  min-height: 100%;
+  width: 100%;
+}
+
+.form-container {
+  width: 100%;
+}
+
+/* Vocabulary sheet student view styling */
+.vocabulary-definition-label {
+  font-weight: bold;
+  display: block;
+  margin-top: 8px;
+  color: #666;
+}
+
+/* Modern toast styling */
+.modern-toast {
+  @apply bg-white shadow-lg rounded-xl border-l-4 px-4 py-3;
   animation: slide-in 0.3s ease-out;
-  max-height: 80px;
 }
 
 @keyframes slide-in {
@@ -157,62 +225,32 @@
   }
 }
 
-/* Vocabulary definition label styling */
-.vocabulary-definition-label {
-  font-weight: normal;
-  font-size: 0.9rem;
-  display: block;
-  margin-top: 8px;
-  color: #666;
+/* Rating section styling */
+.rating-section, .teacher-notes {
+  @apply bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm my-4;
 }
 
-/* Exercise item display for student view */
-.exercise-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.exercise-item-question {
-  flex: 1;
-  text-align: left;
-}
-
-.exercise-item-answer {
-  text-align: left;
-  min-width: fit-content;
-}
-
-/* Teacher tip box height adjustment */
-.teacher-tip-box {
-  min-height: auto;
-  padding: 0.75rem 1rem;
-}
-
-/* Matching exercise styling */
-.matching-term-answer {
-  display: inline-block;
-  min-width: 30px;
-  border-bottom: 1px solid #ccc;
-  margin-right: 10px;
-}
-
-/* PDF specific styles */
+/* Exercise header for PDF */
 @media print {
   .exercise-header {
     display: flex !important;
     align-items: center !important;
     height: 60px !important;
     max-height: 60px !important;
-    min-height: 60px !important;
     overflow: visible !important;
+  }
+  
+  .vocabulary-matching-container {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+    gap: 20px !important;
   }
   
   .word-bank-container {
     display: flex !important;
     align-items: center !important;
-    justify-content: center !important;
+    justifyContent: center !important;
     padding: 15px !important;
   }
   
@@ -233,18 +271,13 @@
     justify-content: center !important;
     width: 24px !important;
     height: 24px !important;
-    margin-top: 0 !important;
   }
   
-  .dialogue-line {
-    page-break-inside: auto !important;
-  }
-  
-  .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question {
-    page-break-inside: avoid !important;
-  }
-  
-  .rating-section, .teacher-notes, .worksheet-actions, .input-params {
+  .rating-section, .teacher-notes {
     display: none !important;
+  }
+  
+  .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section {
+    page-break-inside: avoid !important;
   }
 }
