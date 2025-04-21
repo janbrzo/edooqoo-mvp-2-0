@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowUp } from "lucide-react";
 import WorksheetForm, { FormData } from "@/components/WorksheetForm";
 import Sidebar from "@/components/Sidebar";
@@ -581,7 +581,6 @@ export default function Index() {
             generationTime={generationTime}
             sourceCount={sourceCount}
             onBack={handleBack}
-            showTeacherTipsModern
             wordBankOrder={generatedWorksheet?.exercises
               ?.find((ex: any) => ex.type === "matching")?.shuffledTerms?.map((item: any) => item.definition)}
           />
