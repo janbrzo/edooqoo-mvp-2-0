@@ -308,7 +308,7 @@ export default function WorksheetForm({
       <Card className="bg-white shadow-sm">
         <CardContent className="p-8">
           <div className="mb-6 flex justify-between items-center">
-            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500">Create Your Worksheet</h1>
+            <h1 className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-3xl">Create Your Worksheet</h1>
             <div className="flex gap-2">
               <Button variant={lessonTime === "30 min" ? "default" : "outline"} onClick={() => setLessonTime("30 min")} className={lessonTime === "30 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}>
                 30 min
@@ -329,7 +329,7 @@ export default function WorksheetForm({
                 <label className="block text-sm font-medium mb-2">Lesson topic: What is the main subject of the lesson?</label>
                 <Input type="text" placeholder="E.g. IT: debugging code" value={lessonTopic} onChange={e => setLessonTopic(e.target.value)} className="mb-3" />
                 <div className="flex flex-wrap gap-2">
-                  {randomTopics.map(topic => <Button key={topic.id} type="button" variant="outline" size="sm" className="text-xs font-light" onClick={() => setLessonTopic(topic.title)}>
+                  {randomTopics.map(topic => <Button key={topic.id} type="button" variant="outline" size="sm" onClick={() => setLessonTopic(topic.title)} className="font-light text-sm">
                       {topic.title}
                     </Button>)}
                 </div>
@@ -340,7 +340,7 @@ export default function WorksheetForm({
                 <label className="block text-sm font-medium mb-2">Lesson goal: What would you like to focus on during this lesson?</label>
                 <Input type="text" placeholder="E.g. Preparing for a work presentation on AI" value={lessonGoal} onChange={e => setLessonGoal(e.target.value)} className="mb-3" />
                 <div className="flex flex-wrap gap-2">
-                  {randomGoals.map(goal => <Button key={goal.id} type="button" variant="outline" size="sm" className="text-xs font-light" onClick={() => setLessonGoal(goal.title)}>
+                  {randomGoals.map(goal => <Button key={goal.id} type="button" variant="outline" size="sm" onClick={() => setLessonGoal(goal.title)} className="font-light text-sm">
                       {goal.title}
                     </Button>)}
                 </div>
@@ -352,13 +352,13 @@ export default function WorksheetForm({
               <label className="block text-sm font-medium mb-2">Teaching preferences: What stimulates your student best?</label>
               <Input type="text" placeholder="E.g. Writing exercises, dialogues" value={teachingPreferences} onChange={e => setTeachingPreferences(e.target.value)} className="mb-3" />
               <div className="flex flex-wrap gap-2">
-                {randomPreferences.map(preference => <Button key={preference.id} type="button" variant="outline" size="sm" className="text-xs font-light" onClick={() => setTeachingPreferences(preference.title)}>
+                {randomPreferences.map(preference => <Button key={preference.id} type="button" variant="outline" size="sm" onClick={() => setTeachingPreferences(preference.title)} className="font-light text-sm">
                     {preference.title}
                   </Button>)}
               </div>
             </div>
 
-            <h3 className="text-lg font-medium text-muted-foreground pt-2">Optional Details</h3>
+            <h3 className="font-medium text-muted-foreground pt-0 text-base">Optional Details</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Student Profile */}
@@ -366,7 +366,7 @@ export default function WorksheetForm({
                 <label className="block text-sm font-medium mb-2">Student Profile</label>
                 <Input type="text" placeholder="E.g. Goal: IT career advancement..." value={studentProfile} onChange={e => setStudentProfile(e.target.value)} className="mb-3" />
                 <div className="flex flex-wrap gap-2">
-                  {randomProfiles.map(profile => <Button key={profile.id} type="button" variant="outline" size="sm" className="text-xs font-light" onClick={() => setStudentProfile(profile.title)}>
+                  {randomProfiles.map(profile => <Button key={profile.id} type="button" variant="outline" size="sm" onClick={() => setStudentProfile(profile.title)} className="font-light text-sm">
                       {profile.title.substring(0, 50)}...
                     </Button>)}
                 </div>
@@ -377,7 +377,7 @@ export default function WorksheetForm({
                 <label className="block text-sm font-medium mb-2">Main Struggles: What does your student struggle with during lessons?</label>
                 <Input type="text" placeholder="E.g. Student struggles with 'r' pronunciation" value={studentStruggles} onChange={e => setStudentStruggles(e.target.value)} className="mb-3" />
                 <div className="flex flex-wrap gap-2">
-                  {randomStruggles.map(struggle => <Button key={struggle.id} type="button" variant="outline" size="sm" className="text-xs font-light" onClick={() => setStudentStruggles(struggle.title)}>
+                  {randomStruggles.map(struggle => <Button key={struggle.id} type="button" variant="outline" size="sm" onClick={() => setStudentStruggles(struggle.title)} className="font-light text-sm">
                       {struggle.title}
                     </Button>)}
                 </div>
