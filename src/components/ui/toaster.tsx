@@ -26,13 +26,13 @@ export function Toaster() {
       variant,
       ...props
     }) {
-      return <Toast key={id} className="bg-white shadow-lg rounded-lg group max-h-12 min-h-[36px] h-[80px] py-[12px] px-[8px]">
+      return <Toast key={id} className="bg-white shadow-lg rounded-lg group max-h-36 min-h-[36px] h-[80px] px-[8px] py-[12px]">
             <div className="flex items-center gap-2 h-full">
               <div className="flex-shrink-0 pt-0.5">
                 {getIcon(variant)}
               </div>
               <div className="grid gap-1">
-                {title && <ToastTitle className="font-semibold text-sm text-gray-900">{title}</ToastTitle>}
+                {title && <ToastTitle className="font-semibold text-sm text-gray-900 py-0">{title}</ToastTitle>}
                 {description && <ToastDescription className="text-xs text-gray-600">{description}</ToastDescription>}
               </div>
             </div>
