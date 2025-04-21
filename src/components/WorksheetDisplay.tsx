@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock, Database, Download, Edit, Eye, Star, Zap, FileText, Info, Lightbulb, Pencil, User, UserCog, ArrowUp } from "lucide-react";
@@ -41,6 +42,7 @@ interface WorksheetDisplayProps {
   generationTime: number;
   sourceCount: number;
   onBack: () => void;
+  wordBankOrder?: any; // Added the missing prop
 }
 
 export default function WorksheetDisplay({
@@ -48,7 +50,8 @@ export default function WorksheetDisplay({
   inputParams,
   generationTime,
   sourceCount,
-  onBack
+  onBack,
+  wordBankOrder
 }: WorksheetDisplayProps) {
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
