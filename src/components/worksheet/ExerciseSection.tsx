@@ -1,5 +1,11 @@
 import React from "react";
-import { Clock, Database, Edit, Eye, Star, Zap, FileText, Info, Lightbulb, Pencil, User, UserCog, ArrowUp } from "lucide-react";
+import ExerciseHeader from "./ExerciseHeader";
+import ExerciseContent from "./ExerciseContent";
+import ExerciseReading from "./ExerciseReading";
+import ExerciseMatching from "./ExerciseMatching";
+import ExerciseFillInBlanks from "./ExerciseFillInBlanks";
+import ExerciseMultipleChoice from "./ExerciseMultipleChoice";
+import TeacherTipSection from "./TeacherTipSection";
 
 interface Exercise {
   type: string;
@@ -30,12 +36,12 @@ export interface Worksheet {
 }
 
 interface ExerciseSectionProps {
-  exercise: Exercise;
+  exercise: any;
   index: number;
   isEditing: boolean;
   viewMode: "student" | "teacher";
-  editableWorksheet: Worksheet;
-  setEditableWorksheet: React.Dispatch<React.SetStateAction<Worksheet>>;
+  editableWorksheet: any;
+  setEditableWorksheet: React.Dispatch<React.SetStateAction<any>>;
 }
 
 const ExerciseSection: React.FC<ExerciseSectionProps> = ({
@@ -44,27 +50,8 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   isEditing,
   viewMode,
   editableWorksheet,
-  setEditableWorksheet,
+  setEditableWorksheet
 }) => {
-  const getIconComponent = (iconName: string) => {
-    switch (iconName) {
-      case "fa-book-open":
-        return <Eye className="h-5 w-5" />;
-      case "fa-link":
-        return <Database className="h-5 w-5" />;
-      case "fa-pencil-alt":
-        return <Pencil className="h-5 w-5" />;
-      case "fa-check-square":
-        return <Star className="h-5 w-5" />;
-      case "fa-comments":
-        return <User className="h-5 w-5" />;
-      case "fa-question-circle":
-        return <Lightbulb className="h-5 w-5" />;
-      default:
-        return <Eye className="h-5 w-5" />;
-    }
-  };
-
   const handleExerciseChange = (field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
     updatedExercises[index] = {
@@ -92,21 +79,6 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     }
   };
 
-  const handleSentenceChange = (sentenceIndex: number, field: string, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    const exercise = updatedExercises[index];
-    if (exercise.sentences) {
-      exercise.sentences[sentenceIndex] = {
-        ...exercise.sentences[sentenceIndex],
-        [field]: value
-      };
-      setEditableWorksheet({
-        ...editableWorksheet,
-        exercises: updatedExercises
-      });
-    }
-  };
-
   const handleItemChange = (itemIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
     const exercise = updatedExercises[index];
@@ -122,12 +94,12 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     }
   };
 
-  const handleDialogueChange = (dialogueIndex: number, field: string, value: string) => {
+  const handleSentenceChange = (sentenceIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
     const exercise = updatedExercises[index];
-    if (exercise.dialogue) {
-      exercise.dialogue[dialogueIndex] = {
-        ...exercise.dialogue[dialogueIndex],
+    if (exercise.sentences) {
+      exercise.sentences[sentenceIndex] = {
+        ...exercise.sentences[sentenceIndex],
         [field]: value
       };
       setEditableWorksheet({
@@ -158,297 +130,106 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     });
   };
 
-  const shuffleArray = (array: any[]) => {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
-  };
-
   const getMatchedItems = (items: any[]) => {
-    return viewMode === 'teacher' ? items : shuffleArray([...items]);
+    return viewMode === 'teacher' ? items : [...items].sort(() => Math.random() - 0.5);
   };
 
   return (
     <div className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
-      <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center exercise-header">
-        <div className="flex items-center">
-          <div className="p-2 bg-white/20 rounded-full mr-3">
-            {getIconComponent(exercise.icon)}
-          </div>
-          <h3 className="text-lg font-semibold">
-            {isEditing ? (
-              <input
-                type="text"
-                value={exercise.title}
-                onChange={e => handleExerciseChange('title', e.target.value)}
-                className="bg-transparent border-b border-white/30 text-white w-full p-1"
-              />
-            ) : exercise.title}
-          </h3>
-        </div>
-        <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
-          <Clock className="h-4 w-4 mr-1" />
-          <span className="text-sm">{exercise.time} min</span>
-        </div>
-      </div>
+      <ExerciseHeader
+        icon={exercise.icon}
+        title={exercise.title}
+        isEditing={isEditing}
+        time={exercise.time}
+        onTitleChange={val => handleExerciseChange('title', val)}
+      />
 
       <div className="p-5">
-        <p className="font-medium mb-3 leading-snug">
-          {isEditing ? (
-            <input
-              type="text"
-              value={exercise.instructions}
-              onChange={e => handleExerciseChange('instructions', e.target.value)}
-              className="w-full border p-2 editable-content"
-            />
-          ) : exercise.instructions}
-        </p>
-
-        {exercise.content && (
-          <div className="mb-4 p-4 bg-gray-50 rounded-md">
-            {isEditing ? (
-              <textarea
-                value={exercise.content}
-                onChange={e => handleExerciseChange('content', e.target.value)}
-                className="w-full h-32 border p-2 editable-content"
-              />
-            ) : (
-              <p className="whitespace-pre-line leading-snug">{exercise.content}</p>
-            )}
-          </div>
-        )}
+        <ExerciseContent
+          instructions={exercise.instructions}
+          isEditing={isEditing}
+          onInstructionsChange={val => handleExerciseChange('instructions', val)}
+          content={exercise.content}
+          onContentChange={val => handleExerciseChange('content', val)}
+        />
 
         {exercise.type === 'reading' && exercise.questions && (
-          <div className="space-y-0.5">
-            {exercise.questions.map((question, qIndex) => (
-              <div key={qIndex} className="border-b pb-1">
-                <div className="flex flex-row items-start">
-                  <div className="flex-grow">
-                    <p className="font-medium leading-snug">
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={question.text}
-                          onChange={e => handleQuestionChange(qIndex, 'text', e.target.value)}
-                          className="w-full border p-1 editable-content"
-                        />
-                      ) : (
-                        <>{qIndex + 1}. {question.text}</>
-                      )}
-                    </p>
-                  </div>
-                  {viewMode === 'teacher' && (
-                    <div className="text-green-600 italic ml-3 text-sm">
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={question.answer}
-                          onChange={e => handleQuestionChange(qIndex, 'answer', e.target.value)}
-                          className="border p-1 editable-content w-full"
-                        />
-                      ) : (
-                        <span>({question.answer})</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <ExerciseReading
+            questions={exercise.questions}
+            isEditing={isEditing}
+            viewMode={viewMode}
+            onQuestionChange={handleQuestionChange}
+          />
         )}
 
         {exercise.type === 'matching' && exercise.items && (
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 vocabulary-matching-container">
-            <div className="md:col-span-5 space-y-2">
-              <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Terms</h4>
-              {exercise.items.map((item, iIndex) => (
-                <div key={iIndex} className="p-2 border rounded-md bg-white">
-                  <span className="text-worksheet-purple font-medium mr-2">{iIndex + 1}.</span>
-                  {viewMode === 'teacher' ? (
-                    <span className="teacher-answer">{String.fromCharCode(65 + getMatchedItems(exercise.items).findIndex(i => i.term === item.term))}</span>
-                  ) : (
-                    <span className="student-answer-blank"></span>
-                  )}
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={item.term}
-                      onChange={e => handleItemChange(iIndex, 'term', e.target.value)}
-                      className="border p-1 editable-content w-full"
-                    />
-                  ) : item.term}
-                </div>
-              ))}
-            </div>
-
-            <div className="md:col-span-7 space-y-2">
-              <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Definitions</h4>
-              {getMatchedItems(exercise.items).map((item, iIndex) => (
-                <div key={iIndex} className="p-2 border rounded-md bg-white">
-                  <span className="text-worksheet-purple font-medium mr-2">{String.fromCharCode(65 + iIndex)}.</span>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={item.definition}
-                      onChange={e => {
-                        const originalIndex = exercise.items.findIndex(i => i.term === item.term);
-                        if (originalIndex !== -1) {
-                          handleItemChange(originalIndex, 'definition', e.target.value);
-                        }
-                      }}
-                      className="border p-1 editable-content w-full"
-                    />
-                  ) : item.definition}
-                </div>
-              ))}
-            </div>
-          </div>
+          <ExerciseMatching
+            items={exercise.items}
+            isEditing={isEditing}
+            viewMode={viewMode}
+            getMatchedItems={getMatchedItems}
+            onItemChange={handleItemChange}
+          />
         )}
 
         {exercise.type === 'fill-in-blanks' && exercise.sentences && (
-          <div>
-            {exercise.word_bank && (
-              <div className="mb-4 p-3 bg-worksheet-purpleLight rounded-md word-bank-container">
-                <p className="font-medium mb-2">Word Bank:</p>
-                <div className="flex flex-wrap gap-2">
-                  {exercise.word_bank.map((word, wIndex) => (
-                    <span key={wIndex} className="bg-white px-2 py-1 rounded-md text-sm">
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={word}
-                          onChange={e => {
-                            const newWordBank = [...exercise.word_bank!];
-                            newWordBank[wIndex] = e.target.value;
-                            const updatedExercises = [...editableWorksheet.exercises];
-                            updatedExercises[index] = {
-                              ...updatedExercises[index],
-                              word_bank: newWordBank
-                            };
-                            setEditableWorksheet({
-                              ...editableWorksheet,
-                              exercises: updatedExercises
-                            });
-                          }}
-                          className="border-0 bg-transparent p-0 w-full focus:outline-none focus:ring-0"
-                        />
-                      ) : word}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-0.5">
-              {exercise.sentences.map((sentence, sIndex) => (
-                <div key={sIndex} className="border-b pb-1">
-                  <div className="flex flex-row items-start">
-                    <div className="flex-grow">
-                      <p className="leading-snug">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.text}
-                            onChange={e => handleSentenceChange(sIndex, 'text', e.target.value)}
-                            className="w-full border p-1 editable-content"
-                          />
-                        ) : (
-                          <>{sIndex + 1}. {sentence.text.replace(/_+/g, "_______________")}</>
-                        )}
-                      </p>
-                    </div>
-                    {viewMode === 'teacher' && (
-                      <div className="text-green-600 italic ml-3 text-sm">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.answer}
-                            onChange={e => handleSentenceChange(sIndex, 'answer', e.target.value)}
-                            className="border p-1 editable-content w-full"
-                          />
-                        ) : (
-                          <span>({sentence.answer})</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ExerciseFillInBlanks
+            word_bank={exercise.word_bank}
+            sentences={exercise.sentences}
+            isEditing={isEditing}
+            viewMode={viewMode}
+            onWordBankChange={(wIndex, value) => {
+              const newWordBank = [...exercise.word_bank!];
+              newWordBank[wIndex] = value;
+              const updatedExercises = [...editableWorksheet.exercises];
+              updatedExercises[index] = {
+                ...updatedExercises[index],
+                word_bank: newWordBank
+              };
+              setEditableWorksheet({
+                ...editableWorksheet,
+                exercises: updatedExercises
+              });
+            }}
+            onSentenceChange={(sIndex, field, value) => {
+              const updatedExercises = [...editableWorksheet.exercises];
+              const ex = updatedExercises[index];
+              ex.sentences[sIndex] = {
+                ...ex.sentences[sIndex],
+                [field]: value
+              };
+              setEditableWorksheet({
+                ...editableWorksheet,
+                exercises: updatedExercises
+              });
+            }}
+          />
         )}
 
         {exercise.type === 'multiple-choice' && exercise.questions && (
-          <div className="space-y-2">
-            {exercise.questions.map((question, qIndex) => (
-              <div key={qIndex} className="border-b pb-2 multiple-choice-question">
-                <p className="font-medium mb-1 leading-snug">
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={question.text}
-                      onChange={e => handleQuestionChange(qIndex, 'text', e.target.value)}
-                      className="w-full border p-1 editable-content"
-                    />
-                  ) : (
-                    <>{qIndex + 1}. {question.text}</>
-                  )}
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                  {question.options.map((option: any, oIndex: number) => (
-                    <div
-                      key={oIndex}
-                      className={`
-                                p-2 border rounded-md flex items-center gap-2 multiple-choice-option
-                                ${viewMode === 'teacher' && option.correct ? 'bg-green-50 border-green-200' : 'bg-white'}
-                              `}
-                    >
-                      <div
-                        className={`
-                                  w-5 h-5 rounded-md border flex items-center justify-center option-icon
-                                  ${viewMode === 'teacher' && option.correct ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300'}
-                                `}
-                      >
-                        {viewMode === 'teacher' && option.correct && <span>✓</span>}
-                      </div>
-                      <span>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={option.text}
-                            onChange={e => {
-                              const updatedExercises = [...editableWorksheet.exercises];
-                              const newOptions = [...question.options];
-                              newOptions[oIndex] = {
-                                ...newOptions[oIndex],
-                                text: e.target.value
-                              };
-                              if (updatedExercises[index].questions) {
-                                updatedExercises[index].questions![qIndex] = {
-                                  ...updatedExercises[index].questions![qIndex],
-                                  options: newOptions
-                                };
-                                setEditableWorksheet({
-                                  ...editableWorksheet,
-                                  exercises: updatedExercises
-                                });
-                              }
-                            }}
-                            className="border p-1 editable-content ml-1"
-                          />
-                        ) : (
-                          <>{option.label}. {option.text}</>
-                        )}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <ExerciseMultipleChoice
+            questions={exercise.questions}
+            isEditing={isEditing}
+            viewMode={viewMode}
+            onQuestionTextChange={(qIndex, value) => handleQuestionChange(qIndex, 'text', value)}
+            onOptionTextChange={(qIndex, oIndex, value) => {
+              const updatedExercises = [...editableWorksheet.exercises];
+              const question = updatedExercises[index].questions[qIndex];
+              const newOptions = [...question.options];
+              newOptions[oIndex] = {
+                ...newOptions[oIndex],
+                text: value
+              };
+              updatedExercises[index].questions[qIndex] = {
+                ...question,
+                options: newOptions
+              };
+              setEditableWorksheet({
+                ...editableWorksheet,
+                exercises: updatedExercises
+              });
+            }}
+          />
         )}
 
         {exercise.type === 'dialogue' && exercise.dialogue && (
@@ -683,18 +464,18 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
         )}
 
         {viewMode === 'teacher' && (
-          <div className="mt-4 p-3 bg-gray-50 border-l-4 border-gray-300 rounded-md teacher-tip">
-            <p className="font-medium mb-1 text-gray-700">Teacher's Tip:</p>
-            <p className="text-gray-600 text-sm">
-              {isEditing ? (
-                <textarea
-                  value={exercise.teacher_tip}
-                  onChange={e => handleTeacherTipChange(e.target.value)}
-                  className="w-full border p-2 editable-content h-16"
-                />
-              ) : exercise.teacher_tip}
-            </p>
-          </div>
+          <TeacherTipSection
+            tip={exercise.teacher_tip}
+            isEditing={isEditing}
+            onChange={val => {
+              const updatedExercises = [...editableWorksheet.exercises];
+              updatedExercises[index].teacher_tip = val;
+              setEditableWorksheet({
+                ...editableWorksheet,
+                exercises: updatedExercises
+              });
+            }}
+          />
         )}
       </div>
     </div>
