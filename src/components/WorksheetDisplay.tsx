@@ -139,8 +139,7 @@ export default function WorksheetDisplay({
     if (worksheetRef.current) {
       toast({
         title: "Preparing HTML",
-        description: "Your worksheet is being converted to HTML...",
-        className: "modern-toast bg-white shadow-lg rounded-xl border-l-4 border-l-worksheet-purple"
+        description: "Your worksheet is being converted to HTML..."
       });
       try {
         const result = await exportAsHTML('worksheet-content', `${editableWorksheet.title.replace(/\s+/g, '_')}.html`, editableWorksheet.title);
@@ -148,7 +147,7 @@ export default function WorksheetDisplay({
           toast({
             title: "HTML Downloaded",
             description: "Your worksheet has been downloaded successfully.",
-            className: "modern-toast bg-white shadow-lg rounded-xl border-l-4 border-l-green-500"
+            variant: "success"
           });
         }
       } catch (error) {
@@ -156,8 +155,7 @@ export default function WorksheetDisplay({
         toast({
           title: "HTML Generation Failed",
           description: "There was an error generating your HTML. Please try again.",
-          variant: "destructive",
-          className: "modern-toast bg-white shadow-lg rounded-xl border-l-4 border-l-red-500"
+          variant: "destructive"
         });
       }
     }
@@ -300,7 +298,7 @@ export default function WorksheetDisplay({
         <div className="bg-worksheet-purple text-white rounded-lg p-6 mb-6">
           <div className="flex flex-col md:flex-row justify-between">
             <div>
-              <h1 className="text-2xl font-bold mb-1">Your Generated Worksheet</h1>
+              <h1 className="text-2xl font-bold mb-1 rainbow-text">Your Generated Worksheet</h1>
             </div>
             <div className="flex gap-4 mt-4 md:mt-0">
               <div className="flex items-center gap-1 bg-white/20 px-4 py-2 rounded-md">
@@ -590,6 +588,11 @@ export default function WorksheetDisplay({
                       {exercise.items.map((item, iIndex) => (
                         <div key={iIndex} className="p-2 border rounded-md bg-white">
                           <span className="text-worksheet-purple font-medium mr-2">{iIndex + 1}.</span> 
+                          {viewMode === 'teacher' ? (
+                            <span className="teacher-answer">{String.fromCharCode(65 + getMatchedItems(exercise.items).findIndex(i => i.term === item.term))}</span>
+                          ) : (
+                            <span className="student-answer-blank"></span>
+                          )}
                           {isEditing ? (
                             <input 
                               type="text" 
@@ -602,7 +605,7 @@ export default function WorksheetDisplay({
                       ))}
                     </div>
                     
-                    <div className="md:col-span-6 space-y-2">
+                    <div className="md:col-span-7 space-y-2">
                       <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Definitions</h4>
                       {getMatchedItems(exercise.items).map((item, iIndex) => (
                         <div key={iIndex} className="p-2 border rounded-md bg-white">
@@ -773,7 +776,7 @@ export default function WorksheetDisplay({
                   <div>
                     <div className="mb-4 p-4 bg-gray-50 rounded-md dialogue-section">
                       {exercise.dialogue.map((line, lIndex) => (
-                        <div key={lIndex} className="mb-1">
+                        <div key={lIndex} className="mb-1 dialogue-line">
                           <span className="font-semibold">
                             {isEditing ? (
                               <input 
@@ -934,7 +937,7 @@ export default function WorksheetDisplay({
                                     className="w-full border p-1 editable-content" 
                                   />
                                 ) : (
-                                  <>{sIndex + 1}. {sentence.text}</>
+                                  <>{sIndex + 1}. {sentence.text.replace(/_+/g, "_______________")}</>
                                 )}
                               </p>
                             </div>
@@ -1001,7 +1004,7 @@ export default function WorksheetDisplay({
                 )}
 
                 {viewMode === 'teacher' && (
-                  <div className="mt-4 p-3 bg-gray-50 border-l-4 border-gray-300 rounded-md teacher-notes">
+                  <div className="mt-4 p-3 bg-gray-50 border-l-4 border-gray-300 rounded-md teacher-tip">
                     <p className="font-medium mb-1 text-gray-700">Teacher's Tip:</p>
                     <p className="text-gray-600 text-sm">
                       {isEditing ? (
@@ -1027,10 +1030,6 @@ export default function WorksheetDisplay({
                     <FileText className="h-5 w-5" />
                   </div>
                   <h3 className="text-lg font-semibold">Vocabulary Sheet</h3>
-                </div>
-                <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
-                  <Clock className="h-4 w-4 mr-1" />
-                  <span className="text-sm">10 min</span>
                 </div>
               </div>
               
@@ -1095,9 +1094,10 @@ export default function WorksheetDisplay({
           )}
 
           {/* Rating section */}
-          <div className="rating-section mb-4 bg-gray-50">
-            <h3 className="font-semibold text-lg mb-3">How would you rate this worksheet?</h3>
-            <div className="flex items-center gap-1 mb-4">
+          <div className="rating-section mb-4">
+            <h2>How would you rate this worksheet?</h2>
+            <p>Your feedback helps us improve our AI-generated worksheets</p>
+            <div className="rating-stars mb-4">
               {[1, 2, 3, 4, 5].map(value => (
                 <button 
                   key={value}
@@ -1110,14 +1110,6 @@ export default function WorksheetDisplay({
                   {value}
                 </button>
               ))}
-              <span className="ml-2 text-sm text-gray-500">
-                {rating === 0 && "Select a rating"}
-                {rating === 1 && "Poor"}
-                {rating === 2 && "Fair"}
-                {rating === 3 && "Good"}
-                {rating === 4 && "Very good"}
-                {rating === 5 && "Excellent"}
-              </span>
             </div>
             
             <div className="mb-3">
@@ -1138,6 +1130,17 @@ export default function WorksheetDisplay({
             >
               Submit Feedback
             </Button>
+          </div>
+          
+          {/* Teacher notes section */}
+          <div className="teacher-notes">
+            <h3>Tips for teachers</h3>
+            <ul>
+              <li>This worksheet is a general template you can customize for your student.</li>
+              <li>Verify the industry-specific terminology for accuracy.</li>
+              <li>Adjust the difficulty level as needed for your student.</li>
+              <li>Consider adding more visual elements for visual learners.</li>
+            </ul>
           </div>
         </div>
       </div>

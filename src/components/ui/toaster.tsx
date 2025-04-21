@@ -32,7 +32,7 @@ export function Toaster() {
         return (
           <Toast 
             key={id} 
-            className="bg-white border border-gray-200 shadow-lg rounded-lg group"
+            className="bg-white shadow-lg rounded-lg group"
             {...props}
           >
             <div className="flex items-start gap-3">

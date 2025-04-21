@@ -69,9 +69,6 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
     containerEl.style.gridTemplateColumns = '1fr 1fr';
     containerEl.style.gap = '20px';
     containerEl.style.width = '100%';
-    
-    const answerColumns = containerEl.querySelectorAll('.answer-column');
-    answerColumns.forEach(col => col.remove());
   });
   
   // Fix word bank alignment
@@ -131,9 +128,8 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
   });
   
   // Make dialogue lines individual page-break-avoid elements
-  const dialogueLines = clonedElement.querySelectorAll('.dialogue-section p');
+  const dialogueLines = clonedElement.querySelectorAll('.dialogue-line');
   dialogueLines.forEach(line => {
-    line.classList.add('dialogue-line');
     (line as HTMLElement).style.pageBreakInside = 'avoid';
   });
   
@@ -243,8 +239,7 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
   const datePart = getCurrentDate();
   const keywords = extractKeywords(title);
   
-  const worksheetContent = element.querySelector('.worksheet-content');
-  const clonedElement = worksheetContent ? worksheetContent.cloneNode(true) as HTMLElement : element.cloneNode(true) as HTMLElement;
+  const clonedElement = element.cloneNode(true) as HTMLElement;
   
   // Remove buttons
   const buttons = clonedElement.querySelectorAll('button');

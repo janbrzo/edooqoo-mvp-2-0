@@ -162,19 +162,48 @@
 
 /* Teacher/student view sections */
 .rating-section, .teacher-notes {
-  @apply bg-white border border-gray-200 rounded-lg p-4 shadow-sm my-4;
+  @apply bg-gray-50 border border-gray-200 rounded-lg p-6 shadow-sm my-4 text-center;
+}
+
+.rating-section h2 {
+  @apply text-indigo-800 text-xl font-bold mb-2;
+}
+
+.rating-section p {
+  @apply text-gray-600 mb-4;
+}
+
+.rating-stars {
+  @apply flex justify-center space-x-2;
 }
 
 /* Teacher's tips */
 .teacher-tip {
   @apply bg-white border border-gray-200 rounded-lg p-3 shadow-sm my-2 text-sm;
-  max-height: 120px;
+  max-height: 100px;
   overflow-y: auto;
+}
+
+/* Teacher notes section */
+.teacher-notes {
+  @apply bg-gray-50 border border-gray-200 rounded-lg p-6 shadow-sm my-6;
+}
+
+.teacher-notes h3 {
+  @apply text-indigo-800 text-xl font-bold mb-3;
+}
+
+.teacher-notes ul {
+  @apply list-disc ml-6 text-gray-700;
+}
+
+.teacher-notes li {
+  @apply mb-2;
 }
 
 /* Modern toast styling */
 .modern-toast {
-  @apply bg-white border shadow-lg rounded-xl overflow-hidden transform transition-all;
+  @apply bg-white shadow-lg rounded-xl overflow-hidden transform transition-all;
   animation: toast-enter 0.3s ease-out;
 }
 
@@ -225,9 +254,9 @@
   width: 100%;
 }
 
-/* Modern toast styling */
+/* Modern toast styling - updated without left border */
 .modern-toast {
-  @apply bg-white shadow-lg rounded-xl border-l-4 px-4 py-3;
+  @apply bg-white shadow-lg rounded-xl px-4 py-3;
   animation: slide-in 0.3s ease-out;
 }
 
@@ -242,49 +271,7 @@
   }
 }
 
-/* Rating section styling */
-.rating-section {
-  @apply bg-gray-50 border border-gray-200 rounded-lg p-6 shadow-sm my-4 text-center;
-}
-
-.rating-section h2 {
-  @apply text-indigo-800 text-xl font-bold mb-2;
-}
-
-.rating-section p {
-  @apply text-gray-600 mb-4;
-}
-
-.rating-stars {
-  @apply flex justify-center space-x-2;
-}
-
-/* Tips for teachers section */
-.teacher-notes {
-  @apply bg-gray-50 border border-gray-200 rounded-lg p-6 shadow-sm my-6;
-}
-
-.teacher-notes h3 {
-  @apply text-indigo-800 text-xl font-bold mb-3;
-}
-
-.teacher-notes ul {
-  @apply list-disc ml-6 text-gray-700;
-}
-
-.teacher-notes li {
-  @apply mb-2;
-}
-
-/* Matching exercise styling */
-.matching-exercise .terms-column {
-  width: 45%;
-}
-
-.matching-exercise .definitions-column {
-  width: 55%;
-}
-
+/* Student answer blank for matching exercises */
 .student-answer-blank {
   display: inline-block;
   width: 30px;
