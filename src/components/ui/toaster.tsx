@@ -5,7 +5,7 @@ import { AlertTriangle, Check, Info, X } from "lucide-react";
 
 export function Toaster() {
   const { toasts } = useToast();
-  
+
   const getIcon = (variant?: string) => {
     switch (variant) {
       case "success":
@@ -18,7 +18,7 @@ export function Toaster() {
         return <Info className="h-4 w-4 text-blue-500" />;
     }
   };
-  
+
   return (
     <ToastProvider>
       {toasts.map(function ({
@@ -30,12 +30,12 @@ export function Toaster() {
         ...props
       }) {
         return (
-          <Toast 
-            key={id} 
-            className="bg-white shadow-lg rounded-lg group max-h-16"
+          <Toast
+            key={id}
+            className="bg-white shadow-lg rounded-lg group max-h-12 min-h-[36px] h-[36px] py-[4px] px-0"
             {...props}
           >
-            <div className="flex items-start gap-2">
+            <div className="flex items-center gap-2 h-full">
               <div className="flex-shrink-0 pt-0.5">
                 {getIcon(variant)}
               </div>

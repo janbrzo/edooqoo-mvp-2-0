@@ -8,11 +8,21 @@ interface TeacherTipBoxProps {
 
 const TeacherTipBox = ({ tip }: TeacherTipBoxProps) => {
   return (
-    <div className="teacher-notes bg-yellow-50 border border-yellow-200 rounded-md p-3 my-2 flex items-start space-x-3">
-      <Info className="text-amber-500 flex-shrink-0 mt-0.5" size={18} />
+    <div
+      className="flex items-start rounded-md px-3 py-1.5 my-2"
+      style={{
+        background: "linear-gradient(90deg, #FEF7CD 70%, #FAF5E3 100%)",
+        border: "1.5px solid #ffeab9",
+        minHeight: "38px"
+      }}
+      data-no-pdf="true"
+    >
+      <Info className="text-amber-400 flex-shrink-0 mr-2 mt-0.5" size={18} />
       <div>
-        <h4 className="font-medium text-amber-800 mb-1">Teacher's Tip:</h4>
-        <p className="text-amber-700 text-sm">{tip}</p>
+        <h4 className="font-medium text-amber-800 mb-0.5 leading-tight text-base flex items-center">
+          Teacher&#39;s Tip:
+        </h4>
+        <span className="text-amber-700 text-[13.5px] leading-tight">{tip}</span>
       </div>
     </div>
   );
