@@ -15,7 +15,7 @@ function getToastIcon(toast) {
 }
 
 export function Toaster() {
-  const { toasts, close } = useToast();
+  const { toasts, dismiss } = useToast();
 
   return <ToastProvider>
     {toasts.map(function ({
@@ -31,10 +31,10 @@ export function Toaster() {
 
       React.useEffect(() => {
         if (!hovered) {
-          const timer = setTimeout(() => close(id), 3000);
+          const timer = setTimeout(() => dismiss(id), 3000);
           return () => clearTimeout(timer);
         }
-      }, [hovered, id, close]);
+      }, [hovered, id, dismiss]);
 
       return (
         <Toast
