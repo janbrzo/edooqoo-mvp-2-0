@@ -1,3 +1,4 @@
+
 import html2pdf from 'html2pdf.js';
 
 const getCurrentDate = (): string => {
@@ -18,144 +19,162 @@ const extractKeywords = (title: string): string => {
 
 export const generatePDF = async (elementId: string, filename: string = 'worksheet.pdf', isTeacherView: boolean = true, title: string = 'worksheet') => {
   const element = document.getElementById(elementId);
+  
   if (!element) {
     throw new Error('Element not found');
   }
-
-  // CLONE ONLY THE MAIN WORKSHEET content, skip rating, headings, tips etc
-  const worksheetMain = element.querySelector('.worksheet-main-content') || element;
-  const clonedElement = worksheetMain.cloneNode(true) as HTMLElement;
-
-  // Remove unneeded elements:
-  const removeSelectors = [
-    '.rating-card', '.tips-card', '.worksheet-params', '.worksheet-toolbar', 
-    '.scroll-to-top', '.download-toolbar', '.worksheet-header' // and others
-  ];
-  removeSelectors.forEach(selector => {
-    const els = clonedElement.querySelectorAll(selector);
-    els.forEach(e => e.remove());
-  });
-
-  // Remove all buttons
+  
+  const datePart = getCurrentDate();
+  const viewPart = isTeacherView ? 'Teacher' : 'Student';
+  const keywords = extractKeywords(title);
+  
+  const finalFilename = `${datePart}-${viewPart}-worksheet-${keywords}.pdf`;
+  
+  const clonedElement = element.cloneNode(true) as HTMLElement;
+  
   const buttons = clonedElement.querySelectorAll('button');
   buttons.forEach(button => button.remove());
-
-  // Remove contenteditable
+  
   const editableElements = clonedElement.querySelectorAll('[contenteditable="true"]');
-  editableElements.forEach(el => (el as HTMLElement).removeAttribute('contenteditable'));
-
-  // Exercise headers style (PDF fixes, consistent)
+  editableElements.forEach(el => {
+    (el as HTMLElement).removeAttribute('contenteditable');
+  });
+  
+  const elementsToRemove = clonedElement.querySelectorAll('.rating-section, .teacher-notes');
+  elementsToRemove.forEach(section => section.remove());
+  
+  clonedElement.style.width = '100%';
+  clonedElement.style.padding = '20px';
+  clonedElement.style.boxSizing = 'border-box';
+  
   const exerciseHeaders = clonedElement.querySelectorAll('.exercise-header');
   exerciseHeaders.forEach(header => {
     const headerEl = header as HTMLElement;
     headerEl.style.display = 'flex';
     headerEl.style.alignItems = 'center';
-    headerEl.style.height = '50px';
-    headerEl.style.maxHeight = '50px';
-    headerEl.style.minHeight = '50px';
+    headerEl.style.height = '60px';
+    headerEl.style.maxHeight = '60px';
+    headerEl.style.minHeight = '60px';
     headerEl.style.overflow = 'visible';
   });
-
-  // Word bank fixes:
+  
+  const vocabMatching = clonedElement.querySelectorAll('.vocabulary-matching-container');
+  vocabMatching.forEach(container => {
+    const containerEl = container as HTMLElement;
+    containerEl.style.display = 'grid';
+    containerEl.style.gridTemplateColumns = '1fr 1fr';
+    containerEl.style.gap = '20px';
+    containerEl.style.width = '100%';
+    
+    const answerColumns = containerEl.querySelectorAll('.answer-column');
+    answerColumns.forEach(col => col.remove());
+  });
+  
   const wordBanks = clonedElement.querySelectorAll('.word-bank-container');
   wordBanks.forEach(bank => {
     const bankEl = bank as HTMLElement;
     bankEl.style.display = 'flex';
     bankEl.style.alignItems = 'center';
     bankEl.style.justifyContent = 'center';
-    bankEl.style.minHeight = '36px';
-    bankEl.style.height = '36px';
-    bankEl.style.fontSize = '1.08rem';
-    bankEl.style.padding = '10px 0';
+    bankEl.style.padding = '15px';
   });
-
-  // Multiple choice icon vertical alignment
-  const checkmarks = clonedElement.querySelectorAll('.option-icon');
-  checkmarks.forEach(icon => {
-    const iconEl = icon as HTMLElement;
-    iconEl.style.verticalAlign = 'middle';
-    iconEl.style.display = 'inline-block';
-    iconEl.style.marginRight = '8px';
-    iconEl.style.marginTop = '0';
-    iconEl.style.width = '23px';
-    iconEl.style.height = '23px';
+  
+  const blanks = clonedElement.querySelectorAll('.fill-blank');
+  blanks.forEach(blank => {
+    const blankEl = blank as HTMLElement;
+    blankEl.style.minWidth = '200px';
+    blankEl.style.display = 'inline-block';
+    blankEl.style.borderBottom = '1px solid #000';
   });
+  
   const mcOptions = clonedElement.querySelectorAll('.multiple-choice-option');
   mcOptions.forEach(option => {
     const optionEl = option as HTMLElement;
     optionEl.style.display = 'flex';
     optionEl.style.alignItems = 'center';
-    optionEl.style.minHeight = '32px';
     optionEl.style.gap = '10px';
   });
-
-  // Dialogue: treat each line as its own item (not block)
-  // So that lines move not whole dialogue
-  const wholeDialogues = clonedElement.querySelectorAll('.dialogue-block, .dialogue-section');
-  wholeDialogues.forEach(dialogue => {
-    // nothing: each .dialogue-line is now properly tagged per below
+  
+  const checkmarks = clonedElement.querySelectorAll('.option-icon');
+  checkmarks.forEach(icon => {
+    const iconEl = icon as HTMLElement;
+    iconEl.style.display = 'inline-flex';
+    iconEl.style.alignItems = 'center';
+    iconEl.style.justifyContent = 'center';
+    iconEl.style.width = '24px';
+    iconEl.style.height = '24px';
   });
-  // Each .dialogue-line: keep page-break-inside: avoid separately (see CSS)
-
-  // Prevent break-inside for exercise line units, not entire block
-  const avoidBreakElements = clonedElement.querySelectorAll('.exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-line');
+  
+  const avoidBreakElements = clonedElement.querySelectorAll('.exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section');
   avoidBreakElements.forEach(el => {
     (el as HTMLElement).style.pageBreakInside = 'avoid';
   });
-
+  
+  const checkboxes = clonedElement.querySelectorAll('input[type="checkbox"]');
+  checkboxes.forEach(checkbox => {
+    const span = document.createElement('span');
+    span.textContent = (checkbox as HTMLInputElement).checked ? '✓' : '☐';
+    checkbox.parentNode?.replaceChild(span, checkbox);
+  });
+  
   const style = document.createElement('style');
   style.textContent = `
     @media print {
       .exercise-header {
         display: flex !important;
         align-items: center !important;
-        height: 50px !important;
-        max-height: 50px !important;
-        min-height: 50px !important;
+        height: 60px !important;
+        max-height: 60px !important;
+        min-height: 60px !important;
         overflow: visible !important;
       }
-      .word-bank-container {
-        align-items: center !important;
-        display: flex !important;
-        justify-content: center !important;
-        min-height: 36px !important;
-        height: 36px !important;
-        font-size: 1.08rem;
-        border: 1.4px solid #bdbbea !important;
-        padding: 10px 0 !important;
-      }
-      .option-icon {
-        vertical-align: middle !important;
+      
+      .fill-blank {
+        min-width: 200px !important;
         display: inline-block !important;
-        margin-right: 8px !important;
-        width: 23px !important;
-        height: 23px !important;
+        border-bottom: 1px solid #000 !important;
       }
+      
+      .word-bank-container {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 15px !important;
+      }
+      
       .multiple-choice-option {
+        display: flex !important;
         align-items: center !important;
         gap: 10px !important;
-        min-height: 32px !important;
-        display: flex !important;
       }
-      .dialogue-line {
-        display: flex !important;
-        align-items: flex-start !important;
+      
+      .option-icon {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 24px !important;
+        height: 24px !important;
+      }
+      
+      .rating-section, .teacher-notes {
+        display: none !important;
+      }
+      
+      .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section {
         page-break-inside: avoid !important;
-        margin-bottom: 4px !important;
-        width: 100% !important;
       }
     }
   `;
   clonedElement.appendChild(style);
-
+  
   const options = {
     margin: [15, 15, 15, 15],
-    filename: filename,
+    filename: finalFilename,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
-
+  
   try {
     await html2pdf().from(clonedElement).set(options).save();
     return true;
@@ -167,28 +186,24 @@ export const generatePDF = async (elementId: string, filename: string = 'workshe
 
 export const exportAsHTML = (elementId: string, filename: string = 'worksheet.html', title: string = 'worksheet') => {
   const element = document.getElementById(elementId);
+  
   if (!element) {
     throw new Error('Element not found');
   }
-  // Only export worksheet content, not header/buttons/etc
-  const worksheetMain = element.querySelector('.worksheet-main-content') || element;
-  const clonedElement = worksheetMain.cloneNode(true) as HTMLElement;
-
-  // Remove unneeded elements:
-  const removeSelectors = [
-    '.rating-card', '.tips-card', '.worksheet-params', '.worksheet-toolbar', 
-    '.scroll-to-top', '.download-toolbar', '.worksheet-header'
-  ];
-  removeSelectors.forEach(selector => {
-    const els = clonedElement.querySelectorAll(selector);
-    els.forEach(e => e.remove());
-  });
+  
+  const datePart = getCurrentDate();
+  const keywords = extractKeywords(title);
+  
+  const clonedElement = element.cloneNode(true) as HTMLElement;
+  
   const buttons = clonedElement.querySelectorAll('button');
   buttons.forEach(button => button.remove());
+  
   const editableElements = clonedElement.querySelectorAll('[contenteditable="true"]');
-  editableElements.forEach(el => (el as HTMLElement).removeAttribute('contenteditable'));
-
-  // Final HTML content:
+  editableElements.forEach(el => {
+    (el as HTMLElement).removeAttribute('contenteditable');
+  });
+  
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
@@ -196,21 +211,74 @@ export const exportAsHTML = (elementId: string, filename: string = 'worksheet.ht
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>English Worksheet - ${title}</title>
-      <link rel="stylesheet" href="/index.css" />
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .exercise-header {
+          background-color: #9b87f5;
+          color: white;
+          padding: 10px 15px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-radius: 5px;
+          margin-bottom: 15px;
+          height: 48px;
+        }
+        .exercise-content {
+          margin-bottom: 30px;
+        }
+        .vocabulary-matching-container {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+        }
+        .word-bank-container {
+          background-color: #f5f5f5;
+          padding: 15px;
+          border-radius: 5px;
+          margin-bottom: 15px;
+          display: flex;
+          align-items: center;
+        }
+        .fill-blank {
+          display: inline-block;
+          min-width: 200px;
+          border-bottom: 1px solid #000;
+          text-align: center;
+        }
+        .multiple-choice-option {
+          margin-bottom: 10px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .exercise-item, .exercise-question, .sentence-item, .multiple-choice-question, .dialogue-section {
+          page-break-inside: avoid;
+        }
+      </style>
     </head>
     <body>
       ${clonedElement.outerHTML}
     </body>
     </html>
   `;
+  
   const blob = new Blob([htmlContent], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${getCurrentDate()}-worksheet-${extractKeywords(title)}.html`;
+  a.download = `${datePart}-worksheet-${keywords}.html`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  
   return true;
 };
