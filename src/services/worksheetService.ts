@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 
 // URLs for the Edge Functions
 const GENERATE_WORKSHEET_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/v1/generateWorksheet';
@@ -8,7 +9,7 @@ const SUBMIT_FEEDBACK_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/
 /**
  * Generates a worksheet using the Edge Function
  */
-export async function generateWorksheet(prompt: FormData, userId: string) {
+export async function generateWorksheet(prompt: WorksheetFormData, userId: string) {
   try {
     const response = await fetch(GENERATE_WORKSHEET_URL, {
       method: 'POST',
