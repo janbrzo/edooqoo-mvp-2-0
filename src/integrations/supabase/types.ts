@@ -9,7 +9,133 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      events: {
+        Row: {
+          created_at: string | null
+          device_type: string | null
+          event_type: string | null
+          geo_location: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          referrer_url: string | null
+          type: string
+          user_id: string | null
+          worksheet_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_type?: string | null
+          event_type?: string | null
+          geo_location?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          referrer_url?: string | null
+          type: string
+          user_id?: string | null
+          worksheet_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device_type?: string | null
+          event_type?: string | null
+          geo_location?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          referrer_url?: string | null
+          type?: string
+          user_id?: string | null
+          worksheet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_worksheet_id_fkey"
+            columns: ["worksheet_id"]
+            isOneToOne: false
+            referencedRelation: "worksheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedbacks: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          id: string
+          moderated_by: string | null
+          rating: number | null
+          status: string | null
+          user_id: string | null
+          worksheet_id: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          moderated_by?: string | null
+          rating?: number | null
+          status?: string | null
+          user_id?: string | null
+          worksheet_id?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          moderated_by?: string | null
+          rating?: number | null
+          status?: string | null
+          user_id?: string | null
+          worksheet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedbacks_worksheet_id_fkey"
+            columns: ["worksheet_id"]
+            isOneToOne: false
+            referencedRelation: "worksheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      worksheets: {
+        Row: {
+          created_at: string | null
+          html_content: string
+          id: string
+          ip_address: string | null
+          last_modified_at: string | null
+          prompt: string
+          status: string | null
+          title: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          html_content: string
+          id?: string
+          ip_address?: string | null
+          last_modified_at?: string | null
+          prompt: string
+          status?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          html_content?: string
+          id?: string
+          ip_address?: string | null
+          last_modified_at?: string | null
+          prompt?: string
+          status?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

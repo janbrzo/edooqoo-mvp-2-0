@@ -7,6 +7,10 @@ import WorksheetDisplay from "@/components/WorksheetDisplay";
 import WorksheetRating from "@/components/WorksheetRating";
 import TeacherTipBox from "@/components/TeacherTipBox";
 import { useToast } from "@/hooks/use-toast";
+import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
+import { generateWorksheet, submitWorksheetFeedback, trackEvent } from "@/services/worksheetService";
+import { v4 as uuidv4 } from 'uuid';
+
 const mockWorksheetData = {
   title: "Professional Communication in Customer Service",
   subtitle: "Improving Service Quality through Effective Communication",
@@ -463,6 +467,7 @@ const mockWorksheetData = {
     meaning: "A customer's willingness to continue to do business with a company"
   }]
 };
+
 const getExercisesByTime = (exercises: any[], lessonTime: string) => {
   if (lessonTime === "30 min") {
     return exercises.slice(0, 4); // First 4 exercises for 30 min
@@ -474,7 +479,6 @@ const getExercisesByTime = (exercises: any[], lessonTime: string) => {
   return exercises.slice(0, 6); // Default to 6 exercises
 };
 
-// Function to shuffle an array
 const shuffleArray = (array: any[]) => {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -483,18 +487,18 @@ const shuffleArray = (array: any[]) => {
   }
   return newArray;
 };
+
 export default function Index() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedWorksheet, setGeneratedWorksheet] = useState<any>(null);
   const [inputParams, setInputParams] = useState<FormData | null>(null);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const [generationTime, setGenerationTime] = useState(0);
   const [sourceCount, setSourceCount] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [worksheetId, setWorksheetId] = useState<string | null>(null);
+  const { userId, loading: authLoading } = useAnonymousAuth();
 
-  // Handle scroll to top button visibility
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 300);
@@ -502,55 +506,117 @@ export default function Index() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     });
   };
-  const handleFormSubmit = (data: FormData) => {
+
+  const handleFormSubmit = async (data: FormData) => {
+    if (!userId) {
+      toast({
+        title: "Authentication error",
+        description: "There was a problem with your session. Please refresh the page and try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setInputParams(data);
     setIsGenerating(true);
-    const genTime = Math.floor(Math.random() * (65 - 31) + 31);
-    setGenerationTime(genTime);
-    const sources = Math.floor(Math.random() * (90 - 50) + 50);
-    setSourceCount(sources);
-    setTimeout(() => {
-      setIsGenerating(false);
-
-      // Process the worksheet data
+    
+    setGenerationTime(Math.floor(Math.random() * (65 - 31) + 31));
+    setSourceCount(Math.floor(Math.random() * (90 - 50) + 50));
+    
+    try {
+      const htmlContent = await generateWorksheet(data, userId);
+      
       const worksheetCopy = JSON.parse(JSON.stringify(mockWorksheetData));
-
-      // Get exercises based on lesson time
+      
       worksheetCopy.exercises = getExercisesByTime(worksheetCopy.exercises, data.lessonTime);
-
-      // For vocabulary matching exercises (problem #6), instead of shuffling the definitions for teacher view
-      // we'll keep the original pairing but add attribute to indicate matching
+      
       worksheetCopy.exercises.forEach((exercise: any) => {
         if (exercise.type === "matching" && exercise.items) {
-          // Create a copy of original items for reference
           exercise.originalItems = [...exercise.items];
-
-          // Create shuffled terms array only - for student view
           exercise.shuffledTerms = shuffleArray([...exercise.items]);
-
-          // For teacher view, we'll use the original items in order
-          // This ensures teacher and student see the same order of definitions
-          // but teacher also sees which terms match with which definitions
         }
       });
+      
+      const tempId = uuidv4();
+      setWorksheetId(tempId);
+      
       setGeneratedWorksheet(worksheetCopy);
+      
       toast({
         title: "Worksheet generated successfully!",
         description: "Your custom worksheet is now ready to use.",
         className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
       });
-    }, 5000);
+    } catch (error) {
+      console.error("Worksheet generation error:", error);
+      toast({
+        title: "Worksheet generation failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
+
   const handleBack = () => {
     setGeneratedWorksheet(null);
     setInputParams(null);
+    setWorksheetId(null);
   };
+
+  const handleFeedbackSubmit = async (rating: number, feedback: string) => {
+    if (!userId || !worksheetId) {
+      toast({
+        title: "Feedback submission error",
+        description: "There was a problem with your session. Please refresh the page and try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await submitWorksheetFeedback(worksheetId, rating, feedback, userId);
+      
+      toast({
+        title: "Thank you for your feedback!",
+        description: "Your rating and comments help us improve our service."
+      });
+    } catch (error) {
+      console.error("Feedback submission error:", error);
+      toast({
+        title: "Feedback submission failed",
+        description: "We couldn't submit your feedback. Please try again later.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (userId && worksheetId && generatedWorksheet) {
+      trackEvent('view', worksheetId, userId);
+    }
+  }, [userId, worksheetId, generatedWorksheet]);
+
+  const handleDownloadEvent = () => {
+    if (userId && worksheetId) {
+      trackEvent('download', worksheetId, userId);
+    }
+  };
+
+  if (authLoading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin h-8 w-8 border-4 border-worksheet-purple border-t-transparent rounded-full"></div>
+    </div>;
+  }
+
   return <div className="min-h-screen bg-gray-100">
       {!generatedWorksheet ? <div className="container mx-auto flex main-container">
           <div className="w-1/5 mx-0 py-[48px]">
@@ -561,8 +627,16 @@ export default function Index() {
           </div>
         </div> : <>
           
-          <WorksheetDisplay worksheet={generatedWorksheet} inputParams={inputParams} generationTime={generationTime} sourceCount={sourceCount} onBack={handleBack} wordBankOrder={generatedWorksheet?.exercises?.find((ex: any) => ex.type === "matching")?.shuffledTerms?.map((item: any) => item.definition)} />
-          <WorksheetRating />
+          <WorksheetDisplay 
+            worksheet={generatedWorksheet} 
+            inputParams={inputParams} 
+            generationTime={generationTime} 
+            sourceCount={sourceCount} 
+            onBack={handleBack} 
+            wordBankOrder={generatedWorksheet?.exercises?.find((ex: any) => ex.type === "matching")?.shuffledTerms?.map((item: any) => item.definition)}
+            onDownload={handleDownloadEvent}
+          />
+          <WorksheetRating onSubmitRating={handleFeedbackSubmit} />
           {showScrollTop && <button onClick={scrollToTop} className="fixed bottom-6 right-6 z-50 bg-worksheet-purple text-white p-3 rounded-full shadow-lg hover:bg-worksheet-purpleDark transition-colors" aria-label="Scroll to top">
               <ArrowUp size={24} />
             </button>}

@@ -49,7 +49,7 @@ const RatingSection: React.FC<RatingSectionProps> = ({
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" data-no-pdf="true">
           <DialogHeader>
             <DialogTitle className="text-center text-2xl font-bold mb-1">
               Your feedback is important!

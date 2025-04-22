@@ -49,6 +49,7 @@ interface WorksheetDisplayProps {
   sourceCount: number;
   onBack: () => void;
   wordBankOrder?: any;
+  onDownload?: () => void;
 }
 
 export default function WorksheetDisplay({
@@ -57,7 +58,8 @@ export default function WorksheetDisplay({
   generationTime,
   sourceCount,
   onBack,
-  wordBankOrder
+  wordBankOrder,
+  onDownload
 }: WorksheetDisplayProps) {
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
@@ -124,6 +126,9 @@ export default function WorksheetDisplay({
             title: "PDF Downloaded",
             description: "Your worksheet has been downloaded successfully."
           });
+          if (onDownload) {
+            onDownload();
+          }
         } else {
           toast({
             title: "PDF Generation Failed",
