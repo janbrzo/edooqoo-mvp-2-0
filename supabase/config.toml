@@ -1,1 +1,5 @@
+
 project_id = "bvfrkzdlklyvnhlpleck"
+
+[functions.generateWorksheet]
+verify_jwt = false
