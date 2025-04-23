@@ -1,10 +1,8 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
 interface WorksheetRatingProps {
   onSubmitRating?: (rating: number, feedback: string) => void;
 }
@@ -13,52 +11,31 @@ interface WorksheetRatingProps {
  * A modern-looking worksheet rating section with 1-5 stars and feedback modal.
  * Should not display on PDF.
  */
-const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => {
+const WorksheetRating: React.FC<WorksheetRatingProps> = ({
+  onSubmitRating
+}) => {
   const [hovered, setHovered] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [thanksOpen, setThanksOpen] = useState(false);
-  
   const handleStarClick = (value: number) => {
     setSelected(value);
     setIsDialogOpen(true);
   };
-  
   const handleSubmit = () => {
     setIsDialogOpen(false);
     setThanksOpen(true);
     setTimeout(() => setThanksOpen(false), 2500);
-    
+
     // Call the callback with rating and feedback
     if (onSubmitRating && selected) {
       onSubmitRating(selected, feedback);
     }
-    
     setFeedback("");
   };
-  
-  return (
-    <div data-no-pdf="true">
-      <div className="p-6 rounded-lg mt-10 mb-6 text-center bg-white">
-        <h3 className="text-indigo-800 mb-2 font-bold text-2xl">How would you rate this worksheet?</h3>
-        <p className="text-blue-400 mb-4 text-base">Your feedback helps us improve our AI-generated worksheets</p>
-        
-        <div className="flex justify-center space-x-2 mb-2 rounded-none bg-transparent">
-          {[1, 2, 3, 4, 5].map(star => (
-            <button 
-              key={star} 
-              onClick={() => handleStarClick(star)} 
-              onMouseEnter={() => setHovered(star)} 
-              onMouseLeave={() => setHovered(0)} 
-              className="focus:outline-none transition-transform transform hover:scale-110" 
-              aria-label={`Rate ${star} stars`}
-            >
-              <Star size={32} className={`${(hovered || selected) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} transition-colors`} />
-            </button>
-          ))}
-        </div>
-      </div>
+  return <div data-no-pdf="true">
+      
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md" data-no-pdf="true">
@@ -84,8 +61,6 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>;
 };
-
 export default WorksheetRating;
