@@ -16,7 +16,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -25,19 +24,37 @@ serve(async (req) => {
     const { prompt, userId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
 
-    // Generate worksheet using OpenAI
+    // Generate worksheet using OpenAI with a structured prompt
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
-          content: "You are an expert ESL teacher assistant that creates detailed worksheets with exercises. Respond only with HTML content that includes proper semantic tags and structure."
+          content: `You are an expert ESL teacher assistant that creates detailed worksheets with exercises. 
+          Create a worksheet with the following structure:
+          1. Title and subtitle that clearly state the topic and focus
+          2. Brief introduction explaining the lesson objectives
+          3. 4-6 varied exercises that include:
+             - Reading comprehension
+             - Vocabulary practice
+             - Grammar exercises
+             - Role-play or dialogue exercises
+             - Multiple choice questions
+             - Gap-filling exercises
+          4. Each exercise should have:
+             - Clear instructions
+             - Teacher tips
+             - Estimated completion time
+          Format the response in semantic HTML with appropriate tags.
+          Each exercise should be in a separate <section> with a proper heading.`
         },
         {
           role: "user",
           content: prompt
         }
-      ]
+      ],
+      temperature: 0.7,
+      max_tokens: 3000
     });
 
     const htmlContent = aiResponse.choices[0].message.content;

@@ -120,7 +120,20 @@ export default function WorksheetDisplay({
         description: "Your worksheet is being converted to PDF..."
       });
       try {
-        const result = await generatePDF('worksheet-content', `${editableWorksheet.title.replace(/\s+/g, '_')}.pdf`, viewMode === 'teacher', editableWorksheet.title);
+        const currentDate = new Date().toISOString().split('T')[0];
+        const sanitizedTitle = editableWorksheet.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        const filename = `${currentDate}-${sanitizedTitle}.pdf`;
+
+        const result = await generatePDF(
+          'worksheet-content', 
+          filename, 
+          viewMode === 'teacher',
+          editableWorksheet.title
+        );
+
         if (result) {
           toast({
             title: "PDF Downloaded",
