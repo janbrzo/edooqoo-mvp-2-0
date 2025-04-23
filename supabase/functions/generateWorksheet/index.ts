@@ -23,6 +23,29 @@ serve(async (req) => {
   try {
     const { prompt, userId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
+    
+    console.log(`Processing request for IP: ${ip}`);
+    
+    // Check if this IP has reached the limit (unless it's the whitelisted IP)
+    if (ip !== '46.227.241.106') {
+      const { count } = await supabase
+        .from('worksheets')
+        .select('*', { count: 'exact', head: true })
+        .eq('ip_address', ip);
+        
+      console.log(`Found ${count} existing worksheets for IP: ${ip}`);
+      
+      if (count && count >= 1) {
+        return new Response(JSON.stringify({ 
+          error: 'You have reached your daily limit for worksheet generation. Please try again tomorrow.' 
+        }), { 
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } else {
+      console.log(`Whitelisted IP detected: ${ip}, bypassing limits`);
+    }
 
     // Generate worksheet using OpenAI with a structured prompt
     const aiResponse = await openai.chat.completions.create({
@@ -58,12 +81,14 @@ serve(async (req) => {
     });
 
     const htmlContent = aiResponse.choices[0].message.content;
+    
+    console.log(`Successfully generated content from OpenAI`);
 
-    // Save worksheet to database
+    // Save worksheet to database with the full prompt
     const { data: worksheet, error: worksheetError } = await supabase
       .from('worksheets')
       .insert({
-        prompt,
+        prompt: prompt, // Store the full prompt sent to OpenAI
         html_content: htmlContent,
         user_id: userId,
         ip_address: ip,
@@ -72,10 +97,13 @@ serve(async (req) => {
       .select('id')
       .single();
 
-    if (worksheetError) throw worksheetError;
+    if (worksheetError) {
+      console.error('Error inserting worksheet:', worksheetError);
+      throw worksheetError;
+    }
 
     // Track generation event
-    await supabase.from('events').insert({
+    const { error: eventError } = await supabase.from('events').insert({
       type: 'generate',
       event_type: 'generate',
       worksheet_id: worksheet.id,
@@ -84,6 +112,13 @@ serve(async (req) => {
       ip_address: ip
     });
 
+    if (eventError) {
+      console.error('Error tracking event:', eventError);
+    }
+
+    console.log(`Worksheet created with ID: ${worksheet.id}`);
+    
+    // Return the generated HTML content to the client
     return new Response(htmlContent, {
       headers: { ...corsHeaders, 'Content-Type': 'text/html' },
     });
