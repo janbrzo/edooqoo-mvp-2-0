@@ -3,7 +3,7 @@ import React from 'react';
 import { Worksheet } from "@/types/worksheet";
 import ExerciseSection from "./ExerciseSection";
 import VocabularySheet from "./VocabularySheet";
-import RatingSection from "./RatingSection";
+import WorksheetRating from '@/components/WorksheetRating';
 import TeacherNotes from "./TeacherNotes";
 
 interface WorksheetContentProps {
@@ -88,7 +88,7 @@ const WorksheetContent: React.FC<WorksheetContentProps> = ({
         />
       )}
 
-      <RatingSection />
+      <WorksheetRating />
       <TeacherNotes />
     </>
   );

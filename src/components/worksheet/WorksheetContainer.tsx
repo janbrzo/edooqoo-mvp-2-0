@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowUp } from "lucide-react";
@@ -8,8 +7,6 @@ import WorksheetContent from "./WorksheetContent";
 import WorksheetHeader from "./WorksheetHeader";
 import InputParamsCard from "./InputParamsCard";
 import WorksheetToolbar from "./WorksheetToolbar";
-import RatingSection from "./RatingSection";
-import TeacherNotes from "./TeacherNotes";
 
 interface WorksheetContainerProps {
   worksheet: Worksheet;
