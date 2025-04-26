@@ -15,6 +15,12 @@ export const generatePDF = async (
     const noPdfElements = element.querySelectorAll('[data-no-pdf="true"]');
     noPdfElements.forEach(el => (el as HTMLElement).style.display = 'none');
 
+    // Hide teacher tips for student view
+    if (!isTeacherMode) {
+      const teacherTips = element.querySelectorAll('.teacher-tip-section');
+      teacherTips.forEach(el => (el as HTMLElement).style.display = 'none');
+    }
+
     // Format the filename
     const date = new Date().toISOString().split('T')[0];
     const mode = isTeacherMode ? 'Teacher' : 'Student';
@@ -25,7 +31,7 @@ export const generatePDF = async (
     const formattedFilename = `${date}-${mode}-${sanitizedTitle}.pdf`;
 
     const opt = {
-      margin: [10, 10, 10, 10], // Reduced margins [top, right, bottom, left] in mm
+      margin: [10, 5, 10, 5], // Reduced margins [top, right, bottom, left] in mm
       filename: formattedFilename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2 },
@@ -36,6 +42,12 @@ export const generatePDF = async (
 
     // Restore visibility of no-pdf elements
     noPdfElements.forEach(el => (el as HTMLElement).style.display = '');
+    
+    // Restore visibility of teacher tips
+    if (!isTeacherMode) {
+      const teacherTips = element.querySelectorAll('.teacher-tip-section');
+      teacherTips.forEach(el => (el as HTMLElement).style.display = '');
+    }
 
     return true;
   } catch (error) {

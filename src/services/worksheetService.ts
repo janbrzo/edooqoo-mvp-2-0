@@ -11,10 +11,8 @@ const SUBMIT_FEEDBACK_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/
  */
 export async function generateWorksheet(prompt: WorksheetFormData, userId: string) {
   try {
-    // Create a detailed prompt combining all worksheet parameters
-    const fullPrompt = `${prompt.lessonTopic} - ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.studentProfile ? `. Student profile: ${prompt.studentProfile}` : ''}${prompt.studentStruggles ? `. Student struggles: ${prompt.studentStruggles}` : ''}. Lesson duration: ${prompt.lessonTime}.`;
-    
-    console.log('Sending prompt to generateWorksheet function:', fullPrompt);
+    // Send the entire prompt object to the edge function
+    console.log('Sending prompt to generateWorksheet function:', prompt);
     
     const response = await fetch(GENERATE_WORKSHEET_URL, {
       method: 'POST',
@@ -22,7 +20,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: fullPrompt,
+        prompt: JSON.stringify(prompt), // Send the entire prompt object as JSON
         userId
       })
     });
@@ -100,7 +98,6 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
   try {
     const { error } = await supabase.from('events').insert({
       type,
-      event_type: type,
       worksheet_id: worksheetId,
       user_id: userId,
       metadata
