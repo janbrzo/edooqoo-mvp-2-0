@@ -14,6 +14,9 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     // Send the entire prompt object to the edge function
     console.log('Sending prompt to generateWorksheet function:', prompt);
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    
     const response = await fetch(GENERATE_WORKSHEET_URL, {
       method: 'POST',
       headers: {
@@ -22,8 +25,11 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       body: JSON.stringify({
         prompt: JSON.stringify(prompt), // Send the entire prompt object as JSON
         userId
-      })
+      }),
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     // Check for error responses
     if (!response.ok) {
@@ -36,15 +42,15 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       
       // Handle specific status codes with fallback error messages
       if (response.status === 401) {
-        throw new Error('Authentication failed: Invalid or missing OpenAI API key. Please check your API key.');
+        throw new Error('Błąd autoryzacji: Nieprawidłowy lub brakujący klucz API OpenAI. Sprawdź swój klucz API.');
       }
       
       if (response.status === 429) {
-        throw new Error('You have reached your daily limit for worksheet generation. Please try again tomorrow.');
+        throw new Error('Osiągnąłeś dzienny limit generowania arkuszy. Spróbuj ponownie jutro.');
       }
       
       // Generic error message if we couldn't parse a more specific one
-      throw new Error(`Failed to generate worksheet (status ${response.status})`);
+      throw new Error(`Nie udało się wygenerować arkusza (status ${response.status})`);
     }
 
     // Check content type to determine how to handle the response
@@ -63,9 +69,16 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     const htmlContent = await response.text();
     console.log('Received HTML content from edge function');
     
+    if (!htmlContent || htmlContent.trim() === '') {
+      throw new Error('Otrzymano pustą odpowiedź z serwera');
+    }
+    
     return htmlContent;
   } catch (error) {
     console.error('Error generating worksheet:', error);
+    if (error.name === 'AbortError') {
+      throw new Error('Żądanie przekroczyło limit czasu. Spróbuj ponownie później.');
+    }
     throw error;
   }
 }
@@ -104,7 +117,7 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to submit feedback: ${await response.text()}`);
+        throw new Error(`Nie udało się wysłać opinii: ${await response.text()}`);
       }
       
       return await response.json();

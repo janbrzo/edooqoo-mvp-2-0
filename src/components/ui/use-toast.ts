@@ -1,5 +1,4 @@
 
-import { useToast, toast } from "@/hooks/use-toast";
-import { toastVariants } from "@/components/ui/toast";
+import { useToast, toast, toastVariants } from "@/hooks/use-toast";
 
 export { useToast, toast, toastVariants };

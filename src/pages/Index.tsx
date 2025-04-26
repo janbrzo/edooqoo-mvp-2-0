@@ -13,103 +13,124 @@ import { Worksheet } from "@/types/worksheet";
 
 // Helper function to parse HTML content and convert it to a worksheet object
 function parseHtmlToWorksheet(html: string): Worksheet {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-  
-  // Extract basic worksheet info
-  const title = doc.querySelector('h1, h2, .title, header h1')?.textContent || 'ESL Worksheet';
-  const subtitle = doc.querySelector('h3, .subtitle')?.textContent || '';
-  let introduction = '';
-  const introElement = doc.querySelector('p, .introduction, header p');
-  if (introElement) {
-    introduction = introElement.textContent || '';
-  }
-  
-  // Extract exercises
-  const exercises = Array.from(doc.querySelectorAll('section, .exercise, div[class*="exercise"]'))
-    .map((section, index) => {
-      let exerciseType = 'reading';
-      if (section.textContent?.toLowerCase().includes('vocabulary')) exerciseType = 'vocabulary';
-      if (section.textContent?.toLowerCase().includes('matching')) exerciseType = 'matching';
-      if (section.textContent?.toLowerCase().includes('fill in')) exerciseType = 'fill-in-blanks';
-      if (section.textContent?.toLowerCase().includes('multiple choice')) exerciseType = 'multiple-choice';
-      if (section.textContent?.toLowerCase().includes('dialogue') || section.textContent?.toLowerCase().includes('dialog')) exerciseType = 'dialogue';
-      if (section.textContent?.toLowerCase().includes('discussion')) exerciseType = 'discussion';
-      
-      const titleElement = section.querySelector('h2, h3, h4, .title, strong');
-      const title = titleElement?.textContent || `Exercise ${index + 1}`;
-      
-      const instructionsElement = section.querySelector('p, .instructions');
-      const instructions = instructionsElement?.textContent || '';
-      
-      const teacherTipElement = section.querySelector('.teacher-tip, .tip, em, i');
-      const teacherTip = teacherTipElement?.textContent || '';
-      
-      // Find content of the exercise
-      let content = '';
-      const contentElements = Array.from(section.querySelectorAll('p:not(:first-child), .content, div:not(.teacher-tip)'));
-      if (contentElements.length > 0) {
-        content = contentElements.map(el => el.textContent).join('\n\n');
-      }
-      
-      // Extract questions if present
-      let questions = [];
-      const questionElements = section.querySelectorAll('ol li, ul li, .question');
-      if (questionElements.length > 0) {
-        questions = Array.from(questionElements).map(q => ({
-          text: q.textContent || '',
-          options: []
-        }));
-      }
-      
-      // Basic exercise structure
-      const exercise: any = {
-        type: exerciseType,
-        title: title,
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // Extract basic worksheet info
+    const title = doc.querySelector('h1, h2, .title, header h1')?.textContent || 'ESL Worksheet';
+    const subtitle = doc.querySelector('h3, .subtitle')?.textContent || '';
+    let introduction = '';
+    const introElement = doc.querySelector('p, .introduction, header p');
+    if (introElement) {
+      introduction = introElement.textContent || '';
+    }
+    
+    // Extract exercises
+    const exercises = Array.from(doc.querySelectorAll('section, .exercise, div[class*="exercise"]'))
+      .map((section, index) => {
+        let exerciseType = 'reading';
+        if (section.textContent?.toLowerCase().includes('vocabulary')) exerciseType = 'vocabulary';
+        if (section.textContent?.toLowerCase().includes('matching')) exerciseType = 'matching';
+        if (section.textContent?.toLowerCase().includes('fill in')) exerciseType = 'fill-in-blanks';
+        if (section.textContent?.toLowerCase().includes('multiple choice')) exerciseType = 'multiple-choice';
+        if (section.textContent?.toLowerCase().includes('dialogue') || section.textContent?.toLowerCase().includes('dialog')) exerciseType = 'dialogue';
+        if (section.textContent?.toLowerCase().includes('discussion')) exerciseType = 'discussion';
+        
+        const titleElement = section.querySelector('h2, h3, h4, .title, strong');
+        const title = titleElement?.textContent || `Exercise ${index + 1}`;
+        
+        const instructionsElement = section.querySelector('p, .instructions');
+        const instructions = instructionsElement?.textContent || '';
+        
+        const teacherTipElement = section.querySelector('.teacher-tip, .tip, em, i');
+        const teacherTip = teacherTipElement?.textContent || '';
+        
+        // Find content of the exercise
+        let content = '';
+        const contentElements = Array.from(section.querySelectorAll('p:not(:first-child), .content, div:not(.teacher-tip)'));
+        if (contentElements.length > 0) {
+          content = contentElements.map(el => el.textContent).join('\n\n');
+        }
+        
+        // Extract questions if present
+        let questions = [];
+        const questionElements = section.querySelectorAll('ol li, ul li, .question');
+        if (questionElements.length > 0) {
+          questions = Array.from(questionElements).map(q => ({
+            text: q.textContent || '',
+            options: []
+          }));
+        }
+        
+        // Basic exercise structure
+        const exercise: any = {
+          type: exerciseType,
+          title: title,
+          icon: 'fa-book-open',
+          time: 8,
+          instructions: instructions,
+          teacher_tip: teacherTip,
+          content: content
+        };
+        
+        if (questions.length > 0) {
+          exercise.questions = questions;
+        }
+        
+        return exercise;
+      });
+    
+    // Create a vocabulary section if needed
+    const vocabularyTerms = Array.from(doc.querySelectorAll('.vocabulary, .vocab, .glossary'))
+      .map((vocab) => {
+        const terms = Array.from(vocab.querySelectorAll('li, dt, .term'))
+          .map((term) => {
+            const termText = term.querySelector('strong, b, .term-text')?.textContent || term.textContent?.split(':')[0] || '';
+            const meaningText = term.querySelector('span, .meaning')?.textContent || term.textContent?.split(':')[1] || '';
+            return {
+              term: termText.trim(),
+              meaning: meaningText.trim()
+            };
+          });
+        return terms;
+      }).flat();
+    
+    // Create the worksheet object
+    return {
+      title,
+      subtitle,
+      introduction,
+      exercises: exercises.length > 0 ? exercises : [{
+        type: 'reading',
+        title: 'Exercise 1',
         icon: 'fa-book-open',
         time: 8,
-        instructions: instructions,
-        teacher_tip: teacherTip,
-        content: content
-      };
-      
-      if (questions.length > 0) {
-        exercise.questions = questions;
-      }
-      
-      return exercise;
-    });
-  
-  // Create a vocabulary section if needed
-  const vocabularyTerms = Array.from(doc.querySelectorAll('.vocabulary, .vocab, .glossary'))
-    .map((vocab) => {
-      const terms = Array.from(vocab.querySelectorAll('li, dt, .term'))
-        .map((term) => {
-          const termText = term.querySelector('strong, b, .term-text')?.textContent || term.textContent?.split(':')[0] || '';
-          const meaningText = term.querySelector('span, .meaning')?.textContent || term.textContent?.split(':')[1] || '';
-          return {
-            term: termText.trim(),
-            meaning: meaningText.trim()
-          };
-        });
-      return terms;
-    }).flat();
-  
-  // Create the worksheet object
-  return {
-    title,
-    subtitle,
-    introduction,
-    exercises: exercises.length > 0 ? exercises : [{
-      type: 'reading',
-      title: 'Exercise 1',
-      icon: 'fa-book-open',
-      time: 8,
-      instructions: 'Read the text and answer the questions.',
-      teacher_tip: 'Encourage students to read for main ideas first before focusing on details.'
-    }],
-    vocabulary_sheet: vocabularyTerms.length > 0 ? vocabularyTerms : []
-  };
+        instructions: 'Read the text and answer the questions.',
+        teacher_tip: 'Encourage students to read for main ideas first before focusing on details.'
+      }],
+      vocabulary_sheet: vocabularyTerms.length > 0 ? vocabularyTerms : []
+    };
+  } catch (error) {
+    console.error("Error parsing HTML to worksheet:", error);
+    
+    // Return a fallback worksheet if parsing fails
+    return {
+      title: "ESL Worksheet",
+      subtitle: "Generated Worksheet",
+      introduction: "There was an issue parsing the generated worksheet. Please try again.",
+      exercises: [{
+        type: 'reading',
+        title: 'Exercise 1',
+        icon: 'fa-book-open',
+        time: 8,
+        instructions: 'Read the text and answer the questions.',
+        teacher_tip: 'Encourage students to read for main ideas first before focusing on details.',
+        content: 'Content could not be generated correctly. Please try regenerating the worksheet.'
+      }],
+      vocabulary_sheet: []
+    };
+  }
 }
 
 export default function Index() {
@@ -123,6 +144,7 @@ export default function Index() {
   const [worksheetId, setWorksheetId] = useState<string | null>(null);
   const { userId, loading: authLoading } = useAnonymousAuth();
   const [htmlContent, setHtmlContent] = useState<string>('');
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -143,8 +165,8 @@ export default function Index() {
   const handleFormSubmit = async (data: FormData) => {
     if (!userId) {
       toast({
-        title: "Authentication error",
-        description: "There was a problem with your session. Please refresh the page and try again.",
+        title: "Błąd autoryzacji",
+        description: "Wystąpił problem z Twoją sesją. Odśwież stronę i spróbuj ponownie.",
         variant: "destructive"
       });
       return;
@@ -152,6 +174,7 @@ export default function Index() {
 
     setInputParams(data);
     setIsGenerating(true);
+    setGenerationError(null);
     
     // Set some metrics for UI
     setGenerationTime(Math.floor(Math.random() * (65 - 31) + 31));
@@ -160,6 +183,11 @@ export default function Index() {
     try {
       // Get the generated HTML content from OpenAI via the edge function
       const html = await generateWorksheet(data, userId);
+      
+      if (!html) {
+        throw new Error("Nie otrzymano zawartości od serwera");
+      }
+      
       setHtmlContent(html);
       
       // Parse the HTML content into a worksheet object
@@ -174,15 +202,16 @@ export default function Index() {
       setGeneratedWorksheet(worksheet);
       
       toast({
-        title: "Worksheet generated successfully!",
-        description: "Your custom worksheet is now ready to use.",
+        title: "Arkusz wygenerowany pomyślnie!",
+        description: "Twój spersonalizowany arkusz jest gotowy do użycia.",
         className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
       });
     } catch (error) {
       console.error("Worksheet generation error:", error);
+      setGenerationError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd");
       toast({
-        title: "Worksheet generation failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        title: "Generowanie arkusza nie powiodło się",
+        description: error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd",
         variant: "destructive"
       });
     } finally {
@@ -195,13 +224,14 @@ export default function Index() {
     setInputParams(null);
     setWorksheetId(null);
     setHtmlContent('');
+    setGenerationError(null);
   };
 
   const handleFeedbackSubmit = async (rating: number, feedback: string) => {
     if (!userId || !worksheetId) {
       toast({
-        title: "Feedback submission error",
-        description: "There was a problem with your session. Please refresh the page and try again.",
+        title: "Błąd podczas wysyłania opinii",
+        description: "Wystąpił problem z Twoją sesją. Odśwież stronę i spróbuj ponownie.",
         variant: "destructive"
       });
       return;
@@ -211,14 +241,14 @@ export default function Index() {
       await submitWorksheetFeedback(worksheetId, rating, feedback, userId);
       
       toast({
-        title: "Thank you for your feedback!",
-        description: "Your rating and comments help us improve our service."
+        title: "Dziękujemy za Twoją opinię!",
+        description: "Twoja ocena i komentarze pomagają nam ulepszać naszą usługę."
       });
     } catch (error) {
       console.error("Feedback submission error:", error);
       toast({
-        title: "Feedback submission failed",
-        description: "We couldn't submit your feedback. Please try again later.",
+        title: "Wysłanie opinii nie powiodło się",
+        description: "Nie mogliśmy wysłać Twojej opinii. Spróbuj ponownie później.",
         variant: "destructive"
       });
     }
@@ -245,11 +275,11 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-gray-100">
       {!generatedWorksheet ? (
-        <div className="container mx-auto flex main-container">
-          <div className="w-1/5 mx-0 py-[48px]">
+        <div className="container mx-auto flex flex-col md:flex-row main-container">
+          <div className="w-full md:w-1/5 mx-0 py-[48px]">
             <Sidebar />
           </div>
-          <div className="w-4/5 px-6 py-6 form-container">
+          <div className="w-full md:w-4/5 px-6 py-6 form-container">
             <WorksheetForm onSubmit={handleFormSubmit} />
           </div>
         </div>
@@ -276,6 +306,24 @@ export default function Index() {
       )}
       
       <GeneratingModal isOpen={isGenerating} />
+      
+      {/* Error display */}
+      {generationError && !isGenerating && !generatedWorksheet && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg shadow-xl w-[450px] space-y-6">
+            <h2 className="text-2xl font-semibold text-center text-red-500">Wystąpił błąd</h2>
+            <p className="text-center">{generationError}</p>
+            <div className="flex justify-center">
+              <button 
+                onClick={handleBack} 
+                className="bg-worksheet-purple text-white px-4 py-2 rounded hover:bg-worksheet-purpleDark transition-colors"
+              >
+                Wróć do formularza
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

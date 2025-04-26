@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import type {
@@ -188,4 +189,11 @@ function useToast() {
   }
 }
 
-export { useToast, toast }
+// Export toast variants from here to make it easier for components to access
+const toastVariants = {
+  default: "border bg-background text-foreground",
+  destructive: "destructive group border-destructive bg-destructive text-destructive-foreground",
+  error: "border-red-500 bg-red-500 text-white",
+}
+
+export { useToast, toast, toastVariants }
