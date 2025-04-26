@@ -89,7 +89,10 @@ const WorksheetContent: React.FC<WorksheetContentProps> = ({
       )}
 
       <WorksheetRating />
-      <TeacherNotes />
+      
+      {viewMode === 'teacher' && (
+        <TeacherNotes />
+      )}
     </>
   );
 };

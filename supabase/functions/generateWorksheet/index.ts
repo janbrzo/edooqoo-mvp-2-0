@@ -58,7 +58,7 @@ serve(async (req) => {
           1. Title and subtitle that clearly state the topic and focus
           2. Brief introduction explaining the lesson objectives
           3. 4-6 varied exercises that include:
-             - Reading comprehension
+             - Reading comprehension (with a text of EXACTLY 280-320 words)
              - Vocabulary practice
              - Grammar exercises
              - Role-play or dialogue exercises
@@ -66,10 +66,13 @@ serve(async (req) => {
              - Gap-filling exercises
           4. Each exercise should have:
              - Clear instructions
+             - Complete content (full text passages, all questions, all options, etc.)
              - Teacher tips
              - Estimated completion time
           Format the response in semantic HTML with appropriate tags.
-          Each exercise should be in a separate <section> with a proper heading.`
+          Each exercise should be in a separate <section> with a proper heading.
+          DO NOT skip any parts or leave placeholders - create COMPLETE exercises with full content.
+          The worksheet must be fully ready to use without any further editing needed.`
         },
         {
           role: "user",
@@ -77,7 +80,7 @@ serve(async (req) => {
         }
       ],
       temperature: 0.7,
-      max_tokens: 3000
+      max_tokens: 3500
     });
 
     const htmlContent = aiResponse.choices[0].message.content;

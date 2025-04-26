@@ -5,8 +5,6 @@ import WorksheetForm, { FormData } from "@/components/WorksheetForm";
 import Sidebar from "@/components/Sidebar";
 import GeneratingModal from "@/components/GeneratingModal";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
-import WorksheetRating from "@/components/WorksheetRating";
-import TeacherTipBox from "@/components/TeacherTipBox";
 import { useToast } from "@/hooks/use-toast";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 import { generateWorksheet, submitWorksheetFeedback, trackEvent } from "@/services/worksheetService";
@@ -47,6 +45,23 @@ function parseHtmlToWorksheet(html: string): Worksheet {
       const teacherTipElement = section.querySelector('.teacher-tip, .tip, em, i');
       const teacherTip = teacherTipElement?.textContent || '';
       
+      // Find content of the exercise
+      let content = '';
+      const contentElements = Array.from(section.querySelectorAll('p:not(:first-child), .content, div:not(.teacher-tip)'));
+      if (contentElements.length > 0) {
+        content = contentElements.map(el => el.textContent).join('\n\n');
+      }
+      
+      // Extract questions if present
+      let questions = [];
+      const questionElements = section.querySelectorAll('ol li, ul li, .question');
+      if (questionElements.length > 0) {
+        questions = Array.from(questionElements).map(q => ({
+          text: q.textContent || '',
+          options: []
+        }));
+      }
+      
       // Basic exercise structure
       const exercise: any = {
         type: exerciseType,
@@ -54,8 +69,13 @@ function parseHtmlToWorksheet(html: string): Worksheet {
         icon: 'fa-book-open',
         time: 8,
         instructions: instructions,
-        teacher_tip: teacherTip
+        teacher_tip: teacherTip,
+        content: content
       };
+      
+      if (questions.length > 0) {
+        exercise.questions = questions;
+      }
       
       return exercise;
     });
@@ -88,7 +108,7 @@ function parseHtmlToWorksheet(html: string): Worksheet {
       instructions: 'Read the text and answer the questions.',
       teacher_tip: 'Encourage students to read for main ideas first before focusing on details.'
     }],
-    vocabulary_sheet: vocabularyTerms.length > 0 ? vocabularyTerms : undefined
+    vocabulary_sheet: vocabularyTerms.length > 0 ? vocabularyTerms : []
   };
 }
 
@@ -243,7 +263,6 @@ export default function Index() {
             onBack={handleBack}
             onDownload={handleDownloadEvent}
           />
-          <WorksheetRating onSubmitRating={handleFeedbackSubmit} />
           {showScrollTop && (
             <button 
               onClick={scrollToTop} 

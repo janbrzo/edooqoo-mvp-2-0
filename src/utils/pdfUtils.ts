@@ -13,6 +13,12 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
     noPdfElements.forEach(el => el.remove());
     
+    // Also remove the TeacherNotes section
+    const teacherNotesSection = clone.querySelector('.teacher-notes');
+    if (teacherNotesSection) {
+      teacherNotesSection.remove();
+    }
+    
     // Create a temporary container for the cloned content
     const container = document.createElement('div');
     container.appendChild(clone);
@@ -59,11 +65,23 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     const style = document.createElement('style');
     style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
     document.head.appendChild(style);
+
+    // Format the current date for the filename
+    const currentDate = new Date().toISOString().split('T')[0];
     
-    // Configure html2pdf options
+    // Sanitize title for filename
+    const sanitizedTitle = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+      
+    // Create the formatted filename
+    const formattedFilename = `${currentDate}-${isTeacherVersion ? 'Teacher' : 'Student'}-${sanitizedTitle}.pdf`;
+    
+    // Configure html2pdf options with reduced margins
     const options = {
-      margin: [15, 15, 20, 15], // top, right, bottom, left
-      filename: filename,
+      margin: [15, 7.5, 20, 7.5], // top, right, bottom, left - reduced side margins by half
+      filename: formattedFilename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
         scale: 2,

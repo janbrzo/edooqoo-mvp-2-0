@@ -51,24 +51,42 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
  */
 export async function submitWorksheetFeedback(worksheetId: string, rating: number, comment: string, userId: string) {
   try {
-    const response = await fetch(SUBMIT_FEEDBACK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        worksheetId,
-        rating,
-        comment,
-        userId
-      })
-    });
+    console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
+    
+    const { data, error } = await supabase
+      .from('feedbacks')
+      .insert({
+        worksheet_id: worksheetId,
+        rating: rating,
+        comment: comment,
+        user_id: userId
+      });
 
-    if (!response.ok) {
-      throw new Error(`Failed to submit feedback: ${await response.text()}`);
+    if (error) {
+      console.error('Error submitting feedback directly to Supabase:', error);
+      
+      // Fallback to edge function if direct insert fails
+      const response = await fetch(SUBMIT_FEEDBACK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          worksheetId,
+          rating,
+          comment,
+          userId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to submit feedback: ${await response.text()}`);
+      }
+      
+      return await response.json();
     }
-
-    return await response.json();
+    
+    return data;
   } catch (error) {
     console.error('Error submitting feedback:', error);
     throw error;
