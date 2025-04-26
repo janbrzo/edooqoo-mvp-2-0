@@ -142,6 +142,10 @@ The worksheet should be formatted in clean HTML that can be directly displayed i
     try {
       console.log("Sending request to OpenAI API...");
       
+      // Using a timeout to prevent the function from hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+      
       const aiResponse = await openai.chat.completions.create({
         model: "gpt-4o-mini", // Using a more reliable and current model
         messages: [
@@ -155,12 +159,17 @@ The worksheet should be formatted in clean HTML that can be directly displayed i
           }
         ],
         temperature: 0.7,
-        max_tokens: 3500
+        max_tokens: 3500,
       });
 
+      clearTimeout(timeoutId);
       console.log("Received response from OpenAI API");
       
       const htmlContent = aiResponse.choices[0].message.content;
+      
+      if (!htmlContent || htmlContent.trim() === '') {
+        throw new Error("OpenAI returned empty response");
+      }
       
       console.log(`Successfully generated content from OpenAI`);
 
@@ -213,21 +222,26 @@ The worksheet should be formatted in clean HTML that can be directly displayed i
       return new Response(htmlContent, {
         headers: { ...corsHeaders, 'Content-Type': 'text/html' },
       });
-    } catch (openaiError) {
-      console.error('OpenAI API error:', openaiError);
+    } catch (error) {
+      console.error('OpenAI API error:', error);
       
       let errorMessage = 'An error occurred while generating the worksheet';
       let statusCode = 500;
       
+      // Handle aborted requests (timeout)
+      if (error.name === 'AbortError') {
+        errorMessage = 'Request timed out. The server might be busy. Please try again later.';
+        statusCode = 504; // Gateway Timeout
+      }
       // Handle common OpenAI API specific errors
-      if (openaiError.status === 401) {
+      else if (error.status === 401) {
         errorMessage = 'Authentication failed: Invalid or missing OpenAI API key. Please check your API key configuration.';
         statusCode = 401;
-      } else if (openaiError.status === 429) {
+      } else if (error.status === 429) {
         errorMessage = 'Rate limit exceeded: Too many requests to OpenAI API. Please try again later.';
         statusCode = 429;
-      } else if (openaiError.message) {
-        errorMessage = `OpenAI error: ${openaiError.message}`;
+      } else if (error.message) {
+        errorMessage = `OpenAI error: ${error.message}`;
       }
       
       return new Response(

@@ -5,7 +5,7 @@ import WorksheetForm, { FormData } from "@/components/WorksheetForm";
 import Sidebar from "@/components/Sidebar";
 import GeneratingModal from "@/components/GeneratingModal";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 import { generateWorksheet, submitWorksheetFeedback, trackEvent } from "@/services/worksheetService";
 import { v4 as uuidv4 } from 'uuid';
@@ -145,6 +145,7 @@ export default function Index() {
   const { userId, loading: authLoading } = useAnonymousAuth();
   const [htmlContent, setHtmlContent] = useState<string>('');
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [timeoutId, setTimeoutId] = useState<number | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -180,12 +181,28 @@ export default function Index() {
     setGenerationTime(Math.floor(Math.random() * (65 - 31) + 31));
     setSourceCount(Math.floor(Math.random() * (90 - 50) + 50));
     
+    // Set a timeout to handle cases where the fetch hangs
+    const timeout = window.setTimeout(() => {
+      setIsGenerating(false);
+      setGenerationError("Generowanie trwało zbyt długo. Serwer może być przeciążony. Spróbuj ponownie za chwilę.");
+      toast({
+        title: "Przekroczono limit czasu",
+        description: "Generowanie trwało zbyt długo. Serwer może być przeciążony. Spróbuj ponownie za chwilę.",
+        variant: "destructive"
+      });
+    }, 40000); // 40 second timeout
+    
+    setTimeoutId(timeout);
+    
     try {
       // Get the generated HTML content from OpenAI via the edge function
       const html = await generateWorksheet(data, userId);
       
-      if (!html) {
-        throw new Error("Nie otrzymano zawartości od serwera");
+      // Clear the timeout since we got a response
+      if (timeoutId) window.clearTimeout(timeoutId);
+      
+      if (!html || html.trim() === '') {
+        throw new Error("Nie otrzymano zawartości od serwera. Spróbuj ponownie.");
       }
       
       setHtmlContent(html);
@@ -208,10 +225,16 @@ export default function Index() {
       });
     } catch (error) {
       console.error("Worksheet generation error:", error);
-      setGenerationError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd");
+      
+      // Clear the timeout if we've already handled the error
+      if (timeoutId) window.clearTimeout(timeoutId);
+      
+      const errorMessage = error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd podczas generowania arkusza.";
+      setGenerationError(errorMessage);
+      
       toast({
         title: "Generowanie arkusza nie powiodło się",
-        description: error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -258,7 +281,12 @@ export default function Index() {
     if (userId && worksheetId && generatedWorksheet) {
       trackEvent('view', worksheetId, userId);
     }
-  }, [userId, worksheetId, generatedWorksheet]);
+    
+    // Cleanup timeout when component unmounts or when generating state changes
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [userId, worksheetId, generatedWorksheet, timeoutId]);
 
   const handleDownloadEvent = () => {
     if (userId && worksheetId) {
@@ -310,7 +338,7 @@ export default function Index() {
       {/* Error display */}
       {generationError && !isGenerating && !generatedWorksheet && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-lg shadow-xl w-[450px] space-y-6">
+          <div className="bg-white p-8 rounded-lg shadow-xl w-[450px] max-w-[90vw] space-y-6">
             <h2 className="text-2xl font-semibold text-center text-red-500">Wystąpił błąd</h2>
             <p className="text-center">{generationError}</p>
             <div className="flex justify-center">
