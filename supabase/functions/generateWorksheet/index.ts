@@ -3,24 +3,40 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
 
-const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
-
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-);
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Initialize OpenAI client
+    const openAiKey = Deno.env.get('OPENAI_API_KEY');
+    
+    if (!openAiKey) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'OpenAI API key is not configured. Please contact the administrator.' 
+        }), 
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    const openai = new OpenAI({ apiKey: openAiKey });
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
     const { prompt, userId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
     const userIp = ip.split(',')[0].trim();
@@ -118,75 +134,102 @@ Lesson Duration: ${lessonTime}
 The worksheet should be formatted in clean HTML that can be directly displayed in a browser.`;
 
     // Generate worksheet using OpenAI with structured prompt
-    const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt
-        },
-        {
-          role: "user",
-          content: userPrompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 3500
-    });
+    try {
+      const aiResponse = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt
+          },
+          {
+            role: "user",
+            content: userPrompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 3500
+      });
 
-    const htmlContent = aiResponse.choices[0].message.content;
-    
-    console.log(`Successfully generated content from OpenAI`);
+      const htmlContent = aiResponse.choices[0].message.content;
+      
+      console.log(`Successfully generated content from OpenAI`);
 
-    // Store the complete prompt that was sent to OpenAI
-    const fullPromptForStorage = {
-      systemPrompt,
-      userPrompt,
-      lessonTopic,
-      lessonGoal,
-      teachingPreferences,
-      studentProfile,
-      studentStruggles,
-      lessonTime
-    };
+      // Store the complete prompt that was sent to OpenAI
+      const fullPromptForStorage = {
+        systemPrompt,
+        userPrompt,
+        lessonTopic,
+        lessonGoal,
+        teachingPreferences,
+        studentProfile,
+        studentStruggles,
+        lessonTime
+      };
 
-    // Save worksheet to database with full prompt and complete HTML
-    const { data: worksheet, error: worksheetError } = await supabase
-      .from('worksheets')
-      .insert({
-        prompt: JSON.stringify(fullPromptForStorage), // Store complete prompt as JSON
-        html_content: htmlContent,
+      // Save worksheet to database with full prompt and complete HTML
+      const { data: worksheet, error: worksheetError } = await supabase
+        .from('worksheets')
+        .insert({
+          prompt: JSON.stringify(fullPromptForStorage), // Store complete prompt as JSON
+          html_content: htmlContent,
+          user_id: userId,
+          ip_address: userIp,
+          status: 'created',
+          title: lessonTopic // Store the title for easier reference
+        })
+        .select('id')
+        .single();
+
+      if (worksheetError) {
+        console.error('Error inserting worksheet:', worksheetError);
+        throw worksheetError;
+      }
+
+      // Track generation event
+      const { error: eventError } = await supabase.from('events').insert({
+        type: 'generate',
+        worksheet_id: worksheet.id,
         user_id: userId,
-        ip_address: userIp,
-        status: 'created',
-        title: lessonTopic // Store the title for easier reference
-      })
-      .select('id')
-      .single();
+        metadata: { prompt: JSON.stringify(fullPromptForStorage), ip: userIp },
+        ip_address: userIp
+      });
 
-    if (worksheetError) {
-      console.error('Error inserting worksheet:', worksheetError);
-      throw worksheetError;
+      if (eventError) {
+        console.error('Error tracking event:', eventError);
+      }
+
+      console.log(`Worksheet created with ID: ${worksheet.id}`);
+      
+      return new Response(htmlContent, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+      });
+    } catch (openaiError) {
+      console.error('OpenAI API error:', openaiError);
+      
+      // Handle OpenAI API specific errors
+      if (openaiError.status === 401) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Authentication failed: Invalid OpenAI API key. Please check your API key configuration.' 
+          }), 
+          { 
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          error: openaiError.message || 'An error occurred while generating the worksheet' 
+        }),
+        { 
+          status: openaiError.status || 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
-
-    // Track generation event
-    const { error: eventError } = await supabase.from('events').insert({
-      type: 'generate',
-      worksheet_id: worksheet.id,
-      user_id: userId,
-      metadata: { prompt: JSON.stringify(fullPromptForStorage), ip: userIp },
-      ip_address: userIp
-    });
-
-    if (eventError) {
-      console.error('Error tracking event:', eventError);
-    }
-
-    console.log(`Worksheet created with ID: ${worksheet.id}`);
-    
-    return new Response(htmlContent, {
-      headers: { ...corsHeaders, 'Content-Type': 'text/html' },
-    });
   } catch (error) {
     console.error('Error in generateWorksheet:', error);
     return new Response(
