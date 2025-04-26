@@ -30,6 +30,10 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       throw new Error('Authentication failed: Invalid or missing OpenAI API key. Please check your API key.');
     }
     
+    if (response.status === 429) {
+      throw new Error('You have reached your daily limit for worksheet generation. Please try again tomorrow.');
+    }
+    
     if (!response.ok) {
       const errorText = await response.text();
       let errorMessage = 'Failed to generate worksheet';
@@ -43,10 +47,6 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       } catch (e) {
         // If parsing fails, use the raw text
         errorMessage = `${errorMessage}: ${errorText}`;
-      }
-      
-      if (response.status === 429) {
-        errorMessage = 'You have reached your daily limit for worksheet generation. Please try again tomorrow.';
       }
       
       throw new Error(errorMessage);

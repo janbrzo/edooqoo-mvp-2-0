@@ -19,6 +19,7 @@ serve(async (req) => {
     const openAiKey = Deno.env.get('OPENAI_API_KEY');
     
     if (!openAiKey) {
+      console.error('OpenAI API key not found in environment variables');
       return new Response(
         JSON.stringify({ 
           error: 'OpenAI API key is not configured. Please contact the administrator.' 
@@ -29,6 +30,10 @@ serve(async (req) => {
         }
       );
     }
+    
+    // Log key prefix to help with debugging (safely)
+    const keyPrefix = openAiKey.substring(0, 7);
+    console.log(`Using OpenAI key with prefix: ${keyPrefix}...`);
     
     const openai = new OpenAI({ apiKey: openAiKey });
 
@@ -93,7 +98,7 @@ serve(async (req) => {
     
     // Select appropriate number of exercises
     const finalExerciseTypes = baseExerciseTypes.slice(0, exerciseCount);
-    const exerciseList = finalExerciseTypes.map(type => `- ${type}`).join("\\n");
+    const exerciseList = finalExerciseTypes.map(type => `- ${type}`).join("\n");
 
     // Construct the enhanced system prompt
     const systemPrompt = `You are an expert ESL teacher assistant specialized in creating professional worksheets with exercises.
@@ -135,8 +140,10 @@ The worksheet should be formatted in clean HTML that can be directly displayed i
 
     // Generate worksheet using OpenAI with structured prompt
     try {
+      console.log("Sending request to OpenAI API...");
+      
       const aiResponse = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4o-mini", // Using a more reliable and current model
         messages: [
           {
             role: "system",
@@ -151,6 +158,8 @@ The worksheet should be formatted in clean HTML that can be directly displayed i
         max_tokens: 3500
       });
 
+      console.log("Received response from OpenAI API");
+      
       const htmlContent = aiResponse.choices[0].message.content;
       
       console.log(`Successfully generated content from OpenAI`);
@@ -207,11 +216,11 @@ The worksheet should be formatted in clean HTML that can be directly displayed i
     } catch (openaiError) {
       console.error('OpenAI API error:', openaiError);
       
-      // Handle OpenAI API specific errors
+      // Handle common OpenAI API specific errors
       if (openaiError.status === 401) {
         return new Response(
           JSON.stringify({ 
-            error: 'Authentication failed: Invalid OpenAI API key. Please check your API key configuration.' 
+            error: 'Authentication failed: Invalid or missing OpenAI API key. Please check your API key configuration.' 
           }), 
           { 
             status: 401,
@@ -220,9 +229,21 @@ The worksheet should be formatted in clean HTML that can be directly displayed i
         );
       }
       
+      if (openaiError.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Rate limit exceeded: Too many requests to OpenAI API. Please try again later.' 
+          }), 
+          { 
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ 
-          error: openaiError.message || 'An error occurred while generating the worksheet' 
+          error: `OpenAI error: ${openaiError.message || 'An error occurred while generating the worksheet'}` 
         }),
         { 
           status: openaiError.status || 500,
@@ -233,7 +254,7 @@ The worksheet should be formatted in clean HTML that can be directly displayed i
   } catch (error) {
     console.error('Error in generateWorksheet:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'An error occurred' }),
+      JSON.stringify({ error: `Server error: ${error.message || 'An unexpected error occurred'}` }),
       { 
         status: error.status || 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
