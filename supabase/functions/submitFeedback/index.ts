@@ -13,7 +13,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,9 +20,9 @@ serve(async (req) => {
   try {
     const { worksheetId, rating, comment, userId } = await req.json();
     
-    console.log(`Submitting feedback for worksheet ${worksheetId}:`, { rating, comment });
+    console.log(`Submitting feedback for worksheet ${worksheetId}:`, { rating, comment, userId });
 
-    // Insert feedback into database
+    // Insert feedback into database with status
     const { data, error } = await supabase
       .from('feedbacks')
       .insert({
@@ -31,7 +30,8 @@ serve(async (req) => {
         rating: rating,
         comment: comment,
         user_id: userId,
-        status: 'submitted'
+        status: 'submitted',
+        created_at: new Date().toISOString()
       })
       .select()
       .single();
