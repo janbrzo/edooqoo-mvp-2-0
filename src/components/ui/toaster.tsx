@@ -11,6 +11,7 @@ export function Toaster() {
       case "success":
         return <Check className="h-4 w-4 text-green-500" />;
       case "error":
+      case "destructive":
         return <X className="h-4 w-4 text-red-500" />;
       case "warning":
         return <AlertTriangle className="h-4 w-4 text-amber-500" />;
@@ -29,14 +30,17 @@ export function Toaster() {
         variant,
         ...props
       }) {
+        // Determine if this is an error toast
+        const isError = variant === 'destructive' || variant === 'error';
+        
         return (
           <Toast 
             key={id} 
-            className="bg-white shadow-lg rounded-lg group min-h-[36px] max-w-md w-full px-[16px] py-[12px]"
+            className="bg-white shadow-lg rounded-lg group min-h-[36px] w-full px-[16px] py-[12px]"
             // Increasing the width of error toasts for better readability
             style={{ 
-              maxWidth: variant === 'destructive' ? '32rem' : '20rem',
-              width: variant === 'destructive' ? 'calc(100vw - 2rem)' : undefined
+              maxWidth: isError ? '36rem' : '24rem',
+              width: isError ? 'calc(100vw - 2rem)' : undefined
             }}
           >
             <div className="flex items-start gap-2">
@@ -46,7 +50,7 @@ export function Toaster() {
               <div className="grid gap-1 flex-1">
                 {title && <ToastTitle className="font-semibold text-sm text-gray-900 py-0">{title}</ToastTitle>}
                 {description && (
-                  <ToastDescription className="text-xs text-gray-600 break-words">
+                  <ToastDescription className="text-xs text-gray-600 break-words max-h-[300px] overflow-y-auto">
                     {description}
                   </ToastDescription>
                 )}

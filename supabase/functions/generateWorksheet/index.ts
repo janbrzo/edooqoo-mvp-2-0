@@ -31,11 +31,11 @@ serve(async (req) => {
       );
     }
     
-    // Log key prefix to help with debugging (safely)
-    const keyPrefix = openAiKey.substring(0, 7);
-    console.log(`Using OpenAI key with prefix: ${keyPrefix}...`);
+    // Let's ensure we're using a key without any whitespace or unexpected characters
+    const cleanedApiKey = openAiKey.trim();
+    console.log(`API key length: ${cleanedApiKey.length}`);
     
-    const openai = new OpenAI({ apiKey: openAiKey });
+    const openai = new OpenAI({ apiKey: cleanedApiKey });
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -100,8 +100,8 @@ serve(async (req) => {
     const finalExerciseTypes = baseExerciseTypes.slice(0, exerciseCount);
     const exerciseList = finalExerciseTypes.map(type => `- ${type}`).join("\n");
 
-    // Construct the enhanced system prompt
-    const systemPrompt = `You are an expert ESL teacher assistant specialized in creating professional worksheets with exercises.
+    // Construct the system prompt with HTML formatting instructions
+    const systemPrompt = `You are an expert ESL teacher specialized in creating professional HTML-formatted worksheets with exercises.
 
 Create a detailed HTML worksheet with the following structure:
 1. Title with <h1> tag that clearly states the topic: "${lessonTopic}"
@@ -216,47 +216,40 @@ The worksheet should be formatted in clean HTML that can be directly displayed i
     } catch (openaiError) {
       console.error('OpenAI API error:', openaiError);
       
+      let errorMessage = 'An error occurred while generating the worksheet';
+      let statusCode = 500;
+      
       // Handle common OpenAI API specific errors
       if (openaiError.status === 401) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Authentication failed: Invalid or missing OpenAI API key. Please check your API key configuration.' 
-          }), 
-          { 
-            status: 401,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
-      
-      if (openaiError.status === 429) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Rate limit exceeded: Too many requests to OpenAI API. Please try again later.' 
-          }), 
-          { 
-            status: 429,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
+        errorMessage = 'Authentication failed: Invalid or missing OpenAI API key. Please check your API key configuration.';
+        statusCode = 401;
+      } else if (openaiError.status === 429) {
+        errorMessage = 'Rate limit exceeded: Too many requests to OpenAI API. Please try again later.';
+        statusCode = 429;
+      } else if (openaiError.message) {
+        errorMessage = `OpenAI error: ${openaiError.message}`;
       }
       
       return new Response(
-        JSON.stringify({ 
-          error: `OpenAI error: ${openaiError.message || 'An error occurred while generating the worksheet'}` 
-        }),
+        JSON.stringify({ error: errorMessage }), 
         { 
-          status: openaiError.status || 500,
+          status: statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
   } catch (error) {
     console.error('Error in generateWorksheet:', error);
+    
+    let errorMessage = 'An unexpected error occurred';
+    if (error.message) {
+      errorMessage = error.message;
+    }
+    
     return new Response(
-      JSON.stringify({ error: `Server error: ${error.message || 'An unexpected error occurred'}` }),
+      JSON.stringify({ error: errorMessage }),
       { 
-        status: error.status || 500,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
