@@ -14,7 +14,8 @@ interface WorksheetDisplayProps {
 }
 
 export default function WorksheetDisplay(props: WorksheetDisplayProps) {
-  if (!props.worksheet) {
+  // Safety check to prevent rendering with invalid data
+  if (!props.worksheet || typeof props.worksheet !== 'object') {
     return null;
   }
   

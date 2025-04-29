@@ -57,7 +57,7 @@ export function Toaster() {
               </div>
               <div className="grid gap-1 flex-1">
                 {title && <ToastTitle className="font-semibold text-sm text-gray-900 py-0">{title}</ToastTitle>}
-                {description && (
+                {description && typeof description === 'string' && (
                   <ToastDescription className="text-xs text-gray-600 break-words max-h-[300px] overflow-y-auto">
                     {description}
                   </ToastDescription>
