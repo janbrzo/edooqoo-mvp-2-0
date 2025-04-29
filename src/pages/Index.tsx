@@ -5,7 +5,7 @@ import WorksheetForm, { FormData } from "@/components/WorksheetForm";
 import Sidebar from "@/components/Sidebar";
 import GeneratingModal from "@/components/GeneratingModal";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 import { generateWorksheet, submitWorksheetFeedback, trackEvent } from "@/services/worksheetService";
 import { v4 as uuidv4 } from 'uuid';
@@ -14,6 +14,10 @@ import { Worksheet } from "@/types/worksheet";
 // Helper function to parse HTML content and convert it to a worksheet object
 function parseHtmlToWorksheet(html: string): Worksheet {
   try {
+    if (!html || typeof html !== 'string' || html.trim() === '') {
+      throw new Error('Empty HTML content provided');
+    }
+    
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     
@@ -59,7 +63,8 @@ function parseHtmlToWorksheet(html: string): Worksheet {
         if (questionElements.length > 0) {
           questions = Array.from(questionElements).map(q => ({
             text: q.textContent || '',
-            options: []
+            options: [],
+            answer: ''
           }));
         }
         
@@ -140,6 +145,7 @@ export default function Index() {
   const { toast } = useToast();
   const [generationTime, setGenerationTime] = useState(0);
   const [sourceCount, setSourceCount] = useState(0);
+  const [generationProgress, setGenerationProgress] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [worksheetId, setWorksheetId] = useState<string | null>(null);
   const { userId, loading: authLoading } = useAnonymousAuth();
@@ -176,6 +182,7 @@ export default function Index() {
     setInputParams(data);
     setIsGenerating(true);
     setGenerationError(null);
+    setGenerationProgress(0);
     
     // Set some metrics for UI
     setGenerationTime(Math.floor(Math.random() * (65 - 31) + 31));
@@ -194,18 +201,28 @@ export default function Index() {
     
     setTimeoutId(timeout);
     
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setGenerationProgress(prev => {
+        const newProgress = prev + Math.random() * 10;
+        return newProgress > 90 ? 90 : newProgress;
+      });
+    }, 1000);
+    
     try {
       // Get the generated HTML content from OpenAI via the edge function
       const html = await generateWorksheet(data, userId);
       
-      // Clear the timeout since we got a response
+      // Clear the timeout and progress interval since we got a response
+      clearInterval(progressInterval);
       if (timeoutId) window.clearTimeout(timeoutId);
       
-      if (!html || html.trim() === '') {
+      if (!html || typeof html !== 'string' || html.trim() === '') {
         throw new Error("Nie otrzymano zawartości od serwera. Spróbuj ponownie.");
       }
       
       setHtmlContent(html);
+      setGenerationProgress(95);
       
       // Parse the HTML content into a worksheet object
       const worksheet = parseHtmlToWorksheet(html);
@@ -216,6 +233,7 @@ export default function Index() {
       setWorksheetId(tempId);
       
       // Set the generated worksheet
+      setGenerationProgress(100);
       setGeneratedWorksheet(worksheet);
       
       toast({
@@ -223,10 +241,11 @@ export default function Index() {
         description: "Twój spersonalizowany arkusz jest gotowy do użycia.",
         className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Worksheet generation error:", error);
       
-      // Clear the timeout if we've already handled the error
+      // Clear the timeout and progress interval if we've already handled the error
+      clearInterval(progressInterval);
       if (timeoutId) window.clearTimeout(timeoutId);
       
       const errorMessage = error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd podczas generowania arkusza.";
@@ -239,6 +258,11 @@ export default function Index() {
       });
     } finally {
       setIsGenerating(false);
+      clearInterval(progressInterval);
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+        setTimeoutId(null);
+      }
     }
   };
 
@@ -248,6 +272,7 @@ export default function Index() {
     setWorksheetId(null);
     setHtmlContent('');
     setGenerationError(null);
+    setGenerationProgress(0);
   };
 
   const handleFeedbackSubmit = async (rating: number, feedback: string) => {
@@ -333,7 +358,11 @@ export default function Index() {
         </>
       )}
       
-      <GeneratingModal isOpen={isGenerating} />
+      <GeneratingModal 
+        isOpen={isGenerating} 
+        progress={generationProgress} 
+        timeoutSeconds={40}
+      />
       
       {/* Error display */}
       {generationError && !isGenerating && !generatedWorksheet && (

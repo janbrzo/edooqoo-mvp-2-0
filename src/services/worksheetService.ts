@@ -15,7 +15,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     console.log('Sending prompt to generateWorksheet function:', prompt);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 40000); // 40 second timeout
     
     const response = await fetch(GENERATE_WORKSHEET_URL, {
       method: 'POST',
@@ -65,13 +65,13 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     const contentType = response.headers.get('content-type');
     
     if (contentType && contentType.includes('application/json')) {
-      // Handle JSON response (likely an error message)
+      // Handle JSON response
       const data = await response.json();
       if (data.error) {
         throw new Error(data.error);
       }
       
-      if (!data.html || data.html.trim() === '') {
+      if (!data.html || typeof data.html !== 'string' || data.html.trim() === '') {
         throw new Error('Otrzymano pustą odpowiedź z serwera. Spróbuj ponownie.');
       }
       
@@ -82,12 +82,12 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     const htmlContent = await response.text();
     console.log('Received HTML content from edge function');
     
-    if (!htmlContent || htmlContent.trim() === '') {
+    if (!htmlContent || typeof htmlContent !== 'string' || htmlContent.trim() === '') {
       throw new Error('Otrzymano pustą odpowiedź z serwera. Spróbuj ponownie.');
     }
     
     return htmlContent;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating worksheet:', error);
     
     if (error.name === 'AbortError') {

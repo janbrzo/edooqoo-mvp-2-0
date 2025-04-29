@@ -1,11 +1,53 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { toast } from '@/hooks/use-toast';
 
 interface GeneratingModalProps {
   isOpen: boolean;
+  progress?: number;
+  timeoutSeconds?: number;
 }
 
-export default function GeneratingModal({ isOpen }: GeneratingModalProps) {
+export default function GeneratingModal({ 
+  isOpen, 
+  progress = 0, 
+  timeoutSeconds = 30 
+}: GeneratingModalProps) {
+  const [timeLeft, setTimeLeft] = useState(timeoutSeconds);
+  const [progressValue, setProgressValue] = useState(progress);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setTimeLeft(timeoutSeconds);
+      setProgressValue(0);
+      return;
+    }
+
+    // Set up countdown timer
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Simulate progress increase
+    const progressTimer = setInterval(() => {
+      setProgressValue((prev) => {
+        const newValue = prev + Math.random() * 5;
+        return newValue > 95 ? 95 : newValue;
+      });
+    }, 700);
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(progressTimer);
+    };
+  }, [isOpen, timeoutSeconds]);
+
   if (!isOpen) return null;
   
   return (
@@ -23,14 +65,23 @@ export default function GeneratingModal({ isOpen }: GeneratingModalProps) {
           
           <p className="text-gray-600 mt-2">
             Trwa generowanie spersonalizowanego arkusza na podstawie Twoich preferencji.
-            Może to potrwać do 30 sekund.
+            Może to potrwać do {timeoutSeconds} sekund.
           </p>
           
-          <div className="mt-4 flex flex-col items-center">
+          <div className="mt-4 flex flex-col items-center w-full">
             <div className="w-full bg-gray-200 rounded-full h-2 mb-2 max-w-xs">
-              <div className="bg-worksheet-purple h-2 rounded-full animate-pulse"></div>
+              <div 
+                className="bg-worksheet-purple h-2 rounded-full" 
+                style={{ width: `${progressValue}%` }}
+              ></div>
             </div>
-            <p className="text-xs text-gray-500">Używamy zaawansowanych modeli AI do tworzenia unikalnej zawartości</p>
+            <p className="text-xs text-gray-500">
+              {timeLeft > 0 ? (
+                `Pozostało około ${timeLeft} sekund...`
+              ) : (
+                "Finalizowanie, proszę czekać..."
+              )}
+            </p>
           </div>
         </div>
       </div>
