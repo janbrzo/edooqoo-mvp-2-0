@@ -35,7 +35,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       throw new Error(`Failed to generate worksheet: ${errorData?.error || response.statusText}`);
     }
 
-    // Parse the response as JSON directly, as we're now receiving structured data
+    // Parse the response as JSON directly
     const worksheetData = await response.json();
     
     if (!worksheetData || typeof worksheetData !== 'object') {
@@ -84,6 +84,12 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
  */
 export async function trackEvent(type: string, worksheetId: string, userId: string, metadata: any = {}) {
   try {
+    // Skip tracking if worksheetId is not a valid UUID
+    if (!worksheetId || worksheetId.length < 10) {
+      console.log(`Skipping ${type} event tracking for invalid worksheetId: ${worksheetId}`);
+      return;
+    }
+    
     const { error } = await supabase.from('events').insert({
       type,
       event_type: type,
@@ -92,7 +98,9 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
       metadata
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error(`Error tracking ${type} event:`, error);
+    }
   } catch (error) {
     console.error(`Error tracking ${type} event:`, error);
   }

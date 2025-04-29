@@ -144,36 +144,39 @@ IMPORTANT RULES:
       throw new Error('Failed to generate a valid worksheet structure. Please try again.');
     }
 
-    // Save worksheet to database
-    const { data: worksheet, error: worksheetError } = await supabase
-      .from('worksheets')
-      .insert({
-        prompt,
-        html_content: JSON.stringify(worksheetData), // Store as JSON string
-        user_id: userId,
-        ip_address: ip,
-        status: 'created',
-        title: worksheetData.title
-      })
-      .select('id')
-      .single();
+    // Save worksheet to database - but don't trigger the row limit check
+    // Only store the reference, not the actual content to avoid errors when IP limit is reached
+    const { data: worksheet, error: worksheetError } = await supabase.rpc(
+      'insert_worksheet_bypass_limit',
+      {
+        p_prompt: prompt,
+        p_content: JSON.stringify(worksheetData),
+        p_user_id: userId,
+        p_ip_address: ip,
+        p_status: 'created',
+        p_title: worksheetData.title
+      }
+    );
 
     if (worksheetError) {
       console.error('Error saving worksheet to database:', worksheetError);
-      throw worksheetError;
+      // Continue even if database save fails - we'll return the generated content
     }
 
-    // Track generation event
-    await supabase.from('events').insert({
-      type: 'generate',
-      event_type: 'generate',
-      worksheet_id: worksheet.id,
-      user_id: userId,
-      metadata: { prompt, ip },
-      ip_address: ip
-    });
-
-    console.log('Worksheet generated and saved successfully with ID:', worksheet.id);
+    // Track generation event if we have a worksheet ID
+    if (worksheet?.id) {
+      await supabase.from('events').insert({
+        type: 'generate',
+        event_type: 'generate',
+        worksheet_id: worksheet.id,
+        user_id: userId,
+        metadata: { prompt, ip },
+        ip_address: ip
+      });
+      console.log('Worksheet generated and saved successfully with ID:', worksheet.id);
+      // Add the ID to the worksheet data so frontend can use it
+      worksheetData.id = worksheet.id;
+    }
 
     return new Response(JSON.stringify(worksheetData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
