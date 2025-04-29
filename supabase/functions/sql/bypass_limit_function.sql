@@ -1,7 +1,4 @@
 
--- This file needs to be executed on the Supabase database to create the function
--- that bypasses the IP limit check for worksheet inserts
-
 CREATE OR REPLACE FUNCTION public.insert_worksheet_bypass_limit(
   p_prompt TEXT,
   p_content TEXT,
@@ -11,25 +8,25 @@ CREATE OR REPLACE FUNCTION public.insert_worksheet_bypass_limit(
   p_title TEXT
 ) RETURNS TABLE (
   id UUID,
-  prompt TEXT,
-  html_content TEXT,
-  user_id UUID,
-  ip_address TEXT,
-  status TEXT,
-  title TEXT,
-  created_at TIMESTAMPTZ,
-  updated_at TIMESTAMPTZ
-) AS $$
+  created_at TIMESTAMP WITH TIME ZONE,
+  title TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  new_id UUID;
+  created_timestamp TIMESTAMP WITH TIME ZONE;
 BEGIN
-  RETURN QUERY
   INSERT INTO public.worksheets (
     prompt,
-    html_content,
+    content,
     user_id,
     ip_address,
     status,
     title
-  ) VALUES (
+  )
+  VALUES (
     p_prompt,
     p_content,
     p_user_id,
@@ -37,8 +34,8 @@ BEGIN
     p_status,
     p_title
   )
-  RETURNING *;
+  RETURNING id, created_at INTO new_id, created_timestamp;
+  
+  RETURN QUERY SELECT new_id, created_timestamp, p_title;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-COMMENT ON FUNCTION public.insert_worksheet_bypass_limit IS 'Inserts a worksheet record bypassing the IP limit trigger';
+$$;

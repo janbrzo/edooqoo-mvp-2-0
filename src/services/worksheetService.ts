@@ -43,6 +43,29 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       throw new Error('Received invalid worksheet data format');
     }
     
+    // Perform validation on the returned data
+    if (!worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
+      throw new Error('No exercises found in generated worksheet');
+    }
+    
+    // Validate reading exercise content and questions
+    for (const exercise of worksheetData.exercises) {
+      if (exercise.type === 'reading') {
+        const wordCount = exercise.content?.split(/\s+/).length || 0;
+        console.log(`Reading exercise word count: ${wordCount}`);
+        
+        if (!exercise.questions || exercise.questions.length < 5) {
+          console.error(`Reading exercise has fewer than 5 questions: ${exercise.questions?.length || 0}`);
+        }
+      } else if (exercise.type === 'matching' && (!exercise.items || exercise.items.length < 10)) {
+        console.error(`Matching exercise has fewer than 10 items: ${exercise.items?.length || 0}`);
+      } else if (exercise.type === 'fill-in-blanks' && (!exercise.sentences || exercise.sentences.length < 10)) {
+        console.error(`Fill-in-blanks exercise has fewer than 10 sentences: ${exercise.sentences?.length || 0}`);
+      } else if (exercise.type === 'multiple-choice' && (!exercise.questions || exercise.questions.length < 10)) {
+        console.error(`Multiple-choice exercise has fewer than 10 questions: ${exercise.questions?.length || 0}`);
+      }
+    }
+    
     return worksheetData;
   } catch (error) {
     console.error('Error generating worksheet:', error);
