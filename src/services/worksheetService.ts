@@ -11,27 +11,39 @@ const SUBMIT_FEEDBACK_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/
  */
 export async function generateWorksheet(prompt: WorksheetFormData, userId: string) {
   try {
+    console.log('Generating worksheet with prompt:', prompt);
+    
+    // Create a formatted prompt string
+    const formattedPrompt = `${prompt.lessonTopic} - ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.studentProfile ? `. Student profile: ${prompt.studentProfile}` : ''}${prompt.studentStruggles ? `. Student struggles: ${prompt.studentStruggles}` : ''}. Lesson duration: ${prompt.lessonTime}.`;
+    
     const response = await fetch(GENERATE_WORKSHEET_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: `${prompt.lessonTopic} - ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.studentProfile ? `. Student profile: ${prompt.studentProfile}` : ''}${prompt.studentStruggles ? `. Student struggles: ${prompt.studentStruggles}` : ''}. Lesson duration: ${prompt.lessonTime}.`,
+        prompt: formattedPrompt,
         userId
       })
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorData = await response.json().catch(() => null);
       if (response.status === 429) {
         throw new Error('You have reached your daily limit for worksheet generation. Please try again tomorrow.');
       }
-      throw new Error(`Failed to generate worksheet: ${errorText}`);
+      throw new Error(`Failed to generate worksheet: ${errorData?.error || response.statusText}`);
     }
 
-    const htmlContent = await response.text();
-    return htmlContent;
+    // Parse the response as JSON directly, as we're now receiving structured data
+    const worksheetData = await response.json();
+    
+    if (!worksheetData || typeof worksheetData !== 'object') {
+      console.error('Invalid response format:', worksheetData);
+      throw new Error('Received invalid worksheet data format');
+    }
+    
+    return worksheetData;
   } catch (error) {
     console.error('Error generating worksheet:', error);
     throw error;

@@ -24,14 +24,94 @@ serve(async (req) => {
   try {
     const { prompt, userId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
+    
+    if (!prompt) {
+      throw new Error('Missing prompt parameter');
+    }
 
-    // Generate worksheet using OpenAI
+    console.log('Received prompt:', prompt);
+
+    // Parse the lesson time from the prompt to determine exercise count
+    let exerciseCount = 6; // Default
+    if (prompt.includes('30 min')) {
+      exerciseCount = 4;
+    } else if (prompt.includes('45 min')) {
+      exerciseCount = 6;
+    } else if (prompt.includes('60 min')) {
+      exerciseCount = 8;
+    }
+
+    // Generate worksheet using OpenAI with improved prompt structure
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
+      temperature: 0.7,
       messages: [
         {
           role: "system",
-          content: "You are an expert ESL teacher assistant that creates detailed worksheets with exercises. Respond only with HTML content that includes proper semantic tags and structure."
+          content: `You are an expert ESL teacher assistant that creates detailed worksheets with exercises.
+          
+Generate a structured JSON worksheet with the following format:
+
+{
+  "title": "Main Title of the Worksheet",
+  "subtitle": "Subtitle Related to the Topic",
+  "introduction": "Brief introduction paragraph about the worksheet topic and goals",
+  "exercises": [
+    {
+      "type": "reading",
+      "title": "Exercise 1: Reading Comprehension",
+      "icon": "fa-book-open",
+      "time": 8,
+      "instructions": "Read the following text and answer the questions below.",
+      "content": "Content text goes here...",
+      "questions": [
+        {"text": "Question 1", "answer": "Answer 1"},
+        {"text": "Question 2", "answer": "Answer 2"}
+      ],
+      "teacher_tip": "Tip for teachers on this exercise"
+    },
+    {
+      "type": "matching",
+      "title": "Exercise 2: Vocabulary Matching",
+      "icon": "fa-link",
+      "time": 7,
+      "instructions": "Match each term with its correct definition.",
+      "items": [
+        {"term": "Term 1", "definition": "Definition 1"},
+        {"term": "Term 2", "definition": "Definition 2"}
+      ],
+      "teacher_tip": "Tip for teachers on this exercise"
+    },
+    {
+      "type": "fill-in-blanks",
+      "title": "Exercise 3: Fill in the Blanks",
+      "icon": "fa-pencil-alt",
+      "time": 8,
+      "instructions": "Complete each sentence with the correct word from the box.",
+      "word_bank": ["word1", "word2", "word3"],
+      "sentences": [
+        {"text": "Sentence with _____ blank.", "answer": "word1"},
+        {"text": "Another _____ here.", "answer": "word2"}
+      ],
+      "teacher_tip": "Tip for teachers on this exercise"
+    }
+  ],
+  "vocabulary_sheet": [
+    {"term": "Term 1", "meaning": "Definition 1"},
+    {"term": "Term 2", "meaning": "Definition 2"}
+  ]
+}
+
+IMPORTANT RULES:
+1. Create EXACTLY ${exerciseCount} exercises based on the prompt.
+2. For matching exercises, include EXACTLY 10 items to match.
+3. For vocabulary sheets, include EXACTLY 15 terms.
+4. Ensure all JSON is valid with no trailing commas.
+5. Make sure all exercises are appropriate for ESL students.
+6. Vary the exercise types to include at least: reading, matching, fill-in-blanks, multiple-choice, dialogue.
+7. Each exercise must have a teacher_tip field.
+8. Use appropriate time values for each exercise (5-10 minutes).
+9. DO NOT include any text outside of the JSON structure.`
         },
         {
           role: "user",
@@ -40,22 +120,48 @@ serve(async (req) => {
       ]
     });
 
-    const htmlContent = aiResponse.choices[0].message.content;
+    const jsonContent = aiResponse.choices[0].message.content;
+    
+    console.log('AI response received, processing...');
+    
+    // Parse and validate the JSON response
+    let worksheetData;
+    try {
+      worksheetData = JSON.parse(jsonContent);
+      
+      // Basic validation of the structure
+      if (!worksheetData.title || !worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
+        throw new Error('Invalid worksheet structure returned from AI');
+      }
+      
+      // Ensure we have the correct number of exercises
+      if (worksheetData.exercises.length !== exerciseCount) {
+        console.warn(`Expected ${exerciseCount} exercises but got ${worksheetData.exercises.length}`);
+      }
+      
+    } catch (parseError) {
+      console.error('Failed to parse AI response as JSON:', parseError);
+      throw new Error('Failed to generate a valid worksheet structure. Please try again.');
+    }
 
     // Save worksheet to database
     const { data: worksheet, error: worksheetError } = await supabase
       .from('worksheets')
       .insert({
         prompt,
-        html_content: htmlContent,
+        html_content: JSON.stringify(worksheetData), // Store as JSON string
         user_id: userId,
         ip_address: ip,
-        status: 'created'
+        status: 'created',
+        title: worksheetData.title
       })
       .select('id')
       .single();
 
-    if (worksheetError) throw worksheetError;
+    if (worksheetError) {
+      console.error('Error saving worksheet to database:', worksheetError);
+      throw worksheetError;
+    }
 
     // Track generation event
     await supabase.from('events').insert({
@@ -67,13 +173,18 @@ serve(async (req) => {
       ip_address: ip
     });
 
-    return new Response(htmlContent, {
-      headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+    console.log('Worksheet generated and saved successfully with ID:', worksheet.id);
+
+    return new Response(JSON.stringify(worksheetData), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in generateWorksheet:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'An error occurred' }),
+      JSON.stringify({ 
+        error: error.message || 'An error occurred',
+        stack: error.stack
+      }),
       { 
         status: error.status || 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
