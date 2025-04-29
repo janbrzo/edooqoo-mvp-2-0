@@ -87,14 +87,11 @@ const WorksheetContent: React.FC<WorksheetContentProps> = ({
           setEditableWorksheet={setEditableWorksheet}
         />
       )}
-      
-      {/* Only show WorksheetRating and TeacherNotes in appropriate contexts */}
+
       <WorksheetRating />
       
       {viewMode === 'teacher' && (
-        <div data-no-pdf="true">
-          <TeacherNotes />
-        </div>
+        <TeacherNotes />
       )}
     </>
   );

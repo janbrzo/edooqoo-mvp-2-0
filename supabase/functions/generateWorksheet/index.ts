@@ -47,36 +47,32 @@ serve(async (req) => {
       console.log(`Whitelisted IP detected: ${ip}, bypassing limits`);
     }
 
-    // Construct detailed system prompt
-    const systemPrompt = `You are an expert ESL teacher assistant that creates detailed worksheets with exercises.
-Create a worksheet with the following structure:
-1. Title and subtitle that clearly state the topic and focus
-2. Brief introduction explaining the lesson objectives (max 3 sentences)
-3. 4-6 varied exercises that include:
-   - Reading comprehension (with a text of EXACTLY 280-320 words)
-   - Vocabulary practice with clear examples
-   - Grammar exercises with example answers
-   - Role-play or dialogue exercises with full scripts
-   - Multiple choice questions with all options
-   - Gap-filling exercises with answer key
-4. Each exercise must have:
-   - Clear instructions
-   - Complete content and examples
-   - Teacher tips
-   - Estimated completion time in minutes
-
-Format the response in semantic HTML. Each exercise should be in a <section> with proper heading.
-Include <div class="teacher-tip"> for teacher notes.
-Ensure EVERY exercise has complete content - no placeholders.
-The worksheet must be fully ready to use without editing.`;
-
-    // Generate worksheet using OpenAI with structured prompt
+    // Generate worksheet using OpenAI with a structured prompt
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
         {
           role: "system",
-          content: systemPrompt
+          content: `You are an expert ESL teacher assistant that creates detailed worksheets with exercises. 
+          Create a worksheet with the following structure:
+          1. Title and subtitle that clearly state the topic and focus
+          2. Brief introduction explaining the lesson objectives
+          3. 4-6 varied exercises that include:
+             - Reading comprehension (with a text of EXACTLY 280-320 words)
+             - Vocabulary practice
+             - Grammar exercises
+             - Role-play or dialogue exercises
+             - Multiple choice questions
+             - Gap-filling exercises
+          4. Each exercise should have:
+             - Clear instructions
+             - Complete content (full text passages, all questions, all options, etc.)
+             - Teacher tips
+             - Estimated completion time
+          Format the response in semantic HTML with appropriate tags.
+          Each exercise should be in a separate <section> with a proper heading.
+          DO NOT skip any parts or leave placeholders - create COMPLETE exercises with full content.
+          The worksheet must be fully ready to use without any further editing needed.`
         },
         {
           role: "user",
@@ -91,11 +87,11 @@ The worksheet must be fully ready to use without editing.`;
     
     console.log(`Successfully generated content from OpenAI`);
 
-    // Save worksheet to database with full prompt and complete HTML
+    // Save worksheet to database with the full prompt
     const { data: worksheet, error: worksheetError } = await supabase
       .from('worksheets')
       .insert({
-        prompt: `System Prompt: ${systemPrompt}\n\nUser Prompt: ${prompt}`, // Store complete prompt
+        prompt: prompt, // Store the full prompt sent to OpenAI
         html_content: htmlContent,
         user_id: userId,
         ip_address: ip,
@@ -125,6 +121,7 @@ The worksheet must be fully ready to use without editing.`;
 
     console.log(`Worksheet created with ID: ${worksheet.id}`);
     
+    // Return the generated HTML content to the client
     return new Response(htmlContent, {
       headers: { ...corsHeaders, 'Content-Type': 'text/html' },
     });
