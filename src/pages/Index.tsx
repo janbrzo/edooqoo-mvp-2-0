@@ -131,7 +131,7 @@ export default function Index() {
         description: error instanceof Error 
           ? `Generation error: ${error.message}. Using a sample worksheet instead.` 
           : "An unexpected error occurred. Using a sample worksheet instead.",
-        variant: "warning"
+        variant: "destructive"  // Changed from "warning" to "destructive"
       });
     } finally {
       setIsGenerating(false);
