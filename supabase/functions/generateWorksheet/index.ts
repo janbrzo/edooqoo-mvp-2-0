@@ -16,6 +16,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -23,79 +24,29 @@ serve(async (req) => {
   try {
     const { prompt, userId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
-    
-    console.log(`Processing request for IP: ${ip}`);
-    
-    // Check if this IP has reached the limit (unless it's the whitelisted IP)
-    if (ip !== '46.227.241.106') {
-      const { count } = await supabase
-        .from('worksheets')
-        .select('*', { count: 'exact', head: true })
-        .eq('ip_address', ip);
-        
-      console.log(`Found ${count} existing worksheets for IP: ${ip}`);
-      
-      if (count && count >= 1) {
-        return new Response(JSON.stringify({ 
-          error: 'You have reached your daily limit for worksheet generation. Please try again tomorrow.' 
-        }), { 
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    } else {
-      console.log(`Whitelisted IP detected: ${ip}, bypassing limits`);
-    }
 
-    // Construct detailed system prompt
-    const systemPrompt = `You are an expert ESL teacher assistant that creates detailed worksheets with exercises.
-Create a worksheet with the following structure:
-1. Title and subtitle that clearly state the topic and focus
-2. Brief introduction explaining the lesson objectives (max 3 sentences)
-3. 4-6 varied exercises that include:
-   - Reading comprehension (with a text of EXACTLY 280-320 words)
-   - Vocabulary practice with clear examples
-   - Grammar exercises with example answers
-   - Role-play or dialogue exercises with full scripts
-   - Multiple choice questions with all options
-   - Gap-filling exercises with answer key
-4. Each exercise must have:
-   - Clear instructions
-   - Complete content and examples
-   - Teacher tips
-   - Estimated completion time in minutes
-
-Format the response in semantic HTML. Each exercise should be in a <section> with proper heading.
-Include <div class="teacher-tip"> for teacher notes.
-Ensure EVERY exercise has complete content - no placeholders.
-The worksheet must be fully ready to use without editing.`;
-
-    // Generate worksheet using OpenAI with structured prompt
+    // Generate worksheet using OpenAI
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: systemPrompt
+          content: "You are an expert ESL teacher assistant that creates detailed worksheets with exercises. Respond only with HTML content that includes proper semantic tags and structure."
         },
         {
           role: "user",
           content: prompt
         }
-      ],
-      temperature: 0.7,
-      max_tokens: 3500
+      ]
     });
 
     const htmlContent = aiResponse.choices[0].message.content;
-    
-    console.log(`Successfully generated content from OpenAI`);
 
-    // Save worksheet to database with full prompt and complete HTML
+    // Save worksheet to database
     const { data: worksheet, error: worksheetError } = await supabase
       .from('worksheets')
       .insert({
-        prompt: `System Prompt: ${systemPrompt}\n\nUser Prompt: ${prompt}`, // Store complete prompt
+        prompt,
         html_content: htmlContent,
         user_id: userId,
         ip_address: ip,
@@ -104,13 +55,10 @@ The worksheet must be fully ready to use without editing.`;
       .select('id')
       .single();
 
-    if (worksheetError) {
-      console.error('Error inserting worksheet:', worksheetError);
-      throw worksheetError;
-    }
+    if (worksheetError) throw worksheetError;
 
     // Track generation event
-    const { error: eventError } = await supabase.from('events').insert({
+    await supabase.from('events').insert({
       type: 'generate',
       event_type: 'generate',
       worksheet_id: worksheet.id,
@@ -119,12 +67,6 @@ The worksheet must be fully ready to use without editing.`;
       ip_address: ip
     });
 
-    if (eventError) {
-      console.error('Error tracking event:', eventError);
-    }
-
-    console.log(`Worksheet created with ID: ${worksheet.id}`);
-    
     return new Response(htmlContent, {
       headers: { ...corsHeaders, 'Content-Type': 'text/html' },
     });

@@ -1,61 +1,65 @@
 
-import React, { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { Star } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import React, { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface WorksheetRatingProps {
-  onSubmitRating?: (rating: number, comment: string) => void;
+  onSubmitRating?: (rating: number, feedback: string) => void;
 }
 
+/**
+ * A modern-looking worksheet rating section with 1-5 stars and feedback modal.
+ * Should not display on PDF.
+ */
 const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => {
-  const [rating, setRating] = useState(0);
-  const [hover, setHover] = useState(0);
-  const [feedback, setFeedback] = useState('');
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { toast } = useToast();
-
+  const [feedback, setFeedback] = useState("");
+  const [thanksOpen, setThanksOpen] = useState(false);
+  
   const handleStarClick = (value: number) => {
-    setRating(value);
+    setSelected(value);
     setIsDialogOpen(true);
   };
-
-  const handleSubmitRating = () => {
-    if (onSubmitRating) {
-      onSubmitRating(rating, feedback);
-    }
+  
+  const handleSubmit = () => {
     setIsDialogOpen(false);
-    toast({
-      title: "Thank you for your feedback!",
-      description: "Your rating helps us improve our worksheet generator."
-    });
+    setThanksOpen(true);
+    setTimeout(() => setThanksOpen(false), 2500);
+    
+    // Call the callback with rating and feedback
+    if (onSubmitRating && selected) {
+      onSubmitRating(selected, feedback);
+    }
+    
+    setFeedback("");
   };
-
+  
   return (
-    <div data-no-pdf="true" className="p-6 rounded-lg mt-10 mb-6 text-center bg-white">
-      <h3 className="text-indigo-800 mb-2 font-bold text-2xl">How would you rate this worksheet?</h3>
-      <p className="text-blue-400 mb-4 text-base">Your feedback helps us improve our AI-generated worksheets</p>
-      
-      <div className="flex justify-center space-x-2 mb-2">
-        {[1, 2, 3, 4, 5].map(star => (
-          <button 
-            key={star} 
-            onClick={() => handleStarClick(star)} 
-            onMouseEnter={() => setHover(star)} 
-            onMouseLeave={() => setHover(0)} 
-            className="focus:outline-none transition-transform transform hover:scale-110" 
-            aria-label={`Rate ${star} stars`}
-          >
-            <Star 
-              size={32} 
-              className={`${(hover || rating) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} transition-colors`} 
-            />
-          </button>
-        ))}
+    <div data-no-pdf="true">
+      <div className="p-6 rounded-lg mt-10 mb-6 text-center bg-white">
+        <h3 className="text-indigo-800 mb-2 font-bold text-2xl">How would you rate this worksheet?</h3>
+        <p className="text-blue-400 mb-4 text-base">Your feedback helps us improve our AI-generated worksheets</p>
+        
+        <div className="flex justify-center space-x-2 mb-2 rounded-none bg-transparent">
+          {[1, 2, 3, 4, 5].map(star => (
+            <button 
+              key={star} 
+              onClick={() => handleStarClick(star)} 
+              onMouseEnter={() => setHovered(star)} 
+              onMouseLeave={() => setHovered(0)} 
+              className="focus:outline-none transition-transform transform hover:scale-110" 
+              aria-label={`Rate ${star} stars`}
+            >
+              <Star size={32} className={`${(hovered || selected) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} transition-colors`} />
+            </button>
+          ))}
+        </div>
       </div>
-
+      
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md" data-no-pdf="true">
           <DialogHeader>
@@ -63,40 +67,18 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
               Your feedback is important!
             </DialogTitle>
           </DialogHeader>
-          
           <div className="flex justify-center mt-3 mb-4">
-            {[1, 2, 3, 4, 5].map(star => (
-              <Star 
-                key={star} 
-                size={38} 
-                strokeWidth={1.3} 
-                className={rating >= star ? "text-yellow-400 fill-yellow-400" : "text-gray-300"} 
-              />
-            ))}
+            {[1, 2, 3, 4, 5].map(idx => <Star key={idx} size={38} strokeWidth={1.3} className={selected && selected >= idx ? "text-yellow-400 fill-yellow-400" : "text-gray-300"} />)}
           </div>
-          
           <label className="block text-base font-semibold mb-1 mt-2" htmlFor="feedbackTextarea">
             What did you think about this worksheet? (optional)
           </label>
-          <Textarea 
-            id="feedbackTextarea" 
-            value={feedback} 
-            onChange={e => setFeedback(e.target.value)} 
-            placeholder="Your feedback helps us improve our worksheet generator" 
-            rows={4} 
-            className="mb-3" 
-          />
-          
+          <Textarea id="feedbackTextarea" value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="Your feedback helps us improve our worksheet generator" rows={4} className="mb-3" />
           <div className="flex justify-end space-x-2 mt-2">
             <DialogClose asChild>
               <Button size="sm" variant="outline">Cancel</Button>
             </DialogClose>
-            <Button 
-              size="sm" 
-              variant="default" 
-              onClick={handleSubmitRating} 
-              className="bg-[#3d348b] text-white hover:bg-[#3d348b]/90"
-            >
+            <Button size="sm" variant="default" onClick={handleSubmit} className="bg-[#3d348b] text-white hover:bg-[#3d348b]/90">
               Submit Feedback
             </Button>
           </div>
