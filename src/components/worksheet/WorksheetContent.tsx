@@ -88,12 +88,9 @@ const WorksheetContent: React.FC<WorksheetContentProps> = ({
         />
       )}
       
-      {/* WorksheetRating positioned BEFORE TeacherNotes */}
-      <div className="mb-6" data-no-pdf="true">
-        <WorksheetRating />
-      </div>
+      {/* Only show WorksheetRating and TeacherNotes in appropriate contexts */}
+      <WorksheetRating />
       
-      {/* Teacher notes section - marked as no-pdf */}
       {viewMode === 'teacher' && (
         <div data-no-pdf="true">
           <TeacherNotes />
