@@ -21,7 +21,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     }
     
     // Remove rating section
-    const ratingSection = clone.querySelector('[data-no-pdf="true"]');
+    const ratingSection = clone.querySelector('.rating-section');
     if (ratingSection) {
       ratingSection.remove();
     }
@@ -47,7 +47,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     header.style.padding = '5px 0'; // Smaller padding
     header.style.borderBottom = '1px solid #ddd';
     header.style.color = '#3d348b';
-    header.style.fontSize = '0.9em'; // 10% smaller font
+    header.style.fontSize = '1.0em'; // Increased font size by 10%
     header.innerHTML = `${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version`;
     container.prepend(header);
     
@@ -56,7 +56,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     footer.style.position = 'running(footer)';
     footer.style.textAlign = 'center';
     footer.style.padding = '5px 0';
-    footer.style.fontSize = '9px'; // 10% smaller font
+    footer.style.fontSize = '10px'; // Slightly larger font
     footer.style.color = '#666';
     footer.innerHTML = 'Page <span class="pageNumber"></span> of <span class="totalPages"></span>';
     container.appendChild(footer);
@@ -80,19 +80,62 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
     document.head.appendChild(style);
     
-    // Reduce font sizes for all elements in the PDF by ~10%
+    // Increase font sizes for all elements in the PDF by ~10%
+    // And increase font sizes for headings by ~20%
     const styleElement = document.createElement('style');
     styleElement.textContent = `
       .pdf-content * {
-        font-size: 0.9em;
+        font-size: 1.1em;
       }
-      h1 { font-size: 1.8em !important; }
-      h2 { font-size: 1.35em !important; }
-      h3 { font-size: 1.17em !important; }
+      h1 { font-size: 2.4em !important; font-weight: bold !important; }
+      h2 { font-size: 1.8em !important; font-weight: bold !important; }
+      h3 { font-size: 1.5em !important; font-weight: bold !important; }
       .exercise-header { margin-bottom: 0.5em !important; }
+      
+      /* Remove excessive spacing */
+      .exercise-section {
+        margin-bottom: 10px !important;
+        page-break-inside: avoid;
+      }
+      .matching-exercise .matching-item,
+      .fill-in-blanks-exercise .sentence-item,
+      .multiple-choice-exercise .question-item,
+      .exercise-section + .exercise-section {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        margin-bottom: 8px !important;
+      }
+      
+      /* Make questions and exercise titles bold */
+      .question-text, .exercise-title {
+        font-weight: bold !important;
+        font-size: 1.2em !important;
+      }
+      
+      /* Optimize spacing */
+      p, div, li {
+        margin-bottom: 5px !important;
+        line-height: 1.3 !important;
+      }
+      
+      /* Fix large whitespace gaps */
+      .exercise-section {
+        padding-bottom: 0 !important;
+      }
     `;
     clone.classList.add('pdf-content');
     container.appendChild(styleElement);
+    
+    // Find and process exercise sections to reduce whitespace
+    const exerciseSections = clone.querySelectorAll('.exercise-section');
+    exerciseSections.forEach(section => {
+      // Remove excessive margins and paddings
+      (section as HTMLElement).style.marginBottom = '10px';
+      (section as HTMLElement).style.paddingBottom = '0px';
+      
+      // Add page break rules
+      (section as HTMLElement).style.pageBreakInside = 'avoid';
+    });
     
     // Configure html2pdf options with smaller margins
     const options = {

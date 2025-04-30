@@ -203,10 +203,15 @@ export default function WorksheetDisplay({
               setEditableWorksheet={setEditableWorksheet}
             />
           )}
-
-          {/* Teacher notes section (will be excluded in PDF) */}
-          <TeacherNotes />
         </div>
+        
+        {/* Rating section moved above Teacher Notes */}
+        <div data-no-pdf="true" className="rating-section mb-8">
+          {/* This div will be replaced with the WorksheetRating component in the WorksheetDisplayWrapper */}
+        </div>
+        
+        {/* Teacher notes section */}
+        <TeacherNotes />
       </div>
       
       {showScrollTop && (

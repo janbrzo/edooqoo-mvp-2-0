@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { FormData as WorksheetFormData } from '@/types/worksheetFormTypes';
 
@@ -62,7 +63,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     // Validate reading exercise content and questions
     for (const exercise of worksheetData.exercises) {
       if (exercise.type === 'reading') {
-        const wordCount = exercise.content?.split(/\s+/).length || 0;
+        const wordCount = exercise.content?.split(/\s+/).filter(Boolean).length || 0;
         console.log(`Reading exercise word count: ${wordCount}`);
         
         if (wordCount < 280 || wordCount > 320) {
