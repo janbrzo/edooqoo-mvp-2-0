@@ -1,13 +1,7 @@
 
 import React from "react";
 import ExerciseHeader from "./ExerciseHeader";
-import ExerciseContent from "./ExerciseContent";
-import ExerciseReading from "./ExerciseReading";
-import ExerciseMatching from "./ExerciseMatching";
-import ExerciseFillInBlanks from "./ExerciseFillInBlanks";
-import ExerciseMultipleChoice from "./ExerciseMultipleChoice";
-import TeacherTipSection from "./TeacherTipSection";
-import ExerciseDialogue from "./ExerciseDialogue";
+import ExerciseContentDisplay from "./DisplayComponents/ExerciseContentDisplay";
 
 interface Exercise {
   type: string;
@@ -54,10 +48,10 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   editableWorksheet,
   setEditableWorksheet
 }) => {
-  const handleExerciseChange = (field: string, value: string) => {
+  const handleExerciseChange = (exerciseIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
-    updatedExercises[index] = {
-      ...updatedExercises[index],
+    updatedExercises[exerciseIndex] = {
+      ...updatedExercises[exerciseIndex],
       [field]: value
     };
     setEditableWorksheet({
@@ -66,9 +60,9 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     });
   };
 
-  const handleQuestionChange = (questionIndex: number, field: string, value: string) => {
+  const handleQuestionChange = (exerciseIndex: number, questionIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
-    const exerciseCopy = updatedExercises[index];
+    const exerciseCopy = updatedExercises[exerciseIndex];
     if (exerciseCopy.questions) {
       exerciseCopy.questions[questionIndex] = {
         ...exerciseCopy.questions[questionIndex],
@@ -81,9 +75,9 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     }
   };
 
-  const handleItemChange = (itemIndex: number, field: string, value: string) => {
+  const handleItemChange = (exerciseIndex: number, itemIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
-    const exerciseCopy = updatedExercises[index];
+    const exerciseCopy = updatedExercises[exerciseIndex];
     if (exerciseCopy.items) {
       exerciseCopy.items[itemIndex] = {
         ...exerciseCopy.items[itemIndex],
@@ -96,9 +90,9 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     }
   };
 
-  const handleSentenceChange = (sentenceIndex: number, field: string, value: string) => {
+  const handleSentenceChange = (exerciseIndex: number, sentenceIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
-    const exerciseCopy = updatedExercises[index];
+    const exerciseCopy = updatedExercises[exerciseIndex];
     if (exerciseCopy.sentences) {
       exerciseCopy.sentences[sentenceIndex] = {
         ...exerciseCopy.sentences[sentenceIndex],
@@ -111,9 +105,9 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     }
   };
 
-  const handleExpressionChange = (expressionIndex: number, value: string) => {
+  const handleExpressionChange = (exerciseIndex: number, expressionIndex: number, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
-    const exerciseCopy = updatedExercises[index];
+    const exerciseCopy = updatedExercises[exerciseIndex];
     if (exerciseCopy.expressions) {
       exerciseCopy.expressions[expressionIndex] = value;
       setEditableWorksheet({
@@ -123,18 +117,18 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     }
   };
 
-  const handleTeacherTipChange = (value: string) => {
+  const handleTeacherTipChange = (exerciseIndex: number, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
-    updatedExercises[index].teacher_tip = value;
+    updatedExercises[exerciseIndex].teacher_tip = value;
     setEditableWorksheet({
       ...editableWorksheet,
       exercises: updatedExercises
     });
   };
 
-  const handleDialogueChange = (dialogueIndex: number, field: string, value: string) => {
+  const handleDialogueChange = (exerciseIndex: number, dialogueIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
-    const exerciseCopy = updatedExercises[index];
+    const exerciseCopy = updatedExercises[exerciseIndex];
     if (exerciseCopy.dialogue) {
       exerciseCopy.dialogue[dialogueIndex] = {
         ...exerciseCopy.dialogue[dialogueIndex],
@@ -147,10 +141,6 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     }
   };
 
-  const getMatchedItems = (items: any[]) => {
-    return viewMode === 'teacher' ? items : [...items].sort(() => Math.random() - 0.5);
-  };
-
   return (
     <div className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
       <ExerciseHeader
@@ -158,277 +148,26 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
         title={exercise.title}
         isEditing={isEditing}
         time={exercise.time}
-        onTitleChange={val => handleExerciseChange('title', val)}
+        onTitleChange={val => handleExerciseChange(index, 'title', val)}
       />
 
-      <div className="p-5">
-        <ExerciseContent
-          instructions={exercise.instructions}
-          isEditing={isEditing}
-          onInstructionsChange={val => handleExerciseChange('instructions', val)}
-          content={exercise.content}
-          onContentChange={val => handleExerciseChange('content', val)}
-        />
-
-        {exercise.type === 'reading' && exercise.questions && (
-          <ExerciseReading
-            questions={exercise.questions}
-            isEditing={isEditing}
-            viewMode={viewMode}
-            onQuestionChange={handleQuestionChange}
-          />
-        )}
-
-        {exercise.type === 'matching' && exercise.items && (
-          <ExerciseMatching
-            items={exercise.items}
-            isEditing={isEditing}
-            viewMode={viewMode}
-            getMatchedItems={getMatchedItems}
-            onItemChange={handleItemChange}
-          />
-        )}
-
-        {exercise.type === 'fill-in-blanks' && exercise.sentences && (
-          <ExerciseFillInBlanks
-            word_bank={exercise.word_bank}
-            sentences={exercise.sentences}
-            isEditing={isEditing}
-            viewMode={viewMode}
-            onWordBankChange={(wIndex, value) => {
-              const newWordBank = [...exercise.word_bank!];
-              newWordBank[wIndex] = value;
-              const updatedExercises = [...editableWorksheet.exercises];
-              updatedExercises[index] = {
-                ...updatedExercises[index],
-                word_bank: newWordBank
-              };
-              setEditableWorksheet({
-                ...editableWorksheet,
-                exercises: updatedExercises
-              });
-            }}
-            onSentenceChange={(sIndex, field, value) => {
-              const updatedExercises = [...editableWorksheet.exercises];
-              const ex = updatedExercises[index];
-              ex.sentences[sIndex] = {
-                ...ex.sentences[sIndex],
-                [field]: value
-              };
-              setEditableWorksheet({
-                ...editableWorksheet,
-                exercises: updatedExercises
-              });
-            }}
-          />
-        )}
-
-        {exercise.type === 'multiple-choice' && exercise.questions && (
-          <ExerciseMultipleChoice
-            questions={exercise.questions}
-            isEditing={isEditing}
-            viewMode={viewMode}
-            onQuestionTextChange={(qIndex, value) => handleQuestionChange(qIndex, 'text', value)}
-            onOptionTextChange={(qIndex, oIndex, value) => {
-              const updatedExercises = [...editableWorksheet.exercises];
-              const question = updatedExercises[index].questions[qIndex];
-              const newOptions = [...question.options];
-              newOptions[oIndex] = {
-                ...newOptions[oIndex],
-                text: value
-              };
-              updatedExercises[index].questions[qIndex] = {
-                ...question,
-                options: newOptions
-              };
-              setEditableWorksheet({
-                ...editableWorksheet,
-                exercises: updatedExercises
-              });
-            }}
-          />
-        )}
-
-        {exercise.type === 'dialogue' && exercise.dialogue && (
-          <ExerciseDialogue
-            dialogue={exercise.dialogue}
-            expressions={exercise.expressions}
-            expression_instruction={exercise.expression_instruction}
-            isEditing={isEditing}
-            viewMode={viewMode}
-            onDialogueChange={handleDialogueChange}
-            onExpressionChange={handleExpressionChange}
-            onExpressionInstructionChange={val => handleExerciseChange('expression_instruction', val)}
-          />
-        )}
-
-        {exercise.type === 'discussion' && exercise.questions && (
-          <div className="space-y-0.5">
-            {exercise.questions.map((question, qIndex) => (
-              <div key={qIndex} className="p-1 border-b">
-                <p className="leading-snug">
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={question}
-                      onChange={e => {
-                        const updatedExercises = [...editableWorksheet.exercises];
-                        const newQuestions = [...exercise.questions!];
-                        newQuestions[qIndex] = e.target.value;
-                        updatedExercises[index] = {
-                          ...updatedExercises[index],
-                          questions: newQuestions
-                        };
-                        setEditableWorksheet({
-                          ...editableWorksheet,
-                          exercises: updatedExercises
-                        });
-                      }}
-                      className="w-full border p-1 editable-content"
-                    />
-                  ) : (
-                    <>{qIndex + 1}. {question}</>
-                  )}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {exercise.type === 'error-correction' && exercise.sentences && (
-          <div>
-            <div className="space-y-0.5">
-              {exercise.sentences.map((sentence, sIndex) => (
-                <div key={sIndex} className="border-b pb-1">
-                  <div className="flex flex-row items-start">
-                    <div className="flex-grow">
-                      <p className="leading-snug">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.text}
-                            onChange={e => handleSentenceChange(sIndex, 'text', e.target.value)}
-                            className="w-full border p-1 editable-content"
-                          />
-                        ) : (
-                          <>{sIndex + 1}. {sentence.text}</>
-                        )}
-                      </p>
-                    </div>
-                    {viewMode === 'teacher' && (
-                      <div className="text-green-600 italic ml-3 text-sm">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.correction}
-                            onChange={e => handleSentenceChange(sIndex, 'correction', e.target.value)}
-                            className="border p-1 editable-content w-full"
-                          />
-                        ) : (
-                          <span>({sentence.correction})</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {exercise.type === 'word-formation' && exercise.sentences && (
-          <div>
-            <div className="space-y-0.5">
-              {exercise.sentences.map((sentence, sIndex) => (
-                <div key={sIndex} className="border-b pb-1">
-                  <div className="flex flex-row items-start">
-                    <div className="flex-grow">
-                      <p className="leading-snug">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.text}
-                            onChange={e => handleSentenceChange(sIndex, 'text', e.target.value)}
-                            className="w-full border p-1 editable-content"
-                          />
-                        ) : (
-                          <>{sIndex + 1}. {sentence.text.replace(/_+/g, "_______________")}</>
-                        )}
-                      </p>
-                    </div>
-                    {viewMode === 'teacher' && (
-                      <div className="text-green-600 italic ml-3 text-sm">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.answer}
-                            onChange={e => handleSentenceChange(sIndex, 'answer', e.target.value)}
-                            className="border p-1 editable-content w-full"
-                          />
-                        ) : (
-                          <span>({sentence.answer})</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {exercise.type === 'word-order' && exercise.sentences && (
-          <div>
-            <div className="space-y-0.5">
-              {exercise.sentences.map((sentence, sIndex) => (
-                <div key={sIndex} className="border-b pb-1">
-                  <div className="flex flex-row items-start">
-                    <div className="flex-grow">
-                      <p className="leading-snug">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.text}
-                            onChange={e => handleSentenceChange(sIndex, 'text', e.target.value)}
-                            className="w-full border p-1 editable-content"
-                          />
-                        ) : (
-                          <>{sIndex + 1}. {sentence.text}</>
-                        )}
-                      </p>
-                    </div>
-                    {viewMode === 'teacher' && (
-                      <div className="text-green-600 italic ml-3 text-sm">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.answer}
-                            onChange={e => handleSentenceChange(sIndex, 'answer', e.target.value)}
-                            className="border p-1 editable-content w-full"
-                          />
-                        ) : (
-                          <span>({sentence.answer})</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {viewMode === 'teacher' && (
-          <TeacherTipSection
-            tip={exercise.teacher_tip}
-            isEditing={isEditing}
-            onChange={handleTeacherTipChange}
-          />
-        )}
-      </div>
+      <ExerciseContentDisplay
+        exercise={exercise}
+        index={index}
+        isEditing={isEditing}
+        viewMode={viewMode}
+        editableWorksheet={editableWorksheet}
+        setEditableWorksheet={setEditableWorksheet}
+        handleExerciseChange={handleExerciseChange}
+        handleQuestionChange={handleQuestionChange}
+        handleSentenceChange={handleSentenceChange}
+        handleItemChange={handleItemChange}
+        handleDialogueChange={handleDialogueChange}
+        handleExpressionChange={handleExpressionChange}
+        handleTeacherTipChange={handleTeacherTipChange}
+      />
     </div>
   );
 };
 
 export default ExerciseSection;
-
