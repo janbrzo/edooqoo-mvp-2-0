@@ -1,6 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
+import { FormData as WorksheetFormData } from '@/types/worksheetFormTypes';
 
 // URLs for the Edge Functions
 const GENERATE_WORKSHEET_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/v1/generateWorksheet';
