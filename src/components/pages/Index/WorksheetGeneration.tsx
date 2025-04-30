@@ -1,12 +1,13 @@
 
 import React, { useState } from "react";
-import WorksheetForm, { FormData } from "@/components/WorksheetForm";
+import WorksheetForm from "@/components/WorksheetForm";
 import Sidebar from "@/components/Sidebar";
 import GeneratingModal from "@/components/GeneratingModal";
 import { useToast } from "@/hooks/use-toast";
 import { generateWorksheet } from "@/services/worksheetService";
 import { v4 as uuidv4 } from 'uuid';
 import mockWorksheetData from '@/mockWorksheetData';
+import { FormData } from "@/types/worksheetFormTypes";
 
 interface WorksheetGenerationProps {
   userId: string;

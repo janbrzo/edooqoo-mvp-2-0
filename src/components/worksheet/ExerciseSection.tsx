@@ -3,21 +3,42 @@ import React from "react";
 import ExerciseHeader from "./ExerciseHeader";
 import ExerciseContentDisplay from "./DisplayComponents/ExerciseContentDisplay";
 
-interface Exercise {
+export interface Exercise {
   type: string;
   title: string;
   icon: string;
   time: number;
   instructions: string;
   content?: string;
-  questions?: any[];
-  items?: any[];
-  sentences?: any[];
-  dialogue?: any[];
+  questions?: Array<{
+    text: string;
+    answer: string;
+    options?: string[];
+  }>;
+  items?: Array<{
+    term: string;
+    definition: string;
+  }>;
+  sentences?: Array<{
+    text: string;
+    answer: string;
+  }>;
+  dialogue?: Array<{
+    speaker: string;
+    text: string;
+  }>;
   word_bank?: string[];
   expressions?: string[];
   expression_instruction?: string;
   teacher_tip: string;
+  originalItems?: Array<{
+    term: string;
+    definition: string;
+  }>;
+  shuffledTerms?: Array<{
+    term: string;
+    definition: string;
+  }>;
 }
 
 export interface Worksheet {
@@ -32,12 +53,12 @@ export interface Worksheet {
 }
 
 interface ExerciseSectionProps {
-  exercise: any;
+  exercise: Exercise;
   index: number;
   isEditing: boolean;
   viewMode: "student" | "teacher";
-  editableWorksheet: any;
-  setEditableWorksheet: React.Dispatch<React.SetStateAction<any>>;
+  editableWorksheet: Worksheet;
+  setEditableWorksheet: React.Dispatch<React.SetStateAction<Worksheet>>;
 }
 
 const ExerciseSection: React.FC<ExerciseSectionProps> = ({
