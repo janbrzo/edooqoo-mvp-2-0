@@ -13,6 +13,7 @@ const supabaseServiceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request for CORS');
     return new Response(null, {
       headers: corsHeaders
     });
@@ -20,6 +21,7 @@ serve(async (req) => {
   
   try {
     if (!supabaseUrl || !supabaseServiceRole) {
+      console.error('Missing Supabase credentials');
       return new Response(
         JSON.stringify({ error: 'Missing Supabase credentials' }),
         {
@@ -32,11 +34,27 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceRole);
     
     // Get the request body
-    const { worksheetId, rating, comment, userId } = await req.json();
+    let body;
+    try {
+      body = await req.json();
+      console.log('Request body:', body);
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    const { worksheetId, rating, comment, userId } = body;
     
     if (!worksheetId || !rating || !userId) {
+      console.error('Missing required parameters');
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters' }),
+        JSON.stringify({ error: 'Missing required parameters', received: { worksheetId, rating, userId } }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -58,7 +76,7 @@ serve(async (req) => {
     if (error) {
       console.error('Error inserting feedback:', error);
       return new Response(
-        JSON.stringify({ error: 'Failed to submit feedback' }),
+        JSON.stringify({ error: 'Failed to submit feedback', details: error }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -66,6 +84,7 @@ serve(async (req) => {
       );
     }
     
+    console.log('Feedback submitted successfully:', data);
     return new Response(
       JSON.stringify({ success: true, data }),
       {
@@ -75,7 +94,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in submitFeedback:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error', details: error.toString() }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

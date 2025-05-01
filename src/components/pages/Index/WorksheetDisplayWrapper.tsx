@@ -51,6 +51,8 @@ const WorksheetDisplayWrapper: React.FC<WorksheetDisplayWrapperProps> = ({
   };
   
   const handleFeedbackSubmit = async (rating: number, feedback: string) => {
+    console.log('Submitting feedback:', { worksheetId, rating, feedback, userId });
+    
     if (!userId || !worksheetId) {
       toast({
         title: "Feedback submission error",
@@ -67,6 +69,10 @@ const WorksheetDisplayWrapper: React.FC<WorksheetDisplayWrapperProps> = ({
         title: "Thank you for your feedback!",
         description: "Your rating and comments help us improve our service."
       });
+      
+      // Track the feedback event
+      trackEvent('feedback', worksheetId, userId, { rating });
+      
     } catch (error) {
       console.error("Feedback submission error:", error);
       toast({
@@ -84,6 +90,9 @@ const WorksheetDisplayWrapper: React.FC<WorksheetDisplayWrapperProps> = ({
   useEffect(() => {
     const ratingSection = document.querySelector('.rating-section');
     if (ratingSection && ratingRef.current) {
+      // Clear existing content
+      ratingSection.innerHTML = '';
+      // Append our component
       ratingSection.appendChild(ratingRef.current);
     }
   }, []);

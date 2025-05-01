@@ -31,6 +31,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
+      console.error('Error response data:', errorData);
       if (response.status === 429) {
         throw new Error('You have reached your daily limit for worksheet generation. Please try again tomorrow.');
       }
@@ -94,6 +95,8 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
  */
 export async function submitWorksheetFeedback(worksheetId: string, rating: number, comment: string, userId: string) {
   try {
+    console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
+
     // First try to submit feedback via the edge function
     try {
       const response = await fetch(SUBMIT_FEEDBACK_URL, {
@@ -110,14 +113,19 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to submit feedback via edge function: ${await response.text()}`);
+        const errorText = await response.text();
+        console.error('Server response:', errorText);
+        throw new Error(`Failed to submit feedback via edge function: ${errorText}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('Feedback submitted successfully via edge function:', result);
+      return result;
     } catch (edgeFunctionError) {
       console.error('Error submitting feedback via edge function:', edgeFunctionError);
       
       // Fallback: Insert directly using Supabase client
+      console.log('Attempting fallback submission via Supabase client');
       const { data, error } = await supabase.from('feedbacks').insert({
         worksheet_id: worksheetId,
         user_id: userId,
@@ -127,9 +135,11 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
       }).select();
       
       if (error) {
+        console.error('Supabase client error:', error);
         throw error;
       }
       
+      console.log('Feedback submitted successfully via Supabase client:', data);
       return data;
     }
   } catch (error) {
@@ -149,6 +159,7 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
       return;
     }
     
+    console.log(`Tracking ${type} event for worksheet ${worksheetId} by user ${userId}`);
     const { error } = await supabase.from('events').insert({
       type,
       event_type: type,
@@ -159,6 +170,8 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
 
     if (error) {
       console.error(`Error tracking ${type} event:`, error);
+    } else {
+      console.log(`Successfully tracked ${type} event`);
     }
   } catch (error) {
     console.error(`Error tracking ${type} event:`, error);

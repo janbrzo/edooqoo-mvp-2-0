@@ -27,49 +27,89 @@ async function insertWorksheet(prompt: string, worksheetData: any, userId: strin
     const htmlContent = JSON.stringify(worksheetData);
     
     // Create full HTML version of the worksheet for storage
-    // This is a simplified version - we'd need more complex logic
-    // to create an accurate HTML representation
     const fullHtmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
         <title>${title}</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
           body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-          h1 { color: #3d348b; }
-          h2 { color: #5e44a0; }
+          h1 { color: #3d348b; font-size: 24px; margin-bottom: 10px; }
+          h2 { color: #5e44a0; font-size: 20px; margin-bottom: 8px; }
+          h3 { color: #7156a5; font-size: 18px; margin-bottom: 8px; }
           .exercise { margin-bottom: 2em; border: 1px solid #eee; padding: 1em; border-radius: 5px; }
+          .exercise-header { display: flex; align-items: center; margin-bottom: 1em; }
+          .instruction { background-color: #f9f9f9; padding: 0.8em; border-left: 3px solid #5e44a0; margin-bottom: 1em; }
+          .reading-content { line-height: 1.5; }
+          .question { margin-bottom: 1em; }
+          .matching-item { margin-bottom: 0.5em; }
+          .fill-in-blank { margin-bottom: 0.5em; }
+          .vocabulary-section { margin-top: 2em; border-top: 2px solid #eee; padding-top: 1em; }
+          .vocabulary-item { margin-bottom: 0.5em; }
+          .teacher-tip { background-color: #edf7ed; padding: 0.8em; border-left: 3px solid #4caf50; margin-top: 1em; }
         </style>
       </head>
       <body>
         <h1>${worksheetData.title}</h1>
         <h2>${worksheetData.subtitle}</h2>
-        <p>${worksheetData.introduction}</p>
-        ${worksheetData.exercises.map((ex: any) => `
-          <div class="exercise">
-            <h3>${ex.title}</h3>
-            <p>${ex.instructions}</p>
-            ${ex.content ? `<div class="content">${ex.content}</div>` : ''}
-            ${ex.questions ? `<div class="questions">
-              <ol>${ex.questions.map((q: any) => `
-                <li>${q.question}
-                  ${q.options ? `<ul>${q.options.map((o: string) => `<li>${o}</li>`).join('')}</ul>` : ''}
-                </li>`).join('')}
-              </ol>
-            </div>` : ''}
-            ${ex.items ? `<div class="matching">
-              <ul>${ex.items.map((item: any) => `<li>${item.term} - ${item.definition}</li>`).join('')}</ul>
-            </div>` : ''}
-            ${ex.sentences ? `<div class="fill-in-blanks">
-              <ol>${ex.sentences.map((s: any) => `<li>${s.text.replace(/\[([^\]]+)\]/g, '____')}</li>`).join('')}</ol>
-            </div>` : ''}
+        <p class="introduction">${worksheetData.introduction}</p>
+        
+        ${worksheetData.exercises.map((ex: any, index: number) => `
+          <div class="exercise exercise-${ex.type}">
+            <div class="exercise-header">
+              <h3>${ex.title}</h3>
+              <span class="time">(${ex.time} minutes)</span>
+            </div>
+            <div class="instruction">${ex.instructions}</div>
+            
+            ${ex.content ? `<div class="reading-content">${ex.content}</div>` : ''}
+            
+            ${ex.questions ? `
+              <div class="questions">
+                <ol>
+                  ${ex.questions.map((q: any) => `
+                    <li class="question">
+                      ${q.question}
+                      ${q.options ? `
+                        <ul>
+                          ${q.options.map((o: string) => `<li>${o}</li>`).join('')}
+                        </ul>
+                      ` : ''}
+                    </li>
+                  `).join('')}
+                </ol>
+              </div>
+            ` : ''}
+            
+            ${ex.items ? `
+              <div class="matching">
+                <ul>
+                  ${ex.items.map((item: any) => `<li class="matching-item">${item.term} - ${item.definition}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+            
+            ${ex.sentences ? `
+              <div class="fill-in-blanks">
+                <ol>
+                  ${ex.sentences.map((s: any) => `<li class="fill-in-blank">${s.text.replace(/\[([^\]]+)\]/g, '____')}</li>`).join('')}
+                </ol>
+              </div>
+            ` : ''}
+            
+            <div class="teacher-tip">
+              <strong>Teacher tip:</strong> ${ex.teacher_tip}
+            </div>
           </div>
         `).join('')}
+        
         ${worksheetData.vocabulary_sheet ? `
-        <div class="vocabulary">
+        <div class="vocabulary-section">
           <h3>Vocabulary</h3>
           <ul>
-            ${worksheetData.vocabulary_sheet.map((v: any) => `<li>${v.term}: ${v.meaning}</li>`).join('')}
+            ${worksheetData.vocabulary_sheet.map((v: any) => `<li class="vocabulary-item"><strong>${v.term}:</strong> ${v.meaning}</li>`).join('')}
           </ul>
         </div>
         ` : ''}
@@ -77,12 +117,13 @@ async function insertWorksheet(prompt: string, worksheetData: any, userId: strin
       </html>
     `;
     
+    console.log("Inserting worksheet into database");
     // Insert into database
     const { data, error } = await supabase
       .from('worksheets')
       .insert({
         prompt,
-        html_content: htmlContent,
+        html_content: fullHtmlContent,
         full_html_content: fullHtmlContent,
         title: title,
         user_id: userId,
@@ -97,6 +138,7 @@ async function insertWorksheet(prompt: string, worksheetData: any, userId: strin
       return null;
     }
     
+    console.log("Worksheet inserted successfully:", data);
     return data;
   } catch (err) {
     console.error("Error inserting worksheet:", err);
@@ -291,6 +333,7 @@ Don't include any explanation, ONLY return valid JSON that can be parsed directl
 
     // Call OpenAI API
     if (!openAiKey) {
+      console.error("OpenAI API key not configured");
       return new Response(JSON.stringify({ error: "OpenAI API key not configured" }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -298,6 +341,7 @@ Don't include any explanation, ONLY return valid JSON that can be parsed directl
     }
     
     const startTime = new Date();
+    console.log("Calling OpenAI API...");
     
     // Call OpenAI API to generate the worksheet content
     const openAIResponse = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -307,7 +351,7 @@ Don't include any explanation, ONLY return valid JSON that can be parsed directl
         "Authorization": `Bearer ${openAiKey}`
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",  // Using GPT-4 for best quality
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -369,7 +413,7 @@ Don't include any explanation, ONLY return valid JSON that can be parsed directl
       const endTime = new Date();
       const generationTime = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
       
-      // Insert the worksheet into the database
+      // Insert the worksheet into the database with the full prompt
       const savedWorksheet = userId 
         ? await insertWorksheet(prompt, worksheetData, userId, ipAddress)
         : null;

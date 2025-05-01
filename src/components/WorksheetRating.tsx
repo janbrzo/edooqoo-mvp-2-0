@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface WorksheetRatingProps {
   onSubmitRating?: (rating: number, feedback: string) => void;
@@ -19,23 +20,44 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [thanksOpen, setThanksOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   
   const handleStarClick = (value: number) => {
     setSelected(value);
     setIsDialogOpen(true);
   };
   
-  const handleSubmit = () => {
-    setIsDialogOpen(false);
-    setThanksOpen(true);
-    setTimeout(() => setThanksOpen(false), 2500);
+  const handleSubmit = async () => {
+    if (!selected) return;
     
-    // Call the callback with rating and feedback
-    if (onSubmitRating && selected) {
-      onSubmitRating(selected, feedback);
+    setIsSubmitting(true);
+    
+    try {
+      // Call the callback with rating and feedback
+      if (onSubmitRating) {
+        await onSubmitRating(selected, feedback);
+      }
+      
+      setIsDialogOpen(false);
+      setThanksOpen(true);
+      setTimeout(() => setThanksOpen(false), 2500);
+      
+      toast({
+        title: "Thank you for your feedback!",
+        description: "Your rating and comments help us improve our service."
+      });
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      toast({
+        title: "Feedback submission failed",
+        description: "We couldn't submit your feedback. Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+      setFeedback("");
     }
-    
-    setFeedback("");
   };
   
   return (
@@ -76,14 +98,33 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
           <Textarea id="feedbackTextarea" value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="Your feedback helps us improve our worksheet generator" rows={4} className="mb-3" />
           <div className="flex justify-end space-x-2 mt-2">
             <DialogClose asChild>
-              <Button size="sm" variant="outline">Cancel</Button>
+              <Button size="sm" variant="outline" disabled={isSubmitting}>Cancel</Button>
             </DialogClose>
-            <Button size="sm" variant="default" onClick={handleSubmit} className="bg-[#3d348b] text-white hover:bg-[#3d348b]/90">
-              Submit Feedback
+            <Button 
+              size="sm" 
+              variant="default" 
+              onClick={handleSubmit} 
+              className="bg-[#3d348b] text-white hover:bg-[#3d348b]/90"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Feedback"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+      
+      {thanksOpen && (
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg z-50 text-center">
+          <div className="text-green-500 flex justify-center mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold mb-2">Thank You!</h3>
+          <p>Your feedback has been submitted successfully.</p>
+        </div>
+      )}
     </div>
   );
 };

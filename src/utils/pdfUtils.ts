@@ -47,7 +47,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     header.style.padding = '5px 0'; // Smaller padding
     header.style.borderBottom = '1px solid #ddd';
     header.style.color = '#3d348b';
-    header.style.fontSize = '1.0em'; // Increased font size by 10%
+    header.style.fontSize = '14px'; // Moderate font size
     header.innerHTML = `${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version`;
     container.prepend(header);
     
@@ -80,46 +80,50 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
     document.head.appendChild(style);
     
-    // Increase font sizes for all elements in the PDF by ~10%
-    // And increase font sizes for headings by ~20%
+    // Font size adjustments (moderate increase)
     const styleElement = document.createElement('style');
     styleElement.textContent = `
       .pdf-content * {
         font-size: 1.1em;
       }
-      h1 { font-size: 2.4em !important; font-weight: bold !important; }
-      h2 { font-size: 1.8em !important; font-weight: bold !important; }
-      h3 { font-size: 1.5em !important; font-weight: bold !important; }
-      .exercise-header { margin-bottom: 0.5em !important; }
       
-      /* Remove excessive spacing */
-      .exercise-section {
+      /* Font sizes for different heading levels */
+      .pdf-content h1 { font-size: 1.5em !important; font-weight: bold !important; }
+      .pdf-content h2 { font-size: 1.3em !important; font-weight: bold !important; }
+      .pdf-content h3 { font-size: 1.2em !important; font-weight: bold !important; }
+      
+      /* Exercise components */
+      .pdf-content .exercise-title { font-size: 1.2em !important; font-weight: bold !important; }
+      .pdf-content .question-text { font-size: 1.1em !important; font-weight: bold !important; }
+      .pdf-content .instruction { font-size: 1.05em !important; font-style: italic !important; }
+      .pdf-content .reading-content { font-size: 1.05em !important; line-height: 1.4 !important; }
+      
+      /* Spacing adjustments */
+      .pdf-content .exercise-section {
         margin-bottom: 10px !important;
         page-break-inside: avoid;
       }
-      .matching-exercise .matching-item,
-      .fill-in-blanks-exercise .sentence-item,
-      .multiple-choice-exercise .question-item,
-      .exercise-section + .exercise-section {
+      
+      /* Reduce excessive spacing */
+      .pdf-content .matching-exercise .matching-item,
+      .pdf-content .fill-in-blanks-exercise .sentence-item,
+      .pdf-content .multiple-choice-exercise .question-item,
+      .pdf-content .exercise-section + .exercise-section {
         margin-top: 0 !important;
         padding-top: 0 !important;
         margin-bottom: 8px !important;
       }
       
-      /* Make questions and exercise titles bold */
-      .question-text, .exercise-title {
-        font-weight: bold !important;
-        font-size: 1.2em !important;
-      }
-      
       /* Optimize spacing */
-      p, div, li {
+      .pdf-content p, 
+      .pdf-content div, 
+      .pdf-content li {
         margin-bottom: 5px !important;
         line-height: 1.3 !important;
       }
       
       /* Fix large whitespace gaps */
-      .exercise-section {
+      .pdf-content .exercise-section {
         padding-bottom: 0 !important;
       }
     `;
