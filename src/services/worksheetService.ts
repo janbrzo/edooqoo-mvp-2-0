@@ -22,7 +22,6 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token') || ''}`,
       },
       body: JSON.stringify({
         prompt: formattedPrompt,
@@ -114,7 +113,6 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token') || ''}`,
         },
         body: JSON.stringify({
           worksheetId,

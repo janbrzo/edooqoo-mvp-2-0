@@ -50,17 +50,17 @@ export const generatePDF = async (
         line-height: 1.5;
       }
       h1 {
-        font-size: 24px;
+        font-size: 18px;
         line-height: 1.2;
         margin-bottom: 10px;
       }
       h2 {
-        font-size: 18px;
+        font-size: 16px;
         line-height: 1.3;
         margin-bottom: 8px;
       }
       h3 {
-        font-size: 16px;
+        font-size: 14px;
         line-height: 1.4;
         margin-bottom: 6px;
       }
@@ -73,7 +73,7 @@ export const generatePDF = async (
         break-inside: avoid;
       }
       .exercise-header {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: bold;
         break-after: avoid;
       }
@@ -83,7 +83,7 @@ export const generatePDF = async (
         break-inside: avoid;
       }
       .exercise-instruction {
-        font-size: 14px;
+        font-size: 12px;
         font-style: italic;
         margin-bottom: 12px;
       }
@@ -107,21 +107,21 @@ export const generatePDF = async (
         break-inside: avoid;
       }
       .vocabulary-definition-label {
-        font-size: 12px;
+        font-size: 11px;
         font-style: italic;
         display: block;
         margin-top: 5px;
         color: #666;
       }
       .teacher-note {
-        font-size: 12px;
+        font-size: 11px;
         font-style: italic;
         color: #555;
-        padding: 10px;
+        padding: 8px;
         border: 1px solid #ccc;
         background-color: #f9f9f9;
-        margin-top: 10px;
-        margin-bottom: 10px;
+        margin-top: 8px;
+        margin-bottom: 8px;
       }
       @media print {
         .page-break {

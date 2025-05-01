@@ -246,6 +246,17 @@ serve(async (req) => {
     // Extract IP address from request if available
     const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || null;
     console.log('Received prompt:', prompt);
+    console.log('User ID:', userId);
+    console.log('IP Address:', ipAddress);
+    
+    // Check if OpenAI API key is available
+    if (!openAiKey) {
+      console.error("OpenAI API key not configured");
+      return new Response(JSON.stringify({ error: "OpenAI API key not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
     
     // Build the OpenAI prompt with strict content requirements
     const instructionPrompt = `
@@ -331,15 +342,6 @@ Format your response as JSON with this exact structure:
 Don't include any explanation, ONLY return valid JSON that can be parsed directly.
 `;
 
-    // Call OpenAI API
-    if (!openAiKey) {
-      console.error("OpenAI API key not configured");
-      return new Response(JSON.stringify({ error: "OpenAI API key not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
     const startTime = new Date();
     console.log("Calling OpenAI API...");
     
@@ -380,7 +382,10 @@ Don't include any explanation, ONLY return valid JSON that can be parsed directl
     
     // Process the OpenAI response
     const openAIData = await openAIResponse.json();
+    console.log("OpenAI data received:", JSON.stringify(openAIData).slice(0, 200) + "...");
+    
     const assistantMessage = openAIData.choices[0].message.content;
+    console.log("Assistant message excerpt:", assistantMessage.slice(0, 200) + "...");
     
     // Try to parse the JSON from the assistant message
     try {
@@ -390,14 +395,18 @@ Don't include any explanation, ONLY return valid JSON that can be parsed directl
       if (assistantMessage.includes("```json")) {
         const jsonMatch = assistantMessage.match(/```json\n([\s\S]*?)\n```/);
         if (jsonMatch && jsonMatch[1]) {
+          console.log("JSON found in code block");
           worksheetData = JSON.parse(jsonMatch[1]);
         } else {
           throw new Error("Could not extract JSON from code block");
         }
       } else {
         // Try to parse the entire message as JSON
+        console.log("Trying to parse entire message as JSON");
         worksheetData = JSON.parse(assistantMessage);
       }
+      
+      console.log("Worksheet data parsed successfully");
       
       // Validate the worksheet content
       const validation = validateWorksheet(worksheetData);
@@ -423,6 +432,7 @@ Don't include any explanation, ONLY return valid JSON that can be parsed directl
       worksheetData.generationTime = generationTime;
       worksheetData.sourceCount = Math.floor(Math.random() * (90 - 70) + 70);
       
+      console.log("Returning worksheet data to client");
       return new Response(JSON.stringify(worksheetData), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });

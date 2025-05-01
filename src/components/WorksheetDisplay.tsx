@@ -91,7 +91,6 @@ export default function WorksheetDisplay({
   
   const handleDownloadPDF = async () => {
     if (worksheetRef.current) {
-      // Only show toast notification, not modal
       toast({
         title: "Preparing PDF",
         description: "Your worksheet is being converted to PDF..."
