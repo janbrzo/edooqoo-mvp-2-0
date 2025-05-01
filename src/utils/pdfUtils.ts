@@ -1,6 +1,5 @@
 
 import html2pdf from 'html2pdf.js';
-import { format } from 'date-fns';
 
 export const generatePDF = async (elementId: string, filename: string, isTeacherVersion: boolean, title: string) => {
   try {
@@ -14,40 +13,21 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
     noPdfElements.forEach(el => el.remove());
     
-    // Remove the teacher notes section for both versions
-    const teacherNotesSection = clone.querySelector('.teacher-notes');
-    if (teacherNotesSection) {
-      teacherNotesSection.remove();
-    }
-    
-    // Remove rating section
-    const ratingSection = clone.querySelector('[data-no-pdf="true"]');
-    if (ratingSection) {
-      ratingSection.remove();
-    }
-    
     // Create a temporary container for the cloned content
     const container = document.createElement('div');
     container.appendChild(clone);
     
     // Set the wrapper style for the PDF
-    clone.style.padding = '15px'; // Smaller side margins
-    
-    // Create a formatted filename in the correct format: YYYY-MM-DD-Role-title
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const role = isTeacherVersion ? 'Teacher' : 'Student';
-    const formattedTitle = title.toLowerCase().replace(/\s+/g, '-').substring(0, 30);
-    const formattedFilename = `${today}-${role}-${formattedTitle}.pdf`;
+    clone.style.padding = '20px';
     
     // Add a header to show whether it's a student or teacher version
     const header = document.createElement('div');
     header.style.position = 'running(header)';
     header.style.fontWeight = 'bold';
     header.style.textAlign = 'center';
-    header.style.padding = '5px 0'; // Smaller padding
+    header.style.padding = '10px 0';
     header.style.borderBottom = '1px solid #ddd';
     header.style.color = '#3d348b';
-    header.style.fontSize = '0.9em'; // 10% smaller font
     header.innerHTML = `${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version`;
     container.prepend(header);
     
@@ -55,8 +35,8 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     const footer = document.createElement('div');
     footer.style.position = 'running(footer)';
     footer.style.textAlign = 'center';
-    footer.style.padding = '5px 0';
-    footer.style.fontSize = '9px'; // 10% smaller font
+    footer.style.padding = '10px 0';
+    footer.style.fontSize = '10px';
     footer.style.color = '#666';
     footer.innerHTML = 'Page <span class="pageNumber"></span> of <span class="totalPages"></span>';
     container.appendChild(footer);
@@ -80,25 +60,11 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
     document.head.appendChild(style);
     
-    // Reduce font sizes for all elements in the PDF by ~10%
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-      .pdf-content * {
-        font-size: 0.9em;
-      }
-      h1 { font-size: 1.8em !important; }
-      h2 { font-size: 1.35em !important; }
-      h3 { font-size: 1.17em !important; }
-      .exercise-header { margin-bottom: 0.5em !important; }
-    `;
-    clone.classList.add('pdf-content');
-    container.appendChild(styleElement);
-    
-    // Configure html2pdf options with smaller margins
+    // Configure html2pdf options
     const options = {
-      margin: [15, 10, 15, 10], // top, right, bottom, left - smaller side margins
-      filename: formattedFilename, // Use the formatted filename
-      image: { type: 'jpeg', quality: 0.95 },
+      margin: [15, 15, 20, 15], // top, right, bottom, left
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
         scale: 2,
         useCORS: true, 
@@ -115,7 +81,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
         compress: true,
         quality: 100
       },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'], before: '.page-break' },
+      pagebreak: { mode: 'avoid-all', before: '.page-break' },
       enableLinks: true
     };
     

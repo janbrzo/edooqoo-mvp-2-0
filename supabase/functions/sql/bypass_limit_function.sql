@@ -21,7 +21,6 @@ BEGIN
   INSERT INTO public.worksheets (
     prompt,
     content,
-    html_content,
     user_id,
     ip_address,
     status,
@@ -30,7 +29,6 @@ BEGIN
   VALUES (
     p_prompt,
     p_content,
-    p_content, -- HTML content will be same as content
     p_user_id,
     p_ip_address,
     p_status,
