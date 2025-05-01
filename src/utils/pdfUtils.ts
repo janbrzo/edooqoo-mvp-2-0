@@ -47,7 +47,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     header.style.padding = '5px 0'; // Smaller padding
     header.style.borderBottom = '1px solid #ddd';
     header.style.color = '#3d348b';
-    header.style.fontSize = '14px'; // Moderate font size
+    header.style.fontSize = '12px'; // Original font size
     header.innerHTML = `${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version`;
     container.prepend(header);
     
@@ -56,47 +56,36 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     footer.style.position = 'running(footer)';
     footer.style.textAlign = 'center';
     footer.style.padding = '5px 0';
-    footer.style.fontSize = '10px'; // Slightly larger font
+    footer.style.fontSize = '10px';
     footer.style.color = '#666';
     footer.innerHTML = 'Page <span class="pageNumber"></span> of <span class="totalPages"></span>';
     container.appendChild(footer);
     
-    // Add a loading indicator
-    const loadingElement = document.createElement('div');
-    loadingElement.style.position = 'fixed';
-    loadingElement.style.top = '50%';
-    loadingElement.style.left = '50%';
-    loadingElement.style.transform = 'translate(-50%, -50%)';
-    loadingElement.style.background = 'rgba(255, 255, 255, 0.8)';
-    loadingElement.style.padding = '20px';
-    loadingElement.style.borderRadius = '8px';
-    loadingElement.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-    loadingElement.style.zIndex = '9999';
-    loadingElement.innerHTML = '<div style="display: flex; flex-direction: column; align-items: center;"><div style="border: 4px solid #f3f3f3; border-top: 4px solid #3d348b; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite;"></div><div style="margin-top: 15px; font-weight: bold; color: #3d348b;">Preparing PDF...</div></div>';
-    document.body.appendChild(loadingElement);
-    
-    // Add a style for the loading animation
-    const style = document.createElement('style');
-    style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
-    document.head.appendChild(style);
-    
-    // Font size adjustments (moderate increase)
+    // Font size adjustments - restore to original sizes (in px)
     const styleElement = document.createElement('style');
     styleElement.textContent = `
-      .pdf-content * {
-        font-size: 1.1em;
-      }
+      /* Base styles */
+      .pdf-content * { font-size: inherit; }
       
       /* Font sizes for different heading levels */
-      .pdf-content h1 { font-size: 1.5em !important; font-weight: bold !important; }
-      .pdf-content h2 { font-size: 1.3em !important; font-weight: bold !important; }
-      .pdf-content h3 { font-size: 1.2em !important; font-weight: bold !important; }
+      .pdf-content h1 { font-size: 24px !important; font-weight: bold !important; }
+      .pdf-content h2 { font-size: 20px !important; font-weight: bold !important; }
+      .pdf-content h3 { font-size: 18px !important; font-weight: bold !important; }
       
       /* Exercise components */
-      .pdf-content .exercise-title { font-size: 1.2em !important; font-weight: bold !important; }
-      .pdf-content .question-text { font-size: 1.1em !important; font-weight: bold !important; }
-      .pdf-content .instruction { font-size: 1.05em !important; font-style: italic !important; }
-      .pdf-content .reading-content { font-size: 1.05em !important; line-height: 1.4 !important; }
+      .pdf-content .exercise-title { font-size: 18px !important; font-weight: bold !important; }
+      .pdf-content .question-text { font-size: 16px !important; font-weight: bold !important; }
+      .pdf-content .instruction { font-size: 15px !important; font-style: italic !important; }
+      .pdf-content .reading-content { font-size: 14px !important; line-height: 1.4 !important; }
+      
+      /* Regular text */
+      .pdf-content p, 
+      .pdf-content div, 
+      .pdf-content li {
+        font-size: 14px !important;
+        line-height: 1.3 !important;
+        margin-bottom: 5px !important;
+      }
       
       /* Spacing adjustments */
       .pdf-content .exercise-section {
@@ -112,14 +101,6 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
         margin-top: 0 !important;
         padding-top: 0 !important;
         margin-bottom: 8px !important;
-      }
-      
-      /* Optimize spacing */
-      .pdf-content p, 
-      .pdf-content div, 
-      .pdf-content li {
-        margin-bottom: 5px !important;
-        line-height: 1.3 !important;
       }
       
       /* Fix large whitespace gaps */
@@ -143,8 +124,8 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     
     // Configure html2pdf options with smaller margins
     const options = {
-      margin: [15, 10, 15, 10], // top, right, bottom, left - smaller side margins
-      filename: formattedFilename, // Use the formatted filename
+      margin: [15, 10, 15, 10], // top, right, bottom, left
+      filename: formattedFilename,
       image: { type: 'jpeg', quality: 0.95 },
       html2canvas: { 
         scale: 2,
@@ -166,12 +147,8 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
       enableLinks: true
     };
     
-    // Generate the PDF
+    // Generate the PDF without showing the loading indicator
     const result = await html2pdf().set(options).from(container.innerHTML).save();
-    
-    // Remove the temporary elements
-    document.body.removeChild(loadingElement);
-    document.head.removeChild(style);
     
     return true;
   } catch (error) {

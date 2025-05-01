@@ -29,17 +29,27 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       })
     });
 
+    console.log('Edge function response status:', response.status);
+    
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      console.error('Error response data:', errorData);
-      if (response.status === 429) {
-        throw new Error('You have reached your daily limit for worksheet generation. Please try again tomorrow.');
+      let errorMessage = 'Failed to generate worksheet';
+      try {
+        const errorData = await response.json();
+        console.error('Error response data:', errorData);
+        if (response.status === 429) {
+          errorMessage = 'You have reached your daily limit for worksheet generation. Please try again tomorrow.';
+        } else if (errorData?.error) {
+          errorMessage += ': ' + errorData.error;
+        }
+      } catch (parseError) {
+        console.error('Failed to parse error response:', parseError);
       }
-      throw new Error(`Failed to generate worksheet: ${errorData?.error || response.statusText}`);
+      throw new Error(errorMessage);
     }
 
     // Parse the response as JSON directly
     const worksheetData = await response.json();
+    console.log('Worksheet data received:', worksheetData ? 'yes' : 'no');
     
     // Use the actual generation time from the API if provided, otherwise calculate it
     if (!worksheetData.generationTime) {
@@ -68,18 +78,18 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
         console.log(`Reading exercise word count: ${wordCount}`);
         
         if (wordCount < 280 || wordCount > 320) {
-          console.error(`Reading exercise word count (${wordCount}) outside the required range of 280-320 words`);
+          console.warn(`Reading exercise word count (${wordCount}) outside the required range of 280-320 words`);
         }
         
         if (!exercise.questions || exercise.questions.length < 5) {
-          console.error(`Reading exercise has fewer than 5 questions: ${exercise.questions?.length || 0}`);
+          console.warn(`Reading exercise has fewer than 5 questions: ${exercise.questions?.length || 0}`);
         }
       } else if (exercise.type === 'matching' && (!exercise.items || exercise.items.length < 10)) {
-        console.error(`Matching exercise has fewer than 10 items: ${exercise.items?.length || 0}`);
+        console.warn(`Matching exercise has fewer than 10 items: ${exercise.items?.length || 0}`);
       } else if (exercise.type === 'fill-in-blanks' && (!exercise.sentences || exercise.sentences.length < 10)) {
-        console.error(`Fill-in-blanks exercise has fewer than 10 sentences: ${exercise.sentences?.length || 0}`);
+        console.warn(`Fill-in-blanks exercise has fewer than 10 sentences: ${exercise.sentences?.length || 0}`);
       } else if (exercise.type === 'multiple-choice' && (!exercise.questions || exercise.questions.length < 10)) {
-        console.error(`Multiple-choice exercise has fewer than 10 questions: ${exercise.questions?.length || 0}`);
+        console.warn(`Multiple-choice exercise has fewer than 10 questions: ${exercise.questions?.length || 0}`);
       }
     }
     

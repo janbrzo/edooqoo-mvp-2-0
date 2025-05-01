@@ -19,7 +19,6 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
   const [selected, setSelected] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const [thanksOpen, setThanksOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
@@ -40,13 +39,8 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
       }
       
       setIsDialogOpen(false);
-      setThanksOpen(true);
-      setTimeout(() => setThanksOpen(false), 2500);
       
-      toast({
-        title: "Thank you for your feedback!",
-        description: "Your rating and comments help us improve our service."
-      });
+      // No more thank you popup, just rely on the toast notification
     } catch (error) {
       console.error("Error submitting feedback:", error);
       toast({
@@ -112,19 +106,6 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
           </div>
         </DialogContent>
       </Dialog>
-      
-      {thanksOpen && (
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg z-50 text-center">
-          <div className="text-green-500 flex justify-center mb-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-          </div>
-          <h3 className="text-xl font-semibold mb-2">Thank You!</h3>
-          <p>Your feedback has been submitted successfully.</p>
-        </div>
-      )}
     </div>
   );
 };
