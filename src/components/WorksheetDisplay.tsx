@@ -57,6 +57,7 @@ export default function WorksheetDisplay({
   const [isEditing, setIsEditing] = useState(false);
   const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(worksheet);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const worksheetRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
@@ -96,8 +97,13 @@ export default function WorksheetDisplay({
         description: "Your worksheet is being converted to PDF..."
       });
       
+      setIsGeneratingPDF(true);
+      
       try {
+        console.log('Starting PDF generation process');
         const result = await generatePDF('worksheet-content', `${editableWorksheet.title.replace(/\s+/g, '_')}.pdf`, viewMode === 'teacher', editableWorksheet.title);
+        
+        console.log('PDF generation result:', result);
         
         if (result) {
           toast({
@@ -122,6 +128,8 @@ export default function WorksheetDisplay({
           description: "There was an error generating your PDF. Please try again.",
           variant: "destructive"
         });
+      } finally {
+        setIsGeneratingPDF(false);
       }
     }
   };

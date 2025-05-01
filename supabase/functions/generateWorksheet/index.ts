@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -234,6 +233,7 @@ serve(async (req) => {
     const { prompt, userId = null } = await req.json();
     
     if (!prompt || typeof prompt !== 'string') {
+      console.error('Invalid or missing prompt parameter:', prompt);
       return new Response(
         JSON.stringify({ error: 'Invalid or missing prompt parameter' }),
         { 
@@ -346,106 +346,116 @@ Don't include any explanation, ONLY return valid JSON that can be parsed directl
     console.log("Calling OpenAI API...");
     
     // Call OpenAI API to generate the worksheet content
-    const openAIResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${openAiKey}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert worksheet creator for language teachers."
-          },
-          {
-            role: "user",
-            content: instructionPrompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 3500
-      })
-    });
-    
-    if (!openAIResponse.ok) {
-      const errorText = await openAIResponse.text();
-      console.error("OpenAI API error:", errorText);
-      return new Response(JSON.stringify({ error: "Failed to generate worksheet content" }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    console.log("AI response received, processing...");
-    
-    // Process the OpenAI response
-    const openAIData = await openAIResponse.json();
-    console.log("OpenAI data received:", JSON.stringify(openAIData).slice(0, 200) + "...");
-    
-    const assistantMessage = openAIData.choices[0].message.content;
-    console.log("Assistant message excerpt:", assistantMessage.slice(0, 200) + "...");
-    
-    // Try to parse the JSON from the assistant message
     try {
-      let worksheetData;
+      const openAIResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${openAiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert worksheet creator for language teachers."
+            },
+            {
+              role: "user",
+              content: instructionPrompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 3500
+        })
+      });
       
-      // Extract JSON if the response includes markdown code blocks
-      if (assistantMessage.includes("```json")) {
-        const jsonMatch = assistantMessage.match(/```json\n([\s\S]*?)\n```/);
-        if (jsonMatch && jsonMatch[1]) {
-          console.log("JSON found in code block");
-          worksheetData = JSON.parse(jsonMatch[1]);
-        } else {
-          throw new Error("Could not extract JSON from code block");
-        }
-      } else {
-        // Try to parse the entire message as JSON
-        console.log("Trying to parse entire message as JSON");
-        worksheetData = JSON.parse(assistantMessage);
-      }
-      
-      console.log("Worksheet data parsed successfully");
-      
-      // Validate the worksheet content
-      const validation = validateWorksheet(worksheetData);
-      if (!validation.valid) {
-        console.error("Worksheet validation failed:", validation.message);
-        return new Response(JSON.stringify({ error: `Failed to generate a valid worksheet structure: ${validation.message}. Please try again.` }), {
-          status: 422,
+      if (!openAIResponse.ok) {
+        const errorText = await openAIResponse.text();
+        console.error("OpenAI API error response status:", openAIResponse.status);
+        console.error("OpenAI API error:", errorText);
+        return new Response(JSON.stringify({ error: `OpenAI API error: ${errorText}` }), {
+          status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
       
-      // Calculate generation time
-      const endTime = new Date();
-      const generationTime = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+      console.log("AI response received, processing...");
       
-      // Insert the worksheet into the database with the full prompt
-      const savedWorksheet = userId 
-        ? await insertWorksheet(prompt, worksheetData, userId, ipAddress)
-        : null;
+      // Process the OpenAI response
+      const openAIData = await openAIResponse.json();
+      console.log("OpenAI data received:", JSON.stringify(openAIData).slice(0, 200) + "...");
       
-      // Add additional metadata to the response
-      worksheetData.id = savedWorksheet?.id || null;
-      worksheetData.generationTime = generationTime;
-      worksheetData.sourceCount = Math.floor(Math.random() * (90 - 70) + 70);
+      const assistantMessage = openAIData.choices[0].message.content;
+      console.log("Assistant message excerpt:", assistantMessage.slice(0, 200) + "...");
       
-      console.log("Returning worksheet data to client");
-      return new Response(JSON.stringify(worksheetData), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    } catch (error) {
-      console.error("Failed to parse AI response as JSON:", error);
-      return new Response(JSON.stringify({ error: "Failed to generate a valid worksheet structure. Please try again." }), {
-        status: 422,
+      // Try to parse the JSON from the assistant message
+      try {
+        let worksheetData;
+        
+        // Extract JSON if the response includes markdown code blocks
+        if (assistantMessage.includes("```json")) {
+          const jsonMatch = assistantMessage.match(/```json\n([\s\S]*?)\n```/);
+          if (jsonMatch && jsonMatch[1]) {
+            console.log("JSON found in code block");
+            worksheetData = JSON.parse(jsonMatch[1]);
+          } else {
+            throw new Error("Could not extract JSON from code block");
+          }
+        } else {
+          // Try to parse the entire message as JSON
+          console.log("Trying to parse entire message as JSON");
+          worksheetData = JSON.parse(assistantMessage);
+        }
+        
+        console.log("Worksheet data parsed successfully");
+        
+        // Validate the worksheet content
+        const validation = validateWorksheet(worksheetData);
+        if (!validation.valid) {
+          console.error("Worksheet validation failed:", validation.message);
+          return new Response(JSON.stringify({ error: `Failed to generate a valid worksheet structure: ${validation.message}. Please try again.` }), {
+            status: 422,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        // Calculate generation time
+        const endTime = new Date();
+        const generationTime = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+        
+        // Insert the worksheet into the database with the full prompt
+        const savedWorksheet = userId 
+          ? await insertWorksheet(prompt, worksheetData, userId, ipAddress)
+          : null;
+        
+        // Add additional metadata to the response
+        worksheetData.id = savedWorksheet?.id || null;
+        worksheetData.generationTime = generationTime;
+        worksheetData.sourceCount = Math.floor(Math.random() * (90 - 70) + 70);
+        
+        console.log("Returning worksheet data to client with ID:", worksheetData.id);
+        return new Response(JSON.stringify(worksheetData), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error("Failed to parse AI response as JSON:", error);
+        console.error("Raw response:", assistantMessage);
+        return new Response(JSON.stringify({ error: "Failed to generate a valid worksheet structure. Please try again." }), {
+          status: 422,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } catch (openAIError) {
+      console.error("Error calling OpenAI API:", openAIError);
+      return new Response(JSON.stringify({ error: `Error calling OpenAI API: ${openAIError.message}` }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
   } catch (error) {
     console.error("Error in generateWorksheet:", error);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    return new Response(JSON.stringify({ error: "Internal server error: " + error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
