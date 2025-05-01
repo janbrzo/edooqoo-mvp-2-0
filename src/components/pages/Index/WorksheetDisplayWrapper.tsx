@@ -2,6 +2,7 @@
 import React, { useEffect } from "react";
 import { ArrowUp } from "lucide-react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
+import WorksheetRating from "@/components/WorksheetRating";
 import { submitWorksheetFeedback, trackEvent } from "@/services/worksheetService";
 import { useToast } from "@/hooks/use-toast";
 import { FormData } from "@/types/worksheetFormTypes";
@@ -50,8 +51,6 @@ const WorksheetDisplayWrapper: React.FC<WorksheetDisplayWrapperProps> = ({
   };
   
   const handleFeedbackSubmit = async (rating: number, feedback: string) => {
-    console.log('Submitting feedback:', { worksheetId, rating, feedback, userId });
-    
     if (!userId || !worksheetId) {
       toast({
         title: "Feedback submission error",
@@ -68,10 +67,6 @@ const WorksheetDisplayWrapper: React.FC<WorksheetDisplayWrapperProps> = ({
         title: "Thank you for your feedback!",
         description: "Your rating and comments help us improve our service."
       });
-      
-      // Track the feedback event
-      trackEvent('feedback', worksheetId, userId, { rating });
-      
     } catch (error) {
       console.error("Feedback submission error:", error);
       toast({
@@ -81,6 +76,17 @@ const WorksheetDisplayWrapper: React.FC<WorksheetDisplayWrapperProps> = ({
       });
     }
   };
+
+  // Create a React ref that we'll pass to the WorksheetDisplay component
+  const ratingRef = React.useRef<HTMLDivElement>(null);
+
+  // After render, find the rating-section div and insert our rating component there
+  useEffect(() => {
+    const ratingSection = document.querySelector('.rating-section');
+    if (ratingSection && ratingRef.current) {
+      ratingSection.appendChild(ratingRef.current);
+    }
+  }, []);
 
   return (
     <>
@@ -92,8 +98,12 @@ const WorksheetDisplayWrapper: React.FC<WorksheetDisplayWrapperProps> = ({
         onBack={onBack} 
         wordBankOrder={worksheet?.exercises?.find((ex: any) => ex.type === "matching")?.shuffledTerms?.map((item: any) => item.definition)}
         onDownload={handleDownloadEvent}
-        onSubmitRating={handleFeedbackSubmit}
       />
+
+      {/* This component will be moved into the rating-section by the useEffect */}
+      <div ref={ratingRef}>
+        <WorksheetRating onSubmitRating={handleFeedbackSubmit} />
+      </div>
 
       {showScrollTop && (
         <button 

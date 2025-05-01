@@ -1,10 +1,16 @@
 
 import { useState, useRef } from "react";
+import { ArrowUp } from "lucide-react";
 import { generatePDF } from "@/utils/pdfUtils";
 import { useToast } from "@/hooks/use-toast";
-import WorksheetContainer from "./worksheet/display/WorksheetContainer";
+import WorksheetHeader from "./worksheet/WorksheetHeader";
+import InputParamsCard from "./worksheet/InputParamsCard";
+import WorksheetToolbar from "./worksheet/WorksheetToolbar";
+import ExerciseSection from "./worksheet/ExerciseSection";
+import VocabularySheet from "./worksheet/VocabularySheet";
+import TeacherNotes from "./worksheet/TeacherNotes";
 
-export interface Exercise {
+interface Exercise {
   type: string;
   title: string;
   icon: string;
@@ -40,7 +46,6 @@ interface WorksheetDisplayProps {
   onBack: () => void;
   wordBankOrder?: any;
   onDownload?: () => void;
-  onSubmitRating?: (rating: number, feedback: string) => void;
 }
 
 export default function WorksheetDisplay({
@@ -50,26 +55,15 @@ export default function WorksheetDisplay({
   sourceCount,
   onBack,
   wordBankOrder,
-  onDownload,
-  onSubmitRating
+  onDownload
 }: WorksheetDisplayProps) {
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
   const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(worksheet);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const worksheetRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
-  
-  // Handle scroll events
-  useState(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  });
   
   const scrollToTop = () => {
     window.scrollTo({
@@ -96,21 +90,13 @@ export default function WorksheetDisplay({
         title: "Preparing PDF",
         description: "Your worksheet is being converted to PDF..."
       });
-      
-      setIsGeneratingPDF(true);
-      
       try {
-        console.log('Starting PDF generation process');
         const result = await generatePDF('worksheet-content', `${editableWorksheet.title.replace(/\s+/g, '_')}.pdf`, viewMode === 'teacher', editableWorksheet.title);
-        
-        console.log('PDF generation result:', result);
-        
         if (result) {
           toast({
             title: "PDF Downloaded",
             description: "Your worksheet has been downloaded successfully."
           });
-          
           if (onDownload) {
             onDownload();
           }
@@ -128,31 +114,115 @@ export default function WorksheetDisplay({
           description: "There was an error generating your PDF. Please try again.",
           variant: "destructive"
         });
-      } finally {
-        setIsGeneratingPDF(false);
       }
     }
   };
 
   return (
     <div className="container mx-auto py-6">
-      <WorksheetContainer
-        worksheet={worksheet}
-        inputParams={inputParams}
-        generationTime={generationTime}
-        sourceCount={sourceCount}
-        onBack={onBack}
-        viewMode={viewMode}
-        isEditing={isEditing}
-        editableWorksheet={editableWorksheet}
-        setEditableWorksheet={setEditableWorksheet}
-        showScrollTop={showScrollTop}
-        scrollToTop={scrollToTop}
-        handleEdit={handleEdit}
-        handleSave={handleSave}
-        handleDownloadPDF={handleDownloadPDF}
-        onSubmitRating={onSubmitRating}
-      />
+      <div className="mb-6">
+        <WorksheetHeader
+          onBack={onBack}
+          generationTime={generationTime}
+          sourceCount={sourceCount}
+          inputParams={inputParams}
+        />
+        <InputParamsCard inputParams={inputParams} />
+        <WorksheetToolbar
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          isEditing={isEditing}
+          handleEdit={handleEdit}
+          handleSave={handleSave}
+          handleDownloadPDF={handleDownloadPDF}
+        />
+        <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>
+          <div className="bg-white p-6 border rounded-lg shadow-sm mb-6">
+            <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight">
+              {isEditing ? (
+                <input 
+                  type="text" 
+                  value={editableWorksheet.title} 
+                  onChange={e => setEditableWorksheet({
+                    ...editableWorksheet,
+                    title: e.target.value
+                  })} 
+                  className="w-full border p-2 editable-content" 
+                />
+              ) : editableWorksheet.title}
+            </h1>
+            
+            <h2 className="text-xl text-worksheet-purple mb-3 leading-tight">
+              {isEditing ? (
+                <input 
+                  type="text" 
+                  value={editableWorksheet.subtitle} 
+                  onChange={e => setEditableWorksheet({
+                    ...editableWorksheet,
+                    subtitle: e.target.value
+                  })} 
+                  className="w-full border p-2 editable-content" 
+                />
+              ) : editableWorksheet.subtitle}
+            </h2>
+            
+            <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-md">
+              {isEditing ? (
+                <textarea 
+                  value={editableWorksheet.introduction} 
+                  onChange={e => setEditableWorksheet({
+                    ...editableWorksheet,
+                    introduction: e.target.value
+                  })} 
+                  className="w-full h-20 border p-2 editable-content" 
+                />
+              ) : (
+                <p className="leading-snug">{editableWorksheet.introduction}</p>
+              )}
+            </div>
+          </div>
+
+          {editableWorksheet.exercises.map((exercise, index) => (
+            <ExerciseSection
+              key={index}
+              exercise={exercise}
+              index={index}
+              isEditing={isEditing}
+              viewMode={viewMode}
+              editableWorksheet={editableWorksheet}
+              setEditableWorksheet={setEditableWorksheet}
+            />
+          ))}
+
+          {editableWorksheet.vocabulary_sheet && editableWorksheet.vocabulary_sheet.length > 0 && (
+            <VocabularySheet
+              vocabularySheet={editableWorksheet.vocabulary_sheet}
+              isEditing={isEditing}
+              viewMode={viewMode}
+              editableWorksheet={editableWorksheet}
+              setEditableWorksheet={setEditableWorksheet}
+            />
+          )}
+        </div>
+        
+        {/* Rating section moved above Teacher Notes */}
+        <div data-no-pdf="true" className="rating-section mb-8">
+          {/* This div will be replaced with the WorksheetRating component in the WorksheetDisplayWrapper */}
+        </div>
+        
+        {/* Teacher notes section */}
+        <TeacherNotes />
+      </div>
+      
+      {showScrollTop && (
+        <button 
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 rounded-full bg-worksheet-purple text-white p-3 shadow-lg cursor-pointer opacity-80 hover:opacity-100 transition-opacity z-50"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </button>
+      )}
     </div>
   );
 }

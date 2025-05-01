@@ -1,5 +1,6 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.9.5';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,89 +27,49 @@ async function insertWorksheet(prompt: string, worksheetData: any, userId: strin
     const htmlContent = JSON.stringify(worksheetData);
     
     // Create full HTML version of the worksheet for storage
+    // This is a simplified version - we'd need more complex logic
+    // to create an accurate HTML representation
     const fullHtmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
         <title>${title}</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
           body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-          h1 { color: #3d348b; font-size: 24px; margin-bottom: 10px; }
-          h2 { color: #5e44a0; font-size: 20px; margin-bottom: 8px; }
-          h3 { color: #7156a5; font-size: 18px; margin-bottom: 8px; }
+          h1 { color: #3d348b; }
+          h2 { color: #5e44a0; }
           .exercise { margin-bottom: 2em; border: 1px solid #eee; padding: 1em; border-radius: 5px; }
-          .exercise-header { display: flex; align-items: center; margin-bottom: 1em; }
-          .instruction { background-color: #f9f9f9; padding: 0.8em; border-left: 3px solid #5e44a0; margin-bottom: 1em; }
-          .reading-content { line-height: 1.5; }
-          .question { margin-bottom: 1em; }
-          .matching-item { margin-bottom: 0.5em; }
-          .fill-in-blank { margin-bottom: 0.5em; }
-          .vocabulary-section { margin-top: 2em; border-top: 2px solid #eee; padding-top: 1em; }
-          .vocabulary-item { margin-bottom: 0.5em; }
-          .teacher-tip { background-color: #edf7ed; padding: 0.8em; border-left: 3px solid #4caf50; margin-top: 1em; }
         </style>
       </head>
       <body>
         <h1>${worksheetData.title}</h1>
         <h2>${worksheetData.subtitle}</h2>
-        <p class="introduction">${worksheetData.introduction}</p>
-        
-        ${worksheetData.exercises.map((ex: any, index: number) => `
-          <div class="exercise exercise-${ex.type}">
-            <div class="exercise-header">
-              <h3>${ex.title}</h3>
-              <span class="time">(${ex.time} minutes)</span>
-            </div>
-            <div class="instruction">${ex.instructions}</div>
-            
-            ${ex.content ? `<div class="reading-content">${ex.content}</div>` : ''}
-            
-            ${ex.questions ? `
-              <div class="questions">
-                <ol>
-                  ${ex.questions.map((q: any) => `
-                    <li class="question">
-                      ${q.question}
-                      ${q.options ? `
-                        <ul>
-                          ${q.options.map((o: string) => `<li>${o}</li>`).join('')}
-                        </ul>
-                      ` : ''}
-                    </li>
-                  `).join('')}
-                </ol>
-              </div>
-            ` : ''}
-            
-            ${ex.items ? `
-              <div class="matching">
-                <ul>
-                  ${ex.items.map((item: any) => `<li class="matching-item">${item.term} - ${item.definition}</li>`).join('')}
-                </ul>
-              </div>
-            ` : ''}
-            
-            ${ex.sentences ? `
-              <div class="fill-in-blanks">
-                <ol>
-                  ${ex.sentences.map((s: any) => `<li class="fill-in-blank">${s.text.replace(/\[([^\]]+)\]/g, '____')}</li>`).join('')}
-                </ol>
-              </div>
-            ` : ''}
-            
-            <div class="teacher-tip">
-              <strong>Teacher tip:</strong> ${ex.teacher_tip}
-            </div>
+        <p>${worksheetData.introduction}</p>
+        ${worksheetData.exercises.map((ex: any) => `
+          <div class="exercise">
+            <h3>${ex.title}</h3>
+            <p>${ex.instructions}</p>
+            ${ex.content ? `<div class="content">${ex.content}</div>` : ''}
+            ${ex.questions ? `<div class="questions">
+              <ol>${ex.questions.map((q: any) => `
+                <li>${q.question}
+                  ${q.options ? `<ul>${q.options.map((o: string) => `<li>${o}</li>`).join('')}</ul>` : ''}
+                </li>`).join('')}
+              </ol>
+            </div>` : ''}
+            ${ex.items ? `<div class="matching">
+              <ul>${ex.items.map((item: any) => `<li>${item.term} - ${item.definition}</li>`).join('')}</ul>
+            </div>` : ''}
+            ${ex.sentences ? `<div class="fill-in-blanks">
+              <ol>${ex.sentences.map((s: any) => `<li>${s.text.replace(/\[([^\]]+)\]/g, '____')}</li>`).join('')}</ol>
+            </div>` : ''}
           </div>
         `).join('')}
-        
         ${worksheetData.vocabulary_sheet ? `
-        <div class="vocabulary-section">
+        <div class="vocabulary">
           <h3>Vocabulary</h3>
           <ul>
-            ${worksheetData.vocabulary_sheet.map((v: any) => `<li class="vocabulary-item"><strong>${v.term}:</strong> ${v.meaning}</li>`).join('')}
+            ${worksheetData.vocabulary_sheet.map((v: any) => `<li>${v.term}: ${v.meaning}</li>`).join('')}
           </ul>
         </div>
         ` : ''}
@@ -116,13 +77,12 @@ async function insertWorksheet(prompt: string, worksheetData: any, userId: strin
       </html>
     `;
     
-    console.log("Inserting worksheet into database");
     // Insert into database
     const { data, error } = await supabase
       .from('worksheets')
       .insert({
         prompt,
-        html_content: fullHtmlContent,
+        html_content: htmlContent,
         full_html_content: fullHtmlContent,
         title: title,
         user_id: userId,
@@ -137,7 +97,6 @@ async function insertWorksheet(prompt: string, worksheetData: any, userId: strin
       return null;
     }
     
-    console.log("Worksheet inserted successfully:", data);
     return data;
   } catch (err) {
     console.error("Error inserting worksheet:", err);
@@ -233,7 +192,6 @@ serve(async (req) => {
     const { prompt, userId = null } = await req.json();
     
     if (!prompt || typeof prompt !== 'string') {
-      console.error('Invalid or missing prompt parameter:', prompt);
       return new Response(
         JSON.stringify({ error: 'Invalid or missing prompt parameter' }),
         { 
@@ -246,17 +204,6 @@ serve(async (req) => {
     // Extract IP address from request if available
     const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || null;
     console.log('Received prompt:', prompt);
-    console.log('User ID:', userId);
-    console.log('IP Address:', ipAddress);
-    
-    // Check if OpenAI API key is available
-    if (!openAiKey) {
-      console.error("OpenAI API key not configured");
-      return new Response(JSON.stringify({ error: "OpenAI API key not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
     
     // Build the OpenAI prompt with strict content requirements
     const instructionPrompt = `
@@ -342,120 +289,109 @@ Format your response as JSON with this exact structure:
 Don't include any explanation, ONLY return valid JSON that can be parsed directly.
 `;
 
+    // Call OpenAI API
+    if (!openAiKey) {
+      return new Response(JSON.stringify({ error: "OpenAI API key not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
     const startTime = new Date();
-    console.log("Calling OpenAI API...");
     
     // Call OpenAI API to generate the worksheet content
-    try {
-      const openAIResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${openAiKey}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content: "You are an expert worksheet creator for language teachers."
-            },
-            {
-              role: "user",
-              content: instructionPrompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 3500
-        })
+    const openAIResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${openAiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",  // Using GPT-4 for best quality
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert worksheet creator for language teachers."
+          },
+          {
+            role: "user",
+            content: instructionPrompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 3500
+      })
+    });
+    
+    if (!openAIResponse.ok) {
+      const errorText = await openAIResponse.text();
+      console.error("OpenAI API error:", errorText);
+      return new Response(JSON.stringify({ error: "Failed to generate worksheet content" }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
+    }
+    
+    console.log("AI response received, processing...");
+    
+    // Process the OpenAI response
+    const openAIData = await openAIResponse.json();
+    const assistantMessage = openAIData.choices[0].message.content;
+    
+    // Try to parse the JSON from the assistant message
+    try {
+      let worksheetData;
       
-      if (!openAIResponse.ok) {
-        const errorText = await openAIResponse.text();
-        console.error("OpenAI API error response status:", openAIResponse.status);
-        console.error("OpenAI API error:", errorText);
-        return new Response(JSON.stringify({ error: `OpenAI API error: ${errorText}` }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+      // Extract JSON if the response includes markdown code blocks
+      if (assistantMessage.includes("```json")) {
+        const jsonMatch = assistantMessage.match(/```json\n([\s\S]*?)\n```/);
+        if (jsonMatch && jsonMatch[1]) {
+          worksheetData = JSON.parse(jsonMatch[1]);
+        } else {
+          throw new Error("Could not extract JSON from code block");
+        }
+      } else {
+        // Try to parse the entire message as JSON
+        worksheetData = JSON.parse(assistantMessage);
       }
       
-      console.log("AI response received, processing...");
-      
-      // Process the OpenAI response
-      const openAIData = await openAIResponse.json();
-      console.log("OpenAI data received:", JSON.stringify(openAIData).slice(0, 200) + "...");
-      
-      const assistantMessage = openAIData.choices[0].message.content;
-      console.log("Assistant message excerpt:", assistantMessage.slice(0, 200) + "...");
-      
-      // Try to parse the JSON from the assistant message
-      try {
-        let worksheetData;
-        
-        // Extract JSON if the response includes markdown code blocks
-        if (assistantMessage.includes("```json")) {
-          const jsonMatch = assistantMessage.match(/```json\n([\s\S]*?)\n```/);
-          if (jsonMatch && jsonMatch[1]) {
-            console.log("JSON found in code block");
-            worksheetData = JSON.parse(jsonMatch[1]);
-          } else {
-            throw new Error("Could not extract JSON from code block");
-          }
-        } else {
-          // Try to parse the entire message as JSON
-          console.log("Trying to parse entire message as JSON");
-          worksheetData = JSON.parse(assistantMessage);
-        }
-        
-        console.log("Worksheet data parsed successfully");
-        
-        // Validate the worksheet content
-        const validation = validateWorksheet(worksheetData);
-        if (!validation.valid) {
-          console.error("Worksheet validation failed:", validation.message);
-          return new Response(JSON.stringify({ error: `Failed to generate a valid worksheet structure: ${validation.message}. Please try again.` }), {
-            status: 422,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-        
-        // Calculate generation time
-        const endTime = new Date();
-        const generationTime = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
-        
-        // Insert the worksheet into the database with the full prompt
-        const savedWorksheet = userId 
-          ? await insertWorksheet(prompt, worksheetData, userId, ipAddress)
-          : null;
-        
-        // Add additional metadata to the response
-        worksheetData.id = savedWorksheet?.id || null;
-        worksheetData.generationTime = generationTime;
-        worksheetData.sourceCount = Math.floor(Math.random() * (90 - 70) + 70);
-        
-        console.log("Returning worksheet data to client with ID:", worksheetData.id);
-        return new Response(JSON.stringify(worksheetData), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      } catch (error) {
-        console.error("Failed to parse AI response as JSON:", error);
-        console.error("Raw response:", assistantMessage);
-        return new Response(JSON.stringify({ error: "Failed to generate a valid worksheet structure. Please try again." }), {
+      // Validate the worksheet content
+      const validation = validateWorksheet(worksheetData);
+      if (!validation.valid) {
+        console.error("Worksheet validation failed:", validation.message);
+        return new Response(JSON.stringify({ error: `Failed to generate a valid worksheet structure: ${validation.message}. Please try again.` }), {
           status: 422,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-    } catch (openAIError) {
-      console.error("Error calling OpenAI API:", openAIError);
-      return new Response(JSON.stringify({ error: `Error calling OpenAI API: ${openAIError.message}` }), {
-        status: 500,
+      
+      // Calculate generation time
+      const endTime = new Date();
+      const generationTime = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+      
+      // Insert the worksheet into the database
+      const savedWorksheet = userId 
+        ? await insertWorksheet(prompt, worksheetData, userId, ipAddress)
+        : null;
+      
+      // Add additional metadata to the response
+      worksheetData.id = savedWorksheet?.id || null;
+      worksheetData.generationTime = generationTime;
+      worksheetData.sourceCount = Math.floor(Math.random() * (90 - 70) + 70);
+      
+      return new Response(JSON.stringify(worksheetData), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (error) {
+      console.error("Failed to parse AI response as JSON:", error);
+      return new Response(JSON.stringify({ error: "Failed to generate a valid worksheet structure. Please try again." }), {
+        status: 422,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
   } catch (error) {
     console.error("Error in generateWorksheet:", error);
-    return new Response(JSON.stringify({ error: "Internal server error: " + error.message }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

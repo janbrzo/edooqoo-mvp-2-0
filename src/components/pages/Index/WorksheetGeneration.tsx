@@ -79,10 +79,8 @@ const WorksheetGeneration: React.FC<WorksheetGenerationProps> = ({ userId, onWor
     }
 
     setIsGenerating(true);
-    console.log('Starting worksheet generation with data:', data);
     
     try {
-      console.log('Calling generateWorksheet service with userId:', userId);
       // Generate worksheet using the actual API
       const worksheetData = await generateWorksheet(data, userId);
       
@@ -90,12 +88,9 @@ const WorksheetGeneration: React.FC<WorksheetGenerationProps> = ({ userId, onWor
       
       // If we have a real worksheet, validate it and use it
       if (worksheetData && worksheetData.exercises && worksheetData.title) {
-        console.log('Valid worksheet data received, processing...');
-        
         // Validate the worksheet
         const validation = validateWorksheet(worksheetData);
         if (!validation.valid) {
-          console.error('Worksheet validation failed:', validation.message);
           throw new Error(validation.message);
         }
         
@@ -109,25 +104,23 @@ const WorksheetGeneration: React.FC<WorksheetGenerationProps> = ({ userId, onWor
         
         // Use the ID returned from the API or generate a temporary one
         const wsId = worksheetData.id || uuidv4();
-        console.log('Using worksheet ID:', wsId);
         
         // Use the generation time and source count from the API response
         const generationTime = worksheetData.generationTime || Math.floor(Math.random() * (65 - 31) + 31);
         const sourceCount = worksheetData.sourceCount || Math.floor(Math.random() * (90 - 50) + 50);
         
         onWorksheetGenerated(worksheetData, data, generationTime, sourceCount, wsId);
-        
-        toast({
-          title: "Worksheet generated successfully!",
-          description: "Your custom worksheet is now ready to use."
-        });
       } else {
-        console.error('Invalid or incomplete worksheet data received:', worksheetData);
         throw new Error("Generated worksheet data is incomplete or invalid");
       }
+      
+      toast({
+        title: "Worksheet generated successfully!",
+        description: "Your custom worksheet is now ready to use.",
+        className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
+      });
     } catch (error) {
       console.error("Worksheet generation error:", error);
-      console.log('Falling back to mock data');
       
       // Fallback to mock data if generation fails
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));

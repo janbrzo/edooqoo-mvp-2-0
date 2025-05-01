@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 
 interface WorksheetRatingProps {
   onSubmitRating?: (rating: number, feedback: string) => void;
@@ -19,45 +18,24 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
   const [selected, setSelected] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
+  const [thanksOpen, setThanksOpen] = useState(false);
   
   const handleStarClick = (value: number) => {
     setSelected(value);
     setIsDialogOpen(true);
   };
   
-  const handleSubmit = async () => {
-    if (!selected) return;
+  const handleSubmit = () => {
+    setIsDialogOpen(false);
+    setThanksOpen(true);
+    setTimeout(() => setThanksOpen(false), 2500);
     
-    setIsSubmitting(true);
-    
-    try {
-      // Call the callback with rating and feedback
-      if (onSubmitRating) {
-        await onSubmitRating(selected, feedback);
-      }
-      
-      // Close the dialog and show toast notification
-      setIsDialogOpen(false);
-      
-      // Only show the toast notification
-      toast({
-        title: "Thank you for your feedback!",
-        description: "Your rating and comments help us improve our service."
-      });
-      
-    } catch (error) {
-      console.error("Error submitting feedback:", error);
-      toast({
-        title: "Feedback submission failed",
-        description: "We couldn't submit your feedback. Please try again later.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-      setFeedback("");
+    // Call the callback with rating and feedback
+    if (onSubmitRating && selected) {
+      onSubmitRating(selected, feedback);
     }
+    
+    setFeedback("");
   };
   
   return (
@@ -98,16 +76,10 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
           <Textarea id="feedbackTextarea" value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="Your feedback helps us improve our worksheet generator" rows={4} className="mb-3" />
           <div className="flex justify-end space-x-2 mt-2">
             <DialogClose asChild>
-              <Button size="sm" variant="outline" disabled={isSubmitting}>Cancel</Button>
+              <Button size="sm" variant="outline">Cancel</Button>
             </DialogClose>
-            <Button 
-              size="sm" 
-              variant="default" 
-              onClick={handleSubmit} 
-              className="bg-[#3d348b] text-white hover:bg-[#3d348b]/90"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Submitting..." : "Submit Feedback"}
+            <Button size="sm" variant="default" onClick={handleSubmit} className="bg-[#3d348b] text-white hover:bg-[#3d348b]/90">
+              Submit Feedback
             </Button>
           </div>
         </DialogContent>
