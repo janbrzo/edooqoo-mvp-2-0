@@ -40,6 +40,7 @@ interface WorksheetDisplayProps {
   onBack: () => void;
   wordBankOrder?: any;
   onDownload?: () => void;
+  onSubmitRating?: (rating: number, feedback: string) => void;
 }
 
 export default function WorksheetDisplay({
@@ -49,7 +50,8 @@ export default function WorksheetDisplay({
   sourceCount,
   onBack,
   wordBankOrder,
-  onDownload
+  onDownload,
+  onSubmitRating
 }: WorksheetDisplayProps) {
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
@@ -89,6 +91,7 @@ export default function WorksheetDisplay({
   
   const handleDownloadPDF = async () => {
     if (worksheetRef.current) {
+      // Only show toast notification, not modal
       toast({
         title: "Preparing PDF",
         description: "Your worksheet is being converted to PDF..."
@@ -141,6 +144,7 @@ export default function WorksheetDisplay({
         handleEdit={handleEdit}
         handleSave={handleSave}
         handleDownloadPDF={handleDownloadPDF}
+        onSubmitRating={onSubmitRating}
       />
     </div>
   );

@@ -5,8 +5,8 @@ import InputParamsCard from "../InputParamsCard";
 import WorksheetToolbar from "../WorksheetToolbar";
 import WorksheetContent from "../WorksheetContent";
 import TeacherNotes from "../TeacherNotes";
-import { useToast } from "@/hooks/use-toast";
 import { ArrowUp } from "lucide-react";
+import WorksheetRating from "@/components/WorksheetRating";
 
 interface WorksheetContainerProps {
   worksheet: any;
@@ -23,6 +23,7 @@ interface WorksheetContainerProps {
   handleEdit: () => void;
   handleSave: () => void;
   handleDownloadPDF: () => void;
+  onSubmitRating?: (rating: number, feedback: string) => void;
 }
 
 const WorksheetContainer: React.FC<WorksheetContainerProps> = ({
@@ -39,7 +40,8 @@ const WorksheetContainer: React.FC<WorksheetContainerProps> = ({
   scrollToTop,
   handleEdit,
   handleSave,
-  handleDownloadPDF
+  handleDownloadPDF,
+  onSubmitRating
 }) => {
   const worksheetRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +72,7 @@ const WorksheetContainer: React.FC<WorksheetContainerProps> = ({
       </div>
       
       <div data-no-pdf="true" className="rating-section mb-8">
-        {/* This div will be replaced with the WorksheetRating component in the WorksheetDisplayWrapper */}
+        {onSubmitRating && <WorksheetRating onSubmitRating={onSubmitRating} />}
       </div>
       
       <TeacherNotes />

@@ -38,9 +38,15 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
         await onSubmitRating(selected, feedback);
       }
       
+      // Close the dialog and show toast notification
       setIsDialogOpen(false);
       
-      // No more thank you popup, just rely on the toast notification
+      // Only show the toast notification
+      toast({
+        title: "Thank you for your feedback!",
+        description: "Your rating and comments help us improve our service."
+      });
+      
     } catch (error) {
       console.error("Error submitting feedback:", error);
       toast({
