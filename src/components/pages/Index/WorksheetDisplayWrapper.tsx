@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { ArrowUp } from "lucide-react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
@@ -77,17 +76,6 @@ const WorksheetDisplayWrapper: React.FC<WorksheetDisplayWrapperProps> = ({
     }
   };
 
-  // Create a React ref that we'll pass to the WorksheetDisplay component
-  const ratingRef = React.useRef<HTMLDivElement>(null);
-
-  // After render, find the rating-section div and insert our rating component there
-  useEffect(() => {
-    const ratingSection = document.querySelector('.rating-section');
-    if (ratingSection && ratingRef.current) {
-      ratingSection.appendChild(ratingRef.current);
-    }
-  }, []);
-
   return (
     <>
       <WorksheetDisplay 
@@ -99,12 +87,7 @@ const WorksheetDisplayWrapper: React.FC<WorksheetDisplayWrapperProps> = ({
         wordBankOrder={worksheet?.exercises?.find((ex: any) => ex.type === "matching")?.shuffledTerms?.map((item: any) => item.definition)}
         onDownload={handleDownloadEvent}
       />
-
-      {/* This component will be moved into the rating-section by the useEffect */}
-      <div ref={ratingRef}>
-        <WorksheetRating onSubmitRating={handleFeedbackSubmit} />
-      </div>
-
+      <WorksheetRating onSubmitRating={handleFeedbackSubmit} />
       {showScrollTop && (
         <button 
           onClick={scrollToTop}
