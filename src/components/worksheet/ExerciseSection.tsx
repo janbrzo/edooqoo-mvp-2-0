@@ -94,6 +94,25 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     handleDialogueChange(editableWorksheet, setEditableWorksheet, index, dialogueIndex, field, value);
   };
 
+  // Check if the exercise is empty/incomplete
+  const isExerciseIncomplete = () => {
+    if (!exercise) return true;
+    
+    if (exercise.type === 'reading') {
+      return !exercise.content || !exercise.questions || exercise.questions.length === 0;
+    } else if (exercise.type === 'matching') {
+      return !exercise.items || exercise.items.length === 0;
+    } else if (exercise.type === 'fill-in-blanks') {
+      return !exercise.sentences || exercise.sentences.length === 0 || !exercise.word_bank || exercise.word_bank.length === 0;
+    } else if (exercise.type === 'multiple-choice') {
+      return !exercise.questions || exercise.questions.length === 0;
+    } else if (exercise.type === 'dialogue') {
+      return !exercise.dialogue || exercise.dialogue.length === 0;
+    }
+    
+    return false;
+  };
+
   return (
     <div className="mb-4 bg-white border rounded-lg overflow-hidden shadow-sm avoid-page-break">
       <ExerciseHeader
@@ -134,12 +153,12 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
 
         {exercise.type === 'fill-in-blanks' && exercise.sentences && (
           <ExerciseFillInBlanks
-            word_bank={exercise.word_bank}
+            word_bank={exercise.word_bank || []}
             sentences={exercise.sentences}
             isEditing={isEditing}
             viewMode={viewMode}
             onWordBankChange={(wIndex, value) => {
-              const newWordBank = [...exercise.word_bank!];
+              const newWordBank = [...(exercise.word_bank || [])];
               newWordBank[wIndex] = value;
               const updatedExercises = [...editableWorksheet.exercises];
               updatedExercises[index] = {
@@ -229,6 +248,13 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
 
         {(exercise.type === 'error-correction' || exercise.type === 'word-formation' || exercise.type === 'word-order') && 
           exercise.sentences && renderOtherExerciseTypes(exercise, isEditing, viewMode, handleSentenceChangeLocal)}
+
+        {isExerciseIncomplete() && (
+          <div className="my-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-sm">
+            <div className="font-medium">This exercise is incomplete.</div>
+            <div>Some content may be missing. Please regenerate or edit the worksheet.</div>
+          </div>
+        )}
 
         <TeacherTipSection
           tip={exercise.teacher_tip}

@@ -77,6 +77,7 @@ const Index = () => {
         // Use the ID returned from the API or generate a temporary one
         const wsId = worksheetData.id || uuidv4();
         setWorksheetId(wsId);
+        worksheetData.id = wsId;
         
         // Log exercise count to verify
         console.log(`Generated worksheet with ${worksheetData.exercises.length} exercises`);
@@ -145,6 +146,7 @@ const Index = () => {
       
       const tempId = uuidv4();
       setWorksheetId(tempId);
+      fallbackWorksheet.id = tempId;
       setGeneratedWorksheet(fallbackWorksheet);
       
       // Let the user know we're using a fallback

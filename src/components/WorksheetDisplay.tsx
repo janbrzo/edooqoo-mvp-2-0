@@ -37,6 +37,7 @@ export interface Worksheet {
     term: string;
     meaning: string;
   }[];
+  id?: string;
 }
 
 interface WorksheetDisplayProps {
@@ -155,7 +156,7 @@ export default function WorksheetDisplay({
           handleDownloadPDF={handleDownloadPDF}
         />
 
-        <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>
+        <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef} data-worksheet-id={editableWorksheet.id || ''}>
           <div className="bg-white p-6 border rounded-lg shadow-sm mb-6">
             <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight">
               {isEditing ? (
@@ -224,7 +225,7 @@ export default function WorksheetDisplay({
           )}
           
           {/* Rating section above Teacher Notes */}
-          <WorksheetRating onSubmitRating={onDownload} />
+          <WorksheetRating onSubmitRating={onDownload} worksheetId={editableWorksheet.id} />
           
           {/* Teacher Notes Section (shown in both student and teacher view, but not in PDF) */}
           <div data-no-pdf="true">
@@ -241,6 +242,13 @@ export default function WorksheetDisplay({
         >
           <ArrowUp className="h-5 w-5" />
         </button>
+      )}
+      
+      {/* Make the worksheet ID available globally for troubleshooting */}
+      {editableWorksheet.id && (
+        <script dangerouslySetInnerHTML={{ 
+          __html: `window.currentWorksheetId = "${editableWorksheet.id}";` 
+        }} />
       )}
     </div>
   );

@@ -10,13 +10,14 @@ import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 
 interface WorksheetRatingProps {
   onSubmitRating?: (rating: number, feedback: string) => void;
+  worksheetId?: string;
 }
 
 /**
  * A modern-looking worksheet rating section with 1-5 stars and feedback modal.
  * Should not display on PDF.
  */
-const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => {
+const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, worksheetId: propWorksheetId }) => {
   const [hovered, setHovered] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -28,56 +29,15 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
   
   const handleStarClick = async (value: number) => {
     setSelected(value);
-    setIsSubmitting(true);
-    
-    try {
-      // Submit rating immediately when star is clicked
-      if (userId) {
-        let worksheetId = getWorksheetIdFromUrl();
-        
-        if (worksheetId) {
-          await submitWorksheetFeedback(worksheetId, value, '', userId);
-          toast({
-            title: "Rating submitted!",
-            description: "Thanks for your feedback. Add a comment for more details."
-          });
-          
-          // If user provided a callback, call it
-          if (onSubmitRating) {
-            onSubmitRating(value, '');
-          }
-        } else {
-          console.error("Could not determine worksheet ID");
-          toast({
-            title: "Rating submission failed",
-            description: "We couldn't find the worksheet ID. Please try again.",
-            variant: "destructive"
-          });
-        }
-      } else {
-        console.error("No user ID available");
-        toast({
-          title: "Authentication error",
-          description: "We couldn't identify your session. Please refresh the page and try again.",
-          variant: "destructive"
-        });
-      }
-      
-      // Then open dialog to collect additional comment
-      setIsDialogOpen(true);
-    } catch (error) {
-      console.error("Error submitting rating:", error);
-      toast({
-        title: "Rating submission failed",
-        description: "We couldn't submit your rating. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    setIsDialogOpen(true);
   };
   
   const getWorksheetIdFromUrl = (): string | null => {
+    // Try to get worksheet ID from props first
+    if (propWorksheetId) {
+      return propWorksheetId;
+    }
+    
     // Try to get worksheet ID from URL
     let worksheetId = null;
     
@@ -94,34 +54,56 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
       }
     }
     
+    // If still no ID, try to find it in the window object or DOM
+    if (!worksheetId) {
+      // Check if there's a global variable with worksheet data
+      if (window.hasOwnProperty('currentWorksheetId')) {
+        // @ts-ignore
+        worksheetId = window.currentWorksheetId;
+      }
+      
+      // Last resort - check if there's any element with id containing "worksheet"
+      if (!worksheetId) {
+        const worksheetContainer = document.getElementById('worksheet-content');
+        if (worksheetContainer && worksheetContainer.dataset && worksheetContainer.dataset.worksheetId) {
+          worksheetId = worksheetContainer.dataset.worksheetId;
+        }
+      }
+    }
+    
     return worksheetId;
   };
   
   const handleSubmit = async () => {
-    if (!selected || !userId) return;
+    if (!selected) return;
     setIsSubmitting(true);
     
     try {
+      // Get the worksheet ID
       const worksheetId = getWorksheetIdFromUrl();
       
-      if (worksheetId) {
-        await submitWorksheetFeedback(worksheetId, selected, feedback, userId);
-        
-        setIsDialogOpen(false);
-        setThanksOpen(true);
-        setTimeout(() => setThanksOpen(false), 2500);
-        
-        toast({
-          title: "Thank you for your feedback!",
-          description: "Your rating and comments help us improve our service."
-        });
-        
-        // Call the callback with rating and feedback
-        if (onSubmitRating) {
-          onSubmitRating(selected, feedback);
-        }
-      } else {
+      if (!worksheetId) {
         throw new Error("Could not determine worksheet ID");
+      }
+      
+      if (!userId) {
+        throw new Error("No user ID available");
+      }
+      
+      await submitWorksheetFeedback(worksheetId, selected, feedback, userId);
+      
+      setIsDialogOpen(false);
+      setThanksOpen(true);
+      setTimeout(() => setThanksOpen(false), 2500);
+      
+      toast({
+        title: "Thank you for your feedback!",
+        description: "Your rating and comments help us improve our service."
+      });
+      
+      // Call the callback with rating and feedback
+      if (onSubmitRating) {
+        onSubmitRating(selected, feedback);
       }
     } catch (error) {
       console.error("Error submitting feedback:", error);

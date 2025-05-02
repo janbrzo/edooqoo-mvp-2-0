@@ -22,11 +22,25 @@ serve(async (req) => {
     const { worksheetId, rating, comment, userId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
     
-    if (!worksheetId || !rating || !userId) {
-      throw new Error('Missing required parameters');
+    console.log('Submitting feedback with parameters:', { 
+      worksheetId, 
+      rating: rating || 'not provided', 
+      userId: userId || 'not provided',
+      commentLength: comment ? comment.length : 0, 
+      ip 
+    });
+    
+    if (!worksheetId) {
+      throw new Error('Missing required parameter: worksheetId');
     }
-
-    console.log('Submitting feedback:', { worksheetId, rating, comment: comment?.substring(0, 20) + '...', userId, ip });
+    
+    if (!rating) {
+      throw new Error('Missing required parameter: rating');
+    }
+    
+    if (!userId) {
+      throw new Error('Missing required parameter: userId');
+    }
 
     // First check if worksheet exists
     const { data: worksheetCheck, error: worksheetCheckError } = await supabase
@@ -63,6 +77,7 @@ serve(async (req) => {
     }
 
     // Insert feedback into database
+    console.log('Inserting feedback record');
     const { data: feedback, error: feedbackError } = await supabase
       .from('feedbacks')
       .insert({
@@ -80,21 +95,24 @@ serve(async (req) => {
     }
 
     // Log event
-    const { error: eventError } = await supabase.from('events').insert({
-      type: 'feedback',
-      event_type: 'feedback',
-      worksheet_id: worksheetId,
-      user_id: userId,
-      metadata: { rating, comment: comment || '', ip },
-      ip_address: ip
-    });
+    console.log('Logging feedback event');
+    const { error: eventError } = await supabase
+      .from('events')
+      .insert({
+        type: 'feedback',
+        event_type: 'feedback',
+        worksheet_id: worksheetId,
+        user_id: userId,
+        metadata: { rating, comment: comment || '', ip },
+        ip_address: ip
+      });
 
     if (eventError) {
       console.error('Error logging feedback event:', eventError);
       // Continue even if event logging fails
     }
 
-    console.log('Feedback submitted successfully');
+    console.log('Feedback submitted successfully:', feedback);
 
     return new Response(JSON.stringify({ 
       success: true, 

@@ -63,6 +63,15 @@ export async function generatePDF(
         .pdf-content-wrapper .exercise-questions {
           font-size: 14px !important;
         }
+        .pdf-content-wrapper .dialogue-section {
+          margin-bottom: 0.5rem !important;
+        }
+        .pdf-content-wrapper .dialogue-line {
+          margin-bottom: 0.25rem !important;
+        }
+        .avoid-page-break {
+          page-break-inside: avoid;
+        }
       }
     `;
     
@@ -103,11 +112,31 @@ export async function generatePDF(
       enableLinks: true
     };
     
-    // Create a custom promise to monitor the PDF generation process
-    const worker = html2pdf()
-      .from(clonedElement)
-      .set(opt)
-      .toPdf();
+    // Add page numbering
+    const worker = html2pdf().from(clonedElement).set(opt);
+    
+    // Add page numbers
+    worker.toContainer().then(function(container) {
+      // Add page numbers after rendering
+      let pages = container.querySelectorAll('.html2pdf__page-break');
+      let pageCount = pages.length + 1; // +1 because page breaks are between pages
+      
+      for (let i = 0; i < pageCount; i++) {
+        const pageNumberDiv = document.createElement('div');
+        pageNumberDiv.className = 'pdf-page-number';
+        pageNumberDiv.textContent = `Page ${i + 1} of ${pageCount}`;
+        
+        // Position the page number at the correct page
+        if (i === 0) {
+          container.firstChild.appendChild(pageNumberDiv);
+        } else if (i < pages.length) {
+          const pageBreak = pages[i-1];
+          pageBreak.parentNode.insertBefore(pageNumberDiv, pageBreak.nextSibling);
+        } else {
+          container.lastChild.appendChild(pageNumberDiv);
+        }
+      }
+    });
       
     // Remove any previous "Preparing PDF" message
     const existingMessage = document.getElementById('pdf-generation-message');
