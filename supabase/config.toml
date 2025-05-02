@@ -3,3 +3,6 @@ project_id = "bvfrkzdlklyvnhlpleck"
 
 [functions.generateWorksheet]
 verify_jwt = false
+
+[functions.submitFeedback]
+verify_jwt = false

@@ -1,4 +1,3 @@
-
 import React from "react";
 import ExerciseHeader from "./ExerciseHeader";
 import ExerciseContent from "./ExerciseContent";
@@ -54,6 +53,7 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   editableWorksheet,
   setEditableWorksheet
 }) => {
+  // Exercise update handlers
   const handleExerciseChange = (field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
     updatedExercises[index] = {
@@ -151,8 +151,58 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     return viewMode === 'teacher' ? items : [...items].sort(() => Math.random() - 0.5);
   };
 
+  // Helper function to render other exercise types
+  const renderOtherExerciseTypes = (exercise, isEditing, viewMode, handleSentenceChange) => (
+    <div>
+      <div className="space-y-0.5">
+        {exercise.sentences.map((sentence, sIndex) => (
+          <div key={sIndex} className="border-b pb-1">
+            <div className="flex flex-row items-start">
+              <div className="flex-grow">
+                <p className="leading-snug">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={sentence.text}
+                      onChange={e => handleSentenceChange(sIndex, 'text', e.target.value)}
+                      className="w-full border p-1 editable-content"
+                    />
+                  ) : (
+                    <>{sIndex + 1}. {
+                      exercise.type === 'word-formation' 
+                        ? sentence.text.replace(/_+/g, "_______________") 
+                        : sentence.text
+                    }</>
+                  )}
+                </p>
+              </div>
+              {viewMode === 'teacher' && (
+                <div className="text-green-600 italic ml-3 text-sm">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={sentence.answer || sentence.correction}
+                      onChange={e => handleSentenceChange(
+                        sIndex, 
+                        exercise.type === 'error-correction' ? 'correction' : 'answer', 
+                        e.target.value
+                      )}
+                      className="border p-1 editable-content w-full"
+                    />
+                  ) : (
+                    <span>({sentence.answer || sentence.correction})</span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
+    <div className="mb-4 bg-white border rounded-lg overflow-hidden shadow-sm">
       <ExerciseHeader
         icon={exercise.icon}
         title={exercise.title}
@@ -295,128 +345,8 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
           </div>
         )}
 
-        {exercise.type === 'error-correction' && exercise.sentences && (
-          <div>
-            <div className="space-y-0.5">
-              {exercise.sentences.map((sentence, sIndex) => (
-                <div key={sIndex} className="border-b pb-1">
-                  <div className="flex flex-row items-start">
-                    <div className="flex-grow">
-                      <p className="leading-snug">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.text}
-                            onChange={e => handleSentenceChange(sIndex, 'text', e.target.value)}
-                            className="w-full border p-1 editable-content"
-                          />
-                        ) : (
-                          <>{sIndex + 1}. {sentence.text}</>
-                        )}
-                      </p>
-                    </div>
-                    {viewMode === 'teacher' && (
-                      <div className="text-green-600 italic ml-3 text-sm">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.correction}
-                            onChange={e => handleSentenceChange(sIndex, 'correction', e.target.value)}
-                            className="border p-1 editable-content w-full"
-                          />
-                        ) : (
-                          <span>({sentence.correction})</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {exercise.type === 'word-formation' && exercise.sentences && (
-          <div>
-            <div className="space-y-0.5">
-              {exercise.sentences.map((sentence, sIndex) => (
-                <div key={sIndex} className="border-b pb-1">
-                  <div className="flex flex-row items-start">
-                    <div className="flex-grow">
-                      <p className="leading-snug">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.text}
-                            onChange={e => handleSentenceChange(sIndex, 'text', e.target.value)}
-                            className="w-full border p-1 editable-content"
-                          />
-                        ) : (
-                          <>{sIndex + 1}. {sentence.text.replace(/_+/g, "_______________")}</>
-                        )}
-                      </p>
-                    </div>
-                    {viewMode === 'teacher' && (
-                      <div className="text-green-600 italic ml-3 text-sm">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.answer}
-                            onChange={e => handleSentenceChange(sIndex, 'answer', e.target.value)}
-                            className="border p-1 editable-content w-full"
-                          />
-                        ) : (
-                          <span>({sentence.answer})</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {exercise.type === 'word-order' && exercise.sentences && (
-          <div>
-            <div className="space-y-0.5">
-              {exercise.sentences.map((sentence, sIndex) => (
-                <div key={sIndex} className="border-b pb-1">
-                  <div className="flex flex-row items-start">
-                    <div className="flex-grow">
-                      <p className="leading-snug">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.text}
-                            onChange={e => handleSentenceChange(sIndex, 'text', e.target.value)}
-                            className="w-full border p-1 editable-content"
-                          />
-                        ) : (
-                          <>{sIndex + 1}. {sentence.text}</>
-                        )}
-                      </p>
-                    </div>
-                    {viewMode === 'teacher' && (
-                      <div className="text-green-600 italic ml-3 text-sm">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={sentence.answer}
-                            onChange={e => handleSentenceChange(sIndex, 'answer', e.target.value)}
-                            className="border p-1 editable-content w-full"
-                          />
-                        ) : (
-                          <span>({sentence.answer})</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {(exercise.type === 'error-correction' || exercise.type === 'word-formation' || exercise.type === 'word-order') && 
+          exercise.sentences && renderOtherExerciseTypes(exercise, isEditing, viewMode, handleSentenceChange)}
 
         {viewMode === 'teacher' && (
           <TeacherTipSection
@@ -431,4 +361,3 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
 };
 
 export default ExerciseSection;
-

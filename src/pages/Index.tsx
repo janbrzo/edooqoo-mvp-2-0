@@ -14,27 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 // Import just as a fallback in case generation fails
 import mockWorksheetData from '@/mockWorksheetData';
 
-const getExercisesByTime = (exercises: any[], lessonTime: string) => {
-  if (lessonTime === "30 min") {
-    return exercises.slice(0, 4); // First 4 exercises for 30 min
-  } else if (lessonTime === "45 min") {
-    return exercises.slice(0, 6); // First 6 exercises for 45 min
-  } else if (lessonTime === "60 min") {
-    return exercises.slice(0, 8); // First 8 exercises for 60 min
-  }
-  return exercises.slice(0, 6); // Default to 6 exercises
-};
-
-const shuffleArray = (array: any[]) => {
-  const newArray = [...array];
-  for (let i = newArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-  }
-  return newArray;
-};
-
-export default function Index() {
+const Index = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedWorksheet, setGeneratedWorksheet] = useState<any>(null);
   const [inputParams, setInputParams] = useState<FormData | null>(null);
@@ -43,6 +23,7 @@ export default function Index() {
   const [sourceCount, setSourceCount] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [worksheetId, setWorksheetId] = useState<string | null>(null);
+  const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
   const { userId, loading: authLoading } = useAnonymousAuth();
 
   useEffect(() => {
@@ -73,7 +54,11 @@ export default function Index() {
     setInputParams(data);
     setIsGenerating(true);
     
-    // Show realistic generation metrics
+    // Record start time for accurate generation time
+    const startTime = Date.now();
+    setStartGenerationTime(startTime);
+    
+    // Show realistic generation metrics while generating
     setGenerationTime(Math.floor(Math.random() * (65 - 31) + 31));
     setSourceCount(Math.floor(Math.random() * (90 - 50) + 50));
     
@@ -82,6 +67,10 @@ export default function Index() {
       const worksheetData = await generateWorksheet(data, userId);
       
       console.log("Generated worksheet data:", worksheetData);
+      
+      // Calculate actual generation time
+      const actualGenerationTime = Math.round((Date.now() - startTime) / 1000);
+      setGenerationTime(actualGenerationTime);
       
       // If we have a real worksheet, use it
       if (worksheetData && worksheetData.exercises && worksheetData.title) {
@@ -131,7 +120,7 @@ export default function Index() {
         description: error instanceof Error 
           ? `Generation error: ${error.message}. Using a sample worksheet instead.` 
           : "An unexpected error occurred. Using a sample worksheet instead.",
-        variant: "destructive"  // Changed from "warning" to "destructive"
+        variant: "destructive"
       });
     } finally {
       setIsGenerating(false);
@@ -222,4 +211,27 @@ export default function Index() {
       
       <GeneratingModal isOpen={isGenerating} />
     </div>;
-}
+};
+
+// Helper functions
+const getExercisesByTime = (exercises: any[], lessonTime: string) => {
+  if (lessonTime === "30 min") {
+    return exercises.slice(0, 4); // First 4 exercises for 30 min
+  } else if (lessonTime === "45 min") {
+    return exercises.slice(0, 6); // First 6 exercises for 45 min
+  } else if (lessonTime === "60 min") {
+    return exercises.slice(0, 8); // First 8 exercises for 60 min
+  }
+  return exercises.slice(0, 6); // Default to 6 exercises
+};
+
+const shuffleArray = (array: any[]) => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
+export default Index;

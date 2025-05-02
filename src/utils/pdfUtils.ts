@@ -13,6 +13,10 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
     noPdfElements.forEach(el => el.remove());
     
+    // Remove all teacher tips sections when generating PDF
+    const teacherTips = clone.querySelectorAll('.teacher-tip');
+    teacherTips.forEach(el => el.remove());
+    
     // Create a temporary container for the cloned content
     const container = document.createElement('div');
     container.appendChild(clone);
@@ -28,6 +32,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     header.style.padding = '10px 0';
     header.style.borderBottom = '1px solid #ddd';
     header.style.color = '#3d348b';
+    header.style.fontSize = '14px';
     header.innerHTML = `${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version`;
     container.prepend(header);
     
@@ -41,28 +46,15 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     footer.innerHTML = 'Page <span class="pageNumber"></span> of <span class="totalPages"></span>';
     container.appendChild(footer);
     
-    // Add a loading indicator
-    const loadingElement = document.createElement('div');
-    loadingElement.style.position = 'fixed';
-    loadingElement.style.top = '50%';
-    loadingElement.style.left = '50%';
-    loadingElement.style.transform = 'translate(-50%, -50%)';
-    loadingElement.style.background = 'rgba(255, 255, 255, 0.8)';
-    loadingElement.style.padding = '20px';
-    loadingElement.style.borderRadius = '8px';
-    loadingElement.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-    loadingElement.style.zIndex = '9999';
-    loadingElement.innerHTML = '<div style="display: flex; flex-direction: column; align-items: center;"><div style="border: 4px solid #f3f3f3; border-top: 4px solid #3d348b; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite;"></div><div style="margin-top: 15px; font-weight: bold; color: #3d348b;">Preparing PDF...</div></div>';
-    document.body.appendChild(loadingElement);
-    
-    // Add a style for the loading animation
-    const style = document.createElement('style');
-    style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
-    document.head.appendChild(style);
+    // Remove excessive whitespace in the PDF
+    const spacers = clone.querySelectorAll('.mb-6, .mb-8');
+    spacers.forEach(el => {
+      (el as HTMLElement).style.marginBottom = '10px';
+    });
     
     // Configure html2pdf options
     const options = {
-      margin: [15, 15, 20, 15], // top, right, bottom, left
+      margin: [15, 7.5, 20, 7.5], // top, right, bottom, left (reduced side margins by half)
       filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
@@ -81,17 +73,12 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
         compress: true,
         quality: 100
       },
-      pagebreak: { mode: 'avoid-all', before: '.page-break' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'], before: '.page-break' },
       enableLinks: true
     };
     
     // Generate the PDF
     const result = await html2pdf().set(options).from(container.innerHTML).save();
-    
-    // Remove the temporary elements
-    document.body.removeChild(loadingElement);
-    document.head.removeChild(style);
-    
     return true;
   } catch (error) {
     console.error('Error generating PDF:', error);
@@ -120,8 +107,8 @@ export const exportAsHTML = (elementId: string, filename: string) => {
           <title>${filename}</title>
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-            h1 { color: #3d348b; }
-            h2 { color: #5e44a0; }
+            h1 { color: #3d348b; font-size: 24px; }
+            h2 { color: #5e44a0; font-size: 20px; }
             .exercise { margin-bottom: 2em; border: 1px solid #eee; padding: 1em; border-radius: 5px; }
             .exercise-header { display: flex; align-items: center; margin-bottom: 1em; }
             .exercise-icon { margin-right: 0.5em; }

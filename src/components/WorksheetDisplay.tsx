@@ -1,9 +1,7 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, Database, Download, Edit, Eye, Star, Zap, FileText, Info, Lightbulb, Pencil, User, UserCog, ArrowUp } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Clock, Database, Download, Edit, Eye, Star, Zap, ArrowUp } from "lucide-react";
 import { generatePDF, exportAsHTML } from "@/utils/pdfUtils";
 import { useToast } from "@/hooks/use-toast";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
@@ -11,7 +9,6 @@ import InputParamsCard from "./worksheet/InputParamsCard";
 import WorksheetToolbar from "./worksheet/WorksheetToolbar";
 import ExerciseSection from "./worksheet/ExerciseSection";
 import VocabularySheet from "./worksheet/VocabularySheet";
-import RatingSection from "./worksheet/RatingSection";
 import TeacherNotes from "./worksheet/TeacherNotes";
 
 interface Exercise {
@@ -64,12 +61,8 @@ export default function WorksheetDisplay({
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
   const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(worksheet);
-  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [feedback, setFeedback] = useState('');
   const [showScrollTop, setShowScrollTop] = useState(false);
   const worksheetRef = useRef<HTMLDivElement>(null);
-  
   const { toast } = useToast();
   
   const scrollToTop = () => {
@@ -88,19 +81,6 @@ export default function WorksheetDisplay({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
-  const shuffleArray = (array: any[]) => {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
-  };
-
-  const getMatchedItems = (items: any[]) => {
-    return viewMode === 'teacher' ? items : shuffleArray([...items]);
-  };
-  
   const handleEdit = () => {
     setIsEditing(true);
   };
@@ -115,12 +95,14 @@ export default function WorksheetDisplay({
   
   const handleDownloadPDF = async () => {
     if (worksheetRef.current) {
-      toast({
-        title: "Preparing PDF",
-        description: "Your worksheet is being converted to PDF..."
-      });
       try {
-        const result = await generatePDF('worksheet-content', `${editableWorksheet.title.replace(/\s+/g, '_')}.pdf`, viewMode === 'teacher', editableWorksheet.title);
+        // Create current date format YYYY-MM-DD
+        const today = new Date();
+        const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const viewModeText = viewMode === 'teacher' ? 'Teacher' : 'Student';
+        const filename = `${formattedDate}-${viewModeText}-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.pdf`;
+        
+        const result = await generatePDF('worksheet-content', filename, viewMode === 'teacher', editableWorksheet.title);
         if (result) {
           toast({
             title: "PDF Downloaded",
@@ -145,133 +127,6 @@ export default function WorksheetDisplay({
         });
       }
     }
-  };
-
-  const getIconComponent = (iconName: string) => {
-    switch (iconName) {
-      case "fa-book-open":
-        return <Eye className="h-5 w-5" />;
-      case "fa-link":
-        return <Database className="h-5 w-5" />;
-      case "fa-pencil-alt":
-        return <Pencil className="h-5 w-5" />;
-      case "fa-check-square":
-        return <Star className="h-5 w-5" />;
-      case "fa-comments":
-        return <User className="h-5 w-5" />;
-      case "fa-question-circle":
-        return <Lightbulb className="h-5 w-5" />;
-      default:
-        return <Eye className="h-5 w-5" />;
-    }
-  };
-  
-  const handleExerciseChange = (index: number, field: string, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    updatedExercises[index] = {
-      ...updatedExercises[index],
-      [field]: value
-    };
-    setEditableWorksheet({
-      ...editableWorksheet,
-      exercises: updatedExercises
-    });
-  };
-  
-  const handleQuestionChange = (exerciseIndex: number, questionIndex: number, field: string, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    const exercise = updatedExercises[exerciseIndex];
-    if (exercise.questions) {
-      exercise.questions[questionIndex] = {
-        ...exercise.questions[questionIndex],
-        [field]: value
-      };
-      setEditableWorksheet({
-        ...editableWorksheet,
-        exercises: updatedExercises
-      });
-    }
-  };
-  
-  const handleSentenceChange = (exerciseIndex: number, sentenceIndex: number, field: string, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    const exercise = updatedExercises[exerciseIndex];
-    if (exercise.sentences) {
-      exercise.sentences[sentenceIndex] = {
-        ...exercise.sentences[sentenceIndex],
-        [field]: value
-      };
-      setEditableWorksheet({
-        ...editableWorksheet,
-        exercises: updatedExercises
-      });
-    }
-  };
-  
-  const handleItemChange = (exerciseIndex: number, itemIndex: number, field: string, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    const exercise = updatedExercises[exerciseIndex];
-    if (exercise.items) {
-      exercise.items[itemIndex] = {
-        ...exercise.items[itemIndex],
-        [field]: value
-      };
-      setEditableWorksheet({
-        ...editableWorksheet,
-        exercises: updatedExercises
-      });
-    }
-  };
-  
-  const handleDialogueChange = (exerciseIndex: number, dialogueIndex: number, field: string, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    const exercise = updatedExercises[exerciseIndex];
-    if (exercise.dialogue) {
-      exercise.dialogue[dialogueIndex] = {
-        ...exercise.dialogue[dialogueIndex],
-        [field]: value
-      };
-      setEditableWorksheet({
-        ...editableWorksheet,
-        exercises: updatedExercises
-      });
-    }
-  };
-  
-  const handleExpressionChange = (exerciseIndex: number, expressionIndex: number, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    const exercise = updatedExercises[exerciseIndex];
-    if (exercise.expressions) {
-      exercise.expressions[expressionIndex] = value;
-      setEditableWorksheet({
-        ...editableWorksheet,
-        exercises: updatedExercises
-      });
-    }
-  };
-  
-  const handleTeacherTipChange = (exerciseIndex: number, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    updatedExercises[exerciseIndex].teacher_tip = value;
-    setEditableWorksheet({
-      ...editableWorksheet,
-      exercises: updatedExercises
-    });
-  };
-  
-  const getExercisesByTime = (exercises: Exercise[], time: string) => {
-    if (time === "30 min") return exercises.slice(0, 4);
-    if (time === "45 min") return exercises.slice(0, 6);
-    return exercises.slice(0, 8); // 60 min gets 8 exercises
-  };
-
-  const handleSubmitRating = () => {
-    console.log("Submitted rating:", rating, "with feedback:", feedback);
-    setRatingDialogOpen(false);
-    toast({
-      title: "Thank you for your feedback!",
-      description: "Your rating and comments help us improve our service."
-    });
   };
 
   return (
@@ -359,16 +214,9 @@ export default function WorksheetDisplay({
               setEditableWorksheet={setEditableWorksheet}
             />
           )}
-
-          <RatingSection
-            rating={rating}
-            setRating={setRating}
-            feedback={feedback}
-            setFeedback={setFeedback}
-            handleSubmitRating={handleSubmitRating}
-          />
-
-          <TeacherNotes />
+          
+          {/* Teacher Notes Section (will be removed in PDF generation) */}
+          {viewMode === 'teacher' && <TeacherNotes />}
         </div>
       </div>
       
