@@ -48,7 +48,6 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   editableWorksheet,
   setEditableWorksheet
 }) => {
-  // Handle changes to exercise fields
   const handleExerciseChange = (exerciseIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
     updatedExercises[exerciseIndex] = {
@@ -61,7 +60,6 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     });
   };
 
-  // Handle changes to question fields
   const handleQuestionChange = (exerciseIndex: number, questionIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
     const exerciseCopy = updatedExercises[exerciseIndex];
@@ -77,7 +75,6 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     }
   };
 
-  // Handle changes to matching item fields
   const handleItemChange = (exerciseIndex: number, itemIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
     const exerciseCopy = updatedExercises[exerciseIndex];
@@ -93,7 +90,6 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     }
   };
 
-  // Handle changes to fill-in-blanks sentence fields
   const handleSentenceChange = (exerciseIndex: number, sentenceIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
     const exerciseCopy = updatedExercises[exerciseIndex];
@@ -109,7 +105,6 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     }
   };
 
-  // Handle changes to expression fields
   const handleExpressionChange = (exerciseIndex: number, expressionIndex: number, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
     const exerciseCopy = updatedExercises[exerciseIndex];
@@ -122,7 +117,6 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     }
   };
 
-  // Handle changes to teacher tip fields
   const handleTeacherTipChange = (exerciseIndex: number, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
     updatedExercises[exerciseIndex].teacher_tip = value;
@@ -132,7 +126,6 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     });
   };
 
-  // Handle changes to dialogue fields
   const handleDialogueChange = (exerciseIndex: number, dialogueIndex: number, field: string, value: string) => {
     const updatedExercises = [...editableWorksheet.exercises];
     const exerciseCopy = updatedExercises[exerciseIndex];

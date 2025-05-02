@@ -40,7 +40,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     // Parse the response as JSON directly
     const worksheetData = await response.json();
     
-    // Use the actual generation time from the API if provided, otherwise calculate it
+    // Calculate the actual generation time if not provided by the API
     if (!worksheetData.generationTime) {
       worksheetData.generationTime = Math.floor((Date.now() - startTime) / 1000);
     }
@@ -124,7 +124,7 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
         rating,
         comment,
         status: 'submitted'
-      }).select();
+      });
       
       if (error) {
         throw error;
