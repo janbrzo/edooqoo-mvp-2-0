@@ -37,7 +37,6 @@ export interface Worksheet {
     term: string;
     meaning: string;
   }[];
-  id?: string;
 }
 
 interface WorksheetDisplayProps {
@@ -63,44 +62,8 @@ export default function WorksheetDisplay({
   const [isEditing, setIsEditing] = useState(false);
   const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(worksheet);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const worksheetRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  
-  // Validing if worksheet has proper structure
-  useEffect(() => {
-    if (!worksheet?.exercises || !Array.isArray(worksheet.exercises)) {
-      setError("Arkusz pracy nie został poprawnie wygenerowany. Brak ćwiczeń.");
-      console.error("Invalid worksheet structure:", worksheet);
-      return;
-    }
-    
-    // Check if exercises are missing content
-    const incompleteExercises = worksheet.exercises.filter(exercise => {
-      if (exercise.type === "reading" && (!exercise.content || !exercise.questions)) {
-        return true;
-      }
-      if (exercise.type === "matching" && (!exercise.items || exercise.items.length === 0)) {
-        return true;
-      }
-      if (exercise.type === "multiple-choice" && (!exercise.questions || exercise.questions.length === 0)) {
-        return true;
-      }
-      if (exercise.type === "fill-in-blanks" && (!exercise.sentences || !exercise.word_bank)) {
-        return true;
-      }
-      return false;
-    });
-    
-    if (incompleteExercises.length > 0) {
-      console.warn(`${incompleteExercises.length} exercises might be incomplete:`, incompleteExercises);
-    }
-  }, [worksheet]);
-  
-  // Update editableWorksheet when the original worksheet changes
-  useEffect(() => {
-    setEditableWorksheet(worksheet);
-  }, [worksheet]);
   
   const scrollToTop = () => {
     window.scrollTo({
@@ -125,8 +88,8 @@ export default function WorksheetDisplay({
   const handleSave = () => {
     setIsEditing(false);
     toast({
-      title: "Zmiany zapisane",
-      description: "Twój arkusz został zaktualizowany pomyślnie."
+      title: "Changes saved",
+      description: "Your worksheet has been updated successfully."
     });
   };
   
@@ -149,61 +112,29 @@ export default function WorksheetDisplay({
         const result = await generatePDF('worksheet-content', filename, viewMode === 'teacher', editableWorksheet.title);
         if (result) {
           toast({
-            title: "PDF pobrany",
-            description: "Twój arkusz został pobrany pomyślnie."
+            title: "PDF Downloaded",
+            description: "Your worksheet has been downloaded successfully."
           });
           if (onDownload) {
             onDownload();
           }
         } else {
           toast({
-            title: "Generowanie PDF nie powiodło się",
-            description: "Wystąpił błąd podczas generowania twojego PDF. Spróbuj ponownie.",
+            title: "PDF Generation Failed",
+            description: "There was an error generating your PDF. Please try again.",
             variant: "destructive"
           });
         }
       } catch (error) {
         console.error('PDF generation error:', error);
         toast({
-          title: "Generowanie PDF nie powiodło się",
-          description: "Wystąpił błąd podczas generowania twojego PDF. Spróbuj ponownie.",
+          title: "PDF Generation Failed",
+          description: "There was an error generating your PDF. Please try again.",
           variant: "destructive"
         });
       }
     }
   };
-
-  // Display error message if worksheet is invalid
-  if (error) {
-    return (
-      <div className="container mx-auto py-6">
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Błąd wyświetlania arkusza</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>{error}</p>
-              </div>
-              <div className="mt-4">
-                <button
-                  type="button"
-                  className="bg-worksheet-purple text-white px-4 py-2 rounded hover:bg-worksheet-purpleDark transition-colors"
-                  onClick={onBack}
-                >
-                  <ArrowLeft className="inline-block h-4 w-4 mr-1" /> Wróć do formularza
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto py-6">
@@ -224,7 +155,7 @@ export default function WorksheetDisplay({
           handleDownloadPDF={handleDownloadPDF}
         />
 
-        <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef} data-worksheet-id={editableWorksheet.id || ''}>
+        <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>
           <div className="bg-white p-6 border rounded-lg shadow-sm mb-6">
             <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight">
               {isEditing ? (
@@ -270,7 +201,7 @@ export default function WorksheetDisplay({
             </div>
           </div>
 
-          {editableWorksheet.exercises && editableWorksheet.exercises.map((exercise, index) => (
+          {editableWorksheet.exercises.map((exercise, index) => (
             <ExerciseSection
               key={index}
               exercise={exercise}
@@ -293,7 +224,7 @@ export default function WorksheetDisplay({
           )}
           
           {/* Rating section above Teacher Notes */}
-          <WorksheetRating onSubmitRating={onDownload} worksheetId={editableWorksheet.id} />
+          <WorksheetRating onSubmitRating={onDownload} />
           
           {/* Teacher Notes Section (shown in both student and teacher view, but not in PDF) */}
           <div data-no-pdf="true">
@@ -310,13 +241,6 @@ export default function WorksheetDisplay({
         >
           <ArrowUp className="h-5 w-5" />
         </button>
-      )}
-      
-      {/* Make the worksheet ID available globally for troubleshooting */}
-      {editableWorksheet.id && (
-        <script dangerouslySetInnerHTML={{ 
-          __html: `window.currentWorksheetId = "${editableWorksheet.id}";` 
-        }} />
       )}
     </div>
   );

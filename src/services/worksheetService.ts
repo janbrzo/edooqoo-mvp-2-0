@@ -55,29 +55,6 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       throw new Error('No exercises found in generated worksheet');
     }
     
-    // Ensure we have proper word count for reading exercises
-    worksheetData.exercises = worksheetData.exercises.map((exercise: any) => {
-      if (exercise.type === "reading" && exercise.content) {
-        const wordCount = exercise.content.split(/\s+/).filter((w: string) => w.trim() !== '').length;
-        if (wordCount < 280) {
-          console.warn(`Reading exercise too short (${wordCount} words), padding content`);
-          // Create padding text
-          const lorem = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, diam quis aliquam ultricies, nisl nunc ultricies nunc, quis ultricies nisl nunc vel magna. Nam vitae ex vitae nisl ultricies ultricies.`;
-          
-          // Add padding until we reach at least 280 words
-          let paddedContent = exercise.content;
-          while (paddedContent.split(/\s+/).filter((w: string) => w.trim() !== '').length < 280) {
-            paddedContent += ' ' + lorem;
-          }
-          
-          // Trim to max 320 words if needed
-          const words = paddedContent.split(/\s+/).filter((w: string) => w.trim() !== '');
-          exercise.content = words.slice(0, Math.min(320, words.length)).join(' ');
-        }
-      }
-      return exercise;
-    });
-    
     // Track view event if worksheetId exists
     if (worksheetData.id && userId) {
       try {
@@ -124,33 +101,6 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
       
       // Fallback to direct Supabase insert if edge function fails
       console.log('Falling back to direct Supabase insert...');
-      
-      // First try to create a placeholder worksheet if it doesn't exist
-      try {
-        const wsCheck = await supabase
-          .from('worksheets')
-          .select('id')
-          .eq('id', worksheetId)
-          .single();
-        
-        if (wsCheck.error && wsCheck.error.code === 'PGRST116') {
-          console.log('Worksheet not found, creating placeholder');
-          await supabase
-            .from('worksheets')
-            .insert({
-              id: worksheetId,
-              prompt: 'Placeholder for feedback',
-              html_content: '{}',
-              status: 'placeholder',
-              user_id: userId,
-              title: 'Placeholder worksheet'
-            });
-        }
-      } catch (wsError) {
-        console.warn('Error checking/creating worksheet:', wsError);
-      }
-      
-      // Now insert the feedback
       const { data, error } = await supabase
         .from('feedbacks')
         .insert({
@@ -165,13 +115,8 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
         console.error('Supabase insert error:', error);
         throw new Error(`Failed to submit feedback: ${error.message}`);
       }
-      
-      try {
-        await trackEvent('feedback', worksheetId, userId, { rating, comment });
-      } catch (trackError) {
-        console.warn('Failed to track feedback event:', trackError);
-      }
-      
+        
+      await trackEvent('feedback', worksheetId, userId, { rating, comment });
       return data;
     }
     
@@ -204,33 +149,6 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
     }
     
     console.log(`Tracking event: ${type} for worksheet: ${worksheetId}`);
-    
-    // First try to create a placeholder worksheet if it doesn't exist
-    try {
-      const wsCheck = await supabase
-        .from('worksheets')
-        .select('id')
-        .eq('id', worksheetId)
-        .single();
-      
-      if (wsCheck.error && wsCheck.error.code === 'PGRST116') {
-        console.log('Worksheet not found, creating placeholder before tracking event');
-        await supabase
-          .from('worksheets')
-          .insert({
-            id: worksheetId,
-            prompt: 'Placeholder for tracking',
-            html_content: '{}',
-            status: 'placeholder',
-            user_id: userId,
-            title: 'Placeholder worksheet'
-          });
-      }
-    } catch (wsError) {
-      console.warn('Error checking/creating worksheet before event:', wsError);
-    }
-    
-    // Now track the event
     const { data, error } = await supabase.from('events').insert({
       type,
       event_type: type,
@@ -242,6 +160,7 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
 
     if (error) {
       console.error(`Error tracking ${type} event:`, error);
+      console.error('Full error details:', error);
     } else {
       console.log(`Successfully tracked ${type} event:`, data);
     }
@@ -249,7 +168,6 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
     return data;
   } catch (error) {
     console.error(`Error tracking ${type} event:`, error);
-    // Don't throw errors for tracking - it should be non-blocking
-    return null;
+    throw error;
   }
 }

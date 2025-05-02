@@ -197,18 +197,7 @@ Before finalizing your response, verify the following:
 6. Formatting is consistent throughout the worksheet
 7. All required exercises are complete with the specified number of items
 8. Exercise types are varied and appropriate for the lesson goals
-9. The total number of exercises matches the required ${exerciseCount} for the lesson duration
-
-Please analyze your worksheet and check for the following quality issues:
-1. Grammar errors
-2. Spelling mistakes
-3. Unclear instructions
-4. Inappropriate difficulty level
-5. Lack of specific vocabulary related to the topic
-6. Inconsistent formatting
-7. Missing or incomplete exercises
-
-FIX ALL ISSUES BEFORE RETURNING THE FINAL WORKSHEET!`
+9. The total number of exercises matches the required ${exerciseCount} for the lesson duration`
         },
         {
           role: "user",
@@ -242,63 +231,60 @@ FIX ALL ISSUES BEFORE RETURNING THE FINAL WORKSHEET!`
           if (wordCount < 280 || wordCount > 320) {
             console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
             
-            // Always try to fix if the word count is not in the required range
-            const expandResponse = await openai.chat.completions.create({
-              model: "gpt-4o",
-              temperature: 0.7,
-              messages: [
-                {
-                  role: "system",
-                  content: "You are an expert at expanding or shortening text while maintaining the same style, context and quality."
-                },
-                {
-                  role: "user",
-                  content: `The following text has ${wordCount} words but needs to have between 280-320 words. 
-                  Please rewrite it to the right length (EXACTLY between 280-320 words) while maintaining the style and topic. 
-                  Just return the adjusted text without any other comments or explanations.
-                  Original text: "${exercise.content}"`
-                }
-              ]
-            });
-              
-            const expandedText = expandResponse.choices[0].message.content;
-            // Check if the expanded text is within our target range
-            const expandedWordCount = expandedText.split(/\s+/).length;
-            console.log(`Adjusted text word count: ${expandedWordCount}`);
-              
-            if (expandedWordCount >= 280 && expandedWordCount <= 320) {
-              exercise.content = expandedText;
-              console.log(`Successfully adjusted reading text from ${wordCount} to ${expandedWordCount} words`);
-            } else {
-              console.log(`Adjustment failed. Word count: ${expandedWordCount}`);
-              // Try one more time with clearer instructions
-              const secondExpandResponse = await openai.chat.completions.create({
+            // Try to fix if we're within a reasonable range
+            if (wordCount > 200 && wordCount < 280) {
+              // Need to expand - generate more content with OpenAI
+              const expandResponse = await openai.chat.completions.create({
                 model: "gpt-4o",
-                temperature: 0.5,
+                temperature: 0.7,
                 messages: [
                   {
                     role: "system",
-                    content: "You must rewrite the text to exactly 300 words (between 295-305 is acceptable). Just return the rewritten text."
+                    content: "You are an expert at expanding text while maintaining the same style and context."
                   },
                   {
                     role: "user",
-                    content: `Rewrite this text to EXACTLY 300 words (295-305 words is acceptable). Original text: "${exercise.content}"`
+                    content: `The following text has ${wordCount} words but needs to have between 280-320 words. 
+                    Please expand it to the right length (AT LEAST 280 words) while maintaining the style and topic. 
+                    Original text: "${exercise.content}"`
                   }
                 ]
               });
-                
-              const secondExpandedText = secondExpandResponse.choices[0].message.content;
-              const secondExpandedWordCount = secondExpandedText.split(/\s+/).length;
-              console.log(`Second adjustment attempt word count: ${secondExpandedWordCount}`);
-                
-              if (secondExpandedWordCount >= 280 && secondExpandedWordCount <= 320) {
-                exercise.content = secondExpandedText;
-                console.log(`Successfully adjusted reading text on second attempt from ${wordCount} to ${secondExpandedWordCount} words`);
+              
+              const expandedText = expandResponse.choices[0].message.content;
+              // Check if the expanded text is within our target range
+              const expandedWordCount = expandedText.split(/\s+/).length;
+              if (expandedWordCount >= 280 && expandedWordCount <= 320) {
+                exercise.content = expandedText;
+                console.log(`Successfully expanded reading text from ${wordCount} to ${expandedWordCount} words`);
               } else {
-                // Last resort - use placeholder text with the right word count
-                const filler = Array(300).fill("word").join(" ").substring(0, 1800);
-                exercise.content = filler;
-                console.log("Using placeholder text after failing to adjust word count");
+                console.log(`Expansion failed. Word count: ${expandedWordCount}`);
+                // Try one more time with clearer instructions
+                const secondExpandResponse = await openai.chat.completions.create({
+                  model: "gpt-4o",
+                  temperature: 0.5,
+                  messages: [
+                    {
+                      role: "system",
+                      content: "You are an expert ESL content creator who can precisely expand texts to meet word count requirements."
+                    },
+                    {
+                      role: "user",
+                      content: `I need this text to be EXACTLY 300 words (between 295-305 is acceptable). 
+                      It currently has ${wordCount} words, which is too short. Please expand it while maintaining the same style and topic.
+                      Original text: "${exercise.content}"`
+                    }
+                  ]
+                });
+                
+                const secondExpandedText = secondExpandResponse.choices[0].message.content;
+                const secondExpandedWordCount = secondExpandedText.split(/\s+/).length;
+                console.log(`Second expansion attempt word count: ${secondExpandedWordCount}`);
+                
+                if (secondExpandedWordCount >= 280 && secondExpandedWordCount <= 320) {
+                  exercise.content = secondExpandedText;
+                  console.log(`Successfully expanded reading text on second attempt from ${wordCount} to ${secondExpandedWordCount} words`);
+                }
               }
             }
           }
@@ -317,82 +303,10 @@ FIX ALL ISSUES BEFORE RETURNING THE FINAL WORKSHEET!`
           }
         } else if (exercise.type === 'matching' && (!exercise.items || exercise.items.length < 10)) {
           console.error(`Matching exercise has fewer than 10 items: ${exercise.items?.length || 0}`);
-          // Add dummy items if needed
-          if (!exercise.items) exercise.items = [];
-          while (exercise.items.length < 10) {
-            exercise.items.push({
-              term: `Term ${exercise.items.length + 1}`,
-              definition: `Definition for term ${exercise.items.length + 1}`
-            });
-          }
-        } else if (exercise.type === 'fill-in-blanks') {
-          // Ensure we have word_bank and sentences
-          if (!exercise.word_bank || exercise.word_bank.length < 10) {
-            console.error(`Fill-in-blanks exercise has fewer than 10 words in word bank: ${exercise.word_bank?.length || 0}`);
-            if (!exercise.word_bank) exercise.word_bank = [];
-            while (exercise.word_bank.length < 10) {
-              exercise.word_bank.push(`word${exercise.word_bank.length + 1}`);
-            }
-          }
-          
-          if (!exercise.sentences || exercise.sentences.length < 10) {
-            console.error(`Fill-in-blanks exercise has fewer than 10 sentences: ${exercise.sentences?.length || 0}`);
-            if (!exercise.sentences) exercise.sentences = [];
-            while (exercise.sentences.length < 10) {
-              const wordIndex = exercise.sentences.length % exercise.word_bank.length;
-              exercise.sentences.push({
-                text: `Sentence ${exercise.sentences.length + 1} with a _____ to complete.`,
-                answer: exercise.word_bank[wordIndex]
-              });
-            }
-          }
+        } else if (exercise.type === 'fill-in-blanks' && (!exercise.sentences || exercise.sentences.length < 10)) {
+          console.error(`Fill-in-blanks exercise has fewer than 10 sentences: ${exercise.sentences?.length || 0}`);
         } else if (exercise.type === 'multiple-choice' && (!exercise.questions || exercise.questions.length < 10)) {
           console.error(`Multiple-choice exercise has fewer than 10 questions: ${exercise.questions?.length || 0}`);
-          if (!exercise.questions) exercise.questions = [];
-          while (exercise.questions.length < 10) {
-            exercise.questions.push({
-              text: `Question ${exercise.questions.length + 1}: Choose the correct option.`,
-              options: [
-                { label: "A", text: "Option A", correct: exercise.questions.length % 4 === 0 },
-                { label: "B", text: "Option B", correct: exercise.questions.length % 4 === 1 },
-                { label: "C", text: "Option C", correct: exercise.questions.length % 4 === 2 },
-                { label: "D", text: "Option D", correct: exercise.questions.length % 4 === 3 }
-              ]
-            });
-          }
-        } else if (exercise.type === 'dialogue') {
-          // Ensure enough dialogue lines
-          if (!exercise.dialogue || exercise.dialogue.length < 10) {
-            console.error(`Dialogue exercise has fewer than 10 exchanges: ${exercise.dialogue?.length || 0}`);
-            if (!exercise.dialogue) exercise.dialogue = [];
-            while (exercise.dialogue.length < 10) {
-              const isEven = exercise.dialogue.length % 2 === 0;
-              exercise.dialogue.push({
-                speaker: isEven ? "Person A" : "Person B",
-                text: isEven ? 
-                  `This is line ${exercise.dialogue.length + 1} of the dialogue from Person A.` :
-                  `This is line ${exercise.dialogue.length + 1} of the dialogue from Person B.`
-              });
-            }
-          }
-          
-          // Ensure enough expressions
-          if (!exercise.expressions || exercise.expressions.length < 10) {
-            console.error(`Dialogue exercise has fewer than 10 expressions: ${exercise.expressions?.length || 0}`);
-            if (!exercise.expressions) exercise.expressions = [];
-            while (exercise.expressions.length < 10) {
-              exercise.expressions.push(`Expression ${exercise.expressions.length + 1} for the dialogue practice`);
-            }
-          }
-          
-          if (!exercise.expression_instruction) {
-            exercise.expression_instruction = "Practice using these expressions in your own dialogues.";
-          }
-        }
-        
-        // Ensure all exercises have a teacher tip
-        if (!exercise.teacher_tip) {
-          exercise.teacher_tip = `Tip for teachers on teaching this ${exercise.type} exercise.`;
         }
       }
       
@@ -443,14 +357,11 @@ IMPORTANT RULES AND REQUIREMENTS:
 7. Make sure each exercise is appropriate for ESL students.
 8. Each exercise MUST have a teacher_tip field.
 9. Use appropriate time values for each exercise (5-10 minutes).
-10. Return ONLY the JSON array of exercises.
-
-DO NOT USE PLACEHOLDERS - write complete, high-quality content for every field.
-DO NOT leave any exercise incomplete - all exercise content must be fully developed.`
+10. Return ONLY the JSON array of exercises.`
               },
               {
                 role: "user",
-                content: `Generate ${additionalExercisesCount} additional exercises for this existing worksheet on: "${prompt}". Make them complete with all required fields and content.`
+                content: `Generate ${additionalExercisesCount} additional exercises for this existing worksheet on: "${prompt}"`
               }
             ],
             max_tokens: 3500
@@ -466,70 +377,17 @@ DO NOT leave any exercise incomplete - all exercise content must be fully develo
             // Clean up any non-JSON text before or after the JSON content
             additionalJson = additionalJson.replace(/^\s*\[?/, '[').replace(/\]?\s*$/, ']');
             
-            let additionalExercises;
-            try {
-              additionalExercises = JSON.parse(additionalJson);
-            } catch (jsonError) {
-              console.error('Failed to parse additional exercises JSON:', jsonError);
-              // Try to repair the JSON by removing common formatting issues
-              additionalJson = additionalJson.replace(/,\s*\]/g, ']'); // Remove trailing commas in arrays
-              try {
-                additionalExercises = JSON.parse(additionalJson);
-              } catch (secondJsonError) {
-                console.error('Still failed to parse JSON after repair attempt');
-                // Fall back to generating individual exercises
-                additionalExercises = [];
-              }
-            }
+            const additionalExercises = JSON.parse(additionalJson);
             
-            if (Array.isArray(additionalExercises) && additionalExercises.length > 0) {
+            if (Array.isArray(additionalExercises)) {
               worksheetData.exercises = [...worksheetData.exercises, ...additionalExercises];
               console.log(`Successfully added ${additionalExercises.length} exercises`);
-              
-              // Verify each added exercise is complete
-              for (let i = worksheetData.exercises.length - additionalExercises.length; i < worksheetData.exercises.length; i++) {
-                const ex = worksheetData.exercises[i];
-                if (ex.type === 'reading' && (!ex.content || ex.content.split(/\s+/).length < 280)) {
-                  console.log(`Exercise ${i+1} is reading but content is incomplete. Fixing...`);
-                  // Generate content for this reading exercise specifically
-                  const contentResponse = await openai.chat.completions.create({
-                    model: "gpt-4o",
-                    temperature: 0.7,
-                    messages: [
-                      {
-                        role: "system",
-                        content: "Generate a reading passage of EXACTLY 300 words on the given topic. Just return the text with no comments."
-                      },
-                      {
-                        role: "user",
-                        content: `Generate a reading passage for ESL students on the topic: "${prompt}" - MUST be between 280-320 words.`
-                      }
-                    ]
-                  });
-                  ex.content = contentResponse.choices[0].message.content;
-                  
-                  // Also ensure it has 5 questions
-                  if (!ex.questions || ex.questions.length < 5) {
-                    ex.questions = Array(5).fill(null).map((_, idx) => ({
-                      text: `Question ${idx + 1} about the reading passage.`,
-                      answer: `Answer to question ${idx + 1}.`
-                    }));
-                  }
-                }
-              }
             } else {
-              console.error('Additional exercises not returned as an array or is empty');
-              
-              // Create fallback exercises
-              for (let i = 0; i < additionalExercisesCount; i++) {
-                const exerciseType = ['multiple-choice', 'fill-in-blanks', 'matching'][i % 3];
-                const newExercise = createExerciseOfType(exerciseType, worksheetData.exercises.length + 1);
-                worksheetData.exercises.push(newExercise);
-              }
-              console.log(`Created ${additionalExercisesCount} fallback exercises`);
+              console.error('Additional exercises not returned as an array');
             }
           } catch (parseErr) {
             console.error('Failed to parse additional exercises:', parseErr);
+            console.log('Raw additional content:', additionalResponse.choices[0].message.content);
             
             // Try another approach - generate one exercise at a time
             for (let i = 0; i < additionalExercisesCount; i++) {
@@ -540,18 +398,13 @@ DO NOT leave any exercise incomplete - all exercise content must be fully develo
                   messages: [
                     {
                       role: "system",
-                      content: `Generate a single complete ESL exercise in JSON format for: "${prompt}".
+                      content: `Generate a single ESL exercise in JSON format for: "${prompt}".
                       Choose from: reading, matching, fill-in-blanks, multiple-choice, dialogue.
-                      ONLY OUTPUT VALID JSON for one exercise with all required fields and content.
-                      For reading exercises, ensure 280-320 words and 5 questions.
-                      For matching, include 10 items.
-                      For fill-in-blanks, include 10 sentences and 10 words.
-                      For multiple-choice, include 10 questions with 4 options each.
-                      For dialogue, include 10+ exchanges and 10 expressions.`
+                      ONLY OUTPUT VALID JSON for one exercise. No text outside the JSON.`
                     },
                     {
                       role: "user",
-                      content: `Generate exercise #${i+1} of ${additionalExercisesCount} as a complete, high-quality exercise with full content and no placeholders.`
+                      content: `Generate exercise #${i+1} of ${additionalExercisesCount}`
                     }
                   ],
                   max_tokens: 1500
@@ -559,36 +412,14 @@ DO NOT leave any exercise incomplete - all exercise content must be fully develo
                 
                 const singleExerciseContent = singleExerciseResponse.choices[0].message.content;
                 try {
-                  let jsonMatch = singleExerciseContent.match(/```json\s*([\s\S]*?)\s*```/);
-                  let exerciseJson = jsonMatch ? jsonMatch[1] : singleExerciseContent;
-                  
-                  try {
-                    let singleExercise = JSON.parse(exerciseJson);
-                    worksheetData.exercises.push(singleExercise);
-                    console.log(`Successfully added exercise #${i+1}`);
-                  } catch (singleParseErr) {
-                    console.error(`Failed to parse exercise #${i+1}:`, singleParseErr);
-                    // Add fallback exercise
-                    const exerciseType = ['multiple-choice', 'fill-in-blanks', 'matching'][i % 3];
-                    const newExercise = createExerciseOfType(exerciseType, worksheetData.exercises.length + 1);
-                    worksheetData.exercises.push(newExercise);
-                    console.log(`Added fallback exercise for #${i+1}`);
-                  }
-                } catch (singleErr) {
-                  console.error(`Error generating exercise #${i+1}:`, singleErr);
-                  // Add fallback exercise
-                  const exerciseType = ['multiple-choice', 'fill-in-blanks', 'matching'][i % 3];
-                  const newExercise = createExerciseOfType(exerciseType, worksheetData.exercises.length + 1);
-                  worksheetData.exercises.push(newExercise);
-                  console.log(`Added fallback exercise for #${i+1} after error`);
+                  let singleExercise = JSON.parse(singleExerciseContent);
+                  worksheetData.exercises.push(singleExercise);
+                  console.log(`Successfully added exercise #${i+1}`);
+                } catch (singleParseErr) {
+                  console.error(`Failed to parse exercise #${i+1}:`, singleParseErr);
                 }
               } catch (singleErr) {
                 console.error(`Error generating exercise #${i+1}:`, singleErr);
-                // Add fallback exercise
-                const exerciseType = ['multiple-choice', 'fill-in-blanks', 'matching'][i % 3];
-                const newExercise = createExerciseOfType(exerciseType, worksheetData.exercises.length + 1);
-                worksheetData.exercises.push(newExercise);
-                console.log(`Added fallback exercise for #${i+1} after OpenAI error`);
               }
             }
           }
@@ -601,16 +432,11 @@ DO NOT leave any exercise incomplete - all exercise content must be fully develo
           const finalWordCount = exercise.content?.split(/\s+/).length || 0;
           if (finalWordCount < 280) {
             console.log(`Final reading exercise still too short: ${finalWordCount} words`);
-            // Emergency padding - add generic sentences to reach minimum count
-            const wordsNeeded = 280 - finalWordCount;
-            const paddingText = " " + Array(wordsNeeded).fill("word").join(" ");
-            exercise.content += paddingText;
-            console.log(`Emergency padding added. New count: ${exercise.content.split(/\s+/).length}`);
           }
         }
       }
       
-      // Ensure we have the target number of exercises and they're all complete
+      // Ensure we have the target number of exercises
       worksheetData.exercises = worksheetData.exercises.slice(0, exerciseCount);
       
       // Count API sources used for accurate stats
@@ -620,60 +446,6 @@ DO NOT leave any exercise incomplete - all exercise content must be fully develo
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
       throw new Error('Failed to generate a valid worksheet structure. Please try again.');
-    }
-
-    // Helper function to create an exercise of a specific type
-    function createExerciseOfType(type, number) {
-      switch (type) {
-        case 'multiple-choice':
-          return {
-            type: "multiple-choice",
-            title: `Exercise ${number}: Multiple Choice`,
-            icon: "fa-check-square",
-            time: 6,
-            instructions: "Choose the best option to complete each sentence.",
-            questions: Array(10).fill(null).map((_, i) => ({
-              text: `Question ${i + 1}: Choose the correct option.`,
-              options: [
-                { label: "A", text: "Option A", correct: i % 4 === 0 },
-                { label: "B", text: "Option B", correct: i % 4 === 1 },
-                { label: "C", text: "Option C", correct: i % 4 === 2 },
-                { label: "D", text: "Option D", correct: i % 4 === 3 }
-              ]
-            })),
-            teacher_tip: "Tip for teachers: Review these options with students."
-          };
-        case 'fill-in-blanks':
-          return {
-            type: "fill-in-blanks",
-            title: `Exercise ${number}: Fill in the Blanks`,
-            icon: "fa-pencil-alt",
-            time: 7,
-            instructions: "Complete each sentence with the correct word from the box.",
-            word_bank: Array(10).fill(null).map((_, i) => `word${i + 1}`),
-            sentences: Array(10).fill(null).map((_, i) => ({
-              text: `Sentence ${i + 1} with a _____ to complete.`,
-              answer: `word${i + 1}`
-            })),
-            teacher_tip: "Tip for teachers: Review vocabulary before starting."
-          };
-        case 'matching':
-          return {
-            type: "matching",
-            title: `Exercise ${number}: Vocabulary Matching`,
-            icon: "fa-link",
-            time: 6,
-            instructions: "Match each term with its correct definition.",
-            items: Array(10).fill(null).map((_, i) => ({
-              term: `Term ${i + 1}`,
-              definition: `Definition ${i + 1}`
-            })),
-            teacher_tip: "Tip for teachers: Allow students to work in pairs."
-          };
-        default:
-          // Default to multiple choice if type is not handled
-          return createExerciseOfType('multiple-choice', number);
-      }
     }
 
     // Save worksheet to database
@@ -702,7 +474,7 @@ DO NOT leave any exercise incomplete - all exercise content must be fully develo
         if (worksheetError) {
           console.error("RPC error:", worksheetError);
         } else {
-          console.log("RPC successful, worksheet saved with ID:", worksheet && worksheet[0]?.id);
+          console.log("RPC successful, worksheet saved");
         }
       } catch (rpcError) {
         console.error('RPC method not available or failed, falling back to direct insert:', rpcError);
@@ -729,13 +501,12 @@ DO NOT leave any exercise incomplete - all exercise content must be fully develo
       }
 
       // Track generation event if we have a worksheet ID
-      if (worksheet?.id || (worksheet && worksheet[0]?.id)) {
-        const worksheetId = worksheet?.id || worksheet[0]?.id;
+      if (worksheet?.id) {
         console.log("Recording worksheet generation event...");
         const eventResult = await supabase.from('events').insert({
           type: 'generate',
           event_type: 'generate',
-          worksheet_id: worksheetId,
+          worksheet_id: worksheet.id,
           user_id: userId,
           metadata: { prompt, ip },
           ip_address: ip
@@ -744,11 +515,11 @@ DO NOT leave any exercise incomplete - all exercise content must be fully develo
         if (eventResult.error) {
           console.error('Error tracking event:', eventResult.error);
         } else {
-          console.log('Event tracked successfully for worksheet ID:', worksheetId);
+          console.log('Event tracked successfully for worksheet ID:', worksheet.id);
         }
         
         // Add the ID to the worksheet data so frontend can use it
-        worksheetData.id = worksheetId;
+        worksheetData.id = worksheet.id;
       } else {
         console.warn("No worksheet ID available, cannot track event or link worksheet ID");
       }

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 import { generateWorksheet } from "@/services/worksheetService";
@@ -24,7 +24,6 @@ const Index = () => {
   const [sourceCount, setSourceCount] = useState(0);
   const [worksheetId, setWorksheetId] = useState<string | null>(null);
   const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
-  const [generationError, setGenerationError] = useState<string | null>(null);
   
   // Hooks
   const { toast } = useToast();
@@ -34,14 +33,11 @@ const Index = () => {
    * Handles form submission and worksheet generation
    */
   const handleFormSubmit = async (data: FormData) => {
-    // Reset error state
-    setGenerationError(null);
-    
     // Check for valid user session
     if (!userId) {
       toast({
-        title: "Błąd uwierzytelniania",
-        description: "Wystąpił problem z Twoją sesją. Proszę odświeżyć stronę i spróbować ponownie.",
+        title: "Authentication error",
+        description: "There was a problem with your session. Please refresh the page and try again.",
         variant: "destructive"
       });
       return;
@@ -81,7 +77,6 @@ const Index = () => {
         // Use the ID returned from the API or generate a temporary one
         const wsId = worksheetData.id || uuidv4();
         setWorksheetId(wsId);
-        worksheetData.id = wsId;
         
         // Log exercise count to verify
         console.log(`Generated worksheet with ${worksheetData.exercises.length} exercises`);
@@ -100,43 +95,11 @@ const Index = () => {
           worksheetData.exercises = worksheetData.exercises.slice(0, expectedExerciseCount);
         }
         
-        // Verify each exercise is complete and has proper content
-        worksheetData.exercises = worksheetData.exercises.map((exercise: any, index: number) => {
-          // Deep check reading content
-          if (exercise.type === "reading" && (!exercise.content || exercise.content.split(/\s+/).filter((w: string) => w.trim() !== '').length < 280)) {
-            console.warn("Reading exercise content is too short, replacing with better content");
-            exercise.content = generatePlaceholderReadingContent(280);
-            
-            // Ensure it has questions
-            if (!exercise.questions || exercise.questions.length < 5) {
-              exercise.questions = Array(5).fill(null).map((_, i) => ({
-                text: `Question ${i + 1} about the reading content.`,
-                answer: `Sample answer to question ${i + 1}.`
-              }));
-            }
-          }
-          
-          // Ensure other exercise types have proper content
-          if (exercise.type === "multiple-choice" && (!exercise.questions || exercise.questions.length < 10)) {
-            exercise.questions = Array(10).fill(null).map((_, i) => ({
-              text: `Question ${i + 1}: Choose the correct option.`,
-              options: [
-                { label: "A", text: `Option A for question ${i + 1}`, correct: i % 4 === 0 },
-                { label: "B", text: `Option B for question ${i + 1}`, correct: i % 4 === 1 },
-                { label: "C", text: `Option C for question ${i + 1}`, correct: i % 4 === 2 },
-                { label: "D", text: `Option D for question ${i + 1}`, correct: i % 4 === 3 }
-              ]
-            }));
-          }
-          
-          return exercise;
-        });
-        
         setGeneratedWorksheet(worksheetData);
         
         toast({
-          title: "Arkusz wygenerowany pomyślnie!",
-          description: "Twój niestandardowy arkusz jest teraz gotowy do użycia.",
+          title: "Worksheet generated successfully!",
+          description: "Your custom worksheet is now ready to use.",
           className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
         });
       } else {
@@ -144,7 +107,6 @@ const Index = () => {
       }
     } catch (error) {
       console.error("Worksheet generation error:", error);
-      setGenerationError(error instanceof Error ? error.message : "Nieznany błąd");
       
       // Fallback to mock data if generation fails
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
@@ -173,7 +135,9 @@ const Index = () => {
           
           if (wordCount < 280) {
             // Pad the content to reach minimum word count
-            exercise.content = generatePlaceholderReadingContent(280);
+            const additionalWordsNeeded = 280 - wordCount;
+            const additionalContent = Array(additionalWordsNeeded).fill("word").join(" ");
+            exercise.content += " " + additionalContent;
             console.log(`Padded reading exercise to ${exercise.content.split(/\s+/).length} words`);
           }
         }
@@ -181,15 +145,14 @@ const Index = () => {
       
       const tempId = uuidv4();
       setWorksheetId(tempId);
-      fallbackWorksheet.id = tempId;
       setGeneratedWorksheet(fallbackWorksheet);
       
       // Let the user know we're using a fallback
       toast({
-        title: "Używam przykładowego arkusza",
+        title: "Using sample worksheet",
         description: error instanceof Error 
-          ? `Błąd generowania: ${error.message}. Używam przykładowego arkusza w zamian.` 
-          : "Wystąpił nieoczekiwany błąd. Używam przykładowego arkusza w zamian.",
+          ? `Generation error: ${error.message}. Using a sample worksheet instead.` 
+          : "An unexpected error occurred. Using a sample worksheet instead.",
         variant: "destructive"
       });
     } finally {
@@ -204,24 +167,6 @@ const Index = () => {
     setGeneratedWorksheet(null);
     setInputParams(null);
     setWorksheetId(null);
-    setGenerationError(null);
-  };
-
-  /**
-   * Generate placeholder reading content with the minimum required words
-   */
-  const generatePlaceholderReadingContent = (minWordCount: number) => {
-    const lorem = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, diam quis aliquam ultricies, nisl nunc ultricies nunc, quis ultricies nisl nunc vel magna. Nam vitae ex vitae nisl ultricies ultricies. Sed euismod, diam quis aliquam ultricies, nisl nunc ultricies nunc, quis ultricies nisl nunc vel magna. Nam vitae ex vitae nisl ultricies ultricies. Sed euismod, diam quis aliquam ultricies, nisl nunc ultricies nunc, quis ultricies nisl nunc vel magna. Nam vitae ex vitae nisl ultricies ultricies. Fusce at dolor sit amet felis suscipit tristique. Nam a imperdiet tellus. Nulla eu vestibulum urna. Vivamus tincidunt suscipit enim, nec ultrices nisi volutpat ac. Maecenas sit amet lacinia arcu, non dictum justo. Donec sed quam vel risus faucibus euismod. Suspendisse rhoncus rhoncus felis at fermentum. Donec lorem magna, ultricies a nunc sit amet, blandit fringilla nunc. Vestibulum luctus maximus dui, vitae tempus justo. Morbi consectetur vulputate est, non congue massa pharetra in. Curabitur consectetur dictum rhoncus. Phasellus et ultrices metus. Vivamus purus metus, luctus in vestibulum at, laoreet efficitur nisi. Phasellus in erat eu tortor rhoncus tempor.`;
-    
-    // Repeat the lorem ipsum text until we have enough words
-    let content = '';
-    while (content.split(/\s+/).filter(word => word.trim() !== '').length < minWordCount) {
-      content += ' ' + lorem;
-    }
-    
-    // Trim to be between 280-320 words
-    const words = content.split(/\s+/).filter(word => word.trim() !== '');
-    return words.slice(0, Math.min(320, Math.max(280, words.length))).join(' ');
   };
 
   /**
@@ -237,10 +182,10 @@ const Index = () => {
       questions: Array(10).fill(null).map((_, i) => ({
         text: `Question ${i + 1}: Choose the correct option.`,
         options: [
-          { label: "A", text: `Option A for question ${i + 1}`, correct: i % 4 === 0 },
-          { label: "B", text: `Option B for question ${i + 1}`, correct: i % 4 === 1 },
-          { label: "C", text: `Option C for question ${i + 1}`, correct: i % 4 === 2 },
-          { label: "D", text: `Option D for question ${i + 1}`, correct: i % 4 === 3 }
+          { label: "A", text: "Option A", correct: i % 4 === 0 },
+          { label: "B", text: "Option B", correct: i % 4 === 1 },
+          { label: "C", text: "Option C", correct: i % 4 === 2 },
+          { label: "D", text: "Option D", correct: i % 4 === 3 }
         ]
       })),
       teacher_tip: "Tip for teachers: Review these options with students."
@@ -265,35 +210,6 @@ const Index = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin h-8 w-8 border-4 border-worksheet-purple border-t-transparent rounded-full"></div>
-      </div>
-    );
-  }
-
-  // Show error message if there's a generation error (outside the normal workflow)
-  if (generationError && !generatedWorksheet) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 w-full max-w-2xl">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Wystąpił błąd podczas generowania arkusza</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>{generationError}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <button 
-          onClick={() => setGenerationError(null)}
-          className="bg-worksheet-purple text-white px-4 py-2 rounded hover:bg-worksheet-purpleDark transition-colors"
-        >
-          Spróbuj ponownie
-        </button>
       </div>
     );
   }
