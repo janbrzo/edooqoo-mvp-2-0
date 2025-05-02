@@ -4,6 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { submitWorksheetFeedback } from "@/services/worksheetService";
+import { useToast } from "@/hooks/use-toast";
+import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 
 interface WorksheetRatingProps {
   onSubmitRating?: (rating: number, feedback: string) => void;
@@ -19,20 +22,81 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [thanksOpen, setThanksOpen] = useState(false);
+  const { toast } = useToast();
+  const { userId } = useAnonymousAuth();
   
-  const handleStarClick = (value: number) => {
+  const handleStarClick = async (value: number) => {
     setSelected(value);
-    setIsDialogOpen(true);
+    
+    try {
+      // Submit rating immediately when star is clicked
+      if (userId && window.location.href.includes('worksheet_id=')) {
+        const worksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
+        if (worksheetId) {
+          await submitWorksheetFeedback(worksheetId, value, '', userId);
+          toast({
+            title: "Rating submitted!",
+            description: "Thanks for your feedback. Add a comment for more details."
+          });
+        }
+      }
+      
+      // Then open dialog to collect additional comment
+      setIsDialogOpen(true);
+    } catch (error) {
+      console.error("Error submitting rating:", error);
+      toast({
+        title: "Rating submission failed",
+        description: "We couldn't submit your rating. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
-  const handleSubmit = () => {
-    setIsDialogOpen(false);
-    setThanksOpen(true);
-    setTimeout(() => setThanksOpen(false), 2500);
+  const handleSubmit = async () => {
+    if (!selected || !userId) return;
     
-    // Call the callback with rating and feedback
-    if (onSubmitRating && selected) {
-      onSubmitRating(selected, feedback);
+    try {
+      // Try to get worksheet ID from URL
+      let worksheetId = null;
+      if (window.location.href.includes('worksheet_id=')) {
+        worksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
+      }
+      
+      // If no worksheet ID in URL, check for other elements
+      if (!worksheetId) {
+        const worksheetElements = document.querySelectorAll('[data-worksheet-id]');
+        if (worksheetElements.length > 0) {
+          worksheetId = worksheetElements[0].getAttribute('data-worksheet-id');
+        }
+      }
+      
+      if (worksheetId) {
+        await submitWorksheetFeedback(worksheetId, selected, feedback, userId);
+        
+        setIsDialogOpen(false);
+        setThanksOpen(true);
+        setTimeout(() => setThanksOpen(false), 2500);
+        
+        toast({
+          title: "Thank you for your feedback!",
+          description: "Your rating and comments help us improve our service."
+        });
+        
+        // Call the callback with rating and feedback
+        if (onSubmitRating) {
+          onSubmitRating(selected, feedback);
+        }
+      } else {
+        throw new Error("Could not determine worksheet ID");
+      }
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      toast({
+        title: "Feedback submission failed",
+        description: "We couldn't submit your feedback. Please try again later.",
+        variant: "destructive"
+      });
     }
     
     setFeedback("");
@@ -58,6 +122,12 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
             </button>
           ))}
         </div>
+        
+        {thanksOpen && (
+          <p className="text-green-500 font-medium animate-fade-in">
+            Thank you for your feedback!
+          </p>
+        )}
       </div>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

@@ -63,6 +63,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
         
         if (wordCount < 280 || wordCount > 320) {
           console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
+          // We'll let the main component handle this warning
         }
         
         if (!exercise.questions || exercise.questions.length < 5) {
@@ -92,45 +93,48 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
   try {
     console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
     
-    // First try using direct Supabase insert (simpler approach)
-    const { data, error } = await supabase
-      .from('feedbacks')
-      .insert([
-        { 
-          worksheet_id: worksheetId, 
-          user_id: userId, 
-          rating, 
-          comment,
-          status: 'submitted'
-        }
-      ]);
-      
-    if (error) {
-      console.error('Supabase insert error:', error);
-      
-      // Fallback to using the edge function if direct insert fails
-      const response = await fetch(SUBMIT_FEEDBACK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          worksheetId,
-          rating,
-          comment,
-          userId
-        })
-      });
+    // Try using the edge function
+    const response = await fetch(SUBMIT_FEEDBACK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        worksheetId,
+        rating,
+        comment,
+        userId
+      })
+    });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to submit feedback via API: ${errorText}`);
-      }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error submitting feedback via API:', errorText);
       
-      return await response.json();
+      // Fallback to direct Supabase insert if edge function fails
+      const { data, error } = await supabase
+        .from('feedbacks')
+        .insert([
+          { 
+            worksheet_id: worksheetId, 
+            user_id: userId, 
+            rating, 
+            comment,
+            status: 'new' // Using 'new' status since that appears to be the required value based on error
+          }
+        ]);
+        
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw new Error(`Failed to submit feedback: ${error.message}`);
+      }
+        
+      return data;
     }
     
-    return data;
+    const result = await response.json();
+    console.log('Feedback submission successful:', result);
+    return result;
   } catch (error) {
     console.error('Error submitting feedback:', error);
     throw error;
@@ -154,11 +158,14 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
       event_type: type,
       worksheet_id: worksheetId,
       user_id: userId,
-      metadata
+      metadata,
+      ip_address: "client-side" // Since we can't get IP on client side
     });
 
     if (error) {
       console.error(`Error tracking ${type} event:`, error);
+    } else {
+      console.log(`Successfully tracked ${type} event`);
     }
   } catch (error) {
     console.error(`Error tracking ${type} event:`, error);

@@ -1,3 +1,4 @@
+
 import React from "react";
 import ExerciseHeader from "./ExerciseHeader";
 import ExerciseContent from "./ExerciseContent";
@@ -7,6 +8,17 @@ import ExerciseFillInBlanks from "./ExerciseFillInBlanks";
 import ExerciseMultipleChoice from "./ExerciseMultipleChoice";
 import TeacherTipSection from "./TeacherTipSection";
 import ExerciseDialogue from "./ExerciseDialogue";
+import {
+  handleExerciseChange,
+  handleQuestionChange,
+  handleItemChange,
+  handleSentenceChange,
+  handleExpressionChange,
+  handleTeacherTipChange,
+  handleDialogueChange,
+  getMatchedItems,
+  renderOtherExerciseTypes
+} from "./ExerciseSectionUtils";
 
 interface Exercise {
   type: string;
@@ -53,153 +65,34 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   editableWorksheet,
   setEditableWorksheet
 }) => {
-  // Exercise update handlers
-  const handleExerciseChange = (field: string, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    updatedExercises[index] = {
-      ...updatedExercises[index],
-      [field]: value
-    };
-    setEditableWorksheet({
-      ...editableWorksheet,
-      exercises: updatedExercises
-    });
+  // Exercise update handlers using the utility functions
+  const handleExerciseChangeLocal = (field: string, value: string) => {
+    handleExerciseChange(editableWorksheet, setEditableWorksheet, index, field, value);
   };
 
-  const handleQuestionChange = (questionIndex: number, field: string, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    const exerciseCopy = updatedExercises[index];
-    if (exerciseCopy.questions) {
-      exerciseCopy.questions[questionIndex] = {
-        ...exerciseCopy.questions[questionIndex],
-        [field]: value
-      };
-      setEditableWorksheet({
-        ...editableWorksheet,
-        exercises: updatedExercises
-      });
-    }
+  const handleQuestionChangeLocal = (questionIndex: number, field: string, value: string) => {
+    handleQuestionChange(editableWorksheet, setEditableWorksheet, index, questionIndex, field, value);
   };
 
-  const handleItemChange = (itemIndex: number, field: string, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    const exerciseCopy = updatedExercises[index];
-    if (exerciseCopy.items) {
-      exerciseCopy.items[itemIndex] = {
-        ...exerciseCopy.items[itemIndex],
-        [field]: value
-      };
-      setEditableWorksheet({
-        ...editableWorksheet,
-        exercises: updatedExercises
-      });
-    }
+  const handleItemChangeLocal = (itemIndex: number, field: string, value: string) => {
+    handleItemChange(editableWorksheet, setEditableWorksheet, index, itemIndex, field, value);
   };
 
-  const handleSentenceChange = (sentenceIndex: number, field: string, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    const exerciseCopy = updatedExercises[index];
-    if (exerciseCopy.sentences) {
-      exerciseCopy.sentences[sentenceIndex] = {
-        ...exerciseCopy.sentences[sentenceIndex],
-        [field]: value
-      };
-      setEditableWorksheet({
-        ...editableWorksheet,
-        exercises: updatedExercises
-      });
-    }
+  const handleSentenceChangeLocal = (sentenceIndex: number, field: string, value: string) => {
+    handleSentenceChange(editableWorksheet, setEditableWorksheet, index, sentenceIndex, field, value);
   };
 
-  const handleExpressionChange = (expressionIndex: number, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    const exerciseCopy = updatedExercises[index];
-    if (exerciseCopy.expressions) {
-      exerciseCopy.expressions[expressionIndex] = value;
-      setEditableWorksheet({
-        ...editableWorksheet,
-        exercises: updatedExercises
-      });
-    }
+  const handleExpressionChangeLocal = (expressionIndex: number, value: string) => {
+    handleExpressionChange(editableWorksheet, setEditableWorksheet, index, expressionIndex, value);
   };
 
-  const handleTeacherTipChange = (value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    updatedExercises[index].teacher_tip = value;
-    setEditableWorksheet({
-      ...editableWorksheet,
-      exercises: updatedExercises
-    });
+  const handleTeacherTipChangeLocal = (value: string) => {
+    handleTeacherTipChange(editableWorksheet, setEditableWorksheet, index, value);
   };
 
-  const handleDialogueChange = (dialogueIndex: number, field: string, value: string) => {
-    const updatedExercises = [...editableWorksheet.exercises];
-    const exerciseCopy = updatedExercises[index];
-    if (exerciseCopy.dialogue) {
-      exerciseCopy.dialogue[dialogueIndex] = {
-        ...exerciseCopy.dialogue[dialogueIndex],
-        [field]: value
-      };
-      setEditableWorksheet({
-        ...editableWorksheet,
-        exercises: updatedExercises
-      });
-    }
+  const handleDialogueChangeLocal = (dialogueIndex: number, field: string, value: string) => {
+    handleDialogueChange(editableWorksheet, setEditableWorksheet, index, dialogueIndex, field, value);
   };
-
-  const getMatchedItems = (items: any[]) => {
-    return viewMode === 'teacher' ? items : [...items].sort(() => Math.random() - 0.5);
-  };
-
-  // Helper function to render other exercise types
-  const renderOtherExerciseTypes = (exercise, isEditing, viewMode, handleSentenceChange) => (
-    <div>
-      <div className="space-y-0.5">
-        {exercise.sentences.map((sentence, sIndex) => (
-          <div key={sIndex} className="border-b pb-1">
-            <div className="flex flex-row items-start">
-              <div className="flex-grow">
-                <p className="leading-snug">
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={sentence.text}
-                      onChange={e => handleSentenceChange(sIndex, 'text', e.target.value)}
-                      className="w-full border p-1 editable-content"
-                    />
-                  ) : (
-                    <>{sIndex + 1}. {
-                      exercise.type === 'word-formation' 
-                        ? sentence.text.replace(/_+/g, "_______________") 
-                        : sentence.text
-                    }</>
-                  )}
-                </p>
-              </div>
-              {viewMode === 'teacher' && (
-                <div className="text-green-600 italic ml-3 text-sm">
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={sentence.answer || sentence.correction}
-                      onChange={e => handleSentenceChange(
-                        sIndex, 
-                        exercise.type === 'error-correction' ? 'correction' : 'answer', 
-                        e.target.value
-                      )}
-                      className="border p-1 editable-content w-full"
-                    />
-                  ) : (
-                    <span>({sentence.answer || sentence.correction})</span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
   return (
     <div className="mb-4 bg-white border rounded-lg overflow-hidden shadow-sm">
@@ -208,16 +101,16 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
         title={exercise.title}
         isEditing={isEditing}
         time={exercise.time}
-        onTitleChange={val => handleExerciseChange('title', val)}
+        onTitleChange={val => handleExerciseChangeLocal('title', val)}
       />
 
       <div className="p-5">
         <ExerciseContent
           instructions={exercise.instructions}
           isEditing={isEditing}
-          onInstructionsChange={val => handleExerciseChange('instructions', val)}
+          onInstructionsChange={val => handleExerciseChangeLocal('instructions', val)}
           content={exercise.content}
-          onContentChange={val => handleExerciseChange('content', val)}
+          onContentChange={val => handleExerciseChangeLocal('content', val)}
         />
 
         {exercise.type === 'reading' && exercise.questions && (
@@ -225,7 +118,7 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
             questions={exercise.questions}
             isEditing={isEditing}
             viewMode={viewMode}
-            onQuestionChange={handleQuestionChange}
+            onQuestionChange={handleQuestionChangeLocal}
           />
         )}
 
@@ -234,8 +127,8 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
             items={exercise.items}
             isEditing={isEditing}
             viewMode={viewMode}
-            getMatchedItems={getMatchedItems}
-            onItemChange={handleItemChange}
+            getMatchedItems={() => getMatchedItems(exercise.items, viewMode)}
+            onItemChange={handleItemChangeLocal}
           />
         )}
 
@@ -258,18 +151,7 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
                 exercises: updatedExercises
               });
             }}
-            onSentenceChange={(sIndex, field, value) => {
-              const updatedExercises = [...editableWorksheet.exercises];
-              const ex = updatedExercises[index];
-              ex.sentences[sIndex] = {
-                ...ex.sentences[sIndex],
-                [field]: value
-              };
-              setEditableWorksheet({
-                ...editableWorksheet,
-                exercises: updatedExercises
-              });
-            }}
+            onSentenceChange={handleSentenceChangeLocal}
           />
         )}
 
@@ -278,7 +160,7 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
             questions={exercise.questions}
             isEditing={isEditing}
             viewMode={viewMode}
-            onQuestionTextChange={(qIndex, value) => handleQuestionChange(qIndex, 'text', value)}
+            onQuestionTextChange={(qIndex, value) => handleQuestionChangeLocal(qIndex, 'text', value)}
             onOptionTextChange={(qIndex, oIndex, value) => {
               const updatedExercises = [...editableWorksheet.exercises];
               const question = updatedExercises[index].questions[qIndex];
@@ -306,15 +188,15 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
             expression_instruction={exercise.expression_instruction}
             isEditing={isEditing}
             viewMode={viewMode}
-            onDialogueChange={handleDialogueChange}
-            onExpressionChange={handleExpressionChange}
-            onExpressionInstructionChange={val => handleExerciseChange('expression_instruction', val)}
+            onDialogueChange={handleDialogueChangeLocal}
+            onExpressionChange={handleExpressionChangeLocal}
+            onExpressionInstructionChange={val => handleExerciseChangeLocal('expression_instruction', val)}
           />
         )}
 
         {exercise.type === 'discussion' && exercise.questions && (
           <div className="space-y-0.5">
-            {exercise.questions.map((question, qIndex) => (
+            {exercise.questions.map((question: string, qIndex: number) => (
               <div key={qIndex} className="p-1 border-b">
                 <p className="leading-snug">
                   {isEditing ? (
@@ -346,15 +228,14 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
         )}
 
         {(exercise.type === 'error-correction' || exercise.type === 'word-formation' || exercise.type === 'word-order') && 
-          exercise.sentences && renderOtherExerciseTypes(exercise, isEditing, viewMode, handleSentenceChange)}
+          exercise.sentences && renderOtherExerciseTypes(exercise, isEditing, viewMode, handleSentenceChangeLocal)}
 
-        {viewMode === 'teacher' && (
-          <TeacherTipSection
-            tip={exercise.teacher_tip}
-            isEditing={isEditing}
-            onChange={handleTeacherTipChange}
-          />
-        )}
+        {/* Always show teacher tip regardless of viewMode */}
+        <TeacherTipSection
+          tip={exercise.teacher_tip}
+          isEditing={isEditing}
+          onChange={handleTeacherTipChangeLocal}
+        />
       </div>
     </div>
   );

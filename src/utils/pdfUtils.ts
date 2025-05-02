@@ -13,7 +13,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
     noPdfElements.forEach(el => el.remove());
     
-    // Remove all teacher tips sections when generating PDF
+    // Remove all teacher tips sections when generating PDF (they should not appear in PDF)
     const teacherTips = clone.querySelectorAll('.teacher-tip');
     teacherTips.forEach(el => el.remove());
     
@@ -32,7 +32,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     header.style.padding = '10px 0';
     header.style.borderBottom = '1px solid #ddd';
     header.style.color = '#3d348b';
-    header.style.fontSize = '14px';
+    header.style.fontSize = '12.6px'; // Reduced by 10% from 14px
     header.innerHTML = `${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version`;
     container.prepend(header);
     
@@ -41,20 +41,49 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     footer.style.position = 'running(footer)';
     footer.style.textAlign = 'center';
     footer.style.padding = '10px 0';
-    footer.style.fontSize = '10px';
+    footer.style.fontSize = '9px'; // Reduced by 10% from 10px
     footer.style.color = '#666';
     footer.innerHTML = 'Page <span class="pageNumber"></span> of <span class="totalPages"></span>';
     container.appendChild(footer);
     
-    // Remove excessive whitespace in the PDF
-    const spacers = clone.querySelectorAll('.mb-6, .mb-8');
-    spacers.forEach(el => {
-      (el as HTMLElement).style.marginBottom = '10px';
-    });
+    // Apply font size reductions (10% reduction)
+    const fontSizeAdjustments = `
+      <style>
+        /* Base font size reductions */
+        h1 { font-size: 27px !important; } /* Reduced from 30px */
+        h2 { font-size: 21.6px !important; } /* Reduced from 24px */
+        h3 { font-size: 18px !important; } /* Reduced from 20px */
+        h4 { font-size: 16.2px !important; } /* Reduced from 18px */
+        p, li, td, th { font-size: 13.5px !important; } /* Reduced from 15px */
+        
+        /* Exercise specific reductions */
+        .exercise-header { font-size: 18px !important; } /* Reduced from 20px */
+        .exercise-instructions { font-size: 13.5px !important; } /* Reduced from 15px */
+        .exercise-content { font-size: 13.5px !important; } /* Reduced from 15px */
+        .question-text { font-size: 13.5px !important; } /* Reduced from 15px */
+        .answer-text { font-size: 12.6px !important; } /* Reduced from 14px */
+        
+        /* Reduce whitespace */
+        .mb-6 { margin-bottom: 1rem !important; }
+        .mb-8 { margin-bottom: 1rem !important; }
+        .mb-4 { margin-bottom: 0.75rem !important; }
+        .p-6 { padding: 1rem !important; }
+        .p-5 { padding: 1rem !important; }
+        .py-2 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+        
+        /* Fix spacing between exercises */
+        .exercise + .exercise { margin-top: 5px !important; }
+        
+        /* Remove vertical white space */
+        .space-y-4 > * + * { margin-top: 0.5rem !important; }
+        .space-y-2 > * + * { margin-top: 0.25rem !important; }
+      </style>
+    `;
+    container.insertAdjacentHTML('afterbegin', fontSizeAdjustments);
     
     // Configure html2pdf options
     const options = {
-      margin: [15, 7.5, 20, 7.5], // top, right, bottom, left (reduced side margins by half)
+      margin: [15, 3.75, 20, 3.75], // top, right, bottom, left (reduced side margins by half from [15, 7.5, 20, 7.5])
       filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
@@ -73,12 +102,13 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
         compress: true,
         quality: 100
       },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'], before: '.page-break' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'], before: '.page-break', avoid: ['img', 'table', 'div.avoid-page-break'] },
       enableLinks: true
     };
     
     // Generate the PDF
     const result = await html2pdf().set(options).from(container.innerHTML).save();
+    console.log('PDF generated successfully:', filename);
     return true;
   } catch (error) {
     console.error('Error generating PDF:', error);

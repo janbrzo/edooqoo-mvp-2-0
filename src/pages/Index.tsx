@@ -1,15 +1,13 @@
 
 import React, { useState, useEffect } from "react";
-import { ArrowUp } from "lucide-react";
-import WorksheetForm, { FormData } from "@/components/WorksheetForm";
-import Sidebar from "@/components/Sidebar";
-import GeneratingModal from "@/components/GeneratingModal";
-import WorksheetDisplay from "@/components/WorksheetDisplay";
-import WorksheetRating from "@/components/WorksheetRating";
 import { useToast } from "@/hooks/use-toast";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
-import { generateWorksheet, submitWorksheetFeedback, trackEvent } from "@/services/worksheetService";
+import { generateWorksheet } from "@/services/worksheetService";
+import { FormData } from "@/components/WorksheetForm";
 import { v4 as uuidv4 } from 'uuid';
+import GeneratingModal from "@/components/GeneratingModal";
+import FormView from "@/components/worksheet/FormView";
+import GenerationView from "@/components/worksheet/GenerationView";
 
 // Import just as a fallback in case generation fails
 import mockWorksheetData from '@/mockWorksheetData';
@@ -21,25 +19,9 @@ const Index = () => {
   const { toast } = useToast();
   const [generationTime, setGenerationTime] = useState(0);
   const [sourceCount, setSourceCount] = useState(0);
-  const [showScrollTop, setShowScrollTop] = useState(false);
   const [worksheetId, setWorksheetId] = useState<string | null>(null);
   const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
   const { userId, loading: authLoading } = useAnonymousAuth();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  };
 
   const handleFormSubmit = async (data: FormData) => {
     if (!userId) {
@@ -85,6 +67,16 @@ const Index = () => {
         // Use the ID returned from the API or generate a temporary one
         const wsId = worksheetData.id || uuidv4();
         setWorksheetId(wsId);
+        
+        // Ensure reading exercise has sufficient word count (280-320 words)
+        const readingExercise = worksheetData.exercises.find((ex: any) => ex.type === "reading");
+        if (readingExercise && readingExercise.content) {
+          const wordCount = readingExercise.content.split(/\s+/).length;
+          console.log(`Reading exercise word count: ${wordCount}`);
+          if (wordCount < 280 || wordCount > 320) {
+            console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
+          }
+        }
         
         setGeneratedWorksheet(worksheetData);
       } else {
@@ -133,51 +125,6 @@ const Index = () => {
     setWorksheetId(null);
   };
 
-  const handleFeedbackSubmit = async (rating: number, feedback: string) => {
-    if (!userId || !worksheetId) {
-      toast({
-        title: "Feedback submission error",
-        description: "There was a problem with your session. Please refresh the page and try again.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      await submitWorksheetFeedback(worksheetId, rating, feedback, userId);
-      
-      toast({
-        title: "Thank you for your feedback!",
-        description: "Your rating and comments help us improve our service."
-      });
-    } catch (error) {
-      console.error("Feedback submission error:", error);
-      toast({
-        title: "Feedback submission failed",
-        description: "We couldn't submit your feedback. Please try again later.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (userId && worksheetId && generatedWorksheet) {
-      // Only track events if we have a valid ID
-      if (worksheetId.length > 10) {
-        trackEvent('view', worksheetId, userId);
-      }
-    }
-  }, [userId, worksheetId, generatedWorksheet]);
-
-  const handleDownloadEvent = () => {
-    if (userId && worksheetId) {
-      // Only track events if we have a valid ID
-      if (worksheetId.length > 10) {
-        trackEvent('download', worksheetId, userId);
-      }
-    }
-  };
-
   if (authLoading) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="animate-spin h-8 w-8 border-4 border-worksheet-purple border-t-transparent rounded-full"></div>
@@ -185,29 +132,19 @@ const Index = () => {
   }
 
   return <div className="min-h-screen bg-gray-100">
-      {!generatedWorksheet ? <div className="container mx-auto flex main-container">
-          <div className="w-1/5 mx-0 py-[48px]">
-            <Sidebar />
-          </div>
-          <div className="w-4/5 px-6 py-6 form-container">
-            <WorksheetForm onSubmit={handleFormSubmit} />
-          </div>
-        </div> : <>
-          
-          <WorksheetDisplay 
-            worksheet={generatedWorksheet} 
-            inputParams={inputParams} 
-            generationTime={generationTime} 
-            sourceCount={sourceCount} 
-            onBack={handleBack} 
-            wordBankOrder={generatedWorksheet?.exercises?.find((ex: any) => ex.type === "matching")?.shuffledTerms?.map((item: any) => item.definition)}
-            onDownload={handleDownloadEvent}
-          />
-          <WorksheetRating onSubmitRating={handleFeedbackSubmit} />
-          {showScrollTop && <button onClick={scrollToTop} className="fixed bottom-6 right-6 z-50 bg-worksheet-purple text-white p-3 rounded-full shadow-lg hover:bg-worksheet-purpleDark transition-colors" aria-label="Scroll to top">
-              <ArrowUp size={24} />
-            </button>}
-        </>}
+      {!generatedWorksheet ? (
+        <FormView onSubmit={handleFormSubmit} />
+      ) : (
+        <GenerationView 
+          worksheetId={worksheetId}
+          generatedWorksheet={generatedWorksheet}
+          inputParams={inputParams}
+          generationTime={generationTime}
+          sourceCount={sourceCount}
+          onBack={handleBack}
+          userId={userId}
+        />
+      )}
       
       <GeneratingModal isOpen={isGenerating} />
     </div>;

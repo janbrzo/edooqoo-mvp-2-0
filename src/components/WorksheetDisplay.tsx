@@ -1,8 +1,7 @@
 
 import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, Database, Download, Edit, Eye, Star, Zap, ArrowUp } from "lucide-react";
-import { generatePDF, exportAsHTML } from "@/utils/pdfUtils";
+import { ArrowLeft, ArrowUp } from "lucide-react";
+import { generatePDF } from "@/utils/pdfUtils";
 import { useToast } from "@/hooks/use-toast";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
 import InputParamsCard from "./worksheet/InputParamsCard";
@@ -10,6 +9,7 @@ import WorksheetToolbar from "./worksheet/WorksheetToolbar";
 import ExerciseSection from "./worksheet/ExerciseSection";
 import VocabularySheet from "./worksheet/VocabularySheet";
 import TeacherNotes from "./worksheet/TeacherNotes";
+import WorksheetRating from "@/components/WorksheetRating";
 
 interface Exercise {
   type: string;
@@ -147,6 +147,7 @@ export default function WorksheetDisplay({
           handleSave={handleSave}
           handleDownloadPDF={handleDownloadPDF}
         />
+
         <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>
           <div className="bg-white p-6 border rounded-lg shadow-sm mb-6">
             <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight">
@@ -214,9 +215,12 @@ export default function WorksheetDisplay({
               setEditableWorksheet={setEditableWorksheet}
             />
           )}
+
+          {/* First display rating section */}
+          <WorksheetRating onSubmitRating={onDownload} />
           
-          {/* Teacher Notes Section (will be removed in PDF generation) */}
-          {viewMode === 'teacher' && <TeacherNotes />}
+          {/* Then display Teacher Notes Section (both for student and teacher view) */}
+          <TeacherNotes />
         </div>
       </div>
       

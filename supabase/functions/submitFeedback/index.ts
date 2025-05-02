@@ -36,7 +36,7 @@ serve(async (req) => {
         user_id: userId,
         rating,
         comment,
-        status: 'submitted'
+        status: 'new' // Changed from 'submitted' to 'new' to match the check constraint
       })
       .select();
 
