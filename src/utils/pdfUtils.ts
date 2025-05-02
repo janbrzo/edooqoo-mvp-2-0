@@ -1,6 +1,5 @@
 
 import html2pdf from 'html2pdf.js';
-import { format } from 'date-fns';
 
 export const generatePDF = async (elementId: string, filename: string, isTeacherVersion: boolean, title: string) => {
   try {
@@ -14,40 +13,21 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
     noPdfElements.forEach(el => el.remove());
     
-    // Remove the teacher notes section for both versions
-    const teacherNotesSection = clone.querySelector('.teacher-notes');
-    if (teacherNotesSection) {
-      teacherNotesSection.remove();
-    }
-    
-    // Remove rating section
-    const ratingSection = clone.querySelector('.rating-section');
-    if (ratingSection) {
-      ratingSection.remove();
-    }
-    
     // Create a temporary container for the cloned content
     const container = document.createElement('div');
     container.appendChild(clone);
     
     // Set the wrapper style for the PDF
-    clone.style.padding = '15px'; // Smaller side margins
-    
-    // Create a formatted filename in the correct format: YYYY-MM-DD-Role-title
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const role = isTeacherVersion ? 'Teacher' : 'Student';
-    const formattedTitle = title.toLowerCase().replace(/\s+/g, '-').substring(0, 30);
-    const formattedFilename = `${today}-${role}-${formattedTitle}.pdf`;
+    clone.style.padding = '20px';
     
     // Add a header to show whether it's a student or teacher version
     const header = document.createElement('div');
     header.style.position = 'running(header)';
     header.style.fontWeight = 'bold';
     header.style.textAlign = 'center';
-    header.style.padding = '5px 0'; // Smaller padding
+    header.style.padding = '10px 0';
     header.style.borderBottom = '1px solid #ddd';
     header.style.color = '#3d348b';
-    header.style.fontSize = '1.0em'; // Increased font size by 10%
     header.innerHTML = `${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version`;
     container.prepend(header);
     
@@ -55,8 +35,8 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     const footer = document.createElement('div');
     footer.style.position = 'running(footer)';
     footer.style.textAlign = 'center';
-    footer.style.padding = '5px 0';
-    footer.style.fontSize = '10px'; // Slightly larger font
+    footer.style.padding = '10px 0';
+    footer.style.fontSize = '10px';
     footer.style.color = '#666';
     footer.innerHTML = 'Page <span class="pageNumber"></span> of <span class="totalPages"></span>';
     container.appendChild(footer);
@@ -80,68 +60,11 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
     document.head.appendChild(style);
     
-    // Increase font sizes for all elements in the PDF by ~10%
-    // And increase font sizes for headings by ~20%
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-      .pdf-content * {
-        font-size: 1.1em;
-      }
-      h1 { font-size: 2.4em !important; font-weight: bold !important; }
-      h2 { font-size: 1.8em !important; font-weight: bold !important; }
-      h3 { font-size: 1.5em !important; font-weight: bold !important; }
-      .exercise-header { margin-bottom: 0.5em !important; }
-      
-      /* Remove excessive spacing */
-      .exercise-section {
-        margin-bottom: 10px !important;
-        page-break-inside: avoid;
-      }
-      .matching-exercise .matching-item,
-      .fill-in-blanks-exercise .sentence-item,
-      .multiple-choice-exercise .question-item,
-      .exercise-section + .exercise-section {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-        margin-bottom: 8px !important;
-      }
-      
-      /* Make questions and exercise titles bold */
-      .question-text, .exercise-title {
-        font-weight: bold !important;
-        font-size: 1.2em !important;
-      }
-      
-      /* Optimize spacing */
-      p, div, li {
-        margin-bottom: 5px !important;
-        line-height: 1.3 !important;
-      }
-      
-      /* Fix large whitespace gaps */
-      .exercise-section {
-        padding-bottom: 0 !important;
-      }
-    `;
-    clone.classList.add('pdf-content');
-    container.appendChild(styleElement);
-    
-    // Find and process exercise sections to reduce whitespace
-    const exerciseSections = clone.querySelectorAll('.exercise-section');
-    exerciseSections.forEach(section => {
-      // Remove excessive margins and paddings
-      (section as HTMLElement).style.marginBottom = '10px';
-      (section as HTMLElement).style.paddingBottom = '0px';
-      
-      // Add page break rules
-      (section as HTMLElement).style.pageBreakInside = 'avoid';
-    });
-    
-    // Configure html2pdf options with smaller margins
+    // Configure html2pdf options
     const options = {
-      margin: [15, 10, 15, 10], // top, right, bottom, left - smaller side margins
-      filename: formattedFilename, // Use the formatted filename
-      image: { type: 'jpeg', quality: 0.95 },
+      margin: [15, 15, 20, 15], // top, right, bottom, left
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
         scale: 2,
         useCORS: true, 
@@ -158,7 +81,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
         compress: true,
         quality: 100
       },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'], before: '.page-break' },
+      pagebreak: { mode: 'avoid-all', before: '.page-break' },
       enableLinks: true
     };
     
