@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from "react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
-import WorksheetRating from "@/components/WorksheetRating";
 import { ArrowUp } from "lucide-react";
 import { FormData } from "@/components/WorksheetForm";
 import { useToast } from "@/hooks/use-toast";

@@ -35,8 +35,8 @@ serve(async (req) => {
         worksheet_id: worksheetId,
         user_id: userId,
         rating,
-        comment,
-        status: 'new' // Changed from 'submitted' to 'new' to match the check constraint
+        comment: comment || '',
+        status: 'new' // Use 'new' to match the check constraint
       })
       .select();
 
@@ -46,7 +46,7 @@ serve(async (req) => {
     }
 
     // Log event
-    await supabase.from('events').insert({
+    const { error: eventError } = await supabase.from('events').insert({
       type: 'feedback',
       event_type: 'feedback',
       worksheet_id: worksheetId,
@@ -54,6 +54,11 @@ serve(async (req) => {
       metadata: { rating, ip },
       ip_address: ip
     });
+
+    if (eventError) {
+      console.error('Error logging feedback event:', eventError);
+      // Continue even if event logging fails
+    }
 
     console.log('Feedback submitted successfully');
 

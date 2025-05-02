@@ -91,7 +91,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
  */
 export async function submitWorksheetFeedback(worksheetId: string, rating: number, comment: string, userId: string) {
   try {
-    console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
+    console.log('Submitting feedback:', { worksheetId, rating, comment: comment?.substring(0, 20) || '', userId });
     
     // Try using the edge function
     const response = await fetch(SUBMIT_FEEDBACK_URL, {
@@ -108,27 +108,29 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Error submitting feedback via API:', errorText);
+      const errorData = await response.json().catch(() => ({
+        error: `HTTP error: ${response.status} ${response.statusText}`
+      }));
+      console.error('Error submitting feedback via API:', errorData);
       
       // Fallback to direct Supabase insert if edge function fails
+      console.log('Falling back to direct Supabase insert...');
       const { data, error } = await supabase
         .from('feedbacks')
-        .insert([
-          { 
-            worksheet_id: worksheetId, 
-            user_id: userId, 
-            rating, 
-            comment,
-            status: 'new' // Using 'new' status since that appears to be the required value based on error
-          }
-        ]);
+        .insert({
+          worksheet_id: worksheetId, 
+          user_id: userId, 
+          rating, 
+          comment: comment || '',
+          status: 'new' // Using 'new' status since that appears to be the required value
+        });
         
       if (error) {
         console.error('Supabase insert error:', error);
         throw new Error(`Failed to submit feedback: ${error.message}`);
       }
         
+      await trackEvent('feedback', worksheetId, userId, { rating });
       return data;
     }
     

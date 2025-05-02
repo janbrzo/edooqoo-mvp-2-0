@@ -215,11 +215,11 @@ export default function WorksheetDisplay({
               setEditableWorksheet={setEditableWorksheet}
             />
           )}
-
-          {/* First display rating section */}
+          
+          {/* Rating section comes before Teacher Notes */}
           <WorksheetRating onSubmitRating={onDownload} />
           
-          {/* Then display Teacher Notes Section (both for student and teacher view) */}
+          {/* Teacher Notes Section (shown in both student and teacher view) */}
           <TeacherNotes />
         </div>
       </div>

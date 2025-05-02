@@ -13,9 +13,11 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
     noPdfElements.forEach(el => el.remove());
     
-    // Remove all teacher tips sections when generating PDF (they should not appear in PDF)
-    const teacherTips = clone.querySelectorAll('.teacher-tip');
-    teacherTips.forEach(el => el.remove());
+    // Remove all teacher tips sections when not in teacher version
+    if (!isTeacherVersion) {
+      const teacherTips = clone.querySelectorAll('.teacher-tip');
+      teacherTips.forEach(el => el.remove());
+    }
     
     // Create a temporary container for the cloned content
     const container = document.createElement('div');
@@ -77,6 +79,9 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
         /* Remove vertical white space */
         .space-y-4 > * + * { margin-top: 0.5rem !important; }
         .space-y-2 > * + * { margin-top: 0.25rem !important; }
+        
+        /* Prevent page breaks inside exercises */
+        .avoid-page-break { page-break-inside: avoid !important; }
       </style>
     `;
     container.insertAdjacentHTML('afterbegin', fontSizeAdjustments);
@@ -100,9 +105,13 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
         format: 'a4', 
         orientation: 'portrait',
         compress: true,
-        quality: 100
+        quality: 100,
+        putOnlyUsedFonts: true
       },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'], before: '.page-break', avoid: ['img', 'table', 'div.avoid-page-break'] },
+      pagebreak: { 
+        mode: ['css', 'legacy'], 
+        avoid: ['.avoid-page-break', 'img', 'table'] 
+      },
       enableLinks: true
     };
     

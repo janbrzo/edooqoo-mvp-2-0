@@ -65,7 +65,7 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   editableWorksheet,
   setEditableWorksheet
 }) => {
-  // Exercise update handlers using the utility functions
+  // Exercise update handlers
   const handleExerciseChangeLocal = (field: string, value: string) => {
     handleExerciseChange(editableWorksheet, setEditableWorksheet, index, field, value);
   };
@@ -95,7 +95,7 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   };
 
   return (
-    <div className="mb-4 bg-white border rounded-lg overflow-hidden shadow-sm">
+    <div className="mb-4 bg-white border rounded-lg overflow-hidden shadow-sm avoid-page-break">
       <ExerciseHeader
         icon={exercise.icon}
         title={exercise.title}
@@ -230,7 +230,6 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
         {(exercise.type === 'error-correction' || exercise.type === 'word-formation' || exercise.type === 'word-order') && 
           exercise.sentences && renderOtherExerciseTypes(exercise, isEditing, viewMode, handleSentenceChangeLocal)}
 
-        {/* Always show teacher tip regardless of viewMode */}
         <TeacherTipSection
           tip={exercise.teacher_tip}
           isEditing={isEditing}

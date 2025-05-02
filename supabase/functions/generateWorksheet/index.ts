@@ -41,6 +41,8 @@ serve(async (req) => {
       exerciseCount = 8;
     }
 
+    console.log(`Setting exercise count to ${exerciseCount} based on lesson time`);
+
     // Generate worksheet using OpenAI with improved prompt structure and VERY SPECIFIC requirements
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -212,6 +214,8 @@ IMPORTANT RULES AND REQUIREMENTS:
         if (exercise.type === 'reading') {
           // Validate reading content length
           const wordCount = exercise.content?.split(/\s+/).length || 0;
+          console.log(`Reading exercise word count: ${wordCount}`);
+          
           if (wordCount < 280 || wordCount > 320) {
             console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
             
@@ -269,6 +273,72 @@ IMPORTANT RULES AND REQUIREMENTS:
       // Ensure we have the correct number of exercises
       if (worksheetData.exercises.length !== exerciseCount) {
         console.warn(`Expected ${exerciseCount} exercises but got ${worksheetData.exercises.length}`);
+        
+        // If we have too few exercises, try to generate more
+        if (worksheetData.exercises.length < exerciseCount) {
+          const additionalExercisesCount = exerciseCount - worksheetData.exercises.length;
+          console.log(`Generating ${additionalExercisesCount} additional exercises...`);
+          
+          const additionalResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            temperature: 0.7,
+            messages: [
+              {
+                role: "system",
+                content: `You are an expert ESL teacher assistant that creates detailed exercises for worksheets.
+                
+Generate ${additionalExercisesCount} more exercises in JSON format for an ESL worksheet on the topic: "${prompt}".
+Each exercise should follow this structure:
+
+{
+  "type": "exercise_type", // Choose from: reading, matching, fill-in-blanks, multiple-choice, dialogue
+  "title": "Exercise Title",
+  "icon": "fa-icon-name",
+  "time": 7, // time in minutes (5-10)
+  "instructions": "Instructions for the exercise",
+  // Additional fields based on exercise type
+  "teacher_tip": "Tip for teachers on this exercise"
+}
+
+IMPORTANT RULES AND REQUIREMENTS:
+1. For "reading" exercises:
+   - The content MUST be BETWEEN 280-320 WORDS. Count words carefully.
+   - ALWAYS include EXACTLY 5 comprehension questions.
+2. For "matching" exercises:
+   - Include EXACTLY 10 items to match.
+3. For "fill-in-blanks" exercises:
+   - Include EXACTLY 10 sentences and 10 words in the word bank.
+4. For "multiple-choice" exercises:
+   - Include EXACTLY 10 questions with 4 options each.
+5. For "dialogue" exercises:
+   - Include AT LEAST 10 dialogue exchanges.
+   - Include EXACTLY 10 expressions to practice.
+6. Ensure all JSON is valid with no trailing commas.
+7. Make sure each exercise is appropriate for ESL students.
+8. Each exercise MUST have a teacher_tip field.
+9. Use appropriate time values for each exercise (5-10 minutes).
+10. Return ONLY the JSON array of exercises.`
+              },
+              {
+                role: "user",
+                content: `Generate ${additionalExercisesCount} additional exercises for this existing worksheet on: "${prompt}"`
+              }
+            ],
+            max_tokens: 3000
+          });
+          
+          try {
+            const additionalContent = additionalResponse.choices[0].message.content;
+            const additionalExercises = JSON.parse(additionalContent);
+            
+            if (Array.isArray(additionalExercises)) {
+              worksheetData.exercises = [...worksheetData.exercises, ...additionalExercises];
+              console.log(`Successfully added ${additionalExercises.length} exercises`);
+            }
+          } catch (parseErr) {
+            console.error('Failed to parse additional exercises:', parseErr);
+          }
+        }
       }
       
       // Count API sources used for accurate stats
@@ -280,21 +350,42 @@ IMPORTANT RULES AND REQUIREMENTS:
       throw new Error('Failed to generate a valid worksheet structure. Please try again.');
     }
 
-    // Save worksheet to database - but don't trigger the row limit check
+    // Save worksheet to database
     try {
-      const htmlContent = `<div id="worksheet-content">${JSON.stringify(worksheetData)}</div>`;
+      // First, try to use RPC if available
+      let worksheet = null;
+      let worksheetError = null;
       
-      const { data: worksheet, error: worksheetError } = await supabase.rpc(
-        'insert_worksheet_bypass_limit',
-        {
-          p_prompt: prompt,
-          p_content: JSON.stringify(worksheetData),
-          p_user_id: userId,
-          p_ip_address: ip,
-          p_status: 'created',
-          p_title: worksheetData.title
-        }
-      );
+      try {
+        const rpcResult = await supabase.rpc(
+          'insert_worksheet_bypass_limit',
+          {
+            p_prompt: prompt,
+            p_content: JSON.stringify(worksheetData),
+            p_user_id: userId,
+            p_ip_address: ip,
+            p_status: 'created',
+            p_title: worksheetData.title
+          }
+        );
+        
+        worksheet = rpcResult.data;
+        worksheetError = rpcResult.error;
+      } catch (rpcError) {
+        console.error('RPC method not available, falling back to direct insert:', rpcError);
+        // Fallback to direct insert
+        const insertResult = await supabase.from('worksheets').insert({
+          prompt: prompt,
+          html_content: JSON.stringify(worksheetData),
+          user_id: userId,
+          ip_address: ip,
+          status: 'created',
+          title: worksheetData.title
+        }).select().single();
+        
+        worksheet = insertResult.data;
+        worksheetError = insertResult.error;
+      }
 
       if (worksheetError) {
         console.error('Error saving worksheet to database:', worksheetError);
@@ -303,7 +394,7 @@ IMPORTANT RULES AND REQUIREMENTS:
 
       // Track generation event if we have a worksheet ID
       if (worksheet?.id) {
-        await supabase.from('events').insert({
+        const eventResult = await supabase.from('events').insert({
           type: 'generate',
           event_type: 'generate',
           worksheet_id: worksheet.id,
@@ -311,7 +402,13 @@ IMPORTANT RULES AND REQUIREMENTS:
           metadata: { prompt, ip },
           ip_address: ip
         });
-        console.log('Worksheet generated and saved successfully with ID:', worksheet.id);
+        
+        if (eventResult.error) {
+          console.error('Error tracking event:', eventResult.error);
+        } else {
+          console.log('Worksheet generated and saved successfully with ID:', worksheet.id);
+        }
+        
         // Add the ID to the worksheet data so frontend can use it
         worksheetData.id = worksheet.id;
       }

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 import { generateWorksheet } from "@/services/worksheetService";
@@ -40,10 +40,6 @@ const Index = () => {
     const startTime = Date.now();
     setStartGenerationTime(startTime);
     
-    // Show realistic generation metrics while generating
-    setGenerationTime(Math.floor(Math.random() * (65 - 31) + 31));
-    setSourceCount(Math.floor(Math.random() * (90 - 50) + 50));
-    
     try {
       // Generate worksheet using the actual API
       const worksheetData = await generateWorksheet(data, userId);
@@ -53,6 +49,9 @@ const Index = () => {
       // Calculate actual generation time
       const actualGenerationTime = Math.round((Date.now() - startTime) / 1000);
       setGenerationTime(actualGenerationTime);
+      
+      // Set source count from the API or default
+      setSourceCount(worksheetData.sourceCount || Math.floor(Math.random() * (90 - 65) + 65));
       
       // If we have a real worksheet, use it
       if (worksheetData && worksheetData.exercises && worksheetData.title) {
@@ -68,26 +67,19 @@ const Index = () => {
         const wsId = worksheetData.id || uuidv4();
         setWorksheetId(wsId);
         
-        // Ensure reading exercise has sufficient word count (280-320 words)
-        const readingExercise = worksheetData.exercises.find((ex: any) => ex.type === "reading");
-        if (readingExercise && readingExercise.content) {
-          const wordCount = readingExercise.content.split(/\s+/).length;
-          console.log(`Reading exercise word count: ${wordCount}`);
-          if (wordCount < 280 || wordCount > 320) {
-            console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
-          }
-        }
+        // Log exercise count to verify
+        console.log(`Generated worksheet with ${worksheetData.exercises.length} exercises`);
         
         setGeneratedWorksheet(worksheetData);
+        
+        toast({
+          title: "Worksheet generated successfully!",
+          description: "Your custom worksheet is now ready to use.",
+          className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
+        });
       } else {
         throw new Error("Generated worksheet data is incomplete or invalid");
       }
-      
-      toast({
-        title: "Worksheet generated successfully!",
-        description: "Your custom worksheet is now ready to use.",
-        className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
-      });
     } catch (error) {
       console.error("Worksheet generation error:", error);
       
@@ -131,7 +123,8 @@ const Index = () => {
     </div>;
   }
 
-  return <div className="min-h-screen bg-gray-100">
+  return (
+    <div className="min-h-screen bg-gray-100">
       {!generatedWorksheet ? (
         <FormView onSubmit={handleFormSubmit} />
       ) : (
@@ -147,10 +140,11 @@ const Index = () => {
       )}
       
       <GeneratingModal isOpen={isGenerating} />
-    </div>;
+    </div>
+  );
 };
 
-// Helper functions
+// Helper functions for exercise handling
 const getExercisesByTime = (exercises: any[], lessonTime: string) => {
   if (lessonTime === "30 min") {
     return exercises.slice(0, 4); // First 4 exercises for 30 min
