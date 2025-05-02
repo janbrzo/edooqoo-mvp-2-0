@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
@@ -124,7 +123,8 @@ const Index = () => {
             exercise.word_bank = ['book', 'pen', 'computer', 'desk', 'teacher', 'student', 'school', 'classroom'];
           } else if (exercise.type === 'dialogue' && (!exercise.dialogue || exercise.dialogue.length === 0)) {
             exercise.dialogue = createSampleDialogue(5);
-            exercise.expressions = ['Nice to meet you', 'How are you?', 'See you later', 'Thank you', 'You're welcome'];
+            // Używamy podwójnych cudzysłowów dla stringa zawierającego apostrof
+            exercise.expressions = ['Nice to meet you', 'How are you?', 'See you later', 'Thank you', "You're welcome"];
             exercise.expression_instruction = 'Practice these expressions from the dialogue';
           }
           
@@ -351,7 +351,8 @@ const Index = () => {
         break;
       case 'dialogue':
         exercise.dialogue = createSampleDialogue(5);
-        exercise.expressions = ['Nice to meet you', 'How are you?', 'See you later', 'Thank you', 'You're welcome'];
+        // Używamy podwójnych cudzysłowów dla stringa zawierającego apostrof
+        exercise.expressions = ['Nice to meet you', 'How are you?', 'See you later', 'Thank you', "You're welcome"];
         exercise.expression_instruction = 'Practice these expressions from the dialogue';
         break;
       case 'discussion':
