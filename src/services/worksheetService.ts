@@ -175,7 +175,8 @@ export async function trackEvent(eventType: 'view' | 'generate' | 'download', wo
         {
           worksheet_id: worksheetId,
           event_type: eventType,
-          user_id: userId
+          user_id: userId,
+          type: 'worksheet_event'  // Dodane wymagane pole type
         }
       ]);
 
