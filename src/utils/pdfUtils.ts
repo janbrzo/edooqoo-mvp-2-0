@@ -1,5 +1,4 @@
 
-// src/utils/pdfUtils.ts
 import html2pdf from 'html2pdf.js';
 
 /**
@@ -101,10 +100,7 @@ export async function generatePDF(
         mode: ['avoid-all', 'css', 'legacy'],
         avoid: '.avoid-page-break'
       },
-      enableLinks: true,
-      pagebreak: {
-        mode: 'avoid-all'
-      }
+      enableLinks: true
     };
     
     // Create a custom promise to monitor the PDF generation process
