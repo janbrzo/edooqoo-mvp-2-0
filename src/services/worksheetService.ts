@@ -214,7 +214,7 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
     
     console.log(`Tracking event: ${type} for worksheet: ${worksheetId}`);
     const { error } = await supabase.from('events').insert({
-      type,
+      type: type,
       event_type: type,
       worksheet_id: worksheetId,
       user_id: userId,
@@ -251,7 +251,7 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
         if (placeholderData && placeholderData.length > 0) {
           // Try event again with new worksheet ID
           const { error: retryError } = await supabase.from('events').insert({
-            type,
+            type: type,
             event_type: type,
             worksheet_id: placeholderData[0].id,
             user_id: userId,

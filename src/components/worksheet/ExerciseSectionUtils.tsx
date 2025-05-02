@@ -1,4 +1,5 @@
 
+
 // This file contains utility functions for the ExerciseSection component
 
 export const handleExerciseChange = (
@@ -139,6 +140,28 @@ export const handleDialogueChange = (
   }
 };
 
+export const handleStatementChange = (
+  editableWorksheet: any, 
+  setEditableWorksheet: React.Dispatch<React.SetStateAction<any>>, 
+  exerciseIndex: number,
+  statementIndex: number, 
+  field: string, 
+  value: string | boolean
+) => {
+  const updatedExercises = [...editableWorksheet.exercises];
+  const exerciseCopy = updatedExercises[exerciseIndex];
+  if (exerciseCopy.statements) {
+    exerciseCopy.statements[statementIndex] = {
+      ...exerciseCopy.statements[statementIndex],
+      [field]: value
+    };
+    setEditableWorksheet({
+      ...editableWorksheet,
+      exercises: updatedExercises
+    });
+  }
+};
+
 export const getMatchedItems = (items: any[], viewMode: 'student' | 'teacher') => {
   return viewMode === 'teacher' ? items : [...items].sort(() => Math.random() - 0.5);
 };
@@ -196,3 +219,65 @@ export const renderOtherExerciseTypes = (
     </div>
   </div>
 );
+
+export const renderTrueFalseExercise = (
+  exercise: any, 
+  isEditing: boolean, 
+  viewMode: 'student' | 'teacher',
+  handleStatementChange: (statementIndex: number, field: string, value: string | boolean) => void
+) => (
+  <div>
+    <div className="space-y-2">
+      {exercise.statements.map((statement: any, sIndex: number) => (
+        <div key={sIndex} className="border-b pb-2">
+          <div className="flex flex-row items-start">
+            <div className="flex-grow">
+              <p className="leading-snug">
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={statement.text}
+                    onChange={e => handleStatementChange(sIndex, 'text', e.target.value)}
+                    className="w-full border p-1 editable-content"
+                  />
+                ) : (
+                  <>{sIndex + 1}. {statement.text}</>
+                )}
+              </p>
+            </div>
+            <div className="ml-4 flex space-x-4">
+              {viewMode === 'student' ? (
+                <div className="flex space-x-4">
+                  <label className="inline-flex items-center">
+                    <input type="radio" name={`statement-${sIndex}`} className="form-radio h-4 w-4" disabled={!isEditing} />
+                    <span className="ml-2">True</span>
+                  </label>
+                  <label className="inline-flex items-center">
+                    <input type="radio" name={`statement-${sIndex}`} className="form-radio h-4 w-4" disabled={!isEditing} />
+                    <span className="ml-2">False</span>
+                  </label>
+                </div>
+              ) : (
+                <div className="text-green-600 italic ml-3 text-sm">
+                  {isEditing ? (
+                    <select
+                      value={statement.isTrue ? "true" : "false"}
+                      onChange={e => handleStatementChange(sIndex, 'isTrue', e.target.value === "true")}
+                      className="border p-1 editable-content"
+                    >
+                      <option value="true">True</option>
+                      <option value="false">False</option>
+                    </select>
+                  ) : (
+                    <span>({statement.isTrue ? "True" : "False"})</span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+

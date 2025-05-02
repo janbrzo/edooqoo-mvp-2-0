@@ -16,8 +16,10 @@ import {
   handleExpressionChange,
   handleTeacherTipChange,
   handleDialogueChange,
+  handleStatementChange,
   getMatchedItems,
-  renderOtherExerciseTypes
+  renderOtherExerciseTypes,
+  renderTrueFalseExercise
 } from "./ExerciseSectionUtils";
 
 interface Exercise {
@@ -31,6 +33,7 @@ interface Exercise {
   items?: any[];
   sentences?: any[];
   dialogue?: any[];
+  statements?: any[];
   word_bank?: string[];
   expressions?: string[];
   expression_instruction?: string;
@@ -92,6 +95,10 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
 
   const handleDialogueChangeLocal = (dialogueIndex: number, field: string, value: string) => {
     handleDialogueChange(editableWorksheet, setEditableWorksheet, index, dialogueIndex, field, value);
+  };
+  
+  const handleStatementChangeLocal = (statementIndex: number, field: string, value: string | boolean) => {
+    handleStatementChange(editableWorksheet, setEditableWorksheet, index, statementIndex, field, value);
   };
 
   return (
@@ -230,6 +237,9 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
 
         {(exercise.type === 'error-correction' || exercise.type === 'word-formation' || exercise.type === 'word-order') && 
           exercise.sentences && renderOtherExerciseTypes(exercise, isEditing, viewMode, handleSentenceChangeLocal)}
+        
+        {exercise.type === 'true-false' && exercise.statements && 
+          renderTrueFalseExercise(exercise, isEditing, viewMode, handleStatementChangeLocal)}
 
         {/* Always show teacher tip regardless of viewMode */}
         <TeacherTipSection
