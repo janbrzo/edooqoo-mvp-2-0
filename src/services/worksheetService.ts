@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
+import { FormData as WorksheetFormData } from '@/types/worksheetFormTypes';
 
 // URLs for the Edge Functions
 const GENERATE_WORKSHEET_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/v1/generateWorksheet';
@@ -40,7 +40,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     // Parse the response as JSON directly
     const worksheetData = await response.json();
     
-    // Calculate the actual generation time if not provided by the API
+    // Use the actual generation time from the API if provided, otherwise calculate it
     if (!worksheetData.generationTime) {
       worksheetData.generationTime = Math.floor((Date.now() - startTime) / 1000);
     }
@@ -63,7 +63,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     // Validate reading exercise content and questions
     for (const exercise of worksheetData.exercises) {
       if (exercise.type === 'reading') {
-        const wordCount = exercise.content?.split(/\s+/).length || 0;
+        const wordCount = exercise.content?.split(/\s+/).filter(Boolean).length || 0;
         console.log(`Reading exercise word count: ${wordCount}`);
         
         if (wordCount < 280 || wordCount > 320) {
@@ -124,7 +124,7 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
         rating,
         comment,
         status: 'submitted'
-      });
+      }).select();
       
       if (error) {
         throw error;

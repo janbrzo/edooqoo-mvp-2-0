@@ -5,7 +5,7 @@ import WorksheetDisplay from "@/components/WorksheetDisplay";
 import WorksheetRating from "@/components/WorksheetRating";
 import { submitWorksheetFeedback, trackEvent } from "@/services/worksheetService";
 import { useToast } from "@/hooks/use-toast";
-import { FormData } from "@/components/WorksheetForm";
+import { FormData } from "@/types/worksheetFormTypes";
 
 interface WorksheetDisplayWrapperProps {
   worksheet: any;
@@ -77,6 +77,17 @@ const WorksheetDisplayWrapper: React.FC<WorksheetDisplayWrapperProps> = ({
     }
   };
 
+  // Create a React ref that we'll pass to the WorksheetDisplay component
+  const ratingRef = React.useRef<HTMLDivElement>(null);
+
+  // After render, find the rating-section div and insert our rating component there
+  useEffect(() => {
+    const ratingSection = document.querySelector('.rating-section');
+    if (ratingSection && ratingRef.current) {
+      ratingSection.appendChild(ratingRef.current);
+    }
+  }, []);
+
   return (
     <>
       <WorksheetDisplay 
@@ -88,7 +99,12 @@ const WorksheetDisplayWrapper: React.FC<WorksheetDisplayWrapperProps> = ({
         wordBankOrder={worksheet?.exercises?.find((ex: any) => ex.type === "matching")?.shuffledTerms?.map((item: any) => item.definition)}
         onDownload={handleDownloadEvent}
       />
-      <WorksheetRating onSubmitRating={handleFeedbackSubmit} />
+
+      {/* This component will be moved into the rating-section by the useEffect */}
+      <div ref={ratingRef}>
+        <WorksheetRating onSubmitRating={handleFeedbackSubmit} />
+      </div>
+
       {showScrollTop && (
         <button 
           onClick={scrollToTop}
