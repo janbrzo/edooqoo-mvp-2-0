@@ -29,9 +29,9 @@ export async function generatePDF(
     const noPdfElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
     noPdfElements.forEach(el => el.remove());
 
-    // Add page numbers with CSS
-    const pageNumberStyle = document.createElement('style');
-    pageNumberStyle.textContent = `
+    // Dodanie stylów do poprawy generowania PDF
+    const pdfStyles = document.createElement('style');
+    pdfStyles.textContent = `
       .pdf-page-number {
         position: absolute;
         bottom: 10px;
@@ -64,25 +64,34 @@ export async function generatePDF(
           font-size: 14px !important;
         }
       }
+      /* Usuwanie dużych pustych przestrzeni */
+      .avoid-page-break {
+        margin-bottom: 10px !important;
+        padding-bottom: 0 !important;
+      }
+      /* Poprawa przestrzeni między zadaniami */
+      .mb-4 {
+        margin-bottom: 0.5rem !important;
+      }
     `;
     
-    clonedElement.appendChild(pageNumberStyle);
+    clonedElement.appendChild(pdfStyles);
     
-    // Add wrapper for content scaling
+    // Dodanie wrappera dla zawartości
     const wrapper = document.createElement('div');
     wrapper.className = 'pdf-content-wrapper';
     
-    // Move all children to the wrapper
+    // Przeniesienie wszystkich dzieci do wrappera
     while(clonedElement.firstChild) {
       wrapper.appendChild(clonedElement.firstChild);
     }
     
-    // Add wrapper back to the element
+    // Dodanie wrappera z powrotem do elementu
     clonedElement.appendChild(wrapper);
 
-    // Configure html2pdf options
+    // Ustawienie opcji html2pdf
     const opt = {
-      margin: [10, 10, 15, 10], // Reduced margins [top, right, bottom, left] in mm
+      margin: [10, 10, 15, 10], // Zmniejszone marginesy [góra, prawo, dół, lewo] w mm
       filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
@@ -103,13 +112,24 @@ export async function generatePDF(
       enableLinks: true
     };
     
-    // Create a custom promise to monitor the PDF generation process
-    const worker = html2pdf()
-      .from(clonedElement)
-      .set(opt)
-      .toPdf();
-      
-    // Remove any previous "Preparing PDF" message
+    // Dodanie funkcji do obsługi numerowania stron
+    const worker = html2pdf().from(clonedElement).set(opt);
+
+    worker.toContainer().then(function() {
+      worker.toPdf().get('pdf').then(function(pdf) {
+        const totalPages = pdf.internal.getNumberOfPages();
+        
+        // Dodaj numery stron do każdej strony
+        for (let i = 1; i <= totalPages; i++) {
+          pdf.setPage(i);
+          pdf.setFontSize(8);
+          pdf.setTextColor(100);
+          pdf.text('Page ' + i + ' of ' + totalPages, pdf.internal.pageSize.getWidth() - 25, pdf.internal.pageSize.getHeight() - 10);
+        }
+      });
+    });
+    
+    // Usunięcie istniejących komunikatów "Preparing PDF"
     const existingMessage = document.getElementById('pdf-generation-message');
     if (existingMessage) {
       existingMessage.remove();

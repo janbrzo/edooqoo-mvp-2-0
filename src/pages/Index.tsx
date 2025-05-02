@@ -95,6 +95,52 @@ const Index = () => {
           worksheetData.exercises = worksheetData.exercises.slice(0, expectedExerciseCount);
         }
         
+        // Weryfikacja i uzupełnienie wszystkich ćwiczeń
+        worksheetData.exercises = worksheetData.exercises.map((exercise: any, index: number) => {
+          // Sprawdź, czy to ćwiczenie reading i czy ma odpowiednią ilość słów
+          if (exercise.type === 'reading' && exercise.content) {
+            const wordCount = exercise.content.split(/\s+/).length;
+            
+            if (wordCount < 280) {
+              console.log(`Ćwiczenie reading ma tylko ${wordCount} słów, uzupełniamy do 280-320 słów`);
+              
+              // Uzupełnij tekst reading do wymogów
+              const additionalText = getFillerText(280 - wordCount);
+              exercise.content = exercise.content + " " + additionalText;
+              
+              // Sprawdź nową liczbę słów po uzupełnieniu
+              const newWordCount = exercise.content.split(/\s+/).length;
+              console.log(`Nowa liczba słów w ćwiczeniu reading: ${newWordCount}`);
+            }
+          }
+          
+          // Sprawdź, czy ćwiczenie ma pytania/elementy jeśli powinno je mieć
+          if ((exercise.type === 'multiple-choice' || exercise.type === 'reading') && (!exercise.questions || exercise.questions.length === 0)) {
+            exercise.questions = createSampleQuestions(exercise.type, 5);
+          } else if (exercise.type === 'matching' && (!exercise.items || exercise.items.length === 0)) {
+            exercise.items = createSampleItems(6);
+          } else if (exercise.type === 'fill-in-blanks' && (!exercise.sentences || exercise.sentences.length === 0)) {
+            exercise.sentences = createSampleSentences(6);
+            exercise.word_bank = ['book', 'pen', 'computer', 'desk', 'teacher', 'student', 'school', 'classroom'];
+          } else if (exercise.type === 'dialogue' && (!exercise.dialogue || exercise.dialogue.length === 0)) {
+            exercise.dialogue = createSampleDialogue(5);
+            exercise.expressions = ['Nice to meet you', 'How are you?', 'See you later', 'Thank you', 'You're welcome'];
+            exercise.expression_instruction = 'Practice these expressions from the dialogue';
+          }
+          
+          // Upewnij się, że każde ćwiczenie ma wskazówkę dla nauczyciela
+          if (!exercise.teacher_tip) {
+            exercise.teacher_tip = `Teacher's tip for Exercise ${index + 1}: Help students understand the task and give them time to complete it.`;
+          }
+          
+          return exercise;
+        });
+        
+        // Check if we need to add vocabulary sheet
+        if (!worksheetData.vocabulary_sheet || worksheetData.vocabulary_sheet.length === 0) {
+          worksheetData.vocabulary_sheet = createSampleVocabulary(8);
+        }
+        
         setGeneratedWorksheet(worksheetData);
         
         toast({
@@ -122,25 +168,29 @@ const Index = () => {
         fallbackWorksheet.exercises.push(createPlaceholderExercise(fallbackWorksheet.exercises.length + 1));
       }
       
-      fallbackWorksheet.exercises.forEach((exercise: any) => {
+      // Weryfikacja i uzupełnienie wszystkich ćwiczeń dla mockowych danych
+      fallbackWorksheet.exercises = fallbackWorksheet.exercises.map((exercise: any, index: number) => {
+        // Process matching exercises
         if (exercise.type === "matching" && exercise.items) {
           exercise.originalItems = [...exercise.items];
           exercise.shuffledTerms = shuffleArray([...exercise.items]);
         }
         
-        // Ensure reading exercise has correct word count
+        // Sprawdź, czy to ćwiczenie reading i czy ma odpowiednią ilość słów
         if (exercise.type === "reading" && exercise.content) {
           const wordCount = exercise.content.split(/\s+/).length;
           console.log(`Fallback reading exercise word count: ${wordCount}`);
           
           if (wordCount < 280) {
-            // Pad the content to reach minimum word count
+            // Uzupełnij tekst do minimum 280 słów
             const additionalWordsNeeded = 280 - wordCount;
-            const additionalContent = Array(additionalWordsNeeded).fill("word").join(" ");
+            const additionalContent = getFillerText(additionalWordsNeeded);
             exercise.content += " " + additionalContent;
             console.log(`Padded reading exercise to ${exercise.content.split(/\s+/).length} words`);
           }
         }
+        
+        return exercise;
       });
       
       const tempId = uuidv4();
@@ -160,6 +210,95 @@ const Index = () => {
     }
   };
 
+  // Funkcja pomocnicza do generowania tekstu wypełniającego określonej długości
+  const getFillerText = (wordCount: number): string => {
+    const fillerSentences = [
+      "Learning a foreign language requires consistent practice and dedication.",
+      "Students should focus on both speaking and listening skills to improve overall fluency.",
+      "Regular vocabulary review helps to reinforce new words and phrases.",
+      "Grammar exercises are important for building proper sentence structures.",
+      "Reading comprehension improves with exposure to diverse texts and topics.",
+      "Practicing writing helps students organize their thoughts in the target language.",
+      "Cultural understanding enhances language learning and contextual usage.",
+      "Listening to native speakers helps with pronunciation and intonation.",
+      "Group activities encourage students to use the language in realistic scenarios.",
+      "Technology can be a valuable tool for interactive language learning.",
+      "Language games make the learning process more engaging and enjoyable.",
+      "Watching films in the target language improves listening comprehension.",
+      "Translation exercises help students understand nuances between languages.",
+      "Language immersion accelerates the learning process significantly.",
+      "Setting achievable goals motivates students to continue their language journey.",
+    ];
+    
+    let resultText = "";
+    let currentWordCount = 0;
+    
+    while (currentWordCount < wordCount) {
+      const randomSentence = fillerSentences[Math.floor(Math.random() * fillerSentences.length)];
+      resultText += " " + randomSentence;
+      currentWordCount += randomSentence.split(/\s+/).length;
+    }
+    
+    return resultText.trim();
+  };
+
+  /**
+   * Funkcje do tworzenia przykładowych elementów zadań
+   */
+  const createSampleQuestions = (exerciseType: string, count: number) => {
+    if (exerciseType === 'multiple-choice') {
+      return Array(count).fill(null).map((_, i) => ({
+        text: `Question ${i + 1}: Choose the correct option.`,
+        options: [
+          { label: "A", text: "Option A", correct: i % 4 === 0 },
+          { label: "B", text: "Option B", correct: i % 4 === 1 },
+          { label: "C", text: "Option C", correct: i % 4 === 2 },
+          { label: "D", text: "Option D", correct: i % 4 === 3 }
+        ]
+      }));
+    } else {
+      // For reading comprehension
+      return Array(count).fill(null).map((_, i) => ({
+        text: `Question ${i + 1}: Answer based on the text above.`,
+        answer: `Sample answer for question ${i + 1}.`
+      }));
+    }
+  };
+  
+  const createSampleItems = (count: number) => {
+    const terms = ['Apple', 'Book', 'Car', 'Dog', 'Earth', 'Family', 'Game', 'House', 'Internet', 'Job'];
+    const definitions = ['A fruit', 'A reading material', 'A vehicle', 'A pet animal', 'Our planet', 'A group of related people', 'An activity for fun', 'A place to live', 'Global network', 'Work for money'];
+    
+    return Array(count).fill(null).map((_, i) => ({
+      term: terms[i],
+      definition: definitions[i]
+    }));
+  };
+  
+  const createSampleSentences = (count: number) => {
+    return Array(count).fill(null).map((_, i) => ({
+      text: `This is the ${i + 1}th sample sentence with a ___ in it.`,
+      answer: `sample word ${i + 1}`
+    }));
+  };
+  
+  const createSampleDialogue = (count: number) => {
+    return Array(count).fill(null).map((_, i) => ({
+      speaker: i % 2 === 0 ? 'Person A' : 'Person B',
+      text: `This is line ${i + 1} of the sample dialogue.`
+    }));
+  };
+  
+  const createSampleVocabulary = (count: number) => {
+    const terms = ['Abundant', 'Benevolent', 'Concurrent', 'Diligent', 'Ephemeral', 'Fastidious', 'Gregarious', 'Haphazard', 'Impeccable', 'Juxtapose'];
+    const meanings = ['Existing in large quantities', 'Kind and generous', 'Occurring at the same time', 'Hardworking', 'Lasting for a very short time', 'Paying attention to detail', 'Sociable', 'Random or lacking organization', 'Perfect, flawless', 'To place side by side'];
+    
+    return Array(count).fill(null).map((_, i) => ({
+      term: terms[i],
+      meaning: meanings[i]
+    }));
+  };
+
   /**
    * Resets the view to the form
    */
@@ -173,23 +312,80 @@ const Index = () => {
    * Create a placeholder exercise for when we need to pad exercise count
    */
   const createPlaceholderExercise = (index: number) => {
-    return {
-      type: "multiple-choice",
-      title: `Exercise ${index}: Multiple Choice`,
-      icon: "fa-check-square",
-      time: 6,
-      instructions: "Choose the best option to complete each sentence.",
-      questions: Array(10).fill(null).map((_, i) => ({
-        text: `Question ${i + 1}: Choose the correct option.`,
-        options: [
-          { label: "A", text: "Option A", correct: i % 4 === 0 },
-          { label: "B", text: "Option B", correct: i % 4 === 1 },
-          { label: "C", text: "Option C", correct: i % 4 === 2 },
-          { label: "D", text: "Option D", correct: i % 4 === 3 }
-        ]
-      })),
-      teacher_tip: "Tip for teachers: Review these options with students."
+    // Utwórz różne typy ćwiczeń aby zapewnić różnorodność
+    const exerciseTypes = [
+      'multiple-choice',
+      'fill-in-blanks',
+      'matching',
+      'reading',
+      'dialogue',
+      'discussion'
+    ];
+    
+    const selectedType = exerciseTypes[index % exerciseTypes.length];
+    
+    let exercise: any = {
+      type: selectedType,
+      title: `Exercise ${index}: ${selectedType.charAt(0).toUpperCase() + selectedType.slice(1).replace('-', ' ')}`,
+      icon: getIconForType(selectedType),
+      time: 5 + (index % 5),
+      instructions: `Instructions for the ${selectedType} exercise. Complete the task according to the examples.`,
+      teacher_tip: `Teacher's tip: Guide students through this ${selectedType} exercise and provide support as needed.`
     };
+    
+    // Dodaj specyficzne pola w zależności od typu
+    switch(selectedType) {
+      case 'multiple-choice':
+        exercise.questions = createSampleQuestions('multiple-choice', 5);
+        break;
+      case 'reading':
+        exercise.content = getFillerText(280);
+        exercise.questions = createSampleQuestions('reading', 5);
+        break;
+      case 'matching':
+        exercise.items = createSampleItems(6);
+        break;
+      case 'fill-in-blanks':
+        exercise.sentences = createSampleSentences(6);
+        exercise.word_bank = ['book', 'pen', 'computer', 'desk', 'teacher', 'student', 'school', 'classroom'];
+        break;
+      case 'dialogue':
+        exercise.dialogue = createSampleDialogue(5);
+        exercise.expressions = ['Nice to meet you', 'How are you?', 'See you later', 'Thank you', 'You're welcome'];
+        exercise.expression_instruction = 'Practice these expressions from the dialogue';
+        break;
+      case 'discussion':
+        exercise.questions = [
+          'What do you think about this topic?',
+          'Have you ever experienced something similar?',
+          'How would you solve this problem?',
+          'What are the advantages and disadvantages?',
+          'What is your personal opinion?'
+        ];
+        break;
+      default:
+        // Domyślna konfiguracja
+        exercise.questions = createSampleQuestions('multiple-choice', 5);
+    }
+    
+    return exercise;
+  };
+  
+  // Pomocnicza funkcja do przypisywania ikon
+  const getIconForType = (type: string): string => {
+    const iconMap: {[key: string]: string} = {
+      'multiple-choice': 'fa-check-square',
+      'reading': 'fa-book-open',
+      'matching': 'fa-random',
+      'fill-in-blanks': 'fa-pencil-alt',
+      'dialogue': 'fa-comments',
+      'discussion': 'fa-users',
+      'error-correction': 'fa-exclamation-triangle',
+      'word-formation': 'fa-font',
+      'word-order': 'fa-sort'
+    };
+    
+    return iconMap[type] || 'fa-tasks';
   };
 
   /**

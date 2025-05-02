@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
@@ -26,67 +26,17 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
   const { toast } = useToast();
   const { userId } = useAnonymousAuth();
   
-  const handleStarClick = async (value: number) => {
-    setSelected(value);
-    setIsSubmitting(true);
-    
-    try {
-      // Submit rating immediately when star is clicked
-      if (userId) {
-        let worksheetId = getWorksheetIdFromUrl();
-        
-        if (worksheetId) {
-          await submitWorksheetFeedback(worksheetId, value, '', userId);
-          toast({
-            title: "Rating submitted!",
-            description: "Thanks for your feedback. Add a comment for more details."
-          });
-          
-          // If user provided a callback, call it
-          if (onSubmitRating) {
-            onSubmitRating(value, '');
-          }
-        } else {
-          console.error("Could not determine worksheet ID");
-          toast({
-            title: "Rating submission failed",
-            description: "We couldn't find the worksheet ID. Please try again.",
-            variant: "destructive"
-          });
-        }
-      } else {
-        console.error("No user ID available");
-        toast({
-          title: "Authentication error",
-          description: "We couldn't identify your session. Please refresh the page and try again.",
-          variant: "destructive"
-        });
-      }
-      
-      // Then open dialog to collect additional comment
-      setIsDialogOpen(true);
-    } catch (error) {
-      console.error("Error submitting rating:", error);
-      toast({
-        title: "Rating submission failed",
-        description: "We couldn't submit your rating. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
+  // Funkcja do pobierania ID arkusza z URL lub atrybutów danych
   const getWorksheetIdFromUrl = (): string | null => {
-    // Try to get worksheet ID from URL
+    // Próba pobrania ID arkusza z URL
     let worksheetId = null;
     
-    // Check URL search params
+    // Sprawdzenie parametrów wyszukiwania URL
     if (window.location.href.includes('worksheet_id=')) {
       worksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
     }
     
-    // If no worksheet ID in URL, check for data attributes
+    // Jeśli ID nie jest w URL, sprawdź atrybuty danych
     if (!worksheetId) {
       const worksheetElements = document.querySelectorAll('[data-worksheet-id]');
       if (worksheetElements.length > 0) {
@@ -94,17 +44,69 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
       }
     }
     
+    // Jeśli nadal nie mamy ID, spróbuj utworzyć tymczasowe
+    if (!worksheetId) {
+      // Sprawdzenie, czy istnieje data-element dla tytułu
+      const titleElement = document.querySelector('h1');
+      if (titleElement) {
+        // Stwórz ID na podstawie tytułu i bieżącego czasu
+        const title = titleElement.textContent || 'worksheet';
+        const timestamp = new Date().getTime();
+        worksheetId = `temp-${title.substring(0, 10).replace(/\s+/g, '-')}-${timestamp}`;
+      } else {
+        // Ostateczne rozwiązanie - po prostu wygeneruj ID na podstawie czasu
+        worksheetId = `temp-worksheet-${new Date().getTime()}`;
+      }
+    }
+    
     return worksheetId;
   };
   
+  const handleStarClick = async (value: number) => {
+    setSelected(value);
+    
+    try {
+      // Pobierz ID arkusza roboczego
+      const worksheetId = getWorksheetIdFromUrl();
+      
+      if (worksheetId && userId) {
+        // Dodanie atrybutu data do głównej sekcji arkusza
+        const worksheetContent = document.getElementById('worksheet-content');
+        if (worksheetContent) {
+          worksheetContent.setAttribute('data-worksheet-id', worksheetId);
+        }
+        
+        // Wyślij ocenę bezpośrednio po kliknięciu gwiazdki
+        await submitWorksheetFeedback(worksheetId, value, '', userId);
+        
+        toast({
+          title: "Ocena zapisana!",
+          description: "Dziękujemy za Twoją ocenę. Dodaj komentarz, aby podać więcej szczegółów."
+        });
+        
+        // Jeśli użytkownik dostarczył wywołanie zwrotne, wywołaj je
+        if (onSubmitRating) {
+          onSubmitRating(value, '');
+        }
+      } else {
+        console.warn("Nie można określić ID arkusza roboczego lub ID użytkownika");
+      }
+    } catch (error) {
+      console.error("Błąd podczas przesyłania oceny:", error);
+    }
+    
+    // Otwórz okno dialogowe, aby zebrać dodatkowy komentarz
+    setIsDialogOpen(true);
+  };
+  
   const handleSubmit = async () => {
-    if (!selected || !userId) return;
+    if (!selected) return;
     setIsSubmitting(true);
     
     try {
       const worksheetId = getWorksheetIdFromUrl();
       
-      if (worksheetId) {
+      if (worksheetId && userId) {
         await submitWorksheetFeedback(worksheetId, selected, feedback, userId);
         
         setIsDialogOpen(false);
@@ -112,22 +114,26 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
         setTimeout(() => setThanksOpen(false), 2500);
         
         toast({
-          title: "Thank you for your feedback!",
-          description: "Your rating and comments help us improve our service."
+          title: "Dziękujemy za opinię!",
+          description: "Twoja ocena i komentarze pomagają nam ulepszyć nasz serwis."
         });
         
-        // Call the callback with rating and feedback
+        // Wywołaj funkcję zwrotną z oceną i opinią
         if (onSubmitRating) {
           onSubmitRating(selected, feedback);
         }
       } else {
-        throw new Error("Could not determine worksheet ID");
+        toast({
+          title: "Nie można znaleźć ID arkusza lub ID użytkownika",
+          description: "Spróbuj odświeżyć stronę i spróbować ponownie.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
-      console.error("Error submitting feedback:", error);
+      console.error("Błąd podczas przesyłania opinii:", error);
       toast({
-        title: "Feedback submission failed",
-        description: "We couldn't submit your feedback. Please try again later.",
+        title: "Błąd przesyłania opinii",
+        description: "Nie mogliśmy przesłać Twojej opinii. Spróbuj ponownie później.",
         variant: "destructive"
       });
     } finally {
@@ -135,6 +141,17 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
       setFeedback("");
     }
   };
+  
+  // Dodaj ID arkusza do elementu DOM przy ładowaniu
+  useEffect(() => {
+    const worksheetId = getWorksheetIdFromUrl();
+    if (worksheetId) {
+      const worksheetContent = document.getElementById('worksheet-content');
+      if (worksheetContent) {
+        worksheetContent.setAttribute('data-worksheet-id', worksheetId);
+      }
+    }
+  }, []);
   
   return (
     <div data-no-pdf="true" className="bg-white p-6 border rounded-lg shadow-sm mt-6">

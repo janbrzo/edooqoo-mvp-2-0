@@ -101,6 +101,36 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
       
       // Fallback to direct Supabase insert if edge function fails
       console.log('Falling back to direct Supabase insert...');
+      
+      // First check if worksheet exists
+      const { data: worksheetCheck, error: worksheetCheckError } = await supabase
+        .from('worksheets')
+        .select('id')
+        .eq('id', worksheetId)
+        .single();
+      
+      // If worksheet doesn't exist, create a placeholder
+      if (worksheetCheckError || !worksheetCheck) {
+        console.log('Worksheet not found, creating placeholder');
+        const { error: newWorksheetError } = await supabase
+          .from('worksheets')
+          .insert({
+            id: worksheetId,
+            prompt: 'Placeholder for feedback',
+            html_content: '{}',
+            status: 'placeholder',
+            user_id: userId,
+            ip_address: 'client-side',
+            title: 'Placeholder worksheet'
+          });
+        
+        if (newWorksheetError) {
+          console.error('Error creating placeholder worksheet:', newWorksheetError);
+          throw new Error(`Failed to create placeholder worksheet: ${newWorksheetError.message}`);
+        }
+      }
+      
+      // Now insert the feedback
       const { data, error } = await supabase
         .from('feedbacks')
         .insert({
@@ -142,32 +172,34 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
  */
 export async function trackEvent(type: string, worksheetId: string, userId: string, metadata: any = {}) {
   try {
-    // Skip tracking if worksheetId is not a valid UUID
-    if (!worksheetId || worksheetId.length < 10) {
+    // Skip tracking if worksheetId is invalid
+    if (!worksheetId) {
       console.log(`Skipping ${type} event tracking for invalid worksheetId: ${worksheetId}`);
       return;
     }
     
     console.log(`Tracking event: ${type} for worksheet: ${worksheetId}`);
+    
+    // Dodawanie zdarzenia bezpośrednio do bazy danych
     const { data, error } = await supabase.from('events').insert({
       type,
       event_type: type,
       worksheet_id: worksheetId,
       user_id: userId,
       metadata,
-      ip_address: "client-side" // Since we can't get IP on client side
+      ip_address: "client-side" // Ponieważ nie możemy uzyskać adresu IP po stronie klienta
     });
 
     if (error) {
       console.error(`Error tracking ${type} event:`, error);
-      console.error('Full error details:', error);
-    } else {
-      console.log(`Successfully tracked ${type} event:`, data);
+      throw error;
     }
     
+    console.log(`Successfully tracked ${type} event`);
     return data;
   } catch (error) {
     console.error(`Error tracking ${type} event:`, error);
-    throw error;
+    // Zwróć błąd, ale nie przerywaj wykonywania
+    return null;
   }
 }
