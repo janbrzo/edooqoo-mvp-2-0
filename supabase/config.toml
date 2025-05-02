@@ -1,5 +1,14 @@
 
 project_id = "bvfrkzdlklyvnhlpleck"
 
+[api]
+enabled = true
+
+[db]
+shadow_database_url = ""
+
+[functions]
 [functions.generateWorksheet]
+verify_jwt = false
+[functions.submitFeedback]
 verify_jwt = false
