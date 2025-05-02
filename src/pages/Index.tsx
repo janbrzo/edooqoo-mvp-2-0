@@ -88,7 +88,9 @@ const Index = () => {
           console.warn(`Expected ${expectedExerciseCount} exercises but got ${worksheetData.exercises.length}`);
           // Add placeholder exercises to match expected count
           while (worksheetData.exercises.length < expectedExerciseCount) {
-            worksheetData.exercises.push(createPlaceholderExercise(worksheetData.exercises.length + 1));
+            const exerciseIndex = worksheetData.exercises.length + 1;
+            const newExercise = createPlaceholderExercise(exerciseIndex);
+            worksheetData.exercises.push(newExercise);
           }
         } else if (worksheetData.exercises.length > expectedExerciseCount) {
           // Trim extra exercises
@@ -324,6 +326,7 @@ const Index = () => {
     
     const selectedType = exerciseTypes[index % exerciseTypes.length];
     
+    // Poprawnie formatuj tytuł zadania, zawsze dodając numer Exercise
     let exercise: any = {
       type: selectedType,
       title: `Exercise ${index}: ${selectedType.charAt(0).toUpperCase() + selectedType.slice(1).replace('-', ' ')}`,
@@ -339,20 +342,21 @@ const Index = () => {
         exercise.questions = createSampleQuestions('multiple-choice', 5);
         break;
       case 'reading':
-        exercise.content = getFillerText(280);
+        exercise.content = getFillerText(280); // Zapewniamy minimum 280 słów dla tekstu
         exercise.questions = createSampleQuestions('reading', 5);
         break;
       case 'matching':
-        exercise.items = createSampleItems(6);
+        exercise.items = createSampleItems(10); // Zapewniamy dokładnie 10 elementów do dopasowania
         break;
       case 'fill-in-blanks':
-        exercise.sentences = createSampleSentences(6);
-        exercise.word_bank = ['book', 'pen', 'computer', 'desk', 'teacher', 'student', 'school', 'classroom'];
+        exercise.sentences = createSampleSentences(10); // Zapewniamy dokładnie 10 zdań
+        exercise.word_bank = ['book', 'pen', 'computer', 'desk', 'teacher', 'student', 'school', 'classroom', 'language', 'learning'];
         break;
       case 'dialogue':
-        exercise.dialogue = createSampleDialogue(5);
-        exercise.expressions = ["Nice to meet you", "How are you?", "See you later", "Thank you", "You're welcome"];
-        exercise.expression_instruction = 'Practice these expressions from the dialogue';
+        exercise.dialogue = createSampleDialogue(10); // Zapewniamy minimum 10 wymian w dialogu
+        exercise.expressions = ["Nice to meet you", "How are you?", "See you later", "Thank you", "You're welcome", 
+                               "Could you help me?", "I don't understand", "Can you repeat that?", "What does that mean?", "Let me try"];
+        exercise.expression_instruction = 'Practice using these expressions from the dialogue';
         break;
       case 'discussion':
         exercise.questions = [
@@ -360,11 +364,16 @@ const Index = () => {
           'Have you ever experienced something similar?',
           'How would you solve this problem?',
           'What are the advantages and disadvantages?',
-          'What is your personal opinion?'
+          'What is your personal opinion?',
+          'Can you share an example from your own experience?',
+          'How does this compare to other similar situations?',
+          'What would be the best approach in this scenario?',
+          'What are potential challenges one might face?',
+          'How would you explain this concept to someone else?'
         ];
         break;
       default:
-        // Domyślna konfiguracja
+        // Domyślna konfiguracja - upewnij się, że zawsze mamy jakąś zawartość
         exercise.questions = createSampleQuestions('multiple-choice', 5);
     }
     
