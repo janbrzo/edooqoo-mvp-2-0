@@ -49,6 +49,8 @@ serve(async (req) => {
       .eq('id', worksheetId)
       .single();
     
+    let worksheetCreated = false;
+    
     if (worksheetCheckError) {
       console.log('Worksheet check error:', worksheetCheckError);
       // If worksheet doesn't exist, we need to create a temporary one
@@ -72,6 +74,7 @@ serve(async (req) => {
           throw new Error(`Failed to create placeholder worksheet: ${newWorksheetError.message}`);
         } else {
           console.log('Created placeholder worksheet:', newWorksheet);
+          worksheetCreated = true;
         }
       }
     }
@@ -103,7 +106,7 @@ serve(async (req) => {
         event_type: 'feedback',
         worksheet_id: worksheetId,
         user_id: userId,
-        metadata: { rating, comment: comment || '', ip },
+        metadata: { rating, comment: comment || '', ip, worksheetCreated },
         ip_address: ip
       });
 

@@ -19,8 +19,9 @@ const ExerciseContent: React.FC<ExerciseContentProps> = ({
   };
 
   const wordCount = getWordCount(content);
-  const isReadingText = content && wordCount > 100; // Assume it's a reading text if it's long
+  const isReadingText = content && wordCount > 10; // Assume it's a reading text if it's long
   const isWordCountOptimal = wordCount >= 280 && wordCount <= 320;
+  const isWordCountLow = wordCount > 0 && wordCount < 280;
 
   return (
     <>
@@ -41,7 +42,7 @@ const ExerciseContent: React.FC<ExerciseContentProps> = ({
               <textarea
                 value={content}
                 onChange={e => onContentChange(e.target.value)}
-                className="w-full h-32 border p-2 editable-content"
+                className="w-full h-64 border p-2 editable-content"
               />
             ) : (
               <p className="whitespace-pre-line leading-snug">{content}</p>
@@ -50,8 +51,17 @@ const ExerciseContent: React.FC<ExerciseContentProps> = ({
           
           {/* Word count badge for reading passages */}
           {isReadingText && (
-            <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-medium ${isWordCountOptimal ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-              {wordCount} words
+            <div 
+              className={`absolute top-2 right-2 px-3 py-1 rounded-full text-xs font-medium ${
+                isWordCountOptimal 
+                  ? 'bg-green-100 text-green-800' 
+                  : isWordCountLow
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-yellow-100 text-yellow-800'
+              }`}
+              title={isWordCountOptimal ? "Optymalna liczba słów" : "Liczba słów poza optymalnym zakresem 280-320"}
+            >
+              {wordCount} słów {!isWordCountOptimal && "(zalecane: 280-320)"}
             </div>
           )}
         </div>
