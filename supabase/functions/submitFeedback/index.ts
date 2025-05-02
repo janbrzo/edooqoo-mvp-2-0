@@ -22,17 +22,68 @@ serve(async (req) => {
     const { worksheetId, rating, comment, userId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
     
-    if (!worksheetId || !rating || !userId) {
-      throw new Error('Missing required parameters');
+    if (!rating || !userId) {
+      throw new Error('Missing required parameters: rating and userId are required');
     }
 
     console.log('Submitting feedback:', { worksheetId, rating, comment: comment?.substring(0, 20) + '...', userId });
+
+    // Check if worksheet exists
+    let shouldCreatePlaceholder = false;
+    
+    if (worksheetId) {
+      const { data: worksheetExists, error: existsError } = await supabase
+        .from('worksheets')
+        .select('id')
+        .eq('id', worksheetId)
+        .maybeSingle();
+
+      if (existsError) {
+        console.error('Error checking worksheet existence:', existsError);
+      }
+
+      if (!worksheetExists) {
+        console.log(`Worksheet with ID ${worksheetId} not found, creating placeholder.`);
+        shouldCreatePlaceholder = true;
+      }
+    } else {
+      shouldCreatePlaceholder = true;
+    }
+
+    let actualWorksheetId = worksheetId;
+
+    // Create placeholder worksheet if needed
+    if (shouldCreatePlaceholder) {
+      const { data: placeholderData, error: placeholderError } = await supabase
+        .from('worksheets')
+        .insert({
+          prompt: 'Generated worksheet',
+          content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
+          user_id: userId,
+          ip_address: ip,
+          status: 'created',
+          title: 'Generated Worksheet'
+        })
+        .select();
+
+      if (placeholderError) {
+        console.error('Error creating placeholder worksheet:', placeholderError);
+        throw new Error(`Failed to create placeholder worksheet: ${placeholderError.message}`);
+      }
+
+      if (placeholderData && placeholderData.length > 0) {
+        actualWorksheetId = placeholderData[0].id;
+        console.log(`Created placeholder worksheet with ID: ${actualWorksheetId}`);
+      } else {
+        throw new Error('Failed to create placeholder worksheet');
+      }
+    }
 
     // Insert feedback into database
     const { data: feedback, error: feedbackError } = await supabase
       .from('feedbacks')
       .insert({
-        worksheet_id: worksheetId,
+        worksheet_id: actualWorksheetId,
         user_id: userId,
         rating,
         comment,
@@ -49,7 +100,7 @@ serve(async (req) => {
     await supabase.from('events').insert({
       type: 'feedback',
       event_type: 'feedback',
-      worksheet_id: worksheetId,
+      worksheet_id: actualWorksheetId,
       user_id: userId,
       metadata: { rating, ip },
       ip_address: ip

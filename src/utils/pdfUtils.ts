@@ -13,9 +13,11 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
     noPdfElements.forEach(el => el.remove());
     
-    // Remove all teacher tips sections when generating PDF (they should not appear in PDF)
-    const teacherTips = clone.querySelectorAll('.teacher-tip');
-    teacherTips.forEach(el => el.remove());
+    // Remove all teacher tips sections when generating student version (they should not appear in PDF)
+    if (!isTeacherVersion) {
+      const teacherTips = clone.querySelectorAll('.teacher-tip');
+      teacherTips.forEach(el => el.remove());
+    }
     
     // Create a temporary container for the cloned content
     const container = document.createElement('div');
@@ -46,7 +48,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     footer.innerHTML = 'Page <span class="pageNumber"></span> of <span class="totalPages"></span>';
     container.appendChild(footer);
     
-    // Apply font size reductions (10% reduction)
+    // Apply font size reductions and space optimization
     const fontSizeAdjustments = `
       <style>
         /* Base font size reductions */
@@ -63,20 +65,31 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
         .question-text { font-size: 13.5px !important; } /* Reduced from 15px */
         .answer-text { font-size: 12.6px !important; } /* Reduced from 14px */
         
-        /* Reduce whitespace */
-        .mb-6 { margin-bottom: 1rem !important; }
-        .mb-8 { margin-bottom: 1rem !important; }
-        .mb-4 { margin-bottom: 0.75rem !important; }
-        .p-6 { padding: 1rem !important; }
-        .p-5 { padding: 1rem !important; }
-        .py-2 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+        /* Reduce whitespace - aggressive space reduction */
+        .mb-6 { margin-bottom: 0.5rem !important; }
+        .mb-8 { margin-bottom: 0.5rem !important; }
+        .mb-4 { margin-bottom: 0.4rem !important; }
+        .p-6 { padding: 0.5rem !important; }
+        .p-5 { padding: 0.5rem !important; }
+        .p-4 { padding: 0.4rem !important; }
+        .py-2 { padding-top: 0.15rem !important; padding-bottom: 0.15rem !important; }
         
         /* Fix spacing between exercises */
-        .exercise + .exercise { margin-top: 5px !important; }
+        .exercise + .exercise { margin-top: 2px !important; }
         
         /* Remove vertical white space */
-        .space-y-4 > * + * { margin-top: 0.5rem !important; }
-        .space-y-2 > * + * { margin-top: 0.25rem !important; }
+        .space-y-4 > * + * { margin-top: 0.25rem !important; }
+        .space-y-2 > * + * { margin-top: 0.15rem !important; }
+        
+        /* Target specific exercise types for space optimization */
+        .bg-gray-50 { padding: 0.3rem !important; margin-bottom: 0.3rem !important; }
+        
+        /* Make sure text is compact but still readable */
+        .whitespace-pre-line { white-space: normal !important; }
+        
+        /* Optimize page breaks */
+        .page-break { page-break-before: always; }
+        h1, h2, h3, h4 { page-break-after: avoid; }
       </style>
     `;
     container.insertAdjacentHTML('afterbegin', fontSizeAdjustments);
@@ -100,9 +113,13 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
         format: 'a4', 
         orientation: 'portrait',
         compress: true,
-        quality: 100
+        putOnlyUsedFonts: true
       },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'], before: '.page-break', avoid: ['img', 'table', 'div.avoid-page-break'] },
+      pagebreak: { 
+        mode: ['avoid-all', 'css', 'legacy'], 
+        before: '.page-break', 
+        avoid: ['img', 'table', 'div.avoid-page-break'] 
+      },
       enableLinks: true
     };
     

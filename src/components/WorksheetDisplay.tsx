@@ -47,6 +47,8 @@ interface WorksheetDisplayProps {
   onBack: () => void;
   wordBankOrder?: any;
   onDownload?: () => void;
+  worksheetId?: string | null;
+  onFeedbackSubmit?: (rating: number, feedback: string) => void;
 }
 
 export default function WorksheetDisplay({
@@ -56,7 +58,9 @@ export default function WorksheetDisplay({
   sourceCount,
   onBack,
   wordBankOrder,
-  onDownload
+  onDownload,
+  worksheetId,
+  onFeedbackSubmit
 }: WorksheetDisplayProps) {
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
@@ -64,6 +68,46 @@ export default function WorksheetDisplay({
   const [showScrollTop, setShowScrollTop] = useState(false);
   const worksheetRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  
+  // Validate the worksheet structure when component mounts
+  useEffect(() => {
+    validateWorksheetStructure();
+  }, []);
+  
+  const validateWorksheetStructure = () => {
+    // Check if worksheet has all the required components
+    if (!worksheet) {
+      toast({
+        title: "Invalid worksheet data",
+        description: "The worksheet data is missing or invalid.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check for exercises
+    if (!Array.isArray(worksheet.exercises) || worksheet.exercises.length === 0) {
+      toast({
+        title: "Missing exercises",
+        description: "The worksheet doesn't contain any exercises.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check for reading exercises and word count
+    const readingExercise = worksheet.exercises.find(ex => ex.type === 'reading');
+    if (readingExercise && readingExercise.content) {
+      const wordCount = readingExercise.content.split(/\s+/).filter(Boolean).length;
+      if (wordCount < 280) {
+        toast({
+          title: "Reading exercise issue",
+          description: `Reading content has only ${wordCount} words (should be 280-320).`,
+          variant: "warning"
+        });
+      }
+    }
+  };
   
   const scrollToTop = () => {
     window.scrollTo({
@@ -130,7 +174,7 @@ export default function WorksheetDisplay({
   };
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-6" data-worksheet-id={worksheetId || undefined}>
       <div className="mb-6">
         <WorksheetHeader
           onBack={onBack}
@@ -217,7 +261,10 @@ export default function WorksheetDisplay({
           )}
 
           {/* First display rating section */}
-          <WorksheetRating onSubmitRating={onDownload} />
+          <WorksheetRating 
+            worksheetId={worksheetId}
+            onSubmitRating={onFeedbackSubmit || onDownload} 
+          />
           
           {/* Then display Teacher Notes Section (both for student and teacher view) */}
           <TeacherNotes />

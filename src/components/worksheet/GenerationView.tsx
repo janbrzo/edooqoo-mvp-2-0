@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from "react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
-import WorksheetRating from "@/components/WorksheetRating";
 import { ArrowUp } from "lucide-react";
 import { FormData } from "@/components/WorksheetForm";
 import { useToast } from "@/hooks/use-toast";
@@ -54,7 +53,7 @@ const GenerationView: React.FC<GenerationViewProps> = ({
   };
 
   const handleFeedbackSubmit = async (rating: number, feedback: string) => {
-    if (!userId || !worksheetId) {
+    if (!userId) {
       toast({
         title: "Feedback submission error",
         description: "There was a problem with your session. Please refresh the page and try again.",
@@ -64,7 +63,7 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     }
 
     try {
-      await submitWorksheetFeedback(worksheetId, rating, feedback, userId);
+      await submitWorksheetFeedback(worksheetId || 'unknown', rating, feedback, userId);
       
       toast({
         title: "Thank you for your feedback!",
@@ -96,9 +95,11 @@ const GenerationView: React.FC<GenerationViewProps> = ({
         inputParams={inputParams} 
         generationTime={generationTime} 
         sourceCount={sourceCount} 
-        onBack={onBack} 
+        onBack={onBack}
+        worksheetId={worksheetId}
         wordBankOrder={generatedWorksheet?.exercises?.find((ex: any) => ex.type === "matching")?.shuffledTerms?.map((item: any) => item.definition)}
         onDownload={handleDownloadEvent}
+        onFeedbackSubmit={handleFeedbackSubmit}
       />
       
       {showScrollTop && (

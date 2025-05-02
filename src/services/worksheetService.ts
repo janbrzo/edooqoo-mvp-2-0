@@ -79,6 +79,18 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       }
     }
     
+    // Check exercise count based on lesson time
+    let expectedCount = 6;
+    if (prompt.lessonTime === "30 min") {
+      expectedCount = 4;
+    } else if (prompt.lessonTime === "45 min") {
+      expectedCount = 6;
+    } else if (prompt.lessonTime === "60 min") {
+      expectedCount = 8;
+    }
+    
+    console.log(`Expected ${expectedCount} exercises for ${prompt.lessonTime} lesson, got ${worksheetData.exercises.length}`);
+    
     return worksheetData;
   } catch (error) {
     console.error('Error generating worksheet:', error);
@@ -111,7 +123,7 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
       const errorText = await response.text();
       console.error('Error submitting feedback via API:', errorText);
       
-      // Fallback to direct Supabase insert if edge function fails
+      // If edge function fails, try direct database submission
       const { data, error } = await supabase
         .from('feedbacks')
         .insert([
@@ -120,13 +132,61 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
             user_id: userId, 
             rating, 
             comment,
-            status: 'new' // Using 'new' status since that appears to be the required value based on error
+            status: 'new'
           }
-        ]);
+        ])
+        .select();
         
       if (error) {
-        console.error('Supabase insert error:', error);
-        throw new Error(`Failed to submit feedback: ${error.message}`);
+        console.error('Direct feedback submission error:', error);
+        
+        // If direct insert fails and we don't have a worksheet_id, try creating a placeholder
+        if (error.message.includes('violates foreign key constraint')) {
+          console.log('Creating placeholder worksheet for feedback');
+          
+          const { data: placeholderData, error: placeholderError } = await supabase
+            .from('worksheets')
+            .insert([
+              {
+                prompt: 'Generated worksheet',
+                content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
+                user_id: userId,
+                ip_address: 'client-side',
+                status: 'created',
+                title: 'Generated Worksheet'
+              }
+            ])
+            .select();
+            
+          if (placeholderError) {
+            console.error('Error creating placeholder worksheet:', placeholderError);
+            throw new Error('Failed to create feedback record: worksheet reference is required');
+          }
+            
+          if (placeholderData && placeholderData.length > 0) {
+            // Try feedback again with new worksheet ID
+            const { data: retryData, error: retryError } = await supabase
+              .from('feedbacks')
+              .insert([
+                { 
+                  worksheet_id: placeholderData[0].id, 
+                  user_id: userId, 
+                  rating, 
+                  comment,
+                  status: 'new'
+                }
+              ]);
+                
+            if (retryError) {
+              console.error('Retry feedback submission error:', retryError);
+              throw new Error(`Failed to submit feedback after retry: ${retryError.message}`);
+            }
+              
+            return retryData;
+          }
+        } else {
+          throw new Error(`Failed to submit feedback: ${error.message}`);
+        }
       }
         
       return data;
@@ -164,6 +224,48 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
 
     if (error) {
       console.error(`Error tracking ${type} event:`, error);
+      
+      // If FK constraint error, try creating a placeholder worksheet
+      if (error.message.includes('violates foreign key constraint')) {
+        console.log('Creating placeholder worksheet for event tracking');
+        
+        const { data: placeholderData, error: placeholderError } = await supabase
+          .from('worksheets')
+          .insert([
+            {
+              prompt: 'Generated worksheet',
+              content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
+              user_id: userId,
+              ip_address: 'client-side',
+              status: 'created',
+              title: 'Generated Worksheet'
+            }
+          ])
+          .select();
+          
+        if (placeholderError) {
+          console.error('Error creating placeholder worksheet:', placeholderError);
+          return;
+        }
+          
+        if (placeholderData && placeholderData.length > 0) {
+          // Try event again with new worksheet ID
+          const { error: retryError } = await supabase.from('events').insert({
+            type,
+            event_type: type,
+            worksheet_id: placeholderData[0].id,
+            user_id: userId,
+            metadata,
+            ip_address: "client-side"
+          });
+            
+          if (retryError) {
+            console.error(`Error tracking ${type} event after retry:`, retryError);
+          } else {
+            console.log(`Successfully tracked ${type} event after creating placeholder worksheet`);
+          }
+        }
+      }
     } else {
       console.log(`Successfully tracked ${type} event`);
     }

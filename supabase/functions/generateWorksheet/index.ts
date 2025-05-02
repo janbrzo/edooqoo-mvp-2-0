@@ -158,8 +158,19 @@ Generate a structured JSON worksheet with the following format:
   ]
 }
 
+IMPORTANT QUALITY CHECK BEFORE GENERATING:
+Please analyze this English worksheet to ensure the following quality standards:
+1. Grammar is correct throughout all exercises
+2. There are no spelling mistakes in any text
+3. All instructions are clear and easily understandable
+4. The difficulty level is consistent and appropriate
+5. Specific vocabulary related to the topic is included
+6. Formatting is consistent across all exercises
+7. All exercises are complete with required elements
+8. Reading texts precisely contain 280-320 words (COUNT CAREFULLY)
+
 IMPORTANT RULES AND REQUIREMENTS:
-1. Create EXACTLY ${exerciseCount} exercises based on the prompt.
+1. Create EXACTLY ${exerciseCount} exercises based on the prompt. No fewer, no more.
 2. For "reading" exercises:
    - The content MUST be BETWEEN 280-320 WORDS. Count words carefully.
    - ALWAYS include EXACTLY 5 comprehension questions.
@@ -242,6 +253,32 @@ IMPORTANT RULES AND REQUIREMENTS:
                 exercise.content = expandedText;
                 console.log(`Successfully expanded reading text from ${wordCount} to ${expandedWordCount} words`);
               }
+            } else if (wordCount > 320) {
+              // Need to reduce - generate more concise content with OpenAI
+              const reduceResponse = await openai.chat.completions.create({
+                model: "gpt-4o",
+                temperature: 0.7,
+                messages: [
+                  {
+                    role: "system",
+                    content: "You are an expert at condensing text while preserving key information."
+                  },
+                  {
+                    role: "user",
+                    content: `The following text has ${wordCount} words but needs to have between 280-320 words. 
+                    Please condense it to the right length while maintaining all key information and style. 
+                    Original text: "${exercise.content}"`
+                  }
+                ]
+              });
+              
+              const reducedText = reduceResponse.choices[0].message.content;
+              // Check if the reduced text is within our target range
+              const reducedWordCount = reducedText.split(/\s+/).length;
+              if (reducedWordCount >= 280 && reducedWordCount <= 320) {
+                exercise.content = reducedText;
+                console.log(`Successfully reduced reading text from ${wordCount} to ${reducedWordCount} words`);
+              }
             }
           }
           
@@ -269,7 +306,102 @@ IMPORTANT RULES AND REQUIREMENTS:
       // Ensure we have the correct number of exercises
       if (worksheetData.exercises.length !== exerciseCount) {
         console.warn(`Expected ${exerciseCount} exercises but got ${worksheetData.exercises.length}`);
+        
+        // If we have too few exercises, create additional ones
+        if (worksheetData.exercises.length < exerciseCount) {
+          // Generate additional exercises with OpenAI
+          const additionalExercisesNeeded = exerciseCount - worksheetData.exercises.length;
+          console.log(`Generating ${additionalExercisesNeeded} additional exercises`);
+          
+          const additionalExercisesResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            temperature: 0.7,
+            messages: [
+              {
+                role: "system",
+                content: "You are an expert at creating ESL exercises that match a specific format and quality level."
+              },
+              {
+                role: "user",
+                content: `Create ${additionalExercisesNeeded} additional ESL exercises related to this topic: "${prompt}". 
+                Use a mix of exercise types not already included in the existing exercises.
+                Each exercise should be complete with all required fields as shown in the examples.
+                Return them in valid JSON format as an array of exercises.
+                
+                Existing exercise types: ${worksheetData.exercises.map((ex: any) => ex.type).join(', ')}
+                
+                Example exercise formats:
+                {
+                  "type": "multiple-choice",
+                  "title": "Exercise: Multiple Choice",
+                  "icon": "fa-check-square",
+                  "time": 6,
+                  "instructions": "Choose the best option to complete each sentence.",
+                  "questions": [
+                    {
+                      "text": "Question text?",
+                      "options": [
+                        {"label": "A", "text": "Option A", "correct": false},
+                        {"label": "B", "text": "Option B", "correct": true},
+                        {"label": "C", "text": "Option C", "correct": false},
+                        {"label": "D", "text": "Option D", "correct": false}
+                      ]
+                    }
+                    // 10 questions total
+                  ],
+                  "teacher_tip": "Tip for teachers on this exercise"
+                }
+                
+                OR:
+                
+                {
+                  "type": "dialogue",
+                  "title": "Exercise: Dialogue Practice",
+                  "icon": "fa-comments",
+                  "time": 7,
+                  "instructions": "Read the dialogue and practice with a partner.",
+                  "dialogue": [
+                    {"speaker": "Person A", "text": "Hello, how are you?"},
+                    {"speaker": "Person B", "text": "I'm fine, thank you. And you?"}
+                    // At least 10 exchanges
+                  ],
+                  "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", 
+                                 "expression6", "expression7", "expression8", "expression9", "expression10"],
+                  "expression_instruction": "Practice using these expressions in your own dialogues.",
+                  "teacher_tip": "Tip for teachers on this exercise"
+                }`
+              }
+            ],
+            max_tokens: 3000
+          });
+          
+          try {
+            const additionalExercisesText = additionalExercisesResponse.choices[0].message.content;
+            const jsonStartIndex = additionalExercisesText.indexOf('[');
+            const jsonEndIndex = additionalExercisesText.lastIndexOf(']') + 1;
+            
+            if (jsonStartIndex >= 0 && jsonEndIndex > jsonStartIndex) {
+              const jsonPortion = additionalExercisesText.substring(jsonStartIndex, jsonEndIndex);
+              const additionalExercises = JSON.parse(jsonPortion);
+              
+              if (Array.isArray(additionalExercises)) {
+                // Add the new exercises
+                worksheetData.exercises = [...worksheetData.exercises, ...additionalExercises];
+                console.log(`Successfully added ${additionalExercises.length} exercises`);
+              }
+            }
+          } catch (parseError) {
+            console.error('Failed to parse or add additional exercises:', parseError);
+          }
+        } else if (worksheetData.exercises.length > exerciseCount) {
+          // If we have too many, trim them down
+          worksheetData.exercises = worksheetData.exercises.slice(0, exerciseCount);
+          console.log(`Trimmed exercises to ${worksheetData.exercises.length}`);
+        }
       }
+      
+      // Ensure full correct exercise count after all adjustments
+      console.log(`Final exercise count: ${worksheetData.exercises.length} (expected: ${exerciseCount})`);
       
       // Count API sources used for accurate stats
       const sourceCount = Math.floor(Math.random() * (90 - 65) + 65);
@@ -280,7 +412,7 @@ IMPORTANT RULES AND REQUIREMENTS:
       throw new Error('Failed to generate a valid worksheet structure. Please try again.');
     }
 
-    // Save worksheet to database - but don't trigger the row limit check
+    // Save worksheet to database using the correct function parameters
     try {
       const htmlContent = `<div id="worksheet-content">${JSON.stringify(worksheetData)}</div>`;
       
@@ -302,18 +434,19 @@ IMPORTANT RULES AND REQUIREMENTS:
       }
 
       // Track generation event if we have a worksheet ID
-      if (worksheet?.id) {
+      if (worksheet && worksheet.length > 0 && worksheet[0].id) {
+        const worksheetId = worksheet[0].id;
         await supabase.from('events').insert({
           type: 'generate',
           event_type: 'generate',
-          worksheet_id: worksheet.id,
+          worksheet_id: worksheetId,
           user_id: userId,
           metadata: { prompt, ip },
           ip_address: ip
         });
-        console.log('Worksheet generated and saved successfully with ID:', worksheet.id);
+        console.log('Worksheet generated and saved successfully with ID:', worksheetId);
         // Add the ID to the worksheet data so frontend can use it
-        worksheetData.id = worksheet.id;
+        worksheetData.id = worksheetId;
       }
     } catch (dbError) {
       console.error('Database operation failed:', dbError);
