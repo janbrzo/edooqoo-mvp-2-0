@@ -1,4 +1,5 @@
 
+-- Create function to bypass worksheet creation limits
 CREATE OR REPLACE FUNCTION public.insert_worksheet_bypass_limit(
   p_prompt TEXT,
   p_content TEXT,
@@ -20,7 +21,7 @@ DECLARE
 BEGIN
   INSERT INTO public.worksheets (
     prompt,
-    content,
+    html_content,
     user_id,
     ip_address,
     status,
@@ -39,3 +40,18 @@ BEGIN
   RETURN QUERY SELECT new_id, created_timestamp, p_title;
 END;
 $$;
+
+-- Add index to worksheets table to speed up ID lookups
+CREATE INDEX IF NOT EXISTS idx_worksheets_id ON public.worksheets (id);
+
+-- Add index for events by user_id
+CREATE INDEX IF NOT EXISTS idx_events_user_id ON public.events (user_id);
+
+-- Add index for events by worksheet_id
+CREATE INDEX IF NOT EXISTS idx_events_worksheet_id ON public.events (worksheet_id);
+
+-- Add index for feedbacks by user_id
+CREATE INDEX IF NOT EXISTS idx_feedbacks_user_id ON public.feedbacks (user_id);
+
+-- Add index for feedbacks by worksheet_id
+CREATE INDEX IF NOT EXISTS idx_feedbacks_worksheet_id ON public.feedbacks (worksheet_id);

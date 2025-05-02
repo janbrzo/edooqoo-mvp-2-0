@@ -55,27 +55,13 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       throw new Error('No exercises found in generated worksheet');
     }
     
-    // Validate reading exercise content and questions
-    for (const exercise of worksheetData.exercises) {
-      if (exercise.type === 'reading') {
-        const wordCount = exercise.content?.split(/\s+/).length || 0;
-        console.log(`Reading exercise word count: ${wordCount}`);
-        
-        if (wordCount < 280 || wordCount > 320) {
-          console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
-          // We'll let the main component handle this warning
-        }
-        
-        if (!exercise.questions || exercise.questions.length < 5) {
-          console.error(`Reading exercise has fewer than 5 questions: ${exercise.questions?.length || 0}`);
-          if (!exercise.questions) exercise.questions = [];
-          while (exercise.questions.length < 5) {
-            exercise.questions.push({
-              text: `Additional question ${exercise.questions.length + 1} about the text.`,
-              answer: "Answer would be based on the text content."
-            });
-          }
-        }
+    // Track view event if worksheetId exists
+    if (worksheetData.id && userId) {
+      try {
+        await trackEvent('view', worksheetData.id, userId);
+        console.log('View event tracked for worksheet:', worksheetData.id);
+      } catch (trackError) {
+        console.warn('Failed to track view event:', trackError);
       }
     }
     
@@ -122,7 +108,7 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
           user_id: userId, 
           rating, 
           comment: comment || '',
-          status: 'new' // Using 'new' status since that appears to be the required value
+          status: 'new'
         });
         
       if (error) {
@@ -130,12 +116,20 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
         throw new Error(`Failed to submit feedback: ${error.message}`);
       }
         
-      await trackEvent('feedback', worksheetId, userId, { rating });
+      await trackEvent('feedback', worksheetId, userId, { rating, comment });
       return data;
     }
     
     const result = await response.json();
     console.log('Feedback submission successful:', result);
+    
+    // Even if submission was successful via edge function, also track the event
+    try {
+      await trackEvent('feedback', worksheetId, userId, { rating, comment });
+    } catch (trackError) {
+      console.warn('Failed to track feedback event:', trackError);
+    }
+    
     return result;
   } catch (error) {
     console.error('Error submitting feedback:', error);
@@ -155,7 +149,7 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
     }
     
     console.log(`Tracking event: ${type} for worksheet: ${worksheetId}`);
-    const { error } = await supabase.from('events').insert({
+    const { data, error } = await supabase.from('events').insert({
       type,
       event_type: type,
       worksheet_id: worksheetId,
@@ -166,10 +160,14 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
 
     if (error) {
       console.error(`Error tracking ${type} event:`, error);
+      console.error('Full error details:', error);
     } else {
-      console.log(`Successfully tracked ${type} event`);
+      console.log(`Successfully tracked ${type} event:`, data);
     }
+    
+    return data;
   } catch (error) {
     console.error(`Error tracking ${type} event:`, error);
+    throw error;
   }
 }

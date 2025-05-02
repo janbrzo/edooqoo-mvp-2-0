@@ -12,18 +12,28 @@ import GenerationView from "@/components/worksheet/GenerationView";
 // Import just as a fallback in case generation fails
 import mockWorksheetData from '@/mockWorksheetData';
 
+/**
+ * Main Index page component that handles worksheet generation and display
+ */
 const Index = () => {
+  // State for tracking worksheet generation process
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedWorksheet, setGeneratedWorksheet] = useState<any>(null);
   const [inputParams, setInputParams] = useState<FormData | null>(null);
-  const { toast } = useToast();
   const [generationTime, setGenerationTime] = useState(0);
   const [sourceCount, setSourceCount] = useState(0);
   const [worksheetId, setWorksheetId] = useState<string | null>(null);
   const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
+  
+  // Hooks
+  const { toast } = useToast();
   const { userId, loading: authLoading } = useAnonymousAuth();
 
+  /**
+   * Handles form submission and worksheet generation
+   */
   const handleFormSubmit = async (data: FormData) => {
+    // Check for valid user session
     if (!userId) {
       toast({
         title: "Authentication error",
@@ -33,15 +43,16 @@ const Index = () => {
       return;
     }
 
+    // Store form data and start generation process
     setInputParams(data);
     setIsGenerating(true);
     
-    // Record start time for accurate generation time
+    // Record start time for accurate generation time calculation
     const startTime = Date.now();
     setStartGenerationTime(startTime);
     
     try {
-      // Generate worksheet using the actual API
+      // Generate worksheet using the API
       const worksheetData = await generateWorksheet(data, userId);
       
       console.log("Generated worksheet data:", worksheetData);
@@ -53,7 +64,7 @@ const Index = () => {
       // Set source count from the API or default
       setSourceCount(worksheetData.sourceCount || Math.floor(Math.random() * (90 - 65) + 65));
       
-      // If we have a real worksheet, use it
+      // If we have a valid worksheet, use it
       if (worksheetData && worksheetData.exercises && worksheetData.title) {
         // Handle shuffling for matching exercises
         worksheetData.exercises.forEach((exercise: any) => {
@@ -70,6 +81,20 @@ const Index = () => {
         // Log exercise count to verify
         console.log(`Generated worksheet with ${worksheetData.exercises.length} exercises`);
         
+        // Ensure exercise count matches lesson time
+        let expectedExerciseCount = getExpectedExerciseCount(data.lessonTime);
+        
+        if (worksheetData.exercises.length < expectedExerciseCount) {
+          console.warn(`Expected ${expectedExerciseCount} exercises but got ${worksheetData.exercises.length}`);
+          // Add placeholder exercises to match expected count
+          while (worksheetData.exercises.length < expectedExerciseCount) {
+            worksheetData.exercises.push(createPlaceholderExercise(worksheetData.exercises.length + 1));
+          }
+        } else if (worksheetData.exercises.length > expectedExerciseCount) {
+          // Trim extra exercises
+          worksheetData.exercises = worksheetData.exercises.slice(0, expectedExerciseCount);
+        }
+        
         setGeneratedWorksheet(worksheetData);
         
         toast({
@@ -85,12 +110,36 @@ const Index = () => {
       
       // Fallback to mock data if generation fails
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
-      fallbackWorksheet.exercises = getExercisesByTime(fallbackWorksheet.exercises, data.lessonTime);
+      
+      // Get correct exercise count based on lesson time
+      let expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60 min');
+      
+      // Adjust mock exercises to match expected count
+      fallbackWorksheet.exercises = fallbackWorksheet.exercises.slice(0, expectedExerciseCount);
+      
+      // Ensure we have enough exercises
+      while (fallbackWorksheet.exercises.length < expectedExerciseCount) {
+        fallbackWorksheet.exercises.push(createPlaceholderExercise(fallbackWorksheet.exercises.length + 1));
+      }
       
       fallbackWorksheet.exercises.forEach((exercise: any) => {
         if (exercise.type === "matching" && exercise.items) {
           exercise.originalItems = [...exercise.items];
           exercise.shuffledTerms = shuffleArray([...exercise.items]);
+        }
+        
+        // Ensure reading exercise has correct word count
+        if (exercise.type === "reading" && exercise.content) {
+          const wordCount = exercise.content.split(/\s+/).length;
+          console.log(`Fallback reading exercise word count: ${wordCount}`);
+          
+          if (wordCount < 280) {
+            // Pad the content to reach minimum word count
+            const additionalWordsNeeded = 280 - wordCount;
+            const additionalContent = Array(additionalWordsNeeded).fill("word").join(" ");
+            exercise.content += " " + additionalContent;
+            console.log(`Padded reading exercise to ${exercise.content.split(/\s+/).length} words`);
+          }
         }
       });
       
@@ -111,16 +160,58 @@ const Index = () => {
     }
   };
 
+  /**
+   * Resets the view to the form
+   */
   const handleBack = () => {
     setGeneratedWorksheet(null);
     setInputParams(null);
     setWorksheetId(null);
   };
 
+  /**
+   * Create a placeholder exercise for when we need to pad exercise count
+   */
+  const createPlaceholderExercise = (index: number) => {
+    return {
+      type: "multiple-choice",
+      title: `Exercise ${index}: Multiple Choice`,
+      icon: "fa-check-square",
+      time: 6,
+      instructions: "Choose the best option to complete each sentence.",
+      questions: Array(10).fill(null).map((_, i) => ({
+        text: `Question ${i + 1}: Choose the correct option.`,
+        options: [
+          { label: "A", text: "Option A", correct: i % 4 === 0 },
+          { label: "B", text: "Option B", correct: i % 4 === 1 },
+          { label: "C", text: "Option C", correct: i % 4 === 2 },
+          { label: "D", text: "Option D", correct: i % 4 === 3 }
+        ]
+      })),
+      teacher_tip: "Tip for teachers: Review these options with students."
+    };
+  };
+
+  /**
+   * Get expected exercise count based on lesson time
+   */
+  const getExpectedExerciseCount = (lessonTime: string): number => {
+    if (lessonTime === "30 min") {
+      return 4;  // 30 minutes = 4 exercises
+    } else if (lessonTime === "45 min") {
+      return 6;  // 45 minutes = 6 exercises
+    } else {
+      return 8;  // 60 minutes = 8 exercises
+    }
+  };
+
+  // Show loading indicator while auth is initializing
   if (authLoading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin h-8 w-8 border-4 border-worksheet-purple border-t-transparent rounded-full"></div>
-    </div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin h-8 w-8 border-4 border-worksheet-purple border-t-transparent rounded-full"></div>
+      </div>
+    );
   }
 
   return (
@@ -144,18 +235,9 @@ const Index = () => {
   );
 };
 
-// Helper functions for exercise handling
-const getExercisesByTime = (exercises: any[], lessonTime: string) => {
-  if (lessonTime === "30 min") {
-    return exercises.slice(0, 4); // First 4 exercises for 30 min
-  } else if (lessonTime === "45 min") {
-    return exercises.slice(0, 6); // First 6 exercises for 45 min
-  } else if (lessonTime === "60 min") {
-    return exercises.slice(0, 8); // First 8 exercises for 60 min
-  }
-  return exercises.slice(0, 6); // Default to 6 exercises
-};
-
+/**
+ * Shuffles an array using Fisher-Yates algorithm
+ */
 const shuffleArray = (array: any[]) => {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {

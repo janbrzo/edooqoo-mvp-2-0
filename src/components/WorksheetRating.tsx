@@ -32,15 +32,35 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
     
     try {
       // Submit rating immediately when star is clicked
-      if (userId && window.location.href.includes('worksheet_id=')) {
-        const worksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
+      if (userId) {
+        let worksheetId = getWorksheetIdFromUrl();
+        
         if (worksheetId) {
           await submitWorksheetFeedback(worksheetId, value, '', userId);
           toast({
             title: "Rating submitted!",
             description: "Thanks for your feedback. Add a comment for more details."
           });
+          
+          // If user provided a callback, call it
+          if (onSubmitRating) {
+            onSubmitRating(value, '');
+          }
+        } else {
+          console.error("Could not determine worksheet ID");
+          toast({
+            title: "Rating submission failed",
+            description: "We couldn't find the worksheet ID. Please try again.",
+            variant: "destructive"
+          });
         }
+      } else {
+        console.error("No user ID available");
+        toast({
+          title: "Authentication error",
+          description: "We couldn't identify your session. Please refresh the page and try again.",
+          variant: "destructive"
+        });
       }
       
       // Then open dialog to collect additional comment
@@ -57,24 +77,32 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
     }
   };
   
+  const getWorksheetIdFromUrl = (): string | null => {
+    // Try to get worksheet ID from URL
+    let worksheetId = null;
+    
+    // Check URL search params
+    if (window.location.href.includes('worksheet_id=')) {
+      worksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
+    }
+    
+    // If no worksheet ID in URL, check for data attributes
+    if (!worksheetId) {
+      const worksheetElements = document.querySelectorAll('[data-worksheet-id]');
+      if (worksheetElements.length > 0) {
+        worksheetId = worksheetElements[0].getAttribute('data-worksheet-id');
+      }
+    }
+    
+    return worksheetId;
+  };
+  
   const handleSubmit = async () => {
     if (!selected || !userId) return;
     setIsSubmitting(true);
     
     try {
-      // Try to get worksheet ID from URL
-      let worksheetId = null;
-      if (window.location.href.includes('worksheet_id=')) {
-        worksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
-      }
-      
-      // If no worksheet ID in URL, check for other elements
-      if (!worksheetId) {
-        const worksheetElements = document.querySelectorAll('[data-worksheet-id]');
-        if (worksheetElements.length > 0) {
-          worksheetId = worksheetElements[0].getAttribute('data-worksheet-id');
-        }
-      }
+      const worksheetId = getWorksheetIdFromUrl();
       
       if (worksheetId) {
         await submitWorksheetFeedback(worksheetId, selected, feedback, userId);
@@ -143,12 +171,26 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating }) => 
             </DialogTitle>
           </DialogHeader>
           <div className="flex justify-center mt-3 mb-4">
-            {[1, 2, 3, 4, 5].map(idx => <Star key={idx} size={38} strokeWidth={1.3} className={selected && selected >= idx ? "text-yellow-400 fill-yellow-400" : "text-gray-300"} />)}
+            {[1, 2, 3, 4, 5].map(idx => (
+              <Star 
+                key={idx} 
+                size={38} 
+                strokeWidth={1.3} 
+                className={selected && selected >= idx ? "text-yellow-400 fill-yellow-400" : "text-gray-300"} 
+              />
+            ))}
           </div>
           <label className="block text-base font-semibold mb-1 mt-2" htmlFor="feedbackTextarea">
             What did you think about this worksheet? (optional)
           </label>
-          <Textarea id="feedbackTextarea" value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="Your feedback helps us improve our worksheet generator" rows={4} className="mb-3" />
+          <Textarea 
+            id="feedbackTextarea" 
+            value={feedback} 
+            onChange={e => setFeedback(e.target.value)} 
+            placeholder="Your feedback helps us improve our worksheet generator" 
+            rows={4} 
+            className="mb-3" 
+          />
           <div className="flex justify-end space-x-2 mt-2">
             <DialogClose asChild>
               <Button size="sm" variant="outline">Cancel</Button>

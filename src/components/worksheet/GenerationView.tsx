@@ -40,7 +40,12 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     if (userId && worksheetId && generatedWorksheet) {
       // Only track events if we have a valid ID
       if (worksheetId.length > 10) {
-        trackEvent('view', worksheetId, userId);
+        try {
+          trackEvent('view', worksheetId, userId);
+          console.log('View event tracked successfully');
+        } catch (error) {
+          console.error('Failed to track view event:', error);
+        }
       }
     }
   }, [userId, worksheetId, generatedWorksheet]);
@@ -63,6 +68,7 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     }
 
     try {
+      console.log('Submitting feedback:', { worksheetId, rating, feedback, userId });
       await submitWorksheetFeedback(worksheetId, rating, feedback, userId);
       
       toast({
@@ -79,11 +85,16 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     }
   };
 
-  const handleDownloadEvent = () => {
+  const handleDownloadEvent = async () => {
     if (userId && worksheetId) {
       // Only track events if we have a valid ID
       if (worksheetId.length > 10) {
-        trackEvent('download', worksheetId, userId);
+        try {
+          await trackEvent('download', worksheetId, userId);
+          console.log('Download event tracked successfully');
+        } catch (error) {
+          console.error('Failed to track download event:', error);
+        }
       }
     }
   };
