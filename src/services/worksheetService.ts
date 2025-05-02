@@ -170,7 +170,7 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
 export async function trackEvent(eventType: 'view' | 'generate' | 'download', worksheetId: string, userId: string) {
   try {
     const { error } = await supabase
-      .from('worksheet_events')
+      .from('events')  // Poprawiona nazwa tabeli z 'worksheet_events' na 'events'
       .insert([
         {
           worksheet_id: worksheetId,
