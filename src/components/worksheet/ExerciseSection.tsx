@@ -33,6 +33,7 @@ interface Exercise {
   dialogue?: any[];
   word_bank?: string[];
   expressions?: string[];
+  prompts?: string[];
   expression_instruction?: string;
   teacher_tip: string;
 }
@@ -225,6 +226,132 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
                 </p>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Obsługa zadania typu "writing-prompt" */}
+        {exercise.type === 'writing-prompt' && exercise.prompts && (
+          <div className="space-y-0.5">
+            <h3 className="font-medium text-gray-700 mb-2">Writing Prompts:</h3>
+            {exercise.prompts.map((prompt: string, pIndex: number) => (
+              <div key={pIndex} className="p-2 border rounded-md mb-2">
+                <p className="leading-snug">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={prompt}
+                      onChange={e => {
+                        const updatedExercises = [...editableWorksheet.exercises];
+                        const newPrompts = [...exercise.prompts!];
+                        newPrompts[pIndex] = e.target.value;
+                        updatedExercises[index] = {
+                          ...updatedExercises[index],
+                          prompts: newPrompts
+                        };
+                        setEditableWorksheet({
+                          ...editableWorksheet,
+                          exercises: updatedExercises
+                        });
+                      }}
+                      className="w-full border p-1 editable-content"
+                    />
+                  ) : (
+                    <>{pIndex + 1}. {prompt}</>
+                  )}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Obsługa zadania typu "case-study" */}
+        {exercise.type === 'case-study' && (
+          <div className="space-y-2">
+            <div className="p-4 bg-gray-50 rounded-md mb-3">
+              {isEditing ? (
+                <textarea
+                  value={exercise.content || ""}
+                  onChange={e => handleExerciseChangeLocal('content', e.target.value)}
+                  className="w-full border p-2 editable-content min-h-24"
+                />
+              ) : (
+                <p className="leading-relaxed">{exercise.content}</p>
+              )}
+            </div>
+            {exercise.questions && (
+              <div className="space-y-1">
+                <h3 className="font-medium text-gray-700 mb-2">Analysis Questions:</h3>
+                {exercise.questions.map((question: any, qIndex: number) => (
+                  <div key={qIndex} className="border-b pb-1">
+                    <p className="leading-snug">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={question.text}
+                          onChange={e => handleQuestionChangeLocal(qIndex, 'text', e.target.value)}
+                          className="w-full border p-1 editable-content"
+                        />
+                      ) : (
+                        <>{qIndex + 1}. {question.text}</>
+                      )}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Obsługa zadania typu "role-play" */}
+        {exercise.type === 'role-play' && (
+          <div className="space-y-2">
+            <div className="p-4 bg-gray-50 rounded-md">
+              {isEditing ? (
+                <textarea
+                  value={exercise.content || ""}
+                  onChange={e => handleExerciseChangeLocal('content', e.target.value)}
+                  className="w-full border p-2 editable-content min-h-24"
+                />
+              ) : (
+                <p className="leading-relaxed">{exercise.content}</p>
+              )}
+            </div>
+            {exercise.scenarios && (
+              <div className="mt-4 space-y-2">
+                <h3 className="font-medium text-gray-700 mb-2">Role-Play Scenarios:</h3>
+                {exercise.scenarios.map((scenario: any, sIndex: number) => (
+                  <div key={sIndex} className="border p-3 rounded-md mb-2">
+                    <p className="font-medium mb-1">Scenario {sIndex + 1}:</p>
+                    <p className="leading-snug">
+                      {isEditing ? (
+                        <textarea
+                          value={scenario.description}
+                          onChange={e => {
+                            const updatedExercises = [...editableWorksheet.exercises];
+                            const newScenarios = [...exercise.scenarios];
+                            newScenarios[sIndex] = {
+                              ...newScenarios[sIndex],
+                              description: e.target.value
+                            };
+                            updatedExercises[index] = {
+                              ...updatedExercises[index],
+                              scenarios: newScenarios
+                            };
+                            setEditableWorksheet({
+                              ...editableWorksheet,
+                              exercises: updatedExercises
+                            });
+                          }}
+                          className="w-full border p-1 editable-content"
+                        />
+                      ) : (
+                        scenario.description
+                      )}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

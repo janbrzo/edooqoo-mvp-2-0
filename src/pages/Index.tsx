@@ -52,8 +52,11 @@ const Index = () => {
     setStartGenerationTime(startTime);
     
     try {
-      // Generate worksheet using the API
-      const worksheetData = await generateWorksheet(data, userId);
+      // Ustalamy oczekiwaną liczbę zadań na podstawie czasu trwania lekcji
+      let expectedExerciseCount = getExpectedExerciseCount(data.lessonTime);
+      
+      // Generate worksheet using the API - przekazujemy oczekiwaną liczbę zadań
+      const worksheetData = await generateWorksheet(data, userId, expectedExerciseCount);
       
       console.log("Generated worksheet data:", worksheetData);
       
@@ -82,8 +85,6 @@ const Index = () => {
         console.log(`Generated worksheet with ${worksheetData.exercises.length} exercises`);
         
         // Ensure exercise count matches lesson time
-        let expectedExerciseCount = getExpectedExerciseCount(data.lessonTime);
-        
         if (worksheetData.exercises.length < expectedExerciseCount) {
           console.warn(`Expected ${expectedExerciseCount} exercises but got ${worksheetData.exercises.length}`);
           // Add placeholder exercises to match expected count
@@ -120,14 +121,39 @@ const Index = () => {
           if ((exercise.type === 'multiple-choice' || exercise.type === 'reading') && (!exercise.questions || exercise.questions.length === 0)) {
             exercise.questions = createSampleQuestions(exercise.type, 5);
           } else if (exercise.type === 'matching' && (!exercise.items || exercise.items.length === 0)) {
-            exercise.items = createSampleItems(6);
+            exercise.items = createSampleItems(10);
           } else if (exercise.type === 'fill-in-blanks' && (!exercise.sentences || exercise.sentences.length === 0)) {
-            exercise.sentences = createSampleSentences(6);
-            exercise.word_bank = ['book', 'pen', 'computer', 'desk', 'teacher', 'student', 'school', 'classroom'];
+            exercise.sentences = createSampleSentences(10);
+            exercise.word_bank = ['book', 'pen', 'computer', 'desk', 'teacher', 'student', 'school', 'classroom', 'language', 'learning'];
           } else if (exercise.type === 'dialogue' && (!exercise.dialogue || exercise.dialogue.length === 0)) {
-            exercise.dialogue = createSampleDialogue(5);
-            exercise.expressions = ["Nice to meet you", "How are you?", "See you later", "Thank you", "You're welcome"];
-            exercise.expression_instruction = 'Practice these expressions from the dialogue';
+            exercise.dialogue = createSampleDialogue(10);
+            exercise.expressions = ["Nice to meet you", "How are you?", "See you later", "Thank you", "You're welcome", 
+                                  "Could you help me?", "I don't understand", "Can you repeat that?", "What does that mean?", "Let me try"];
+            exercise.expression_instruction = 'Practice using these expressions from the dialogue';
+          } else if (exercise.type === 'writing-prompt' && (!exercise.prompts || exercise.prompts.length === 0)) {
+            exercise.prompts = [
+              "Describe how cultural differences affect business communication.",
+              "Explain the importance of understanding cultural nuances in international negotiations.",
+              "Write about a time when a cultural misunderstanding affected a business interaction.",
+              "Discuss how companies can improve cross-cultural communication.",
+              "Explain how technology has changed the way we navigate cultural differences in business."
+            ];
+          } else if (exercise.type === 'case-study' && (!exercise.content || exercise.content.trim() === '')) {
+            exercise.content = "A multinational company faced challenges when expanding into a new market due to cultural differences. The marketing team created an advertising campaign that was considered offensive by the local population. This led to public backlash and declining sales in the region. The company needed to quickly address the situation to maintain their reputation and market position.";
+            exercise.questions = [
+              {text: "Identify the main cultural issue in this case.", answer: "Failure to understand local cultural sensitivities in marketing."},
+              {text: "What immediate steps should the company take?", answer: "Issue an apology, withdraw the campaign, engage with local cultural consultants."},
+              {text: "How could this situation have been prevented?", answer: "By conducting cultural research and involving local experts in the planning phase."},
+              {text: "What long-term strategies should the company implement?", answer: "Create a cross-cultural communication policy, provide cultural training to staff."},
+              {text: "How might this affect the company's future expansion plans?", answer: "They may need to slow expansion to focus on building better cultural understanding processes."}
+            ];
+          } else if (exercise.type === 'role-play' && (!exercise.content || exercise.content.trim() === '')) {
+            exercise.content = "Practice the following role-play scenarios with a partner. Focus on using appropriate language and considering cultural differences in each situation.";
+            exercise.scenarios = [
+              {description: "You are a manager explaining to a team member from a different culture why their presentation style needs to change for local clients."},
+              {description: "You are negotiating a business deal with a partner from a culture where direct refusals are considered impolite."},
+              {description: "You need to give feedback to a colleague from a culture where criticism is typically delivered very indirectly."}
+            ];
           }
           
           // Upewnij się, że każde ćwiczenie ma wskazówkę dla nauczyciela
@@ -156,18 +182,19 @@ const Index = () => {
     } catch (error) {
       console.error("Worksheet generation error:", error);
       
+      // Określamy oczekiwaną liczbę zadań na podstawie czasu trwania lekcji
+      let expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60 min');
+      
       // Fallback to mock data if generation fails
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
-      
-      // Get correct exercise count based on lesson time
-      let expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60 min');
       
       // Adjust mock exercises to match expected count
       fallbackWorksheet.exercises = fallbackWorksheet.exercises.slice(0, expectedExerciseCount);
       
       // Ensure we have enough exercises
       while (fallbackWorksheet.exercises.length < expectedExerciseCount) {
-        fallbackWorksheet.exercises.push(createPlaceholderExercise(fallbackWorksheet.exercises.length + 1));
+        const exerciseIndex = fallbackWorksheet.exercises.length + 1;
+        fallbackWorksheet.exercises.push(createPlaceholderExercise(exerciseIndex));
       }
       
       // Weryfikacja i uzupełnienie wszystkich ćwiczeń dla mockowych danych
@@ -272,8 +299,8 @@ const Index = () => {
     const definitions = ['A fruit', 'A reading material', 'A vehicle', 'A pet animal', 'Our planet', 'A group of related people', 'An activity for fun', 'A place to live', 'Global network', 'Work for money'];
     
     return Array(count).fill(null).map((_, i) => ({
-      term: terms[i],
-      definition: definitions[i]
+      term: terms[i % terms.length],
+      definition: definitions[i % definitions.length]
     }));
   };
   
@@ -296,8 +323,8 @@ const Index = () => {
     const meanings = ['Existing in large quantities', 'Kind and generous', 'Occurring at the same time', 'Hardworking', 'Lasting for a very short time', 'Paying attention to detail', 'Sociable', 'Random or lacking organization', 'Perfect, flawless', 'To place side by side'];
     
     return Array(count).fill(null).map((_, i) => ({
-      term: terms[i],
-      meaning: meanings[i]
+      term: terms[i % terms.length],
+      meaning: meanings[i % meanings.length]
     }));
   };
 
@@ -321,7 +348,10 @@ const Index = () => {
       'matching',
       'reading',
       'dialogue',
-      'discussion'
+      'discussion',
+      'writing-prompt',
+      'case-study',
+      'role-play'
     ];
     
     const selectedType = exerciseTypes[index % exerciseTypes.length];
@@ -372,6 +402,33 @@ const Index = () => {
           'How would you explain this concept to someone else?'
         ];
         break;
+      case 'writing-prompt':
+        exercise.prompts = [
+          "Describe how cultural differences affect business communication.",
+          "Explain the importance of understanding cultural nuances in international negotiations.",
+          "Write about a time when a cultural misunderstanding affected a business interaction.",
+          "Discuss how companies can improve cross-cultural communication.",
+          "Explain how technology has changed the way we navigate cultural differences in business."
+        ];
+        break;
+      case 'case-study':
+        exercise.content = "A multinational company faced challenges when expanding into a new market due to cultural differences. The marketing team created an advertising campaign that was considered offensive by the local population. This led to public backlash and declining sales in the region. The company needed to quickly address the situation to maintain their reputation and market position.";
+        exercise.questions = [
+          {text: "Identify the main cultural issue in this case.", answer: "Failure to understand local cultural sensitivities in marketing."},
+          {text: "What immediate steps should the company take?", answer: "Issue an apology, withdraw the campaign, engage with local cultural consultants."},
+          {text: "How could this situation have been prevented?", answer: "By conducting cultural research and involving local experts in the planning phase."},
+          {text: "What long-term strategies should the company implement?", answer: "Create a cross-cultural communication policy, provide cultural training to staff."},
+          {text: "How might this affect the company's future expansion plans?", answer: "They may need to slow expansion to focus on building better cultural understanding processes."}
+        ];
+        break;
+      case 'role-play':
+        exercise.content = "Practice the following role-play scenarios with a partner. Focus on using appropriate language and considering cultural differences in each situation.";
+        exercise.scenarios = [
+          {description: "You are a manager explaining to a team member from a different culture why their presentation style needs to change for local clients."},
+          {description: "You are negotiating a business deal with a partner from a culture where direct refusals are considered impolite."},
+          {description: "You need to give feedback to a colleague from a culture where criticism is typically delivered very indirectly."}
+        ];
+        break;
       default:
         // Domyślna konfiguracja - upewnij się, że zawsze mamy jakąś zawartość
         exercise.questions = createSampleQuestions('multiple-choice', 5);
@@ -391,7 +448,10 @@ const Index = () => {
       'discussion': 'fa-users',
       'error-correction': 'fa-exclamation-triangle',
       'word-formation': 'fa-font',
-      'word-order': 'fa-sort'
+      'word-order': 'fa-sort',
+      'writing-prompt': 'fa-pen-fancy',
+      'case-study': 'fa-search',
+      'role-play': 'fa-theater-masks'
     };
     
     return iconMap[type] || 'fa-tasks';

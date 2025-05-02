@@ -1,200 +1,163 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
+import { supabase } from "@/integrations/supabase/client";
+import mockWorksheetData from "@/mockWorksheetData";
 
-// URLs for the Edge Functions
-const GENERATE_WORKSHEET_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/v1/generateWorksheet';
-const SUBMIT_FEEDBACK_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/v1/submitFeedback';
+interface WorksheetParams {
+  lessonTopic: string;
+  lessonGoal: string;
+  teachingPreferences: string;
+  lessonTime: string;
+  studentProfile?: string;
+  studentStruggles?: string;
+}
+
+interface WorksheetFeedback {
+  worksheetId: string;
+  rating: number;
+  feedback: string;
+  userId: string;
+}
 
 /**
- * Generates a worksheet using the Edge Function
+ * Takes user input params and generates worksheet content using OpenAI API.
  */
-export async function generateWorksheet(prompt: WorksheetFormData, userId: string) {
+export async function generateWorksheet(params: WorksheetParams, userId: string, expectedExerciseCount: number = 8) {
+  // If we're in development mode and want to use mock data instead of API
+  if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_MOCK_DATA === 'true') {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve(mockWorksheetData);
+      }, 2000);
+    });
+  }
+
   try {
-    console.log('Generating worksheet with prompt:', prompt);
-    
-    // Create a formatted prompt string
-    const formattedPrompt = `${prompt.lessonTopic} - ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.studentProfile ? `. Student profile: ${prompt.studentProfile}` : ''}${prompt.studentStruggles ? `. Student struggles: ${prompt.studentStruggles}` : ''}. Lesson duration: ${prompt.lessonTime}.`;
-    
-    console.log('Sending formatted prompt to API:', formattedPrompt);
-    
-    const response = await fetch(GENERATE_WORKSHEET_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: formattedPrompt,
-        userId
-      })
+    // IP detection for rate limiting
+    const ipResponse = await fetch('https://api.ipify.org?format=json');
+    const ipData = await ipResponse.json();
+    const userIp = ipData.ip;
+
+    // Get expected exercise count based on selected lesson time
+    // expectedExerciseCount parameter is used instead of this
+    // const expectedExerciseCount = getExpectedExerciseCount(params.lessonTime);
+
+    // Prepare prompt for ChatGPT
+    const prompt = buildPrompt(params, expectedExerciseCount);
+
+    // Call Edge Function to generate worksheet
+    const { data: worksheetData, error } = await supabase.functions.invoke('generateWorksheet', {
+      body: { 
+        prompt, 
+        userId,
+        expectedExerciseCount
+      }
     });
 
-    console.log('API response status:', response.status);
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      console.error('API error data:', errorData);
-      
-      if (response.status === 429) {
-        throw new Error('You have reached your daily limit for worksheet generation. Please try again tomorrow.');
-      }
-      throw new Error(`Failed to generate worksheet: ${errorData?.error || response.statusText}`);
+    if (error) {
+      console.error("Edge function error:", error);
+      throw new Error(`API error: ${error.message || error}`);
     }
 
-    // Parse the response as JSON directly
-    const worksheetData = await response.json();
-    console.log('API returned worksheet data:', worksheetData);
-    
-    if (!worksheetData || typeof worksheetData !== 'object') {
-      console.error('Invalid response format:', worksheetData);
-      throw new Error('Received invalid worksheet data format');
+    if (!worksheetData || !worksheetData.exercises) {
+      throw new Error("No worksheet data returned from API");
     }
-    
-    // Perform validation on the returned data
-    if (!worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
-      throw new Error('No exercises found in generated worksheet');
-    }
-    
-    // Validate reading exercise content and questions
-    for (const exercise of worksheetData.exercises) {
-      if (exercise.type === 'reading') {
-        const wordCount = exercise.content?.split(/\s+/).length || 0;
-        console.log(`Reading exercise word count: ${wordCount}`);
-        
-        if (wordCount < 280 || wordCount > 320) {
-          console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
-          // We'll let the main component handle this warning
-        }
-        
-        if (!exercise.questions || exercise.questions.length < 5) {
-          console.error(`Reading exercise has fewer than 5 questions: ${exercise.questions?.length || 0}`);
-          if (!exercise.questions) exercise.questions = [];
-          while (exercise.questions.length < 5) {
-            exercise.questions.push({
-              text: `Additional question ${exercise.questions.length + 1} about the text.`,
-              answer: "Answer would be based on the text content."
-            });
-          }
-        }
-      }
-    }
-    
-    // Check exercise count based on lesson time
-    let expectedCount = 6;
-    if (prompt.lessonTime === "30 min") {
-      expectedCount = 4;
-    } else if (prompt.lessonTime === "45 min") {
-      expectedCount = 6;
-    } else if (prompt.lessonTime === "60 min") {
-      expectedCount = 8;
-    }
-    
-    console.log(`Expected ${expectedCount} exercises for ${prompt.lessonTime} lesson, got ${worksheetData.exercises.length}`);
-    
+
+    console.log("API returned worksheet data:", worksheetData);
+
+    // Track the generation event
+    trackEvent('generate', worksheetData.id, userId);
+
     return worksheetData;
   } catch (error) {
-    console.error('Error generating worksheet:', error);
+    console.error("Worksheet generation error:", error);
     throw error;
   }
 }
 
 /**
- * Submits feedback for a worksheet
+ * Builds a prompt for the AI to generate a worksheet
  */
-export async function submitWorksheetFeedback(worksheetId: string, rating: number, comment: string, userId: string) {
+function buildPrompt(params: WorksheetParams, expectedExerciseCount: number): string {
+  const { lessonTopic, lessonGoal, teachingPreferences, lessonTime, studentProfile, studentStruggles } = params;
+
+  let prompt = `Create an English language learning worksheet on the topic: "${lessonTopic}". 
+The goal of the lesson is: ${lessonGoal}. 
+Teaching preferences: ${teachingPreferences}. 
+Lesson duration: ${lessonTime}.`;
+
+  if (studentProfile) {
+    prompt += `\nStudent profile: ${studentProfile}.`;
+  }
+
+  if (studentStruggles) {
+    prompt += `\nStudent struggles: ${studentStruggles}.`;
+  }
+
+  prompt += `\n
+IMPORTANT REQUIREMENTS:
+1. The worksheet MUST include EXACTLY ${expectedExerciseCount} exercises, no more, no less.
+2. If including a reading text, it MUST be 280-320 words long (this is critical).
+3. Include a vocabulary sheet with relevant terms.
+4. Include teacher's tips for each exercise.
+5. Each exercise should have a title, instructions and appropriate content.
+6. Make sure all exercises are complete with detailed instructions and full content.
+7. For matching exercises, include exactly 10 pairs of items.
+8. For fill-in-blank exercises, include exactly 10 sentences and a word bank with at least 10 words.
+9. For multiple choice exercises, include at least 5 questions with 4 options each.
+10. For exercises with dialogues, include at least 10 exchanges.
+11. For discussion exercises, include at least 10 questions.
+
+QUALITY CHECK:
+Before finalizing, please analyze and verify:
+1. There are no grammar errors
+2. There are no spelling mistakes
+3. All instructions are clear and unambiguous
+4. The difficulty level is appropriate
+5. The worksheet includes specific vocabulary related to the topic
+6. The formatting is consistent
+7. No exercises are missing or incomplete
+
+Return the worksheet as a JSON object with the following structure:
+{
+  "title": "Worksheet Title",
+  "subtitle": "Concise description",
+  "introduction": "Brief introduction to the worksheet topic",
+  "exercises": [
+    {
+      "type": "reading",
+      "title": "Exercise 1: Reading Comprehension",
+      "icon": "fa-book-open",
+      "time": 15,
+      "instructions": "Read the text and answer the questions below.",
+      "content": "Text content goes here (MUST be 280-320 words).",
+      "questions": [
+        {"text": "Question 1?", "answer": "Answer to question 1."},
+        ...
+      ],
+      "teacher_tip": "Tip for teachers."
+    },
+    ...more exercises...
+  ],
+  "vocabulary_sheet": [
+    {"term": "Term 1", "meaning": "Definition 1"},
+    ...
+  ]
+}`;
+
+  return prompt;
+}
+
+/**
+ * Submit worksheet feedback
+ */
+export async function submitWorksheetFeedback(worksheetId: string, rating: number, feedback: string, userId: string) {
   try {
-    console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
-    
-    // Try using the edge function
-    const response = await fetch(SUBMIT_FEEDBACK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        worksheetId,
-        rating,
-        comment,
-        userId
-      })
+    const { data, error } = await supabase.functions.invoke('submitFeedback', {
+      body: { worksheetId, rating, feedback, userId }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Error submitting feedback via API:', errorText);
-      
-      // If edge function fails, try direct database submission
-      const { data, error } = await supabase
-        .from('feedbacks')
-        .insert([
-          { 
-            worksheet_id: worksheetId, 
-            user_id: userId, 
-            rating, 
-            comment,
-            status: 'new'
-          }
-        ])
-        .select();
-        
-      if (error) {
-        console.error('Direct feedback submission error:', error);
-        
-        // If direct insert fails and we don't have a worksheet_id, try creating a placeholder
-        if (error.message.includes('violates foreign key constraint')) {
-          console.log('Creating placeholder worksheet for feedback');
-          
-          const { data: placeholderData, error: placeholderError } = await supabase
-            .from('worksheets')
-            .insert([
-              {
-                prompt: 'Generated worksheet',
-                html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
-                user_id: userId,
-                ip_address: 'client-side',
-                status: 'created',
-                title: 'Generated Worksheet'
-              }
-            ])
-            .select();
-            
-          if (placeholderError) {
-            console.error('Error creating placeholder worksheet:', placeholderError);
-            throw new Error('Failed to create feedback record: worksheet reference is required');
-          }
-            
-          if (placeholderData && placeholderData.length > 0) {
-            // Try feedback again with new worksheet ID
-            const { data: retryData, error: retryError } = await supabase
-              .from('feedbacks')
-              .insert([
-                { 
-                  worksheet_id: placeholderData[0].id, 
-                  user_id: userId, 
-                  rating, 
-                  comment,
-                  status: 'new'
-                }
-              ]);
-                
-            if (retryError) {
-              console.error('Retry feedback submission error:', retryError);
-              throw new Error(`Failed to submit feedback after retry: ${retryError.message}`);
-            }
-              
-            return retryData;
-          }
-        } else {
-          throw new Error(`Failed to submit feedback: ${error.message}`);
-        }
-      }
-        
-      return data;
-    }
-    
-    const result = await response.json();
-    console.log('Feedback submission successful:', result);
-    return result;
+    if (error) throw error;
+    return data;
   } catch (error) {
     console.error('Error submitting feedback:', error);
     throw error;
@@ -202,74 +165,104 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
 }
 
 /**
- * Tracks an event (view, download, etc.)
+ * Track worksheet events
  */
-export async function trackEvent(type: string, worksheetId: string, userId: string, metadata: any = {}) {
+export async function trackEvent(eventType: 'view' | 'generate' | 'download', worksheetId: string, userId: string) {
   try {
-    // Skip tracking if worksheetId is not a valid UUID
-    if (!worksheetId || worksheetId.length < 10) {
-      console.log(`Skipping ${type} event tracking for invalid worksheetId: ${worksheetId}`);
-      return;
+    const { error } = await supabase
+      .from('worksheet_events')
+      .insert([
+        {
+          worksheet_id: worksheetId,
+          event_type: eventType,
+          user_id: userId
+        }
+      ]);
+
+    if (error) throw error;
+    console.log(`Event ${eventType} tracked successfully`);
+  } catch (error) {
+    console.error('Error tracking event:', error);
+    // Don't throw - tracking errors should not affect user experience
+  }
+}
+
+/**
+ * Save worksheet to database
+ */
+export async function saveWorksheetToDatabase(worksheetData: any, userId: string, prompt: string) {
+  try {
+    // Get user IP for tracking
+    const ipResponse = await fetch('https://api.ipify.org?format=json');
+    const ipData = await ipResponse.json();
+    const userIp = ipData.ip;
+    
+    const { data, error } = await supabase
+      .from('worksheets')
+      .insert([
+        {
+          html_content: JSON.stringify(worksheetData),
+          user_id: userId,
+          ip_address: userIp,
+          status: 'completed',
+          prompt: prompt,
+          title: worksheetData.title || 'Unnamed Worksheet'
+        }
+      ]);
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error saving worksheet to database:', error);
+    throw error;
+  }
+}
+
+/**
+ * Updates an edge function with the provided code
+ */
+export async function updateEdgeFunction(functionName: string, source: string) {
+  try {
+    // This is a development-only utility
+    if (process.env.NODE_ENV !== 'development') {
+      throw new Error('Function updates only allowed in development environment');
     }
     
-    console.log(`Tracking event: ${type} for worksheet: ${worksheetId}`);
-    const { error } = await supabase.from('events').insert({
-      type,
-      event_type: type,
-      worksheet_id: worksheetId,
-      user_id: userId,
-      metadata,
-      ip_address: "client-side" // Since we can't get IP on client side
+    const { data, error } = await supabase.functions.invoke('update-function', {
+      body: { name: functionName, source }
     });
 
-    if (error) {
-      console.error(`Error tracking ${type} event:`, error);
-      
-      // If FK constraint error, try creating a placeholder worksheet
-      if (error.message.includes('violates foreign key constraint')) {
-        console.log('Creating placeholder worksheet for event tracking');
-        
-        const { data: placeholderData, error: placeholderError } = await supabase
-          .from('worksheets')
-          .insert([
-            {
-              prompt: 'Generated worksheet',
-              html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
-              user_id: userId,
-              ip_address: 'client-side',
-              status: 'created',
-              title: 'Generated Worksheet'
-            }
-          ])
-          .select();
-          
-        if (placeholderError) {
-          console.error('Error creating placeholder worksheet:', placeholderError);
-          return;
-        }
-          
-        if (placeholderData && placeholderData.length > 0) {
-          // Try event again with new worksheet ID
-          const { error: retryError } = await supabase.from('events').insert({
-            type,
-            event_type: type,
-            worksheet_id: placeholderData[0].id,
-            user_id: userId,
-            metadata,
-            ip_address: "client-side"
-          });
-            
-          if (retryError) {
-            console.error(`Error tracking ${type} event after retry:`, retryError);
-          } else {
-            console.log(`Successfully tracked ${type} event after creating placeholder worksheet`);
-          }
-        }
-      }
-    } else {
-      console.log(`Successfully tracked ${type} event`);
-    }
+    if (error) throw error;
+    return data;
   } catch (error) {
-    console.error(`Error tracking ${type} event:`, error);
+    console.error(`Error updating ${functionName} function:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Gets worksheet by ID
+ */
+export async function getWorksheetById(id: string) {
+  try {
+    const { data, error } = await supabase
+      .from('worksheets')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (error) throw error;
+    
+    if (!data) {
+      throw new Error('Worksheet not found');
+    }
+    
+    return {
+      ...JSON.parse(data.html_content),
+      id: data.id
+    };
+  } catch (error) {
+    console.error('Error fetching worksheet:', error);
+    throw error;
   }
 }
