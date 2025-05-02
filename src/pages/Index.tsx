@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { FormData } from "@/types/worksheetFormTypes";
+import { FormData } from "@/components/WorksheetForm";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 import WorksheetGeneration from "@/components/pages/Index/WorksheetGeneration";
 import WorksheetDisplayWrapper from "@/components/pages/Index/WorksheetDisplayWrapper";

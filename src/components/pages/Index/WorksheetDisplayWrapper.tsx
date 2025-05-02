@@ -1,10 +1,11 @@
+
 import React, { useEffect } from "react";
 import { ArrowUp } from "lucide-react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
 import WorksheetRating from "@/components/WorksheetRating";
 import { submitWorksheetFeedback, trackEvent } from "@/services/worksheetService";
 import { useToast } from "@/hooks/use-toast";
-import { FormData } from "@/types/worksheetFormTypes";
+import { FormData } from "@/components/WorksheetForm";
 
 interface WorksheetDisplayWrapperProps {
   worksheet: any;
