@@ -149,7 +149,7 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
             .insert([
               {
                 prompt: 'Generated worksheet',
-                content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
+                html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
                 user_id: userId,
                 ip_address: 'client-side',
                 status: 'created',
@@ -234,7 +234,7 @@ export async function trackEvent(type: string, worksheetId: string, userId: stri
           .insert([
             {
               prompt: 'Generated worksheet',
-              content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
+              html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
               user_id: userId,
               ip_address: 'client-side',
               status: 'created',

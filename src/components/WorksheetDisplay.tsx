@@ -103,7 +103,7 @@ export default function WorksheetDisplay({
         toast({
           title: "Reading exercise issue",
           description: `Reading content has only ${wordCount} words (should be 280-320).`,
-          variant: "warning"
+          variant: "destructive" // Zmiana z "warning" na "destructive"
         });
       }
     }
