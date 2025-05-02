@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
+import WorksheetRating from "@/components/WorksheetRating";
 import { ArrowUp } from "lucide-react";
 import { FormData } from "@/components/WorksheetForm";
 import { useToast } from "@/hooks/use-toast";
@@ -40,12 +41,7 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     if (userId && worksheetId && generatedWorksheet) {
       // Only track events if we have a valid ID
       if (worksheetId.length > 10) {
-        try {
-          trackEvent('view', worksheetId, userId);
-          console.log('View event tracked successfully');
-        } catch (error) {
-          console.error('Failed to track view event:', error);
-        }
+        trackEvent('view', worksheetId, userId);
       }
     }
   }, [userId, worksheetId, generatedWorksheet]);
@@ -68,7 +64,6 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     }
 
     try {
-      console.log('Submitting feedback:', { worksheetId, rating, feedback, userId });
       await submitWorksheetFeedback(worksheetId, rating, feedback, userId);
       
       toast({
@@ -85,16 +80,11 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     }
   };
 
-  const handleDownloadEvent = async () => {
+  const handleDownloadEvent = () => {
     if (userId && worksheetId) {
       // Only track events if we have a valid ID
       if (worksheetId.length > 10) {
-        try {
-          await trackEvent('download', worksheetId, userId);
-          console.log('Download event tracked successfully');
-        } catch (error) {
-          console.error('Failed to track download event:', error);
-        }
+        trackEvent('download', worksheetId, userId);
       }
     }
   };

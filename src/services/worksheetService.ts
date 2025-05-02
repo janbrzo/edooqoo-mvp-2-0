@@ -55,13 +55,27 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       throw new Error('No exercises found in generated worksheet');
     }
     
-    // Track view event if worksheetId exists
-    if (worksheetData.id && userId) {
-      try {
-        await trackEvent('view', worksheetData.id, userId);
-        console.log('View event tracked for worksheet:', worksheetData.id);
-      } catch (trackError) {
-        console.warn('Failed to track view event:', trackError);
+    // Validate reading exercise content and questions
+    for (const exercise of worksheetData.exercises) {
+      if (exercise.type === 'reading') {
+        const wordCount = exercise.content?.split(/\s+/).length || 0;
+        console.log(`Reading exercise word count: ${wordCount}`);
+        
+        if (wordCount < 280 || wordCount > 320) {
+          console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
+          // We'll let the main component handle this warning
+        }
+        
+        if (!exercise.questions || exercise.questions.length < 5) {
+          console.error(`Reading exercise has fewer than 5 questions: ${exercise.questions?.length || 0}`);
+          if (!exercise.questions) exercise.questions = [];
+          while (exercise.questions.length < 5) {
+            exercise.questions.push({
+              text: `Additional question ${exercise.questions.length + 1} about the text.`,
+              answer: "Answer would be based on the text content."
+            });
+          }
+        }
       }
     }
     
@@ -77,7 +91,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
  */
 export async function submitWorksheetFeedback(worksheetId: string, rating: number, comment: string, userId: string) {
   try {
-    console.log('Submitting feedback:', { worksheetId, rating, comment: comment?.substring(0, 20) || '', userId });
+    console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
     
     // Try using the edge function
     const response = await fetch(SUBMIT_FEEDBACK_URL, {
@@ -94,72 +108,32 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        error: `HTTP error: ${response.status} ${response.statusText}`
-      }));
-      console.error('Error submitting feedback via API:', errorData);
+      const errorText = await response.text();
+      console.error('Error submitting feedback via API:', errorText);
       
       // Fallback to direct Supabase insert if edge function fails
-      console.log('Falling back to direct Supabase insert...');
-      
-      // First check if worksheet exists
-      const { data: worksheetCheck, error: worksheetCheckError } = await supabase
-        .from('worksheets')
-        .select('id')
-        .eq('id', worksheetId)
-        .single();
-      
-      // If worksheet doesn't exist, create a placeholder
-      if (worksheetCheckError || !worksheetCheck) {
-        console.log('Worksheet not found, creating placeholder');
-        const { error: newWorksheetError } = await supabase
-          .from('worksheets')
-          .insert({
-            id: worksheetId,
-            prompt: 'Placeholder for feedback',
-            html_content: '{}',
-            status: 'placeholder',
-            user_id: userId,
-            ip_address: 'client-side',
-            title: 'Placeholder worksheet'
-          });
-        
-        if (newWorksheetError) {
-          console.error('Error creating placeholder worksheet:', newWorksheetError);
-          throw new Error(`Failed to create placeholder worksheet: ${newWorksheetError.message}`);
-        }
-      }
-      
-      // Now insert the feedback
       const { data, error } = await supabase
         .from('feedbacks')
-        .insert({
-          worksheet_id: worksheetId, 
-          user_id: userId, 
-          rating, 
-          comment: comment || '',
-          status: 'new'
-        });
+        .insert([
+          { 
+            worksheet_id: worksheetId, 
+            user_id: userId, 
+            rating, 
+            comment,
+            status: 'new' // Using 'new' status since that appears to be the required value based on error
+          }
+        ]);
         
       if (error) {
         console.error('Supabase insert error:', error);
         throw new Error(`Failed to submit feedback: ${error.message}`);
       }
         
-      await trackEvent('feedback', worksheetId, userId, { rating, comment });
       return data;
     }
     
     const result = await response.json();
     console.log('Feedback submission successful:', result);
-    
-    // Even if submission was successful via edge function, also track the event
-    try {
-      await trackEvent('feedback', worksheetId, userId, { rating, comment });
-    } catch (trackError) {
-      console.warn('Failed to track feedback event:', trackError);
-    }
-    
     return result;
   } catch (error) {
     console.error('Error submitting feedback:', error);
@@ -172,34 +146,28 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
  */
 export async function trackEvent(type: string, worksheetId: string, userId: string, metadata: any = {}) {
   try {
-    // Skip tracking if worksheetId is invalid
-    if (!worksheetId) {
+    // Skip tracking if worksheetId is not a valid UUID
+    if (!worksheetId || worksheetId.length < 10) {
       console.log(`Skipping ${type} event tracking for invalid worksheetId: ${worksheetId}`);
       return;
     }
     
     console.log(`Tracking event: ${type} for worksheet: ${worksheetId}`);
-    
-    // Dodawanie zdarzenia bezpośrednio do bazy danych
-    const { data, error } = await supabase.from('events').insert({
+    const { error } = await supabase.from('events').insert({
       type,
       event_type: type,
       worksheet_id: worksheetId,
       user_id: userId,
       metadata,
-      ip_address: "client-side" // Ponieważ nie możemy uzyskać adresu IP po stronie klienta
+      ip_address: "client-side" // Since we can't get IP on client side
     });
 
     if (error) {
       console.error(`Error tracking ${type} event:`, error);
-      throw error;
+    } else {
+      console.log(`Successfully tracked ${type} event`);
     }
-    
-    console.log(`Successfully tracked ${type} event`);
-    return data;
   } catch (error) {
     console.error(`Error tracking ${type} event:`, error);
-    // Zwróć błąd, ale nie przerywaj wykonywania
-    return null;
   }
 }

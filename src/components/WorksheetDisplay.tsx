@@ -100,14 +100,7 @@ export default function WorksheetDisplay({
         const today = new Date();
         const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const viewModeText = viewMode === 'teacher' ? 'Teacher' : 'Student';
-        // Format the filename with title words separated by hyphens
-        const formattedTitle = editableWorksheet.title
-          .toLowerCase()
-          .replace(/[^\w\s-]/g, '') // Remove special chars
-          .replace(/\s+/g, '-') // Replace spaces with hyphens
-          .substring(0, 30); // Limit length
-        
-        const filename = `${formattedDate}-${viewModeText}-${formattedTitle}`;
+        const filename = `${formattedDate}-${viewModeText}-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.pdf`;
         
         const result = await generatePDF('worksheet-content', filename, viewMode === 'teacher', editableWorksheet.title);
         if (result) {
@@ -222,14 +215,12 @@ export default function WorksheetDisplay({
               setEditableWorksheet={setEditableWorksheet}
             />
           )}
-          
-          {/* Rating section above Teacher Notes */}
+
+          {/* First display rating section */}
           <WorksheetRating onSubmitRating={onDownload} />
           
-          {/* Teacher Notes Section (shown in both student and teacher view, but not in PDF) */}
-          <div data-no-pdf="true">
-            <TeacherNotes />
-          </div>
+          {/* Then display Teacher Notes Section (both for student and teacher view) */}
+          <TeacherNotes />
         </div>
       </div>
       

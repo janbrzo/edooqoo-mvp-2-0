@@ -26,41 +26,7 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
-    console.log('Submitting feedback:', { worksheetId, rating, comment: comment?.substring(0, 20) + '...', userId, ip });
-
-    // First check if worksheet exists
-    const { data: worksheetCheck, error: worksheetCheckError } = await supabase
-      .from('worksheets')
-      .select('id')
-      .eq('id', worksheetId)
-      .single();
-    
-    if (worksheetCheckError) {
-      console.log('Worksheet check error:', worksheetCheckError);
-      // If worksheet doesn't exist, we need to create a temporary one
-      if (worksheetCheckError.code === 'PGRST116') {
-        console.log('Worksheet not found, creating placeholder');
-        const { data: newWorksheet, error: newWorksheetError } = await supabase
-          .from('worksheets')
-          .insert({
-            id: worksheetId,
-            prompt: 'Placeholder for feedback',
-            html_content: '{}',
-            status: 'placeholder',
-            user_id: userId,
-            ip_address: ip,
-            title: 'Placeholder worksheet'
-          })
-          .select();
-        
-        if (newWorksheetError) {
-          console.error('Error creating placeholder worksheet:', newWorksheetError);
-          throw new Error(`Failed to create placeholder worksheet: ${newWorksheetError.message}`);
-        } else {
-          console.log('Created placeholder worksheet:', newWorksheet);
-        }
-      }
-    }
+    console.log('Submitting feedback:', { worksheetId, rating, comment: comment?.substring(0, 20) + '...', userId });
 
     // Insert feedback into database
     const { data: feedback, error: feedbackError } = await supabase
@@ -69,8 +35,8 @@ serve(async (req) => {
         worksheet_id: worksheetId,
         user_id: userId,
         rating,
-        comment: comment || '',
-        status: 'new'
+        comment,
+        status: 'new' // Changed from 'submitted' to 'new' to match the check constraint
       })
       .select();
 
@@ -80,19 +46,14 @@ serve(async (req) => {
     }
 
     // Log event
-    const { error: eventError } = await supabase.from('events').insert({
+    await supabase.from('events').insert({
       type: 'feedback',
       event_type: 'feedback',
       worksheet_id: worksheetId,
       user_id: userId,
-      metadata: { rating, comment: comment || '', ip },
+      metadata: { rating, ip },
       ip_address: ip
     });
-
-    if (eventError) {
-      console.error('Error logging feedback event:', eventError);
-      // Continue even if event logging fails
-    }
 
     console.log('Feedback submitted successfully');
 
@@ -102,13 +63,12 @@ serve(async (req) => {
       data: feedback
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
     });
   } catch (error) {
     console.error('Error in submitFeedback:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'An error occurred while submitting feedback',
+        error: error.message || 'An error occurred',
       }),
       { 
         status: 500,

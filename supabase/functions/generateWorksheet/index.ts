@@ -32,16 +32,14 @@ serve(async (req) => {
     console.log('Received prompt:', prompt);
 
     // Parse the lesson time from the prompt to determine exercise count
-    let exerciseCount = 8; // Default for 60 min
+    let exerciseCount = 6; // Default
     if (prompt.includes('30 min')) {
       exerciseCount = 4;
     } else if (prompt.includes('45 min')) {
       exerciseCount = 6;
-    } else {
-      exerciseCount = 8; // 60 min
+    } else if (prompt.includes('60 min')) {
+      exerciseCount = 8;
     }
-
-    console.log(`Setting exercise count to ${exerciseCount} based on lesson time`);
 
     // Generate worksheet using OpenAI with improved prompt structure and VERY SPECIFIC requirements
     const aiResponse = await openai.chat.completions.create({
@@ -163,7 +161,7 @@ Generate a structured JSON worksheet with the following format:
 IMPORTANT RULES AND REQUIREMENTS:
 1. Create EXACTLY ${exerciseCount} exercises based on the prompt.
 2. For "reading" exercises:
-   - The content MUST be BETWEEN 280-320 WORDS. COUNT WORDS CAREFULLY BEFORE RETURNING. Make sure content has MINIMUM 280 words.
+   - The content MUST be BETWEEN 280-320 WORDS. Count words carefully.
    - ALWAYS include EXACTLY 5 comprehension questions.
 3. For "matching" exercises:
    - Include EXACTLY 10 items to match.
@@ -185,19 +183,7 @@ IMPORTANT RULES AND REQUIREMENTS:
 14. DO NOT include any text outside of the JSON structure.
 15. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field.
 16. COUNT THE ACTUAL NUMBER OF ITEMS in each exercise to verify you've met the requirements.
-17. For reading exercises, COUNT WORDS CAREFULLY to ensure text is between 280-320 words.
-
-QUALITY CONTROL CHECKLIST:
-Before finalizing your response, verify the following:
-1. All reading passages have between 280-320 words (count them!)
-2. No grammar or spelling errors are present
-3. Instructions are clear and specific
-4. Appropriate difficulty level for ESL students
-5. Content includes specific vocabulary related to the lesson topic
-6. Formatting is consistent throughout the worksheet
-7. All required exercises are complete with the specified number of items
-8. Exercise types are varied and appropriate for the lesson goals
-9. The total number of exercises matches the required ${exerciseCount} for the lesson duration`
+17. For reading exercises, COUNT WORDS CAREFULLY to ensure text is between 280-320 words.`
         },
         {
           role: "user",
@@ -226,8 +212,6 @@ Before finalizing your response, verify the following:
         if (exercise.type === 'reading') {
           // Validate reading content length
           const wordCount = exercise.content?.split(/\s+/).length || 0;
-          console.log(`Reading exercise word count: ${wordCount}`);
-          
           if (wordCount < 280 || wordCount > 320) {
             console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
             
@@ -245,7 +229,7 @@ Before finalizing your response, verify the following:
                   {
                     role: "user",
                     content: `The following text has ${wordCount} words but needs to have between 280-320 words. 
-                    Please expand it to the right length (AT LEAST 280 words) while maintaining the style and topic. 
+                    Please expand it to the right length while maintaining the style and topic. 
                     Original text: "${exercise.content}"`
                   }
                 ]
@@ -257,34 +241,6 @@ Before finalizing your response, verify the following:
               if (expandedWordCount >= 280 && expandedWordCount <= 320) {
                 exercise.content = expandedText;
                 console.log(`Successfully expanded reading text from ${wordCount} to ${expandedWordCount} words`);
-              } else {
-                console.log(`Expansion failed. Word count: ${expandedWordCount}`);
-                // Try one more time with clearer instructions
-                const secondExpandResponse = await openai.chat.completions.create({
-                  model: "gpt-4o",
-                  temperature: 0.5,
-                  messages: [
-                    {
-                      role: "system",
-                      content: "You are an expert ESL content creator who can precisely expand texts to meet word count requirements."
-                    },
-                    {
-                      role: "user",
-                      content: `I need this text to be EXACTLY 300 words (between 295-305 is acceptable). 
-                      It currently has ${wordCount} words, which is too short. Please expand it while maintaining the same style and topic.
-                      Original text: "${exercise.content}"`
-                    }
-                  ]
-                });
-                
-                const secondExpandedText = secondExpandResponse.choices[0].message.content;
-                const secondExpandedWordCount = secondExpandedText.split(/\s+/).length;
-                console.log(`Second expansion attempt word count: ${secondExpandedWordCount}`);
-                
-                if (secondExpandedWordCount >= 280 && secondExpandedWordCount <= 320) {
-                  exercise.content = secondExpandedText;
-                  console.log(`Successfully expanded reading text on second attempt from ${wordCount} to ${secondExpandedWordCount} words`);
-                }
               }
             }
           }
@@ -313,131 +269,7 @@ Before finalizing your response, verify the following:
       // Ensure we have the correct number of exercises
       if (worksheetData.exercises.length !== exerciseCount) {
         console.warn(`Expected ${exerciseCount} exercises but got ${worksheetData.exercises.length}`);
-        
-        // If we have too few exercises, try to generate more
-        if (worksheetData.exercises.length < exerciseCount) {
-          const additionalExercisesCount = exerciseCount - worksheetData.exercises.length;
-          console.log(`Generating ${additionalExercisesCount} additional exercises...`);
-          
-          const additionalResponse = await openai.chat.completions.create({
-            model: "gpt-4o",
-            temperature: 0.7,
-            messages: [
-              {
-                role: "system",
-                content: `You are an expert ESL teacher assistant that creates detailed exercises for worksheets.
-                
-Generate ${additionalExercisesCount} more exercises in JSON format for an ESL worksheet on the topic: "${prompt}".
-Each exercise should follow this structure:
-
-{
-  "type": "exercise_type", // Choose from: reading, matching, fill-in-blanks, multiple-choice, dialogue
-  "title": "Exercise Title",
-  "icon": "fa-icon-name",
-  "time": 7, // time in minutes (5-10)
-  "instructions": "Instructions for the exercise",
-  // Additional fields based on exercise type
-  "teacher_tip": "Tip for teachers on this exercise"
-}
-
-IMPORTANT RULES AND REQUIREMENTS:
-1. For "reading" exercises:
-   - The content MUST be BETWEEN 280-320 WORDS. Count words carefully.
-   - ALWAYS include EXACTLY 5 comprehension questions.
-2. For "matching" exercises:
-   - Include EXACTLY 10 items to match.
-3. For "fill-in-blanks" exercises:
-   - Include EXACTLY 10 sentences and 10 words in the word bank.
-4. For "multiple-choice" exercises:
-   - Include EXACTLY 10 questions with 4 options each.
-5. For "dialogue" exercises:
-   - Include AT LEAST 10 dialogue exchanges.
-   - Include EXACTLY 10 expressions to practice.
-6. Ensure all JSON is valid with no trailing commas.
-7. Make sure each exercise is appropriate for ESL students.
-8. Each exercise MUST have a teacher_tip field.
-9. Use appropriate time values for each exercise (5-10 minutes).
-10. Return ONLY the JSON array of exercises.`
-              },
-              {
-                role: "user",
-                content: `Generate ${additionalExercisesCount} additional exercises for this existing worksheet on: "${prompt}"`
-              }
-            ],
-            max_tokens: 3500
-          });
-          
-          try {
-            const additionalContent = additionalResponse.choices[0].message.content;
-            
-            // Extract JSON content from the response (in case it's wrapped in markdown code blocks)
-            let jsonMatch = additionalContent.match(/```json\s*([\s\S]*?)\s*```/);
-            let additionalJson = jsonMatch ? jsonMatch[1] : additionalContent;
-            
-            // Clean up any non-JSON text before or after the JSON content
-            additionalJson = additionalJson.replace(/^\s*\[?/, '[').replace(/\]?\s*$/, ']');
-            
-            const additionalExercises = JSON.parse(additionalJson);
-            
-            if (Array.isArray(additionalExercises)) {
-              worksheetData.exercises = [...worksheetData.exercises, ...additionalExercises];
-              console.log(`Successfully added ${additionalExercises.length} exercises`);
-            } else {
-              console.error('Additional exercises not returned as an array');
-            }
-          } catch (parseErr) {
-            console.error('Failed to parse additional exercises:', parseErr);
-            console.log('Raw additional content:', additionalResponse.choices[0].message.content);
-            
-            // Try another approach - generate one exercise at a time
-            for (let i = 0; i < additionalExercisesCount; i++) {
-              try {
-                const singleExerciseResponse = await openai.chat.completions.create({
-                  model: "gpt-4o",
-                  temperature: 0.7,
-                  messages: [
-                    {
-                      role: "system",
-                      content: `Generate a single ESL exercise in JSON format for: "${prompt}".
-                      Choose from: reading, matching, fill-in-blanks, multiple-choice, dialogue.
-                      ONLY OUTPUT VALID JSON for one exercise. No text outside the JSON.`
-                    },
-                    {
-                      role: "user",
-                      content: `Generate exercise #${i+1} of ${additionalExercisesCount}`
-                    }
-                  ],
-                  max_tokens: 1500
-                });
-                
-                const singleExerciseContent = singleExerciseResponse.choices[0].message.content;
-                try {
-                  let singleExercise = JSON.parse(singleExerciseContent);
-                  worksheetData.exercises.push(singleExercise);
-                  console.log(`Successfully added exercise #${i+1}`);
-                } catch (singleParseErr) {
-                  console.error(`Failed to parse exercise #${i+1}:`, singleParseErr);
-                }
-              } catch (singleErr) {
-                console.error(`Error generating exercise #${i+1}:`, singleErr);
-              }
-            }
-          }
-        }
       }
-      
-      // One more check for reading exercises - need to be within word count
-      for (const exercise of worksheetData.exercises) {
-        if (exercise.type === 'reading') {
-          const finalWordCount = exercise.content?.split(/\s+/).length || 0;
-          if (finalWordCount < 280) {
-            console.log(`Final reading exercise still too short: ${finalWordCount} words`);
-          }
-        }
-      }
-      
-      // Ensure we have the target number of exercises
-      worksheetData.exercises = worksheetData.exercises.slice(0, exerciseCount);
       
       // Count API sources used for accurate stats
       const sourceCount = Math.floor(Math.random() * (90 - 65) + 65);
@@ -448,62 +280,30 @@ IMPORTANT RULES AND REQUIREMENTS:
       throw new Error('Failed to generate a valid worksheet structure. Please try again.');
     }
 
-    // Save worksheet to database
+    // Save worksheet to database - but don't trigger the row limit check
     try {
-      // Try to use the insert_worksheet_bypass_limit function if it exists
-      let worksheet = null;
-      let worksheetError = null;
+      const htmlContent = `<div id="worksheet-content">${JSON.stringify(worksheetData)}</div>`;
       
-      try {
-        console.log("Attempting to save worksheet using RPC...");
-        const rpcResult = await supabase.rpc(
-          'insert_worksheet_bypass_limit',
-          {
-            p_prompt: prompt,
-            p_content: JSON.stringify(worksheetData),
-            p_user_id: userId,
-            p_ip_address: ip,
-            p_status: 'created',
-            p_title: worksheetData.title
-          }
-        );
-        
-        worksheet = rpcResult.data;
-        worksheetError = rpcResult.error;
-        
-        if (worksheetError) {
-          console.error("RPC error:", worksheetError);
-        } else {
-          console.log("RPC successful, worksheet saved");
+      const { data: worksheet, error: worksheetError } = await supabase.rpc(
+        'insert_worksheet_bypass_limit',
+        {
+          p_prompt: prompt,
+          p_content: JSON.stringify(worksheetData),
+          p_user_id: userId,
+          p_ip_address: ip,
+          p_status: 'created',
+          p_title: worksheetData.title
         }
-      } catch (rpcError) {
-        console.error('RPC method not available or failed, falling back to direct insert:', rpcError);
-        
-        // Fallback to direct insert into worksheets table
-        console.log("Attempting direct insert into worksheets table...");
-        const insertResult = await supabase.from('worksheets').insert({
-          prompt: prompt,
-          html_content: JSON.stringify(worksheetData),
-          user_id: userId,
-          ip_address: ip,
-          status: 'created',
-          title: worksheetData.title
-        }).select().single();
-        
-        worksheet = insertResult.data;
-        worksheetError = insertResult.error;
-        
-        if (worksheetError) {
-          console.error("Direct insert error:", worksheetError);
-        } else {
-          console.log("Direct insert successful, worksheet saved with ID:", worksheet?.id);
-        }
+      );
+
+      if (worksheetError) {
+        console.error('Error saving worksheet to database:', worksheetError);
+        // Continue even if database save fails - we'll return the generated content
       }
 
       // Track generation event if we have a worksheet ID
       if (worksheet?.id) {
-        console.log("Recording worksheet generation event...");
-        const eventResult = await supabase.from('events').insert({
+        await supabase.from('events').insert({
           type: 'generate',
           event_type: 'generate',
           worksheet_id: worksheet.id,
@@ -511,17 +311,9 @@ IMPORTANT RULES AND REQUIREMENTS:
           metadata: { prompt, ip },
           ip_address: ip
         });
-        
-        if (eventResult.error) {
-          console.error('Error tracking event:', eventResult.error);
-        } else {
-          console.log('Event tracked successfully for worksheet ID:', worksheet.id);
-        }
-        
+        console.log('Worksheet generated and saved successfully with ID:', worksheet.id);
         // Add the ID to the worksheet data so frontend can use it
         worksheetData.id = worksheet.id;
-      } else {
-        console.warn("No worksheet ID available, cannot track event or link worksheet ID");
       }
     } catch (dbError) {
       console.error('Database operation failed:', dbError);
