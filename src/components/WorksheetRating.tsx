@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { submitWorksheetFeedback } from "@/services/worksheetService";
+import { submitFeedback, updateFeedback } from "@/services/worksheetService";
 import { useToast } from "@/hooks/use-toast";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 
@@ -23,7 +23,8 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [thanksOpen, setThanksOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false); // Dodanie stanu dla sygnalizacji procesu wysyłania
+  const [submitting, setSubmitting] = useState(false);
+  const [currentFeedbackId, setCurrentFeedbackId] = useState<string | null>(null);
   const { toast } = useToast();
   const { userId } = useAnonymousAuth();
   
@@ -31,7 +32,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
     setSelected(value);
     
     try {
-      setSubmitting(true); // Ustawienie flagi wysyłania
+      setSubmitting(true);
       
       // Submit rating immediately when star is clicked
       if (userId) {
@@ -40,7 +41,12 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
           null;
             
         if (actualWorksheetId) {
-          await submitWorksheetFeedback(actualWorksheetId, value, '', userId);
+          const result = await submitFeedback(actualWorksheetId, value, '', userId);
+          
+          // Store the feedback ID for future updates
+          if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
+            setCurrentFeedbackId(result[0].id);
+          }
           
           toast({
             title: "Rating submitted!",
@@ -64,7 +70,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
         variant: "destructive"
       });
     } finally {
-      setSubmitting(false); // Zresetowanie flagi wysyłania
+      setSubmitting(false);
     }
   };
   
@@ -72,7 +78,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
     if (!selected || !userId) return;
     
     try {
-      setSubmitting(true); // Ustawienie flagi wysyłania
+      setSubmitting(true);
       
       // Try to get worksheet ID from props, URL or DOM
       let actualWorksheetId = worksheetId || null;
@@ -89,8 +95,18 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
         }
       }
       
-      // Submit feedback with comment
-      await submitWorksheetFeedback(actualWorksheetId || 'unknown', selected, feedback, userId);
+      if (currentFeedbackId) {
+        // Update existing feedback with comment
+        await updateFeedback(currentFeedbackId, feedback, userId);
+      } else {
+        // Submit new feedback with rating and comment
+        const result = await submitFeedback(actualWorksheetId || 'unknown', selected, feedback, userId);
+        
+        // Store the feedback ID
+        if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
+          setCurrentFeedbackId(result[0].id);
+        }
+      }
       
       setIsDialogOpen(false);
       setThanksOpen(true);
@@ -115,7 +131,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
       });
     } finally {
       setFeedback("");
-      setSubmitting(false); // Zresetowanie flagi wysyłania
+      setSubmitting(false);
     }
   };
   

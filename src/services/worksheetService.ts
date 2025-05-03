@@ -58,7 +58,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     // Validate reading exercise content and questions
     for (const exercise of worksheetData.exercises) {
       if (exercise.type === 'reading') {
-        const wordCount = exercise.content?.split(/\s+/).length || 0;
+        const wordCount = exercise.content?.split(/\s+/).filter(Boolean).length || 0;
         console.log(`Reading exercise word count: ${wordCount}`);
         
         if (wordCount < 280 || wordCount > 320) {
@@ -80,15 +80,13 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     }
     
     // Check exercise count based on lesson time
-    let expectedCount = 6;
-    if (prompt.lessonTime === "30 min") {
-      expectedCount = 4;
-    } else if (prompt.lessonTime === "45 min") {
-      expectedCount = 6;
-    } else if (prompt.lessonTime === "60 min") {
-      expectedCount = 8;
-    }
+    const getExpectedExerciseCount = (lessonTime: string): number => {
+      if (lessonTime === "30 min") return 4;  // 30 minutes = 4 exercises
+      else if (lessonTime === "45 min") return 6;  // 45 minutes = 6 exercises
+      else return 8;  // 60 minutes = 8 exercises
+    };
     
+    const expectedCount = getExpectedExerciseCount(prompt.lessonTime);
     console.log(`Expected ${expectedCount} exercises for ${prompt.lessonTime} lesson, got ${worksheetData.exercises.length}`);
     
     return worksheetData;
@@ -101,7 +99,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
 /**
  * Submits feedback for a worksheet
  */
-export async function submitWorksheetFeedback(worksheetId: string, rating: number, comment: string, userId: string) {
+export async function submitFeedback(worksheetId: string, rating: number, comment: string, userId: string) {
   try {
     console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
     
@@ -202,9 +200,36 @@ export async function submitWorksheetFeedback(worksheetId: string, rating: numbe
 }
 
 /**
+ * Updates existing feedback with a comment
+ */
+export async function updateFeedback(id: string, comment: string, userId: string) {
+  try {
+    console.log('Updating feedback with comment:', { id, comment });
+
+    const { data, error } = await supabase
+      .from('feedbacks')
+      .update({ comment })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select();
+      
+    if (error) {
+      console.error('Error updating feedback:', error);
+      throw new Error(`Failed to update feedback: ${error.message}`);
+    }
+    
+    console.log('Feedback updated successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error updating feedback:', error);
+    throw error;
+  }
+}
+
+/**
  * Tracks an event (view, download, etc.)
  */
-export async function trackEvent(type: string, worksheetId: string, userId: string, metadata: any = {}) {
+export async function trackWorksheetEvent(type: string, worksheetId: string, userId: string, metadata: any = {}) {
   try {
     // Skip tracking if worksheetId is not a valid UUID
     if (!worksheetId || worksheetId.length < 10) {

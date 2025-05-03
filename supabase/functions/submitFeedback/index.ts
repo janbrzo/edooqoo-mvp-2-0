@@ -31,7 +31,7 @@ serve(async (req) => {
     // Check if worksheet exists
     let shouldCreatePlaceholder = false;
     
-    if (worksheetId) {
+    if (worksheetId && worksheetId !== 'unknown') {
       const { data: worksheetExists, error: existsError } = await supabase
         .from('worksheets')
         .select('id')
@@ -58,7 +58,7 @@ serve(async (req) => {
         .from('worksheets')
         .insert({
           prompt: 'Generated worksheet',
-          content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
+          html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
           user_id: userId,
           ip_address: ip,
           status: 'created',

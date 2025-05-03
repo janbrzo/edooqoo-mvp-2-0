@@ -12,6 +12,84 @@ import GenerationView from "@/components/worksheet/GenerationView";
 // Import just as a fallback in case generation fails
 import mockWorksheetData from '@/mockWorksheetData';
 
+// Utility functions
+const getExpectedExerciseCount = (lessonTime: string): number => {
+  if (lessonTime === "30 min") return 4;
+  else if (lessonTime === "45 min") return 6;
+  else return 8;
+};
+
+const shuffleArray = (array: any[]) => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
+const createSampleVocabulary = (count: number) => {
+  const terms = [
+    'Abundant', 'Benevolent', 'Concurrent', 'Diligent', 'Ephemeral', 
+    'Fastidious', 'Gregarious', 'Haphazard', 'Impeccable', 'Juxtapose', 
+    'Kinetic', 'Luminous', 'Meticulous', 'Nostalgia', 'Omnipotent'
+  ];
+  const meanings = [
+    'Existing in large quantities', 'Kind and generous', 'Occurring at the same time', 
+    'Hardworking', 'Lasting for a very short time', 'Paying attention to detail', 
+    'Sociable', 'Random or lacking organization', 'Perfect, flawless', 
+    'To place side by side', 'Related to motion', 'Full of light', 
+    'Showing great attention to detail', 'Sentimental longing for the past', 
+    'Having unlimited power'
+  ];
+  
+  return Array(Math.min(count, terms.length)).fill(null).map((_, i) => ({
+    term: terms[i],
+    meaning: meanings[i]
+  }));
+};
+
+const validateWorksheet = (worksheetData: any, expectedCount: number): boolean => {
+  if (!worksheetData || !worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
+    return false;
+  }
+  
+  return worksheetData.exercises.length === expectedCount;
+};
+
+const processExercises = (exercises: any[]): any[] => {
+  return exercises.map((exercise: any, index: number) => {
+    // Make sure exercise number is correct
+    const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
+    exercise.title = `Exercise ${index + 1}: ${exerciseType}`;
+    
+    // Process matching exercises
+    if (exercise.type === "matching" && exercise.items) {
+      exercise.originalItems = [...exercise.items];
+      exercise.shuffledTerms = shuffleArray([...exercise.items]);
+    }
+    
+    // Process reading exercise
+    if (exercise.type === 'reading' && exercise.content) {
+      const wordCount = exercise.content.split(/\s+/).filter(Boolean).length;
+      console.log(`Reading exercise word count: ${wordCount}`);
+      
+      // Ensure it has adequate number of questions
+      if (!exercise.questions || exercise.questions.length < 5) {
+        if (!exercise.questions) exercise.questions = [];
+        while (exercise.questions.length < 5) {
+          exercise.questions.push({
+            text: `Additional question ${exercise.questions.length + 1} about the text.`,
+            answer: "Answer would be based on the text content."
+          });
+        }
+      }
+    }
+    
+    return exercise;
+  });
+};
+
 /**
  * Main Index page component that handles worksheet generation and display
  */
@@ -64,50 +142,18 @@ const Index = () => {
       // Set source count from the API or default
       setSourceCount(worksheetData.sourceCount || Math.floor(Math.random() * (90 - 65) + 65));
       
+      // Get expected exercise count based on lesson time
+      const expectedExerciseCount = getExpectedExerciseCount(data.lessonTime);
+      console.log(`Expected ${expectedExerciseCount} exercises for ${data.lessonTime}`);
+      
       // If we have a valid worksheet, use it
-      if (worksheetData && worksheetData.exercises && worksheetData.title) {
-        // Handle shuffling for matching exercises
-        worksheetData.exercises.forEach((exercise: any) => {
-          if (exercise.type === "matching" && exercise.items) {
-            exercise.originalItems = [...exercise.items];
-            exercise.shuffledTerms = shuffleArray([...exercise.items]);
-          }
-        });
+      if (validateWorksheet(worksheetData, expectedExerciseCount)) {
+        // Process exercises (numbering, shuffling terms, etc)
+        worksheetData.exercises = processExercises(worksheetData.exercises);
         
         // Use the ID returned from the API or generate a temporary one
         const wsId = worksheetData.id || uuidv4();
         setWorksheetId(wsId);
-        
-        // Log exercise count to verify
-        console.log(`Generated worksheet with ${worksheetData.exercises.length} exercises`);
-        
-        // Check if exercise count matches lesson time
-        let expectedExerciseCount = getExpectedExerciseCount(data.lessonTime);
-        console.log(`Expected ${expectedExerciseCount} exercises for ${data.lessonTime}`);
-        
-        if (worksheetData.exercises.length !== expectedExerciseCount) {
-          console.warn(`Exercise count mismatch: expected ${expectedExerciseCount}, got ${worksheetData.exercises.length}`);
-        }
-        
-        // Weryfikacja i uzupełnienie wszystkich ćwiczeń
-        worksheetData.exercises = worksheetData.exercises.map((exercise: any, index: number) => {
-          // Make sure exercise number is correct
-          const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
-          exercise.title = `Exercise ${index + 1}: ${exerciseType}`;
-          
-          // Sprawdź, czy to ćwiczenie reading i czy ma odpowiednią ilość słów
-          if (exercise.type === 'reading' && exercise.content) {
-            const wordCount = exercise.content.split(/\s+/).length;
-            
-            console.log(`Reading exercise word count: ${wordCount}`);
-            
-            // Sprawdź nową liczbę słów
-            const newWordCount = exercise.content.split(/\s+/).length;
-            console.log(`Final reading exercise word count: ${newWordCount}`);
-          }
-          
-          return exercise;
-        });
         
         // Check if we need to add vocabulary sheet
         if (!worksheetData.vocabulary_sheet || worksheetData.vocabulary_sheet.length === 0) {
@@ -131,34 +177,13 @@ const Index = () => {
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
       
       // Get correct exercise count based on lesson time
-      let expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60 min');
+      const expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60 min');
       
       // Adjust mock exercises to match expected count
       fallbackWorksheet.exercises = fallbackWorksheet.exercises.slice(0, expectedExerciseCount);
       
-      // Ensure exercise titles have correct numbering
-      fallbackWorksheet.exercises = fallbackWorksheet.exercises.map((exercise: any, index: number) => {
-        const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
-        exercise.title = `Exercise ${index + 1}: ${exerciseType}`;
-        return exercise;
-      });
-      
-      // Weryfikacja i uzupełnienie wszystkich ćwiczeń dla mockowych danych
-      fallbackWorksheet.exercises = fallbackWorksheet.exercises.map((exercise: any, index: number) => {
-        // Process matching exercises
-        if (exercise.type === "matching" && exercise.items) {
-          exercise.originalItems = [...exercise.items];
-          exercise.shuffledTerms = shuffleArray([...exercise.items]);
-        }
-        
-        // Sprawdź, czy to ćwiczenie reading i czy ma odpowiednią ilość słów
-        if (exercise.type === "reading" && exercise.content) {
-          const wordCount = exercise.content.split(/\s+/).length;
-          console.log(`Fallback reading exercise word count: ${wordCount}`);
-        }
-        
-        return exercise;
-      });
+      // Process the fallback exercises
+      fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises);
       
       const tempId = uuidv4();
       setWorksheetId(tempId);
@@ -178,38 +203,12 @@ const Index = () => {
   };
 
   /**
-   * Funkcja pomocnicza do tworzenia przykładowego słowniczka
-   */
-  const createSampleVocabulary = (count: number) => {
-    const terms = ['Abundant', 'Benevolent', 'Concurrent', 'Diligent', 'Ephemeral', 'Fastidious', 'Gregarious', 'Haphazard', 'Impeccable', 'Juxtapose', 'Kinetic', 'Luminous', 'Meticulous', 'Nostalgia', 'Omnipotent'];
-    const meanings = ['Existing in large quantities', 'Kind and generous', 'Occurring at the same time', 'Hardworking', 'Lasting for a very short time', 'Paying attention to detail', 'Sociable', 'Random or lacking organization', 'Perfect, flawless', 'To place side by side', 'Related to motion', 'Full of light', 'Showing great attention to detail', 'Sentimental longing for the past', 'Having unlimited power'];
-    
-    return Array(count).fill(null).map((_, i) => ({
-      term: terms[i],
-      meaning: meanings[i]
-    }));
-  };
-
-  /**
    * Resets the view to the form
    */
   const handleBack = () => {
     setGeneratedWorksheet(null);
     setInputParams(null);
     setWorksheetId(null);
-  };
-
-  /**
-   * Get expected exercise count based on lesson time
-   */
-  const getExpectedExerciseCount = (lessonTime: string): number => {
-    if (lessonTime === "30 min") {
-      return 4;  // 30 minutes = 4 exercises
-    } else if (lessonTime === "45 min") {
-      return 6;  // 45 minutes = 6 exercises
-    } else {
-      return 8;  // 60 minutes = 8 exercises
-    }
   };
 
   // Show loading indicator while auth is initializing
@@ -240,18 +239,6 @@ const Index = () => {
       <GeneratingModal isOpen={isGenerating} />
     </div>
   );
-};
-
-/**
- * Shuffles an array using Fisher-Yates algorithm
- */
-const shuffleArray = (array: any[]) => {
-  const newArray = [...array];
-  for (let i = newArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-  }
-  return newArray;
 };
 
 export default Index;

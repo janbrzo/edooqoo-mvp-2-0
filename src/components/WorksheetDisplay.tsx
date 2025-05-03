@@ -72,6 +72,33 @@ export default function WorksheetDisplay({
   // Validate the worksheet structure when component mounts
   useEffect(() => {
     validateWorksheetStructure();
+    
+    // Add page numbers CSS for PDF
+    const style = document.createElement('style');
+    style.textContent = `
+      @media print {
+        @page {
+          margin: 10mm;
+        }
+        
+        .page-number {
+          position: fixed;
+          bottom: 10mm;
+          right: 10mm;
+          font-size: 10pt;
+          color: #666;
+        }
+        
+        .page-number::before {
+          content: "Page " counter(page) " of " counter(pages);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
   }, []);
   
   const validateWorksheetStructure = () => {
@@ -103,7 +130,7 @@ export default function WorksheetDisplay({
         toast({
           title: "Reading exercise issue",
           description: `Reading content has only ${wordCount} words (should be 280-320).`,
-          variant: "destructive" // Zmiana z "warning" na "destructive"
+          variant: "destructive"
         });
       }
     }
@@ -193,6 +220,9 @@ export default function WorksheetDisplay({
         />
 
         <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>
+          {/* Add page number element for PDF */}
+          <div className="page-number"></div>
+          
           <div className="bg-white p-6 border rounded-lg shadow-sm mb-6">
             <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight">
               {isEditing ? (
