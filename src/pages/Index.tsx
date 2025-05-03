@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
@@ -98,7 +97,7 @@ const Index = () => {
               toast({
                 title: "Reading content warning",
                 description: `The reading exercise has only ${wordCount} words (recommended 280-320)`,
-                variant: "warning"
+                variant: "default"
               });
             }
           }

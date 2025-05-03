@@ -56,6 +56,19 @@ export const generatePDF = async (
       (el as HTMLElement).style.marginBottom = '10px';
     });
 
+    // Zmniejszamy odstępy między elementami, aby uniknąć pustej przestrzeni
+    const exerciseSections = clone.querySelectorAll('.exercise-section');
+    exerciseSections.forEach(el => {
+      (el as HTMLElement).style.marginBottom = '5px';
+      (el as HTMLElement).style.paddingBottom = '5px';
+    });
+
+    // Usuwamy zbyt duże marginesy w sekcjach zadań
+    const exerciseContents = clone.querySelectorAll('.exercise-content > div');
+    exerciseContents.forEach(el => {
+      (el as HTMLElement).style.marginBottom = '8px';
+    });
+
     // Generate PDF
     const opt = {
       margin: [15, 15],
@@ -63,7 +76,7 @@ export const generatePDF = async (
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: 'css', avoid: '.avoid-page-break' }
+      pagebreak: { mode: ['css', 'legacy'], avoid: '.avoid-page-break' }
     };
     
     // Generate the PDF

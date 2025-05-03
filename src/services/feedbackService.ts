@@ -16,7 +16,7 @@ export async function submitWorksheetFeedback(
     // First check if we already have a feedback entry for this worksheet and user
     const { data: existingFeedback, error: fetchError } = await supabase
       .from('feedbacks')
-      .select('id')
+      .select('id, comment')  // dodajemy comment do wybranych pól
       .eq('worksheet_id', worksheetId)
       .eq('user_id', userId)
       .maybeSingle();
@@ -32,7 +32,7 @@ export async function submitWorksheetFeedback(
         .from('feedbacks')
         .update({ 
           rating, 
-          comment: comment || existingFeedback.comment, // Keep existing comment if new one is empty
+          comment: comment || existingFeedback.comment || '', // Zapewniamy że comment zawsze istnieje
           status: 'updated'
         })
         .eq('id', existingFeedback.id)
