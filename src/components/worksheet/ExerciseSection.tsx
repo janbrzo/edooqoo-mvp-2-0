@@ -21,7 +21,6 @@ import {
   renderOtherExerciseTypes,
   renderTrueFalseExercise
 } from "./ExerciseSectionUtils";
-import { EXERCISE_TYPES } from "@/utils/exerciseTypeUtils";
 
 interface Exercise {
   type: string;
@@ -121,7 +120,7 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
           onContentChange={val => handleExerciseChangeLocal('content', val)}
         />
 
-        {exercise.type === EXERCISE_TYPES.READING && exercise.questions && (
+        {exercise.type === 'reading' && exercise.questions && (
           <ExerciseReading
             questions={exercise.questions}
             isEditing={isEditing}
@@ -130,7 +129,7 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
           />
         )}
 
-        {exercise.type === EXERCISE_TYPES.MATCHING && exercise.items && (
+        {exercise.type === 'matching' && exercise.items && (
           <ExerciseMatching
             items={exercise.items}
             isEditing={isEditing}
@@ -140,7 +139,7 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
           />
         )}
 
-        {exercise.type === EXERCISE_TYPES.FILL_IN_BLANKS && exercise.sentences && (
+        {exercise.type === 'fill-in-blanks' && exercise.sentences && (
           <ExerciseFillInBlanks
             word_bank={exercise.word_bank}
             sentences={exercise.sentences}
@@ -163,7 +162,7 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
           />
         )}
 
-        {exercise.type === EXERCISE_TYPES.MULTIPLE_CHOICE && exercise.questions && (
+        {exercise.type === 'multiple-choice' && exercise.questions && (
           <ExerciseMultipleChoice
             questions={exercise.questions}
             isEditing={isEditing}
@@ -189,7 +188,7 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
           />
         )}
 
-        {exercise.type === EXERCISE_TYPES.DIALOGUE && exercise.dialogue && (
+        {exercise.type === 'dialogue' && exercise.dialogue && (
           <ExerciseDialogue
             dialogue={exercise.dialogue}
             expressions={exercise.expressions}
@@ -202,8 +201,8 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
           />
         )}
 
-        {exercise.type === EXERCISE_TYPES.DISCUSSION && exercise.questions && (
-          <div className="space-y-0.5 exercise-content">
+        {exercise.type === 'discussion' && exercise.questions && (
+          <div className="space-y-0.5">
             <h3 className="font-medium text-gray-700 mb-2">Discussion Questions:</h3>
             {exercise.questions.map((question: string, qIndex: number) => (
               <div key={qIndex} className="p-1 border-b">
@@ -236,22 +235,18 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
           </div>
         )}
 
-        {(exercise.type === EXERCISE_TYPES.ERROR_CORRECTION || 
-          exercise.type === EXERCISE_TYPES.WORD_FORMATION || 
-          exercise.type === EXERCISE_TYPES.WORD_ORDER) && 
+        {(exercise.type === 'error-correction' || exercise.type === 'word-formation' || exercise.type === 'word-order') && 
           exercise.sentences && renderOtherExerciseTypes(exercise, isEditing, viewMode, handleSentenceChangeLocal)}
         
-        {exercise.type === EXERCISE_TYPES.TRUE_FALSE && exercise.statements && 
+        {exercise.type === 'true-false' && exercise.statements && 
           renderTrueFalseExercise(exercise, isEditing, viewMode, handleStatementChangeLocal)}
 
-        {/* Only show teacher tips in teacher view */}
-        {viewMode === "teacher" && (
-          <TeacherTipSection
-            tip={exercise.teacher_tip}
-            isEditing={isEditing}
-            onChange={handleTeacherTipChangeLocal}
-          />
-        )}
+        {/* Always show teacher tip regardless of viewMode */}
+        <TeacherTipSection
+          tip={exercise.teacher_tip}
+          isEditing={isEditing}
+          onChange={handleTeacherTipChangeLocal}
+        />
       </div>
     </div>
   );

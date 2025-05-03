@@ -1,4 +1,3 @@
-
 import React from "react";
 import { FileText } from "lucide-react";
 
@@ -28,7 +27,7 @@ const VocabularySheet = ({
   editableWorksheet,
   setEditableWorksheet
 }: VocabularySheetProps) => (
-  <div className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm vocabulary-sheet">
+  <div className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
     <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center exercise-header">
       <div className="flex items-center">
         <div className="p-2 bg-white/20 rounded-full mr-3">

@@ -4,7 +4,7 @@ import WorksheetDisplay from "@/components/WorksheetDisplay";
 import { ArrowUp } from "lucide-react";
 import { FormData } from "@/components/WorksheetForm";
 import { useToast } from "@/hooks/use-toast";
-import { submitWorksheetFeedback, trackWorksheetEvent } from "@/services/feedbackService";
+import { submitWorksheetFeedback, trackEvent } from "@/services/worksheetService";
 
 interface GenerationViewProps {
   worksheetId: string | null;
@@ -40,7 +40,7 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     if (userId && worksheetId && generatedWorksheet) {
       // Only track events if we have a valid ID
       if (worksheetId.length > 10) {
-        trackWorksheetEvent('view', worksheetId, userId);
+        trackEvent('view', worksheetId, userId);
       }
     }
   }, [userId, worksheetId, generatedWorksheet]);
@@ -83,7 +83,7 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     if (userId && worksheetId) {
       // Only track events if we have a valid ID
       if (worksheetId.length > 10) {
-        trackWorksheetEvent('download', worksheetId, userId);
+        trackEvent('download', worksheetId, userId);
       }
     }
   };

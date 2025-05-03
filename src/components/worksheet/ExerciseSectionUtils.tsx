@@ -1,3 +1,5 @@
+
+
 // This file contains utility functions for the ExerciseSection component
 
 export const handleExerciseChange = (
@@ -225,7 +227,7 @@ export const renderTrueFalseExercise = (
   handleStatementChange: (statementIndex: number, field: string, value: string | boolean) => void
 ) => (
   <div>
-    <div className="space-y-2 exercise-content">
+    <div className="space-y-2">
       {exercise.statements.map((statement: any, sIndex: number) => (
         <div key={sIndex} className="border-b pb-2">
           <div className="flex flex-row items-start">
@@ -278,3 +280,4 @@ export const renderTrueFalseExercise = (
     </div>
   </div>
 );
+
