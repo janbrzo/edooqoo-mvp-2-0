@@ -1,4 +1,3 @@
-
 import React from "react";
 import ExerciseHeader from "./ExerciseHeader";
 import ExerciseContent from "./ExerciseContent";
@@ -241,11 +240,12 @@ const ExerciseSection: React.FC<ExerciseSectionProps> = ({
         {exercise.type === 'true-false' && exercise.statements && 
           renderTrueFalseExercise(exercise, isEditing, viewMode, handleStatementChangeLocal)}
 
-        {/* Always show teacher tip regardless of viewMode */}
+        {/* Poprawione wywołanie komponentu TeacherTipSection z dodanym parametrem viewMode */}
         <TeacherTipSection
           tip={exercise.teacher_tip}
           isEditing={isEditing}
           onChange={handleTeacherTipChangeLocal}
+          viewMode={viewMode}
         />
       </div>
     </div>
