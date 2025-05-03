@@ -18,7 +18,7 @@ const TeacherTipSection: React.FC<TeacherTipSectionProps> = ({
       background: "#FEF9E7", // Lighter yellow background
       borderLeft: "4px solid #ffeab9"
     }} 
-    data-no-pdf="true" 
+    data-no-pdf="false"  // Allow teacher tips to be included in the PDF for teacher view
     className="mt-4 p-3 rounded-md teacher-tip flex items-start py-[6px] bg-amber-50"
   >
     <Info className="text-amber-400 mr-2 mt-1" size={19} />

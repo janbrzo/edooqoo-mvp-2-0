@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from "react";
-import { ArrowLeft, ArrowUp } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { generatePDF } from "@/utils/pdfUtils";
 import { useToast } from "@/hooks/use-toast";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
@@ -10,6 +10,7 @@ import ExerciseSection from "./worksheet/ExerciseSection";
 import VocabularySheet from "./worksheet/VocabularySheet";
 import TeacherNotes from "./worksheet/TeacherNotes";
 import WorksheetRating from "@/components/WorksheetRating";
+import { trackWorksheetEvent } from "@/services/feedbackService";
 
 interface Exercise {
   type: string;
@@ -103,7 +104,7 @@ export default function WorksheetDisplay({
         toast({
           title: "Reading exercise issue",
           description: `Reading content has only ${wordCount} words (should be 280-320).`,
-          variant: "destructive" // Zmiana z "warning" na "destructive"
+          variant: "destructive"
         });
       }
     }
@@ -152,6 +153,16 @@ export default function WorksheetDisplay({
             title: "PDF Downloaded",
             description: "Your worksheet has been downloaded successfully."
           });
+          
+          // Track download event
+          if (worksheetId) {
+            try {
+              await trackWorksheetEvent('download', worksheetId, 'anonymous'); 
+            } catch (error) {
+              console.error('Error tracking download:', error);
+            }
+          }
+          
           if (onDownload) {
             onDownload();
           }
@@ -259,15 +270,15 @@ export default function WorksheetDisplay({
               setEditableWorksheet={setEditableWorksheet}
             />
           )}
+          
+          {/* Display Teacher Notes Section (both for student and teacher view) */}
+          <TeacherNotes />
 
-          {/* First display rating section */}
+          {/* Display rating section below teacher notes */}
           <WorksheetRating 
             worksheetId={worksheetId}
             onSubmitRating={onFeedbackSubmit || onDownload} 
           />
-          
-          {/* Then display Teacher Notes Section (both for student and teacher view) */}
-          <TeacherNotes />
         </div>
       </div>
       
@@ -282,4 +293,4 @@ export default function WorksheetDisplay({
       )}
     </div>
   );
-}
+};

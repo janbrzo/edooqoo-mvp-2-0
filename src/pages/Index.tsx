@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import GeneratingModal from "@/components/GeneratingModal";
 import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";
+import { getExerciseCountByDuration, getExerciseTypes } from "@/utils/exerciseTypeUtils";
 
 // Import just as a fallback in case generation fails
 import mockWorksheetData from '@/mockWorksheetData';
@@ -78,32 +79,28 @@ const Index = () => {
         const wsId = worksheetData.id || uuidv4();
         setWorksheetId(wsId);
         
-        // Log exercise count to verify
-        console.log(`Generated worksheet with ${worksheetData.exercises.length} exercises`);
-        
         // Check if exercise count matches lesson time
-        let expectedExerciseCount = getExpectedExerciseCount(data.lessonTime);
+        let expectedExerciseCount = getExerciseCountByDuration(data.lessonTime);
         console.log(`Expected ${expectedExerciseCount} exercises for ${data.lessonTime}`);
         
-        if (worksheetData.exercises.length !== expectedExerciseCount) {
-          console.warn(`Exercise count mismatch: expected ${expectedExerciseCount}, got ${worksheetData.exercises.length}`);
-        }
-        
-        // Weryfikacja i uzupełnienie wszystkich ćwiczeń
+        // Validate and format all exercises
         worksheetData.exercises = worksheetData.exercises.map((exercise: any, index: number) => {
           // Make sure exercise number is correct
           const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
           exercise.title = `Exercise ${index + 1}: ${exerciseType}`;
           
-          // Sprawdź, czy to ćwiczenie reading i czy ma odpowiednią ilość słów
+          // Check if it's a reading exercise with appropriate word count
           if (exercise.type === 'reading' && exercise.content) {
             const wordCount = exercise.content.split(/\s+/).length;
-            
             console.log(`Reading exercise word count: ${wordCount}`);
             
-            // Sprawdź nową liczbę słów
-            const newWordCount = exercise.content.split(/\s+/).length;
-            console.log(`Final reading exercise word count: ${newWordCount}`);
+            if (wordCount < 280) {
+              toast({
+                title: "Reading content warning",
+                description: `The reading exercise has only ${wordCount} words (recommended 280-320)`,
+                variant: "warning"
+              });
+            }
           }
           
           return exercise;
@@ -131,7 +128,7 @@ const Index = () => {
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
       
       // Get correct exercise count based on lesson time
-      let expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60 min');
+      let expectedExerciseCount = getExerciseCountByDuration(data?.lessonTime || '60 min');
       
       // Adjust mock exercises to match expected count
       fallbackWorksheet.exercises = fallbackWorksheet.exercises.slice(0, expectedExerciseCount);
@@ -143,18 +140,12 @@ const Index = () => {
         return exercise;
       });
       
-      // Weryfikacja i uzupełnienie wszystkich ćwiczeń dla mockowych danych
+      // Process fallback exercises
       fallbackWorksheet.exercises = fallbackWorksheet.exercises.map((exercise: any, index: number) => {
         // Process matching exercises
         if (exercise.type === "matching" && exercise.items) {
           exercise.originalItems = [...exercise.items];
           exercise.shuffledTerms = shuffleArray([...exercise.items]);
-        }
-        
-        // Sprawdź, czy to ćwiczenie reading i czy ma odpowiednią ilość słów
-        if (exercise.type === "reading" && exercise.content) {
-          const wordCount = exercise.content.split(/\s+/).length;
-          console.log(`Fallback reading exercise word count: ${wordCount}`);
         }
         
         return exercise;
@@ -178,7 +169,7 @@ const Index = () => {
   };
 
   /**
-   * Funkcja pomocnicza do tworzenia przykładowego słowniczka
+   * Helper function to create sample vocabulary
    */
   const createSampleVocabulary = (count: number) => {
     const terms = ['Abundant', 'Benevolent', 'Concurrent', 'Diligent', 'Ephemeral', 'Fastidious', 'Gregarious', 'Haphazard', 'Impeccable', 'Juxtapose', 'Kinetic', 'Luminous', 'Meticulous', 'Nostalgia', 'Omnipotent'];
@@ -197,19 +188,6 @@ const Index = () => {
     setGeneratedWorksheet(null);
     setInputParams(null);
     setWorksheetId(null);
-  };
-
-  /**
-   * Get expected exercise count based on lesson time
-   */
-  const getExpectedExerciseCount = (lessonTime: string): number => {
-    if (lessonTime === "30 min") {
-      return 4;  // 30 minutes = 4 exercises
-    } else if (lessonTime === "45 min") {
-      return 6;  // 45 minutes = 6 exercises
-    } else {
-      return 8;  // 60 minutes = 8 exercises
-    }
   };
 
   // Show loading indicator while auth is initializing
