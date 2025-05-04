@@ -51,7 +51,7 @@ serve(async (req) => {
       messages: [
         {
           role: "system",
-          content: `You are an expert ESL teacher assistant that creates detailed worksheets with exercises.
+          content: `You are an expert ESL English language teacher specialized in creating a context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
           
 Generate a structured JSON worksheet with the following format:
 
@@ -209,7 +209,7 @@ Please analyze this English worksheet to ensure it meets the following quality s
           content: prompt
         }
       ],
-      max_tokens: 4000  // Ensure we have enough tokens for a complete response
+      max_tokens: 5000  // Ensure we have enough tokens for a complete response
     });
 
     const jsonContent = aiResponse.choices[0].message.content;
