@@ -68,7 +68,7 @@ Generate a structured JSON worksheet with the following format:
       "icon": "fa-book-open",
       "time": 8,
       "instructions": "Read the following text and answer the questions below.",
-      "content": "Generate a coherent, engaging reading passage between 280 and 320 words about topic.",
+      "content": "Content text goes here, MUST BE BETWEEN 280-320 WORDS LONG...",
       "questions": [
         {"text": "Question 1", "answer": "Answer 1"},
         {"text": "Question 2", "answer": "Answer 2"},
