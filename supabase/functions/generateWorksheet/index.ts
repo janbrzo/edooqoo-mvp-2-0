@@ -52,6 +52,8 @@ serve(async (req) => {
         {
           role: "system",
           content: `You are an expert ESL English language teacher specialized in creating a context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
+          Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.
+          Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits.
 
 Lesson topic: ${lessonTopic}
 Lesson goal: ${lessonGoal}
@@ -93,7 +95,7 @@ Generate a structured JSON worksheet with the following format:
       "icon": "fa-book-open",
       "time": 8,
       "instructions": "Read the following text and answer the questions below.",
-      "content": "Reading passage with 280-320 words related to the topic.. MUST BE BETWEEN 280-320 WORDS LONG.",
+      "content": "<reading passage of 280–320 words here>",
       "questions": [
         {"text": "Question 1", "answer": "Answer 1"},
         {"text": "Question 2", "answer": "Answer 2"},
@@ -103,6 +105,7 @@ Generate a structured JSON worksheet with the following format:
       ],
       "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
+    
     {
       "type": "matching",
       "title": "Exercise 2: Vocabulary Matching",
@@ -211,25 +214,27 @@ Generate a structured JSON worksheet with the following format:
 IMPORTANT RULES AND REQUIREMENTS:
 1. Create EXACTLY ${exerciseCount} exercises based on the prompt. No fewer, no more.
 2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
-3.	Ensure variety and progressive difficulty.  
-4.	All exercises should be closely related to the specified topic and goal
-5.	Include specific vocabulary, expressions, and language structures related to the topic
-6.	Keep exercise instructions clear and concise. Students should be able to understand the tasks without any additional explanation.
-7.	DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field. 
-8.	Use appropriate time values for each exercise (5-10 minutes).
+3. Ensure variety and progressive difficulty.  
+4. All exercises should be closely related to the specified topic and goal
+5. Include specific vocabulary, expressions, and language structures related to the topic
+6. Keep exercise instructions clear and concise. Students should be able to understand the tasks without any additional explanation.
+7. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field. 
+8. Use appropriate time values for each exercise (5-10 minutes).
 9. DO NOT include any text outside of the JSON structure.
-10. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field.
+9. DO NOT include any text outside of the JSON structure.
+10. Exercise 1: Reading Comprehension must follow extra steps:
+    - Generate the `content` passage between 280 and 320 words.
+    - After closing JSON, on a separate line add:
+      // Word count: X (must be between 280–320)
+    - Don’t proceed unless X ∈ [280,320].
+
+11. Focus on overall flow, coherence and pedagogical value; minor typos acceptable.
 
 IMPORTANT QUALITY CHECK BEFORE GENERATING:
-Please analyze this English worksheet to ensure it meets the following quality standards, and correct it if it does not.:
-1. Grammar is correct throughout all exercises
-2. There are no spelling mistakes in any text
-3. All instructions are clear and easily understandable
-4. The difficulty level is consistent and appropriate
-5. Specific vocabulary related to the topic is included
-6. Formatting is consistent across all exercises
-7. All exercises are complete with required elements
-8. "Exercise 1: Reading Comprehension" texts precisely contain 280-320 words
+- Grammar, spelling, formatting – near-flawless (1–2 minor typos allowed).
+- Difficulty level consistent and appropriate.
+- Specific vocabulary related to the topic is included.
+- Confirm that Exercise 1 `content` is between 280 and 320 words and that the Word count comment is correct.
         },
         {
           role: "user",
