@@ -14,6 +14,7 @@ interface RatingSectionProps {
   handleSubmitRating: () => void;
   worksheetId: string | null;
   userId: string | null;
+  feedbackSubmitted?: boolean; // dodany nowy prop z opcjonalnym statusem
 }
 
 const RatingSection: React.FC<RatingSectionProps> = ({
@@ -23,7 +24,8 @@ const RatingSection: React.FC<RatingSectionProps> = ({
   setFeedback,
   handleSubmitRating,
   worksheetId,
-  userId
+  userId,
+  feedbackSubmitted = false // domyślna wartość
 }) => {
   const [hover, setHover] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -80,6 +82,10 @@ const RatingSection: React.FC<RatingSectionProps> = ({
           </button>
         ))}
       </div>
+
+      {feedbackSubmitted && (
+        <p className="text-green-600 font-medium mt-2">Thank you for your feedback!</p>
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md" data-no-pdf="true">
