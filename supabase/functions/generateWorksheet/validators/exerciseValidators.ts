@@ -3,8 +3,8 @@
  * Walidatory dla różnych typów zadań
  */
 
-import { getIconForType } from "../utils/exerciseUtils";
-import { generateFakeText } from "../utils/promptUtils";
+import { getIconForType } from "../utils/exerciseUtils.ts";
+import { generateFakeText } from "../utils/promptUtils.ts";
 
 /**
  * Główny walidator zadań

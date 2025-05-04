@@ -4,9 +4,9 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { validateExercise } from '../validators/exerciseValidators';
-import { getExerciseTypesForCount, getExerciseTypesForMissing, fixExerciseTitles } from '../utils/exerciseUtils';
-import { generateAdditionalExercises } from './openaiService';
+import { validateExercise } from '../validators/exerciseValidators.ts';
+import { getExerciseTypesForCount, getExerciseTypesForMissing, fixExerciseTitles } from '../utils/exerciseUtils.ts';
+import { generateAdditionalExercises } from './openaiService.ts';
 import OpenAI from "https://esm.sh/openai@4.28.0";
 
 // Funkcja walidująca i poprawiająca dane worksheetu

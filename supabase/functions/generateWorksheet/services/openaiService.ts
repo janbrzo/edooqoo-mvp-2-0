@@ -230,4 +230,5 @@ export async function generateAdditionalExercises(
 }
 
 // Import funkcji potrzebnej do generowania dodatkowych zadań
-import { getExerciseTypesForMissing } from "../utils/exerciseUtils";
+import { getExerciseTypesForMissing } from "../utils/exerciseUtils.ts";
+
