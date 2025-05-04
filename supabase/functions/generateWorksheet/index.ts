@@ -221,7 +221,6 @@ IMPORTANT RULES AND REQUIREMENTS:
 7. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field. 
 8. Use appropriate time values for each exercise (5-10 minutes).
 9. DO NOT include any text outside of the JSON structure.
-9. DO NOT include any text outside of the JSON structure.
 10. Exercise 1: Reading Comprehension must follow extra steps:
     - Generate the `content` passage between 280 and 320 words.
     - After closing JSON, on a separate line add:
