@@ -206,7 +206,7 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
     
     // Ensure we have the correct number of exercises
     if (worksheetData.exercises.length !== exerciseCount) {
-      console.warn(`Expected ${exerciseCount} exercises, received ${worksheetData.exercises.length}`);
+      console.warn("Received " + worksheetData.exercises.length + " exercises, expected " + exerciseCount);
       
       // If we have too few exercises, create additional ones
       if (worksheetData.exercises.length < exerciseCount) {
