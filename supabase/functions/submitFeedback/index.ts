@@ -30,7 +30,6 @@ serve(async (req) => {
 
     // Check if worksheet exists
     let shouldCreatePlaceholder = false;
-    let actualWorksheetId = worksheetId;
     
     if (worksheetId && worksheetId !== 'unknown') {
       const { data: worksheetExists, error: existsError } = await supabase
@@ -50,6 +49,8 @@ serve(async (req) => {
     } else {
       shouldCreatePlaceholder = true;
     }
+
+    let actualWorksheetId = worksheetId;
 
     // Create placeholder worksheet if needed
     if (shouldCreatePlaceholder) {
@@ -78,61 +79,21 @@ serve(async (req) => {
       }
     }
 
-    // Check if feedback for this worksheet and user already exists
-    const { data: existingFeedback, error: existingFeedbackError } = await supabase
+    // Insert feedback into database
+    const { data: feedback, error: feedbackError } = await supabase
       .from('feedbacks')
-      .select('id, comment')
-      .eq('worksheet_id', actualWorksheetId)
-      .eq('user_id', userId)
-      .maybeSingle();
-      
-    if (existingFeedbackError) {
-      console.error('Error checking existing feedback:', existingFeedbackError);
-    }
-    
-    let feedback;
-    
-    // Update existing feedback or insert new one
-    if (existingFeedback) {
-      console.log('Updating existing feedback record:', existingFeedback.id);
-      
-      // Merge existing comment with new one if provided
-      const updatedComment = comment || existingFeedback.comment || '';
-      
-      const { data: updatedFeedback, error: updateError } = await supabase
-        .from('feedbacks')
-        .update({
-          rating: rating,
-          comment: updatedComment
-        })
-        .eq('id', existingFeedback.id)
-        .select();
-        
-      if (updateError) {
-        console.error('Error updating feedback:', updateError);
-        throw new Error(`Failed to update feedback: ${updateError.message}`);
-      }
-      
-      feedback = updatedFeedback;
-    } else {
-      // Insert new feedback
-      const { data: newFeedback, error: insertError } = await supabase
-        .from('feedbacks')
-        .insert({
-          worksheet_id: actualWorksheetId,
-          user_id: userId,
-          rating,
-          comment,
-          status: 'new'
-        })
-        .select();
-        
-      if (insertError) {
-        console.error('Error inserting feedback:', insertError);
-        throw new Error(`Failed to create feedback: ${insertError.message}`);
-      }
-      
-      feedback = newFeedback;
+      .insert({
+        worksheet_id: actualWorksheetId,
+        user_id: userId,
+        rating,
+        comment,
+        status: 'new' // Changed from 'submitted' to 'new' to match the check constraint
+      })
+      .select();
+
+    if (feedbackError) {
+      console.error('Error saving feedback to database:', feedbackError);
+      throw new Error(`Failed to save feedback: ${feedbackError.message}`);
     }
 
     // Log event
