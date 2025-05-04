@@ -63,7 +63,7 @@ serve(async (req) => {
             properties: {
               type: { 
                 type: "string",
-                enum: exerciseTypes  // Dynamically set allowed exercise types
+                enum: exerciseTypes  // Dynamicznie ustawione dozwolone typy ćwiczeń
               },
               title: { type: "string" },
               icon: { type: "string" },
@@ -252,9 +252,9 @@ serve(async (req) => {
       model: "gpt-4o",
       temperature: 0.7,
       response_format: { 
-        type: "json_schema",  // Changed from json_object to json_schema
+        type: "json_schema",  // Poprawiony z json_object na json_schema
         schema: worksheetSchema,
-        strict: true  // Added strict mode to enforce schema
+        strict: true  // Dodano tryb ścisły do wymuszenia schematu
       },
       messages: [
         {
