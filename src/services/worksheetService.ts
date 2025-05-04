@@ -56,63 +56,50 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       throw new Error('Received invalid worksheet data format');
     }
     
-    // Validate the worksheet data
-    validateWorksheet(worksheetData);
+    // Perform validation on the returned data
+    if (!worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
+      throw new Error('No exercises found in generated worksheet');
+    }
+    
+    // Validate reading exercise content and questions
+    for (const exercise of worksheetData.exercises) {
+      if (exercise.type === 'reading') {
+        const wordCount = exercise.content?.split(/\s+/).filter(Boolean).length || 0;
+        console.log(`Reading exercise word count: ${wordCount}`);
+        
+        if (wordCount < 280 || wordCount > 320) {
+          console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
+          // We'll let the main component handle this warning
+        }
+        
+        if (!exercise.questions || exercise.questions.length < 5) {
+          console.error(`Reading exercise has fewer than 5 questions: ${exercise.questions?.length || 0}`);
+          if (!exercise.questions) exercise.questions = [];
+          while (exercise.questions.length < 5) {
+            exercise.questions.push({
+              text: `Additional question ${exercise.questions.length + 1} about the text.`,
+              answer: "Answer would be based on the text content."
+            });
+          }
+        }
+      }
+    }
+    
+    // Check exercise count based on lesson time
+    const getExpectedExerciseCount = (lessonTime: string): number => {
+      if (lessonTime === "30 min") return 4;  // 30 minutes = 4 exercises
+      else if (lessonTime === "45 min") return 6;  // 45 minutes = 6 exercises
+      else return 8;  // 60 minutes = 8 exercises
+    };
+    
+    const expectedCount = getExpectedExerciseCount(prompt.lessonTime);
+    console.log(`Expected ${expectedCount} exercises for ${prompt.lessonTime} lesson, got ${worksheetData.exercises.length}`);
     
     return worksheetData;
   } catch (error) {
     console.error('Error generating worksheet:', error);
     throw error;
   }
-}
-
-/**
- * Validates the generated worksheet data
- */
-function validateWorksheet(worksheetData: any) {
-  // Perform validation on the returned data
-  if (!worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
-    throw new Error('No exercises found in generated worksheet');
-  }
-  
-  // Validate reading exercise content and questions
-  for (const exercise of worksheetData.exercises) {
-    if (exercise.type === 'reading') {
-      const wordCount = exercise.content?.split(/\s+/).filter(Boolean).length || 0;
-      console.log(`Reading exercise word count: ${wordCount}`);
-      
-      if (wordCount < 280 || wordCount > 320) {
-        console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
-        // We'll let the main component handle this warning
-      }
-      
-      if (!exercise.questions || exercise.questions.length < 5) {
-        console.error(`Reading exercise has fewer than 5 questions: ${exercise.questions?.length || 0}`);
-        if (!exercise.questions) exercise.questions = [];
-        while (exercise.questions.length < 5) {
-          exercise.questions.push({
-            text: `Additional question ${exercise.questions.length + 1} about the text.`,
-            answer: "Answer would be based on the text content."
-          });
-        }
-      }
-    }
-  }
-  
-  // Check exercise count against lesson time expectation
-  const expectedCount = getExpectedExerciseCount(worksheetData.lessonTime || '60 min');
-  console.log(`Expected ${expectedCount} exercises, got ${worksheetData.exercises.length}`);
-  
-  return true;
-}
-
-/**
- * Get expected exercise count based on lesson time
- */
-function getExpectedExerciseCount(lessonTime: string): number {
-  if (lessonTime.includes('30 min')) return 4;  // 30 minutes = 4 exercises
-  else if (lessonTime.includes('45 min')) return 6;  // 45 minutes = 6 exercises
-  else return 8;  // 60 minutes = 8 exercises
 }
 
 /**
