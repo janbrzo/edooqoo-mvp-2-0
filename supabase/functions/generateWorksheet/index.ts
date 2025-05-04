@@ -1,4 +1,3 @@
-
 /**
  * Edge function do generowania worksheetów
  */
@@ -8,10 +7,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
 
 // Import lokalnych modułów
-import { parsePromptMetadata, determineExerciseCount } from "./utils/promptUtils.js";
-import { getExerciseTypesForCount } from "./utils/exerciseUtils.js";
-import { prepareSystemPrompt } from "./services/openaiService.js";
-import { validateAndFixWorksheetData, saveWorksheetToDatabase } from "./services/worksheetService.js";
+import { parsePromptMetadata, determineExerciseCount } from "./utils/promptUtils.ts";
+import { getExerciseTypesForCount } from "./utils/exerciseUtils.ts";
+import { prepareSystemPrompt } from "./services/openaiService.ts";
+import { validateAndFixWorksheetData, saveWorksheetToDatabase } from "./services/worksheetService.ts";
 
 // Inicjalizacja klientów
 const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
