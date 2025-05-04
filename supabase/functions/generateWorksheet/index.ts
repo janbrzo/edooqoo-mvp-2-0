@@ -248,13 +248,13 @@ serve(async (req) => {
     };
 
     // Generate worksheet using OpenAI with improved prompt structure and JSON schema
+    // WAŻNA ZMIANA: Modyfikacja response_format zgodnie z aktualną specyfikacją OpenAI
+    console.log('Sending request to OpenAI with schema validation');
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o",
       temperature: 0.7,
       response_format: { 
-        type: "json_schema",  // Poprawiony z json_object na json_schema
-        schema: worksheetSchema,
-        strict: true  // Dodano tryb ścisły do wymuszenia schematu
+        type: "json_object" // Uproszczony format, walidacja po stronie serwera
       },
       messages: [
         {
@@ -274,7 +274,10 @@ EXERCISE REQUIREMENTS:
 - Use only these exercise types: ${exerciseTypes.join(', ')}
 - Number exercises in sequence starting from 1
 - Each exercise title should include its sequence number
-- Include appropriate teacher tips for each exercise`
+- Include appropriate teacher tips for each exercise
+
+JSON FORMAT REQUIREMENTS:
+Your response must be valid JSON following this schema: ${JSON.stringify(worksheetSchema)}`
         },
         {
           role: "user",
@@ -284,12 +287,40 @@ EXERCISE REQUIREMENTS:
       max_tokens: 4000
     });
 
-    const worksheetData = JSON.parse(aiResponse.choices[0].message.content);
+    const rawContent = aiResponse.choices[0].message.content;
+    console.log('Received raw response from OpenAI');
     
-    console.log('AI response received and validated through JSON schema');
+    // Parsuj otrzymaną odpowiedź
+    let worksheetData;
+    try {
+      worksheetData = JSON.parse(rawContent);
+      console.log('Successfully parsed JSON response');
+    } catch (error) {
+      console.error('Error parsing JSON response:', error);
+      throw new Error('Failed to parse AI response as JSON');
+    }
     
-    // Server-side validation of reading exercise word count
+    // Walidacja otrzymanych typów ćwiczeń
     if (worksheetData.exercises) {
+      const invalidExercises = worksheetData.exercises.filter(
+        (ex) => !exerciseTypes.includes(ex.type)
+      );
+      
+      if (invalidExercises.length > 0) {
+        console.error('Found invalid exercise types:', 
+          invalidExercises.map(ex => ex.type));
+        throw new Error(`Invalid exercise types found: ${
+          invalidExercises.map(ex => ex.type).join(', ')
+        }`);
+      }
+      
+      // Sprawdź czy mamy dokładnie oczekiwaną liczbę ćwiczeń
+      if (worksheetData.exercises.length !== exerciseCount) {
+        console.error(`Expected ${exerciseCount} exercises, but got ${worksheetData.exercises.length}`);
+        throw new Error(`Invalid exercise count: ${worksheetData.exercises.length}, expected ${exerciseCount}`);
+      }
+      
+      // Server-side validation of reading exercise word count
       for (const exercise of worksheetData.exercises) {
         if (exercise.type === 'reading' && exercise.content) {
           const wordCount = exercise.content.split(/\s+/).filter(Boolean).length;
@@ -300,7 +331,17 @@ EXERCISE REQUIREMENTS:
           }
         }
       }
+    } else {
+      throw new Error('No exercises found in generated worksheet');
     }
+    
+    // Dodaj ikony dla ćwiczeń
+    worksheetData.exercises = worksheetData.exercises.map(exercise => {
+      if (!exercise.icon) {
+        exercise.icon = getIconForType(exercise.type);
+      }
+      return exercise;
+    });
     
     // Count API sources used for accurate stats
     const sourceCount = Math.floor(Math.random() * (90 - 65) + 65);
@@ -362,7 +403,8 @@ EXERCISE REQUIREMENTS:
     const isValidationError = error.message && 
       (error.message.includes('JSON schema validation failed') || 
        error.message.includes('does not conform to the specified JSON schema') ||
-       error.message.includes('does not match schema'));
+       error.message.includes('does not match schema') ||
+       error.message.includes('Invalid exercise types found'));
     
     return new Response(
       JSON.stringify({ 
