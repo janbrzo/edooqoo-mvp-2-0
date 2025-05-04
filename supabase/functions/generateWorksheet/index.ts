@@ -74,7 +74,7 @@ Generate a structured JSON worksheet with the following format:
         {"text": "Question 4", "answer": "Answer 4"},
         {"text": "Question 5", "answer": "Answer 5"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "matching",
@@ -94,7 +94,7 @@ Generate a structured JSON worksheet with the following format:
         {"term": "Term 9", "definition": "Definition 9"},
         {"term": "Term 10", "definition": "Definition 10"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "fill-in-blanks",
@@ -115,7 +115,7 @@ Generate a structured JSON worksheet with the following format:
         {"text": "Ninth sentence has a _____ blank.", "answer": "word9"},
         {"text": "Tenth sentence with a _____ to fill.", "answer": "word10"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "multiple-choice",
@@ -135,7 +135,7 @@ Generate a structured JSON worksheet with the following format:
         },
         // INCLUDE EXACTLY 10 MULTIPLE CHOICE QUESTIONS WITH 4 OPTIONS EACH
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "dialogue",
@@ -146,12 +146,12 @@ Generate a structured JSON worksheet with the following format:
       "dialogue": [
         {"speaker": "Person A", "text": "Hello, how are you?"},
         {"speaker": "Person B", "text": "I'm fine, thank you. And you?"}
-        // INCLUDE AT LEAST 10 DIALOGUE EXCHANGES
+        // INCLUDE AT EXACTLY 10 DIALOGUE EXCHANGES
       ],
       "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", 
                      "expression6", "expression7", "expression8", "expression9", "expression10"],
       "expression_instruction": "Practice using these expressions in your own dialogues.",
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "true-false",
@@ -171,7 +171,7 @@ Generate a structured JSON worksheet with the following format:
         {"text": "Statement 9", "isTrue": true},
         {"text": "Statement 10", "isTrue": false}
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     }
   ],
   "vocabulary_sheet": [
@@ -195,40 +195,10 @@ Please analyze this English worksheet to ensure the following quality standards:
 IMPORTANT RULES AND REQUIREMENTS:
 1. Create EXACTLY ${exerciseCount} exercises based on the prompt. No fewer, no more.
 2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
-3. For "reading" exercises:
-   - The content MUST be BETWEEN 280-320 WORDS. Count words carefully.
-   - ALWAYS include EXACTLY 5 comprehension questions.
-4. For "matching" exercises:
-   - Include EXACTLY 10 items to match.
-5. For "fill-in-blanks" exercises:
-   - Include EXACTLY 10 sentences and 10 words in the word bank.
-6. For "multiple-choice" exercises:
-   - Include EXACTLY 10 questions with 4 options each.
-7. For "dialogue" exercises:
-   - Include AT LEAST 10 dialogue exchanges.
-   - Include EXACTLY 10 expressions to practice.
-8. For "true-false" exercises:
-   - Include EXACTLY 10 statements with clear true/false answers.
-9. For "discussion" exercises:
-   - Include EXACTLY 10 discussion questions.
-10. For "error-correction" exercises:
-   - Include EXACTLY 10 sentences with errors to correct.
-11. For "word-formation" exercises:
-   - Include EXACTLY 10 sentences with gaps for word formation.
-12. For "word-order" exercises:
-   - Include EXACTLY 10 sentences with words to rearrange.
-13. For ALL other exercise types:
-   - Include EXACTLY 10 examples/items/questions unless specified otherwise.
-14. For vocabulary sheets, include EXACTLY 15 terms.
-15. Ensure all JSON is valid with no trailing commas.
-16. Make sure all exercises are appropriate for ESL students.
-17. Each exercise must have a teacher_tip field.
-18. Use appropriate time values for each exercise (5-10 minutes).
+
 19. DO NOT include any text outside of the JSON structure.
 20. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field.
-21. COUNT THE ACTUAL NUMBER OF ITEMS in each exercise to verify you've met the requirements.
-22. Each exercise title MUST include its sequence number (e.g., "Exercise 1: Reading Comprehension").
-23. For reading exercises, COUNT WORDS CAREFULLY to ensure text is between 280-320 words.`
+
         },
         {
           role: "user",
