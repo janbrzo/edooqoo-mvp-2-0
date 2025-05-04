@@ -15,6 +15,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Funkcja do parsowania metadanych z promptu
+function parsePromptMetadata(rawPrompt: string) {
+  const lines = rawPrompt.split('\n');
+  const out: Record<string,string> = {};
+  for (const line of lines) {
+    const [key, ...rest] = line.split(':');
+    const k = key.trim();
+    if (['Lesson topic','Lesson goal','Teaching preferences','Student Profile','Main Struggles'].includes(k)) {
+      out[k] = rest.join(':').trim();
+    }
+  }
+  return {
+    lessonTopic: out['Lesson topic'] ?? '',
+    lessonGoal: out['Lesson goal'] ?? '',
+    teachingPreferences: out['Teaching preferences'] ?? '',
+    studentProfile: out['Student Profile'] ?? '',
+    mainStruggles: out['Main Struggles'] ?? ''
+  };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -22,22 +42,31 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, userId } = await req.json();
+    const { prompt: rawPrompt, userId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
     
-    if (!prompt) {
+    if (!rawPrompt) {
       throw new Error('Missing prompt parameter');
     }
 
-    console.log('Received prompt:', prompt);
+    console.log('Received prompt:', rawPrompt);
+
+    // Parsujemy metadane z promptu
+    const {
+      lessonTopic,
+      lessonGoal,
+      teachingPreferences,
+      studentProfile,
+      mainStruggles
+    } = parsePromptMetadata(rawPrompt);
 
     // Parse the lesson time from the prompt to determine exercise count
     let exerciseCount = 6; // Default
-    if (prompt.includes('30 min')) {
+    if (rawPrompt.includes('30 min')) {
       exerciseCount = 4;
-    } else if (prompt.includes('45 min')) {
+    } else if (rawPrompt.includes('45 min')) {
       exerciseCount = 6;
-    } else if (prompt.includes('60 min')) {
+    } else if (rawPrompt.includes('60 min')) {
       exerciseCount = 8;
     }
     
@@ -63,24 +92,24 @@ Main Struggles: ${mainStruggles}
 
 # How to use each field:
 1. Lesson topic:
-   - Use ‘Lesson topic’ to set the theme of reading passages and matching items.
-   - Anchor all vocabulary and examples around the ‘Lesson topic’ to ensure coherence.
+   - Use 'Lesson topic' to set the theme of reading passages and matching items.
+   - Anchor all vocabulary and examples around the 'Lesson topic' to ensure coherence.
 
 2. Lesson goal:
-   - Use ‘Lesson goal’ to focus exercises on the specified skill (e.g., listening vs. speaking).
-   - Prioritize tasks that train the proficiency stated in ‘Lesson goal’ (e.g., accurately form questions).
+   - Use 'Lesson goal' to focus exercises on the specified skill (e.g., listening vs. speaking).
+   - Prioritize tasks that train the proficiency stated in 'Lesson goal' (e.g., accurately form questions).
 
 3. Teaching preferences:
-   - Incorporate formats aligned with ‘Teaching preferences’ (e.g., pair dialogues if student thrives in interaction).
-   - Choose exercise types and visuals according to ‘Teaching preferences’ (e.g., more images for visual learners).
+   - Incorporate formats aligned with 'Teaching preferences' (e.g., pair dialogues if student thrives in interaction).
+   - Choose exercise types and visuals according to 'Teaching preferences' (e.g., more images for visual learners).
 
 4. Student Profile:
-   - Adjust language register to the ‘Student Profile’ (e.g., use industry-specific jargon if student is a finance professional).
-   - Customize examples and context based on ‘Student Profile’ demographics (age, interests, background).
+   - Adjust language register to the 'Student Profile' (e.g., use industry-specific jargon if student is a finance professional).
+   - Customize examples and context based on 'Student Profile' demographics (age, interests, background).
 
 5. Main Struggles:
-   - Include targeted drills on structures listed in ‘Main Struggles’ (e.g., extra practice with past perfect).
-   - Emphasize error-correction exercises addressing the ‘Main Struggles’ to reinforce weak areas.
+   - Include targeted drills on structures listed in 'Main Struggles' (e.g., extra practice with past perfect).
+   - Emphasize error-correction exercises addressing the 'Main Struggles' to reinforce weak areas.
 
 Generate a structured JSON worksheet with the following format:
 
@@ -222,10 +251,10 @@ IMPORTANT RULES AND REQUIREMENTS:
 8. Use appropriate time values for each exercise (5-10 minutes).
 9. DO NOT include any text outside of the JSON structure.
 10. Exercise 1: Reading Comprehension must follow extra steps:
-    - Generate the `content` passage between 280 and 320 words.
+    - Generate the \`content\` passage between 280 and 320 words.
     - After closing JSON, on a separate line add:
       // Word count: X (must be between 280–320)
-    - Don’t proceed unless X ∈ [280,320].
+    - Don't proceed unless X ∈ [280,320].
 
 11. Focus on overall flow, coherence and pedagogical value; minor typos acceptable.
 
@@ -233,12 +262,12 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
 - Grammar, spelling, formatting – near-flawless (1–2 minor typos allowed).
 - Difficulty level consistent and appropriate.
 - Specific vocabulary related to the topic is included.
-- Confirm that Exercise 1 `content` is between 280 and 320 words and that the Word count comment is correct.
+- Confirm that Exercise 1 \`content\` is between 280 and 320 words and that the Word count comment is correct.
 
         },
         {
           role: "user",
-          content: prompt
+          content: rawPrompt
         }
       ],
       max_tokens: 5000  // Ensure we have enough tokens for a complete response
@@ -285,7 +314,7 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
               },
               {
                 role: "user",
-                content: `Create ${additionalExercisesNeeded} additional ESL exercises related to this topic: "${prompt}". 
+                content: `Create ${additionalExercisesNeeded} additional ESL exercises related to this topic: "${rawPrompt}". 
                 Use only these exercise types: ${getExerciseTypesForMissing(worksheetData.exercises, exerciseTypes)}.
                 Each exercise should be complete with all required fields as shown in the examples.
                 Return them in valid JSON format as an array of exercises.
@@ -378,7 +407,7 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
       const { data: worksheet, error: worksheetError } = await supabase.rpc(
         'insert_worksheet_bypass_limit',
         {
-          p_prompt: prompt,
+          p_prompt: rawPrompt,
           p_content: JSON.stringify(worksheetData),
           p_user_id: userId,
           p_ip_address: ip,
@@ -400,7 +429,7 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
           event_type: 'generate',
           worksheet_id: worksheetId,
           user_id: userId,
-          metadata: { prompt, ip },
+          metadata: { prompt: rawPrompt, ip },
           ip_address: ip
         });
         console.log('Worksheet generated and saved successfully with ID:', worksheetId);

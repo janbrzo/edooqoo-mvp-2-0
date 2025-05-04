@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -299,6 +300,17 @@ export default function WorksheetForm({
       });
       return;
     }
+
+    // Format prompt to work with the backend parsing
+    const formattedPrompt = `
+Lesson topic: ${lessonTopic}
+Lesson goal: ${lessonGoal}
+Teaching preferences: ${teachingPreferences}
+${studentProfile ? `Student Profile: ${studentProfile}` : ''}
+${studentStruggles ? `Main Struggles: ${studentStruggles}` : ''}
+Lesson duration: ${lessonTime}
+`.trim();
+
     onSubmit({
       lessonTime,
       lessonTopic,
