@@ -76,7 +76,7 @@ Generate a structured JSON worksheet with the following format:
         {"text": "Question 4", "answer": "Answer 4"},
         {"text": "Question 5", "answer": "Answer 5"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "matching",
@@ -96,7 +96,7 @@ Generate a structured JSON worksheet with the following format:
         {"term": "Term 9", "definition": "Definition 9"},
         {"term": "Term 10", "definition": "Definition 10"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "fill-in-blanks",
@@ -117,7 +117,7 @@ Generate a structured JSON worksheet with the following format:
         {"text": "Ninth sentence has a _____ blank.", "answer": "word9"},
         {"text": "Tenth sentence with a _____ to fill.", "answer": "word10"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "multiple-choice",
@@ -137,7 +137,7 @@ Generate a structured JSON worksheet with the following format:
         },
         // INCLUDE EXACTLY 10 MULTIPLE CHOICE QUESTIONS WITH 4 OPTIONS EACH
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "dialogue",
@@ -153,7 +153,7 @@ Generate a structured JSON worksheet with the following format:
       "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", 
                      "expression6", "expression7", "expression8", "expression9", "expression10"],
       "expression_instruction": "Practice using these expressions in your own dialogues.",
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "true-false",
@@ -173,7 +173,7 @@ Generate a structured JSON worksheet with the following format:
         {"text": "Statement 9", "isTrue": true},
         {"text": "Statement 10", "isTrue": false}
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     }
   ],
   "vocabulary_sheet": [
