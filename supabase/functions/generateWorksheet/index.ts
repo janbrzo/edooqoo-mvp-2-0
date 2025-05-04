@@ -44,8 +44,6 @@ serve(async (req) => {
     // Determine exercise types to include based on exerciseCount
     const exerciseTypes = getExerciseTypesForCount(exerciseCount);
     
-    console.log(`Will generate ${exerciseCount} exercises of types:`, exerciseTypes);
-    
     // Define JSON Schema for worksheet structure
     const worksheetSchema = {
       type: "object",
@@ -315,12 +313,9 @@ IMPORTANT RULES AND REQUIREMENTS:
       max_tokens: 4000  // Ensure we have enough tokens for a complete response
     });
 
-    let worksheetData = JSON.parse(aiResponse.choices[0].message.content);
+    const worksheetData = JSON.parse(aiResponse.choices[0].message.content);
     
     console.log('AI response received and validated through JSON schema');
-    
-    // Post-processing: Validate and fix the response data if needed
-    worksheetData = validateAndFixWorksheetData(worksheetData, exerciseTypes, exerciseCount);
     
     // Count API sources used for accurate stats
     const sourceCount = Math.floor(Math.random() * (90 - 65) + 65);
@@ -331,9 +326,6 @@ IMPORTANT RULES AND REQUIREMENTS:
       const exerciseNumber = index + 1;
       const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
       exercise.title = `Exercise ${exerciseNumber}: ${exerciseType}`;
-      
-      // Ensure icon is set based on type
-      exercise.icon = getIconForType(exercise.type);
     });
 
     // Save worksheet to database using the correct function parameters
@@ -400,228 +392,8 @@ IMPORTANT RULES AND REQUIREMENTS:
   }
 });
 
-// Validator and fixer function for worksheet data
-function validateAndFixWorksheetData(data, allowedTypes, expectedExerciseCount) {
-  console.log("Validating and fixing worksheet data...");
-  
-  // Fix: ensure we have exactly the expected number of exercises
-  if (!data.exercises || !Array.isArray(data.exercises)) {
-    console.error("Missing exercises array in response");
-    data.exercises = [];
-    // Create minimal exercises of allowed types
-    for (let i = 0; i < expectedExerciseCount; i++) {
-      const type = allowedTypes[i % allowedTypes.length];
-      data.exercises.push(createMinimalExercise(type, i + 1));
-    }
-  }
-  
-  // Fix: if we have too few exercises
-  while (data.exercises.length < expectedExerciseCount) {
-    const index = data.exercises.length;
-    const type = allowedTypes[index % allowedTypes.length];
-    console.log(`Adding missing exercise of type ${type}`);
-    data.exercises.push(createMinimalExercise(type, index + 1));
-  }
-  
-  // Fix: if we have too many exercises
-  if (data.exercises.length > expectedExerciseCount) {
-    console.log(`Trimming excess exercises from ${data.exercises.length} to ${expectedExerciseCount}`);
-    data.exercises = data.exercises.slice(0, expectedExerciseCount);
-  }
-  
-  // Fix: validate each exercise type and structure
-  const fixedExercises = data.exercises.map((exercise, index) => {
-    // Fix: ensure type is valid
-    if (!exercise.type || !allowedTypes.includes(exercise.type)) {
-      console.warn(`Invalid exercise type: ${exercise.type}, replacing with: ${allowedTypes[index % allowedTypes.length]}`);
-      exercise.type = allowedTypes[index % allowedTypes.length];
-    }
-    
-    // Fix: ensure title format
-    const exerciseNumber = index + 1;
-    const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
-    exercise.title = `Exercise ${exerciseNumber}: ${exerciseType}`;
-    
-    // Fix: ensure icon is set
-    exercise.icon = getIconForType(exercise.type);
-    
-    // Fix: ensure time is within bounds
-    if (!exercise.time || exercise.time < 5 || exercise.time > 10) {
-      exercise.time = Math.floor(Math.random() * 6) + 5; // 5-10 minutes
-    }
-    
-    // Fix: ensure teacher_tip exists
-    if (!exercise.teacher_tip) {
-      exercise.teacher_tip = `Help students understand ${exercise.type} exercises by providing clear examples.`;
-    }
-    
-    // Fix: ensure instructions exist
-    if (!exercise.instructions) {
-      exercise.instructions = getDefaultInstructions(exercise.type);
-    }
-    
-    // Type-specific fixes
-    return fixExerciseByType(exercise);
-  });
-  
-  data.exercises = fixedExercises;
-  
-  // Fix: ensure vocabulary sheet exists
-  if (!data.vocabulary_sheet || !Array.isArray(data.vocabulary_sheet) || data.vocabulary_sheet.length < 15) {
-    console.warn("Vocabulary sheet missing or incomplete, creating default");
-    data.vocabulary_sheet = createDefaultVocabulary(data.title || "English Worksheet", 15);
-  }
-  
-  // Trim vocabulary sheet to exact 15 items
-  data.vocabulary_sheet = data.vocabulary_sheet.slice(0, 15);
-  
-  // Fix: ensure title, subtitle, introduction exist
-  if (!data.title) data.title = "English Language Worksheet";
-  if (!data.subtitle) data.subtitle = "Practice and Improve Your English Skills";
-  if (!data.introduction) data.introduction = "This worksheet contains various exercises to help you practice and improve your English language skills.";
-  
-  return data;
-}
-
-// Helper function to create a minimal valid exercise
-function createMinimalExercise(type, number) {
-  const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1).replace(/-/g, ' ');
-  const exercise = {
-    type: type,
-    title: `Exercise ${number}: ${capitalizedType}`,
-    icon: getIconForType(type),
-    time: Math.floor(Math.random() * 6) + 5, // 5-10 minutes
-    instructions: getDefaultInstructions(type),
-    teacher_tip: `Help students understand ${type} exercises by providing clear examples.`
-  };
-  
-  // Add type-specific properties
-  return fixExerciseByType(exercise);
-}
-
-// Fix exercise based on its type
-function fixExerciseByType(exercise) {
-  switch (exercise.type) {
-    case "reading":
-      if (!exercise.content || exercise.content.length < 280 * 5) { // Approximation of char count
-        exercise.content = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(25);
-      }
-      if (!exercise.questions || !Array.isArray(exercise.questions) || exercise.questions.length < 5) {
-        exercise.questions = Array(5).fill(0).map((_, i) => ({
-          text: `Question ${i+1} about the reading text?`,
-          answer: `Sample answer to question ${i+1}.`
-        }));
-      }
-      break;
-      
-    case "matching":
-      if (!exercise.items || !Array.isArray(exercise.items) || exercise.items.length < 10) {
-        exercise.items = Array(10).fill(0).map((_, i) => ({
-          term: `Term ${i+1}`,
-          definition: `Definition ${i+1}`
-        }));
-      }
-      break;
-      
-    case "fill-in-blanks":
-      if (!exercise.sentences || !Array.isArray(exercise.sentences) || exercise.sentences.length < 10) {
-        exercise.sentences = Array(10).fill(0).map((_, i) => ({
-          text: `This is sentence ${i+1} with a _____.`,
-          answer: `word${i+1}`
-        }));
-      }
-      if (!exercise.word_bank || !Array.isArray(exercise.word_bank) || exercise.word_bank.length < 10) {
-        exercise.word_bank = Array(10).fill(0).map((_, i) => `word${i+1}`);
-      }
-      break;
-      
-    case "multiple-choice":
-      if (!exercise.questions || !Array.isArray(exercise.questions) || exercise.questions.length < 10) {
-        exercise.questions = Array(10).fill(0).map((_, i) => ({
-          text: `Multiple choice question ${i+1}?`,
-          options: [
-            { label: "A", text: "Option A", correct: i % 4 === 0 },
-            { label: "B", text: "Option B", correct: i % 4 === 1 },
-            { label: "C", text: "Option C", correct: i % 4 === 2 },
-            { label: "D", text: "Option D", correct: i % 4 === 3 }
-          ]
-        }));
-      }
-      break;
-      
-    case "dialogue":
-      if (!exercise.dialogue || !Array.isArray(exercise.dialogue) || exercise.dialogue.length < 10) {
-        exercise.dialogue = Array(10).fill(0).map((_, i) => ({
-          speaker: i % 2 === 0 ? "Person A" : "Person B",
-          text: `This is dialogue line ${i+1}.`
-        }));
-      }
-      if (!exercise.expressions || !Array.isArray(exercise.expressions) || exercise.expressions.length < 10) {
-        exercise.expressions = Array(10).fill(0).map((_, i) => `Expression ${i+1}`);
-      }
-      if (!exercise.expression_instruction) {
-        exercise.expression_instruction = "Practice these expressions with a partner.";
-      }
-      break;
-      
-    case "discussion":
-      if (!exercise.questions || !Array.isArray(exercise.questions) || exercise.questions.length < 10) {
-        exercise.questions = Array(10).fill(0).map((_, i) => `Discussion question ${i+1}?`);
-      }
-      break;
-      
-    case "true-false":
-      if (!exercise.statements || !Array.isArray(exercise.statements) || exercise.statements.length < 10) {
-        exercise.statements = Array(10).fill(0).map((_, i) => ({
-          text: `Statement ${i+1}`,
-          isTrue: i % 2 === 0
-        }));
-      }
-      break;
-      
-    case "error-correction":
-    case "word-formation":
-    case "word-order":
-      if (!exercise.sentences || !Array.isArray(exercise.sentences) || exercise.sentences.length < 10) {
-        exercise.sentences = Array(10).fill(0).map((_, i) => ({
-          text: `Sentence ${i+1} with an error.`,
-          answer: exercise.type === "error-correction" ? "correction" : "answer"
-        }));
-      }
-      break;
-  }
-  
-  return exercise;
-}
-
-// Get default instructions based on exercise type
-function getDefaultInstructions(type) {
-  const instructions = {
-    "reading": "Read the following text carefully and answer the questions below.",
-    "matching": "Match each term on the left with its correct definition on the right.",
-    "fill-in-blanks": "Fill in the blanks with the appropriate words from the word bank.",
-    "multiple-choice": "Choose the correct answer for each question.",
-    "dialogue": "Read the dialogue and practice the expressions below.",
-    "discussion": "Discuss the following questions with your partner or group.",
-    "error-correction": "Identify and correct the errors in the following sentences.",
-    "word-formation": "Form the correct word to fill each gap.",
-    "word-order": "Rearrange the words to form correct sentences.",
-    "true-false": "Indicate whether each statement is true or false."
-  };
-  
-  return instructions[type] || "Complete the following exercise.";
-}
-
-// Create default vocabulary for an empty vocabulary sheet
-function createDefaultVocabulary(title, count) {
-  return Array(count).fill(0).map((_, i) => ({
-    term: `Term ${i+1}`,
-    meaning: `Definition for term ${i+1}`
-  }));
-}
-
 // Helper function to get exercise types based on count
-function getExerciseTypesForCount(count) {
+function getExerciseTypesForCount(count: number): string[] {
   // Base set of exercise types
   const baseTypes = [
     'reading', 
@@ -655,14 +427,14 @@ function getExerciseTypesForCount(count) {
 }
 
 // Helper function to get missing exercise types
-function getExerciseTypesForMissing(existingExercises, allTypes) {
+function getExerciseTypesForMissing(existingExercises: any[], allTypes: string[]): string[] {
   const existingTypes = new Set(existingExercises.map(ex => ex.type));
   return allTypes.filter(type => !existingTypes.has(type));
 }
 
 // Helper function to get icon for exercise type
-function getIconForType(type) {
-  const iconMap = {
+function getIconForType(type: string): string {
+  const iconMap: {[key: string]: string} = {
     'multiple-choice': 'fa-check-square',
     'reading': 'fa-book-open',
     'matching': 'fa-random',

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
 import { ArrowUp } from "lucide-react";
@@ -47,33 +46,7 @@ const GenerationView: React.FC<GenerationViewProps> = ({
         trackWorksheetEvent('view', worksheetId, userId);
       }
     }
-    
-    // Walidacja wygenerowanych danych
-    if (generatedWorksheet?.exercises) {
-      const invalidTypes = generatedWorksheet.exercises
-        .filter(ex => !isValidExerciseType(ex.type))
-        .map(ex => ex.type);
-        
-      if (invalidTypes.length > 0) {
-        console.warn("Detected invalid exercise types:", invalidTypes);
-        toast({
-          title: "Warning",
-          description: `Some exercise types may not display correctly: ${invalidTypes.join(', ')}`,
-          variant: "destructive"
-        });
-      }
-    }
-  }, [userId, worksheetId, generatedWorksheet, toast]);
-
-  // Sprawdzenie czy typ zadania jest prawidłowy i obsługiwany
-  const isValidExerciseType = (type: string): boolean => {
-    const validTypes = [
-      "reading", "matching", "fill-in-blanks", "multiple-choice",
-      "dialogue", "discussion", "error-correction", "word-formation",
-      "word-order", "true-false"
-    ];
-    return validTypes.includes(type);
-  };
+  }, [userId, worksheetId, generatedWorksheet]);
 
   const scrollToTop = () => {
     window.scrollTo({

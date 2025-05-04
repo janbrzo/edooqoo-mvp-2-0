@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 
@@ -58,21 +59,6 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     // Perform validation on the returned data
     if (!worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
       throw new Error('No exercises found in generated worksheet');
-    }
-    
-    // Validate exercise types
-    const validTypes = [
-      "reading", "matching", "fill-in-blanks", "multiple-choice",
-      "dialogue", "discussion", "error-correction", "word-formation",
-      "word-order", "true-false"
-    ];
-    
-    const invalidTypes = worksheetData.exercises
-      .filter(ex => !validTypes.includes(ex.type))
-      .map(ex => ex.type);
-      
-    if (invalidTypes.length > 0) {
-      console.warn("Received invalid exercise types:", invalidTypes);
     }
     
     // Validate reading exercise content and questions
