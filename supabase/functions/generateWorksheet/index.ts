@@ -221,7 +221,6 @@ IMPORTANT RULES AND REQUIREMENTS:
 7. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field. 
 8. Use appropriate time values for each exercise (5-10 minutes).
 9. DO NOT include any text outside of the JSON structure.
-
 10. Exercise 1: Reading Comprehension must follow extra steps:
     - Generate the `content` passage between 280 and 320 words.
     - After closing JSON, on a separate line add:
@@ -280,7 +279,9 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
             messages: [
               {
                 role: "system",
-                content: "You are an expert at creating ESL exercises that match a specific format and quality level."
+                content: "You are an expert ESL English language teacher specialized in creating a context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
+          Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.
+          Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits."
               },
               {
                 role: "user",
