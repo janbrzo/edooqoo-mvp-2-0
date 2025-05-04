@@ -43,8 +43,9 @@ serve(async (req) => {
     
     // Determine exercise types to include based on exerciseCount
     const exerciseTypes = getExerciseTypesForCount(exerciseCount);
+    console.log(`Will generate ${exerciseCount} exercises of types:`, exerciseTypes);
     
-    // Define JSON Schema for worksheet structure
+    // Define JSON Schema for worksheet structure with dynamic exercise types
     const worksheetSchema = {
       type: "object",
       required: ["title", "subtitle", "introduction", "exercises", "vocabulary_sheet"],
@@ -62,11 +63,7 @@ serve(async (req) => {
             properties: {
               type: { 
                 type: "string",
-                enum: [
-                  "reading", "matching", "fill-in-blanks", "multiple-choice",
-                  "dialogue", "discussion", "error-correction", "word-formation",
-                  "word-order", "true-false"
-                ]
+                enum: exerciseTypes  // Dynamically set allowed exercise types
               },
               title: { type: "string" },
               icon: { type: "string" },
@@ -166,8 +163,9 @@ serve(async (req) => {
                   properties: {
                     content: { 
                       type: "string",
-                      minLength: 280 * 5, // Approximate character count for 280 words
-                      maxLength: 320 * 7  // Approximate character count for 320 words
+                      // Uses character count as approximation, server-side word count validation will be added
+                      minLength: 1200, 
+                      maxLength: 2200
                     },
                     questions: {
                       type: "array",
@@ -249,73 +247,60 @@ serve(async (req) => {
       }
     };
 
-    // Generate worksheet using OpenAI with improved prompt structure and JSON response format
+    // Generate worksheet using OpenAI with improved prompt structure and JSON schema
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o",
       temperature: 0.7,
-      response_format: { type: "json_object", schema: worksheetSchema },
+      response_format: { 
+        type: "json_schema",  // Changed from json_object to json_schema
+        schema: worksheetSchema,
+        strict: true  // Added strict mode to enforce schema
+      },
       messages: [
         {
           role: "system",
           content: `You are an expert ESL teacher assistant that creates detailed worksheets with exercises.
           
-IMPORTANT QUALITY CHECK BEFORE GENERATING:
-Please analyze this English worksheet to ensure the following quality standards:
-1. Grammar is correct throughout all exercises
-2. There are no spelling mistakes in any text
-3. All instructions are clear and easily understandable
-4. The difficulty level is consistent and appropriate
-5. Specific vocabulary related to the topic is included
-6. Formatting is consistent across all exercises
-7. All exercises are complete with required elements
-8. Reading texts precisely contain 280-320 words (COUNT CAREFULLY)
+QUALITY STANDARDS:
+1. Grammar must be correct throughout all exercises
+2. No spelling mistakes in any text
+3. Instructions must be clear and easily understandable
+4. Difficulty level should be consistent and appropriate
+5. Include specific vocabulary related to the topic
+6. For reading exercises, create a text of 280-320 words (count carefully)
 
-IMPORTANT RULES AND REQUIREMENTS:
-1. Create EXACTLY ${exerciseCount} exercises based on the prompt. No fewer, no more.
-2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
-3. For "reading" exercises:
-   - The content MUST be BETWEEN 280-320 WORDS. Count words carefully.
-   - ALWAYS include EXACTLY 5 comprehension questions.
-4. For "matching" exercises:
-   - Include EXACTLY 10 items to match.
-5. For "fill-in-blanks" exercises:
-   - Include EXACTLY 10 sentences and 10 words in the word bank.
-6. For "multiple-choice" exercises:
-   - Include EXACTLY 10 questions with 4 options each.
-7. For "dialogue" exercises:
-   - Include AT LEAST 10 dialogue exchanges.
-   - Include EXACTLY 10 expressions to practice.
-8. For "true-false" exercises:
-   - Include EXACTLY 10 statements with clear true/false answers.
-9. For "discussion" exercises:
-   - Include EXACTLY 10 discussion questions.
-10. For "error-correction" exercises:
-   - Include EXACTLY 10 sentences with errors to correct.
-11. For "word-formation" exercises:
-   - Include EXACTLY 10 sentences with gaps for word formation.
-12. For "word-order" exercises:
-   - Include EXACTLY 10 sentences with words to rearrange.
-13. For ALL other exercise types:
-   - Include EXACTLY 10 examples/items/questions unless specified otherwise.
-14. For vocabulary sheets, include EXACTLY 15 terms.
-15. Make sure all exercises are appropriate for ESL students.
-16. Each exercise must have a teacher_tip field.
-17. Use appropriate time values for each exercise (5-10 minutes).
-18. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field.
-19. Each exercise title MUST include its sequence number (e.g., "Exercise 1: Reading Comprehension").
-20. For reading exercises, COUNT WORDS CAREFULLY to ensure text is between 280-320 words.`
+EXERCISE REQUIREMENTS:
+- Create exactly ${exerciseCount} exercises based on the prompt
+- Use only these exercise types: ${exerciseTypes.join(', ')}
+- Number exercises in sequence starting from 1
+- Each exercise title should include its sequence number
+- Include appropriate teacher tips for each exercise`
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      max_tokens: 4000  // Ensure we have enough tokens for a complete response
+      max_tokens: 4000
     });
 
     const worksheetData = JSON.parse(aiResponse.choices[0].message.content);
     
     console.log('AI response received and validated through JSON schema');
+    
+    // Server-side validation of reading exercise word count
+    if (worksheetData.exercises) {
+      for (const exercise of worksheetData.exercises) {
+        if (exercise.type === 'reading' && exercise.content) {
+          const wordCount = exercise.content.split(/\s+/).filter(Boolean).length;
+          console.log(`Reading exercise word count: ${wordCount}`);
+          
+          if (wordCount < 280 || wordCount > 320) {
+            console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
+          }
+        }
+      }
+    }
     
     // Count API sources used for accurate stats
     const sourceCount = Math.floor(Math.random() * (90 - 65) + 65);
@@ -376,7 +361,8 @@ IMPORTANT RULES AND REQUIREMENTS:
     // Check if this is a JSON schema validation error from OpenAI
     const isValidationError = error.message && 
       (error.message.includes('JSON schema validation failed') || 
-       error.message.includes('does not conform to the specified JSON schema'));
+       error.message.includes('does not conform to the specified JSON schema') ||
+       error.message.includes('does not match schema'));
     
     return new Response(
       JSON.stringify({ 
@@ -394,7 +380,7 @@ IMPORTANT RULES AND REQUIREMENTS:
 
 // Helper function to get exercise types based on count
 function getExerciseTypesForCount(count: number): string[] {
-  // Base set of exercise types
+  // Base set of exercise types - zawsze mamy "reading" jako pierwszy
   const baseTypes = [
     'reading', 
     'matching', 
@@ -423,13 +409,7 @@ function getExerciseTypesForCount(count: number): string[] {
   }
   
   // For 8 or more exercises (60 min), use all types
-  return [...baseTypes, ...additionalTypes];
-}
-
-// Helper function to get missing exercise types
-function getExerciseTypesForMissing(existingExercises: any[], allTypes: string[]): string[] {
-  const existingTypes = new Set(existingExercises.map(ex => ex.type));
-  return allTypes.filter(type => !existingTypes.has(type));
+  return [...baseTypes, ...additionalTypes].slice(0, count);
 }
 
 // Helper function to get icon for exercise type
