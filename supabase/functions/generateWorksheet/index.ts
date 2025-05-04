@@ -294,7 +294,7 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
       
       // Ensure we have the correct number of exercises
       if (worksheetData.exercises.length !== exerciseCount) {
-        console.warn(`Expected ${exerciseCount} exercises but got ${worksheetData.exercises.length}`);
+        console.warn("Expected " + exerciseCount + " exercises but got " + worksheetData.exercises.length);
         
         // If we have too few exercises, create additional ones
         if (worksheetData.exercises.length < exerciseCount) {
@@ -308,9 +308,7 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
             messages: [
               {
                 role: "system",
-                content: "You are an expert ESL English language teacher specialized in creating a context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
-          Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.
-          Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits."
+                content: "You are an expert ESL English language teacher specialized in creating a context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.\n          Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.\n          Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits."
               },
               {
                 role: "user",
