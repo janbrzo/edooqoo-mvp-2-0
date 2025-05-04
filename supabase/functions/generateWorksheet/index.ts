@@ -68,7 +68,7 @@ Generate a structured JSON worksheet with the following format:
       "icon": "fa-book-open",
       "time": 8,
       "instructions": "Read the following text and answer the questions below.",
-      "content": "Content text goes here, MUST BE BETWEEN 280-320 WORDS LONG...",
+      "content": "Generate a coherent, engaging reading passage between 280 and 320 words about topic.",
       "questions": [
         {"text": "Question 1", "answer": "Answer 1"},
         {"text": "Question 2", "answer": "Answer 2"},
@@ -183,54 +183,31 @@ Generate a structured JSON worksheet with the following format:
   ]
 }
 
-IMPORTANT QUALITY CHECK BEFORE GENERATING:
-Please analyze this English worksheet to ensure the following quality standards:
-1. Grammar is correct throughout all exercises
-2. There are no spelling mistakes in any text
-3. All instructions are clear and easily understandable
-4. The difficulty level is consistent and appropriate
-5. Specific vocabulary related to the topic is included
-6. Formatting is consistent across all exercises
-7. All exercises are complete with required elements
-8. Reading texts precisely contain 280-320 words (COUNT CAREFULLY)
-
 IMPORTANT RULES AND REQUIREMENTS:
 1. Create EXACTLY ${exerciseCount} exercises based on the prompt. No fewer, no more.
 2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
-3. For "reading" exercises:
-   - The content MUST be BETWEEN 280-320 WORDS. Count words carefully.
-   - ALWAYS include EXACTLY 5 comprehension questions.
-4. For "matching" exercises:
-   - Include EXACTLY 10 items to match.
-5. For "fill-in-blanks" exercises:
-   - Include EXACTLY 10 sentences and 10 words in the word bank.
-6. For "multiple-choice" exercises:
-   - Include EXACTLY 10 questions with 4 options each.
-7. For "dialogue" exercises:
-   - Include AT LEAST 10 dialogue exchanges.
-   - Include EXACTLY 10 expressions to practice.
-8. For "true-false" exercises:
-   - Include EXACTLY 10 statements with clear true/false answers.
-9. For "discussion" exercises:
-   - Include EXACTLY 10 discussion questions.
-10. For "error-correction" exercises:
-   - Include EXACTLY 10 sentences with errors to correct.
-11. For "word-formation" exercises:
-   - Include EXACTLY 10 sentences with gaps for word formation.
-12. For "word-order" exercises:
-   - Include EXACTLY 10 sentences with words to rearrange.
-13. For ALL other exercise types:
-   - Include EXACTLY 10 examples/items/questions unless specified otherwise.
-14. For vocabulary sheets, include EXACTLY 15 terms.
-15. Ensure all JSON is valid with no trailing commas.
-16. Make sure all exercises are appropriate for ESL students.
-17. Each exercise must have a teacher_tip field.
-18. Use appropriate time values for each exercise (5-10 minutes).
-19. DO NOT include any text outside of the JSON structure.
-20. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field.
-21. COUNT THE ACTUAL NUMBER OF ITEMS in each exercise to verify you've met the requirements.
-22. Each exercise title MUST include its sequence number (e.g., "Exercise 1: Reading Comprehension").
-23. For reading exercises, COUNT WORDS CAREFULLY to ensure text is between 280-320 words.`
+3. Ensure variety and progressive difficulty.  
+4. All exercises should be closely related to the specified topic and goal
+5. Include specific vocabulary, expressions, and language structures related to the topic
+6. Keep exercise instructions clear and concise. Students should be able to understand the tasks without any additional explanation.
+7. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field. 
+8. Use appropriate time values for each exercise (5-10 minutes).
+9. DO NOT include any text outside of the JSON structure.
+10. Exercise 1: Reading Comprehension must follow extra steps:
+    - Generate the `content` passage between 280 and 320 words.
+    - After closing JSON, on a separate line add:
+      // Word count: X (must be between 280–320)
+    - Don’t proceed unless X ∈ [280,320].
+
+11. Focus on overall flow, coherence and pedagogical value; minor typos acceptable.
+
+IMPORTANT QUALITY CHECK BEFORE GENERATING:
+- Grammar, spelling, formatting – near-flawless (1–2 minor typos allowed).
+- Difficulty level consistent and appropriate.
+- Specific vocabulary related to the topic is included.
+- Confirm that Exercise 1 `content` is between 280 and 320 words and that the Word count comment is correct.
+'
+
         },
         {
           role: "user",
