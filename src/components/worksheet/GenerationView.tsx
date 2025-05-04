@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
 import { ArrowUp } from "lucide-react";
@@ -30,7 +29,6 @@ const GenerationView: React.FC<GenerationViewProps> = ({
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [feedbackId, setFeedbackId] = useState<string | null>(null);
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -57,39 +55,8 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     });
   };
 
-  // Handle just the star rating change
-  const handleRatingChange = async (newRating: number) => {
-    setRating(newRating);
-    
-    // Immediately submit the rating without comments
-    if (userId && worksheetId && newRating > 0) {
-      try {
-        const result = await submitFeedback(worksheetId || 'unknown', newRating, '', userId);
-        
-        // Store the feedback ID for future updates
-        if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
-          setFeedbackId(result[0].id);
-          setFeedbackSubmitted(true);
-          
-          toast({
-            title: "Thank you for your rating!",
-            description: "We've saved your rating. Feel free to add comments too."
-          });
-        }
-      } catch (error) {
-        console.error("Rating submission error:", error);
-        toast({
-          title: "Rating submission failed",
-          description: "We couldn't submit your rating. Please try again later.",
-          variant: "destructive"
-        });
-      }
-    }
-  };
-
-  // Submit the text feedback (comments)
-  const handleSubmitFeedback = async () => {
-    if (!userId || !worksheetId) {
+  const handleSubmitRating = async () => {
+    if (!userId) {
       toast({
         title: "Feedback submission error",
         description: "There was a problem with your session. Please refresh the page and try again.",
@@ -98,19 +65,10 @@ const GenerationView: React.FC<GenerationViewProps> = ({
       return;
     }
 
-    if (!feedback.trim()) {
-      toast({
-        title: "Missing feedback",
-        description: "Please enter some comments before submitting.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       // If we already have a feedback ID, update the existing feedback with the comment
       if (feedbackId) {
-        await submitFeedback(worksheetId, rating, feedback, userId);
+        await submitFeedback(worksheetId || 'unknown', rating, feedback, userId);
         
         toast({
           title: "Thank you for your feedback!",
@@ -119,7 +77,7 @@ const GenerationView: React.FC<GenerationViewProps> = ({
       } 
       // Otherwise create a new feedback entry
       else {
-        const result = await submitFeedback(worksheetId, rating, feedback, userId);
+        const result = await submitFeedback(worksheetId || 'unknown', rating, feedback, userId);
         
         // Store the feedback ID for future updates
         if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
@@ -131,8 +89,6 @@ const GenerationView: React.FC<GenerationViewProps> = ({
           description: "Your rating and comments help us improve our service."
         });
       }
-      
-      setFeedbackSubmitted(true);
     } catch (error) {
       console.error("Feedback submission error:", error);
       toast({
@@ -163,18 +119,17 @@ const GenerationView: React.FC<GenerationViewProps> = ({
         worksheetId={worksheetId}
         wordBankOrder={generatedWorksheet?.exercises?.find((ex: any) => ex.type === "matching")?.shuffledTerms?.map((item: any) => item.definition)}
         onDownload={handleDownloadEvent}
-        onFeedbackSubmit={handleSubmitFeedback}
+        onFeedbackSubmit={handleSubmitRating}
       />
       
       <RatingSection
         rating={rating}
-        setRating={handleRatingChange}
+        setRating={setRating}
         feedback={feedback}
         setFeedback={setFeedback}
-        handleSubmitRating={handleSubmitFeedback}
+        handleSubmitRating={handleSubmitRating}
         worksheetId={worksheetId}
         userId={userId}
-        feedbackSubmitted={feedbackSubmitted}
       />
       
       {showScrollTop && (
