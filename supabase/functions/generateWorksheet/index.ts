@@ -221,6 +221,7 @@ IMPORTANT RULES AND REQUIREMENTS:
 7. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field. 
 8. Use appropriate time values for each exercise (5-10 minutes).
 9. DO NOT include any text outside of the JSON structure.
+
 10. Exercise 1: Reading Comprehension must follow extra steps:
     - Generate the `content` passage between 280 and 320 words.
     - After closing JSON, on a separate line add:
@@ -234,6 +235,7 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
 - Difficulty level consistent and appropriate.
 - Specific vocabulary related to the topic is included.
 - Confirm that Exercise 1 `content` is between 280 and 320 words and that the Word count comment is correct.
+
         },
         {
           role: "user",
