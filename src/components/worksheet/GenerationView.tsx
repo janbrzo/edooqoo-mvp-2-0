@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
 import { ArrowUp } from "lucide-react";
 import { FormData } from "@/components/WorksheetForm";
 import { useToast } from "@/hooks/use-toast";
 import { submitFeedback, trackWorksheetEvent } from "@/services/worksheetService";
+import RatingSection from "./RatingSection";
 
 interface GenerationViewProps {
   worksheetId: string | null;
@@ -26,6 +26,9 @@ const GenerationView: React.FC<GenerationViewProps> = ({
   userId
 }) => {
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [feedback, setFeedback] = useState("");
+  const [feedbackId, setFeedbackId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -52,7 +55,7 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     });
   };
 
-  const handleFeedbackSubmit = async (rating: number, feedback: string) => {
+  const handleSubmitRating = async () => {
     if (!userId) {
       toast({
         title: "Feedback submission error",
@@ -63,12 +66,29 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     }
 
     try {
-      await submitFeedback(worksheetId || 'unknown', rating, feedback, userId);
-      
-      toast({
-        title: "Thank you for your feedback!",
-        description: "Your rating and comments help us improve our service."
-      });
+      // If we already have a feedback ID, update the existing feedback with the comment
+      if (feedbackId) {
+        await submitFeedback(worksheetId || 'unknown', rating, feedback, userId);
+        
+        toast({
+          title: "Thank you for your feedback!",
+          description: "Your additional comments have been saved."
+        });
+      } 
+      // Otherwise create a new feedback entry
+      else {
+        const result = await submitFeedback(worksheetId || 'unknown', rating, feedback, userId);
+        
+        // Store the feedback ID for future updates
+        if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
+          setFeedbackId(result[0].id);
+        }
+        
+        toast({
+          title: "Thank you for your feedback!",
+          description: "Your rating and comments help us improve our service."
+        });
+      }
     } catch (error) {
       console.error("Feedback submission error:", error);
       toast({
@@ -99,7 +119,17 @@ const GenerationView: React.FC<GenerationViewProps> = ({
         worksheetId={worksheetId}
         wordBankOrder={generatedWorksheet?.exercises?.find((ex: any) => ex.type === "matching")?.shuffledTerms?.map((item: any) => item.definition)}
         onDownload={handleDownloadEvent}
-        onFeedbackSubmit={handleFeedbackSubmit}
+        onFeedbackSubmit={handleSubmitRating}
+      />
+      
+      <RatingSection
+        rating={rating}
+        setRating={setRating}
+        feedback={feedback}
+        setFeedback={setFeedback}
+        handleSubmitRating={handleSubmitRating}
+        worksheetId={worksheetId}
+        userId={userId}
       />
       
       {showScrollTop && (

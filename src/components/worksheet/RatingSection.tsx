@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 interface RatingSectionProps {
   rating: number;
@@ -11,6 +12,8 @@ interface RatingSectionProps {
   feedback: string;
   setFeedback: (feedback: string) => void;
   handleSubmitRating: () => void;
+  worksheetId: string | null;
+  userId: string | null;
 }
 
 const RatingSection: React.FC<RatingSectionProps> = ({
@@ -18,14 +21,43 @@ const RatingSection: React.FC<RatingSectionProps> = ({
   setRating,
   feedback,
   setFeedback,
-  handleSubmitRating
+  handleSubmitRating,
+  worksheetId,
+  userId
 }) => {
   const [hover, setHover] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const { toast } = useToast();
 
-  const handleStarClick = (value: number) => {
+  const handleStarClick = async (value: number) => {
+    setSubmitting(true);
     setRating(value);
-    setIsDialogOpen(true);
+    
+    try {
+      // Submit the initial rating immediately
+      if (userId && worksheetId) {
+        // Call parent handler which submits to API
+        await handleSubmitRating();
+        
+        toast({
+          title: "Rating submitted!",
+          description: "Thanks for your feedback. Add a comment for more details.",
+        });
+      }
+      
+      // Then open dialog for additional feedback
+      setIsDialogOpen(true);
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+      toast({
+        title: "Rating submission error",
+        description: "We couldn't save your rating. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -41,6 +73,7 @@ const RatingSection: React.FC<RatingSectionProps> = ({
             onMouseEnter={() => setHover(star)} 
             onMouseLeave={() => setHover(0)} 
             className="focus:outline-none transition-transform transform hover:scale-110" 
+            disabled={submitting}
             aria-label={`Rate ${star} stars`}
           >
             <Star size={32} className={`${(hover || rating) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} transition-colors`} />
@@ -81,12 +114,13 @@ const RatingSection: React.FC<RatingSectionProps> = ({
           
           <div className="flex justify-end space-x-2 mt-2">
             <DialogClose asChild>
-              <Button size="sm" variant="outline">Cancel</Button>
+              <Button size="sm" variant="outline" disabled={submitting}>Cancel</Button>
             </DialogClose>
             <Button 
               size="sm" 
               variant="default" 
               onClick={handleSubmitRating} 
+              disabled={submitting}
               className="bg-[#3d348b] text-white hover:bg-[#3d348b]/90"
             >
               Submit Feedback

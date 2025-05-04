@@ -38,6 +38,12 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       if (response.status === 429) {
         throw new Error('You have reached your daily limit for worksheet generation. Please try again tomorrow.');
       }
+
+      // Handle validation errors from JSON schema
+      if (errorData?.isValidationError) {
+        throw new Error('The generated worksheet did not meet quality standards. Please try again.');
+      }
+
       throw new Error(`Failed to generate worksheet: ${errorData?.error || response.statusText}`);
     }
 
@@ -99,8 +105,13 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
 /**
  * Submits feedback for a worksheet
  */
-export async function submitFeedback(worksheetId: string, rating: number, comment: string, userId: string) {
+export async function submitFeedback(worksheetId: string | null, rating: number, comment: string, userId: string) {
   try {
+    if (!worksheetId || !userId || !rating) {
+      console.error('Missing required parameters for feedback submission');
+      throw new Error('Missing required parameters for feedback');
+    }
+    
     console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
     
     // Try using the edge function
@@ -192,7 +203,7 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
     
     const result = await response.json();
     console.log('Feedback submission successful:', result);
-    return result;
+    return result.data;
   } catch (error) {
     console.error('Error submitting feedback:', error);
     throw error;
