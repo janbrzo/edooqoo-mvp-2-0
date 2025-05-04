@@ -177,12 +177,24 @@ Generate a structured JSON worksheet with the following format:
   "vocabulary_sheet": [
     {"term": "Term 1", "meaning": "Definition 1"},
     {"term": "Term 2", "meaning": "Definition 2"}
-    // INCLUDE EXACTLY 15 TERMS
+    // INCLUDE EXACTLY 15 TERMS with clear definitions
   ]
 }
 
+IMPORTANT RULES AND REQUIREMENTS:
+1. Create EXACTLY ${exerciseCount} exercises based on the prompt. No fewer, no more.
+2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
+3.	Ensure variety and progressive difficulty.  
+4.	All exercises should be closely related to the specified topic and goal
+5.	Include specific vocabulary, expressions, and language structures related to the topic
+6.	Keep exercise instructions clear and concise. Students should be able to understand the tasks without any additional explanation.
+7.	DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field. 
+8.	Use appropriate time values for each exercise (5-10 minutes).
+9. DO NOT include any text outside of the JSON structure.
+10. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field.
+
 IMPORTANT QUALITY CHECK BEFORE GENERATING:
-Please analyze this English worksheet to ensure the following quality standards:
+Please analyze this English worksheet to ensure it meets the following quality standards, and correct it if it does not.:
 1. Grammar is correct throughout all exercises
 2. There are no spelling mistakes in any text
 3. All instructions are clear and easily understandable
@@ -190,15 +202,7 @@ Please analyze this English worksheet to ensure the following quality standards:
 5. Specific vocabulary related to the topic is included
 6. Formatting is consistent across all exercises
 7. All exercises are complete with required elements
-8. Reading texts precisely contain 280-320 words (COUNT CAREFULLY)
-
-IMPORTANT RULES AND REQUIREMENTS:
-1. Create EXACTLY ${exerciseCount} exercises based on the prompt. No fewer, no more.
-2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
-
-19. DO NOT include any text outside of the JSON structure.
-20. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field.
-
+8. "Exercise 1: Reading Comprehension" texts precisely contain 280-320 words
         },
         {
           role: "user",
