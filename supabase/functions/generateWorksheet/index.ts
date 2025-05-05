@@ -37,6 +37,11 @@ serve(async (req) => {
     // Generate worksheet using OpenAI
     const worksheetData = await generateWorksheetWithOpenAI(prompt, exerciseCount, exerciseTypes);
     
+    if (!worksheetData || !worksheetData.exercises || worksheetData.exercises.length !== exerciseCount) {
+      console.error('Invalid worksheet data received:', worksheetData);
+      throw new Error('Failed to generate a complete worksheet. Please try again.');
+    }
+    
     // Save worksheet to database
     try {
       const worksheetId = await saveWorksheetToDatabase(worksheetData, prompt, userId, ip);
