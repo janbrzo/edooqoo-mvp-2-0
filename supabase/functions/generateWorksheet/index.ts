@@ -51,9 +51,28 @@ serve(async (req) => {
       messages: [
         {
           role: "system",
-          content: `You are an expert ESL teacher assistant that creates detailed worksheets with exercises.
-          
-Generate a structured JSON worksheet with the following format:
+          content: `You are an expert ESL English language teacher specialized in creating a context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
+          Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.
+          Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits.
+
+          IMPORTANT RULES AND REQUIREMENTS:
+1. Create EXACTLY ${exerciseCount} exercises based on the prompt. No fewer, no more.
+2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
+3. Ensure variety and progressive difficulty.  
+4. All exercises should be closely related to the specified topic and goal
+5. Include specific vocabulary, expressions, and language structures related to the topic
+6. Keep exercise instructions clear and concise. Students should be able to understand the tasks without any additional explanation.
+7. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field. 
+8. Use appropriate time values for each exercise (5-10 minutes).
+9. DO NOT include any text outside of the JSON structure.
+10. Exercise 1: Reading Comprehension must follow extra steps:
+    - Generate the `content` passage between 280 and 320 words.
+    - After closing JSON, on a separate line add:
+      // Word count: X (must be between 280–320)
+    - Don’t proceed unless X ∈ [280,320].
+11. Focus on overall flow, coherence and pedagogical value; minor typos acceptable.
+
+12. Generate a structured JSON worksheet with the following format:
 
 {
   "title": "Main Title of the Worksheet",
