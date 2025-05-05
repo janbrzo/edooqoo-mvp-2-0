@@ -5,118 +5,6 @@ import { getExerciseTypesForMissing, getIconForType } from "../utils/exerciseTyp
 
 const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
 
-// Definicja schematu JSON dla worksheetów
-const worksheetJsonSchema = {
-  type: "object",
-  required: ["title", "subtitle", "introduction", "exercises", "vocabulary_sheet"],
-  properties: {
-    title: { type: "string" },
-    subtitle: { type: "string" },
-    introduction: { type: "string" },
-    exercises: {
-      type: "array",
-      items: {
-        type: "object",
-        required: ["type", "title", "icon", "time", "instructions", "teacher_tip"],
-        properties: {
-          type: { 
-            type: "string",
-            enum: ["reading", "matching", "fill-in-blanks", "multiple-choice", "dialogue", 
-                   "discussion", "error-correction", "word-formation", "word-order", "true-false"]
-          },
-          title: { type: "string" },
-          icon: { type: "string" },
-          time: { type: "number" },
-          instructions: { type: "string" },
-          teacher_tip: { type: "string" },
-          content: { type: "string" },
-          questions: { 
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                text: { type: "string" },
-                answer: { type: "string" },
-                options: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      label: { type: "string" },
-                      text: { type: "string" },
-                      correct: { type: "boolean" }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          items: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                term: { type: "string" },
-                definition: { type: "string" }
-              }
-            }
-          },
-          word_bank: {
-            type: "array",
-            items: { type: "string" }
-          },
-          sentences: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                text: { type: "string" },
-                answer: { type: "string" },
-                correction: { type: "string" }
-              }
-            }
-          },
-          dialogue: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                speaker: { type: "string" },
-                text: { type: "string" }
-              }
-            }
-          },
-          expressions: {
-            type: "array",
-            items: { type: "string" }
-          },
-          expression_instruction: { type: "string" },
-          statements: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                text: { type: "string" },
-                isTrue: { type: "boolean" }
-              }
-            }
-          }
-        }
-      }
-    },
-    vocabulary_sheet: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          term: { type: "string" },
-          meaning: { type: "string" }
-        }
-      }
-    }
-  }
-};
-
 // Generate worksheet using OpenAI
 export async function generateWorksheetWithOpenAI(
   prompt: string, 
@@ -126,11 +14,11 @@ export async function generateWorksheetWithOpenAI(
   console.log('Generating worksheet with OpenAI...');
   
   try {
-    // Generate worksheet using OpenAI with JSON Schema validation
+    // Generate worksheet using OpenAI
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o",
       temperature: 0.7,
-      response_format: { type: "json_object", schema: worksheetJsonSchema },
+      response_format: { type: "json_object" }, // Usunięto nieprawidłowy parametr schema
       messages: [
         {
           role: "system",
@@ -149,7 +37,53 @@ export async function generateWorksheetWithOpenAI(
             8. Use appropriate time values for each exercise (5-10 minutes).
             9. DO NOT include any text outside of the JSON structure.
             10. Exercise 1: Reading Comprehension must have content between 280 and 320 words.
-
+            
+            OUTPUT STRUCTURE:
+            Return a valid JSON object with the following structure:
+            {
+              "title": "Worksheet Title",
+              "subtitle": "Worksheet Subtitle",
+              "introduction": "Brief introduction to the worksheet topic and goals",
+              "exercises": [
+                {
+                  "type": "one of the specified exercise types",
+                  "title": "Exercise X: Type",
+                  "icon": "fa-icon-name",
+                  "time": number of minutes,
+                  "instructions": "Clear instructions for completing the exercise",
+                  "teacher_tip": "Useful tip for teachers using this exercise",
+                  // Additional fields based on exercise type:
+                  // For reading:
+                  "content": "Text content (280-320 words)",
+                  "questions": [{"text": "question", "answer": "answer"}]
+                  // For matching:
+                  "items": [{"term": "term", "definition": "definition"}]
+                  // For fill-in-blanks:
+                  "sentences": [{"text": "sentence with ___", "answer": "answer"}],
+                  "word_bank": ["word1", "word2"]
+                  // For multiple-choice:
+                  "questions": [{"text": "question", "options": [{"label": "A", "text": "option", "correct": boolean}]}]
+                  // For dialogue:
+                  "dialogue": [{"speaker": "name", "text": "line"}],
+                  "expressions": ["expression1", "expression2"],
+                  "expression_instruction": "How to use these expressions"
+                  // For discussion:
+                  "questions": ["question1", "question2"]
+                  // For error-correction:
+                  "sentences": [{"text": "incorrect sentence", "correction": "corrected sentence"}]
+                  // For word-formation:
+                  "sentences": [{"text": "sentence with _____ (word)", "answer": "formed word"}]
+                  // For word-order:
+                  "sentences": [{"text": "jumbled sentence", "answer": "correct order"}]
+                  // For true-false:
+                  "statements": [{"text": "statement", "isTrue": boolean}]
+                }
+              ],
+              "vocabulary_sheet": [
+                {"term": "word or phrase", "meaning": "definition"}
+              ]
+            }
+            
             IMPORTANT QUALITY CHECK BEFORE GENERATING:
             - Grammar, spelling, formatting – near-flawless (1–2 minor typos allowed).
             - Difficulty level consistent and appropriate.
@@ -185,7 +119,7 @@ export async function generateWorksheetWithOpenAI(
       
       // Ensure we have the correct number of exercises
       if (worksheetData.exercises.length !== exerciseCount) {
-        console.warn("Received " + worksheetData.exercises.length + " exercises, expected " + exerciseCount);
+        console.log("Received " + worksheetData.exercises.length + " exercises, expected " + exerciseCount);
         
         // If we have too few exercises, create additional ones
         if (worksheetData.exercises.length < exerciseCount) {
