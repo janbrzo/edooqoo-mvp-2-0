@@ -10,11 +10,8 @@ import ExerciseSection from "./worksheet/ExerciseSection";
 import VocabularySheet from "./worksheet/VocabularySheet";
 import TeacherNotes from "./worksheet/TeacherNotes";
 import WorksheetRating from "@/components/WorksheetRating";
-import { validateWorksheet, detectTemplateContent } from "@/utils/worksheetUtils";
-import { FormData } from "@/components/WorksheetForm";
 
-// Types
-export interface Exercise {
+interface Exercise {
   type: string;
   title: string;
   icon: string;
@@ -29,7 +26,6 @@ export interface Exercise {
   expressions?: string[];
   expression_instruction?: string;
   teacher_tip: string;
-  [key: string]: any;
 }
 
 export interface Worksheet {
@@ -45,7 +41,7 @@ export interface Worksheet {
 
 interface WorksheetDisplayProps {
   worksheet: Worksheet;
-  inputParams: FormData | null;
+  inputParams: any;
   generationTime: number;
   sourceCount: number;
   onBack: () => void;
@@ -53,12 +49,8 @@ interface WorksheetDisplayProps {
   onDownload?: () => void;
   worksheetId?: string | null;
   onFeedbackSubmit?: (rating: number, feedback: string) => void;
-  userId?: string;
 }
 
-/**
- * Component for displaying a complete worksheet with editing capabilities
- */
 export default function WorksheetDisplay({
   worksheet,
   inputParams,
@@ -68,97 +60,82 @@ export default function WorksheetDisplay({
   wordBankOrder,
   onDownload,
   worksheetId,
-  onFeedbackSubmit,
-  userId
+  onFeedbackSubmit
 }: WorksheetDisplayProps) {
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
-  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(worksheet);
-  const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const worksheetRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
-  // Validate the worksheet structure and set up page number CSS for PDF
+  // Validate the worksheet structure when component mounts
   useEffect(() => {
-    const addPageNumberStyle = () => {
-      const style = document.createElement('style');
-      style.textContent = `
-        @media print {
-          @page {
-            margin: 10mm;
-          }
-          
-          .page-number {
-            position: fixed;
-            bottom: 10mm;
-            right: 10mm;
-            font-size: 10pt;
-            color: #666;
-          }
-          
-          .page-number::before {
-            content: "Page " counter(page) " of " counter(pages);
-          }
-        }
-      `;
-      document.head.appendChild(style);
-      return () => {
-        document.head.removeChild(style);
-      };
-    };
-
-    const validateWorksheetContent = () => {
-      const issues = validateWorksheet(worksheet);
-      
-      if (issues.length > 0) {
-        // Sort issues by severity
-        const criticalIssues = issues.filter(issue => 
-          issue.includes("Invalid worksheet data") || 
-          issue.includes("doesn't contain any exercises")
-        );
-        
-        const templateIssues = issues.filter(issue => 
-          issue.includes("template") || 
-          issue.includes("generic")
-        );
-        
-        // Show critical issues as destructive toasts
-        criticalIssues.forEach(issue => {
-          toast({
-            title: "Critical worksheet issue",
-            description: issue,
-            variant: "destructive"
-          });
-        });
-        
-        // Group non-critical issues for brevity in the UI
-        if (templateIssues.length > 0) {
-          toast({
-            title: "Template content detected",
-            description: `${templateIssues.length} exercises contain generic template content.`,
-            variant: "default" 
-          });
+    validateWorksheetStructure();
+    
+    // Add page numbers CSS for PDF
+    const style = document.createElement('style');
+    style.textContent = `
+      @media print {
+        @page {
+          margin: 10mm;
         }
         
-        // If template content is detected, notify user
-        if (detectTemplateContent(worksheet)) {
-          console.warn("Template content detected in worksheet:", templateIssues);
+        .page-number {
+          position: fixed;
+          bottom: 10mm;
+          right: 10mm;
+          font-size: 10pt;
+          color: #666;
+        }
+        
+        .page-number::before {
+          content: "Page " counter(page) " of " counter(pages);
         }
       }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
     };
-    
-    // Add page number styles for PDF export
-    const cleanup = addPageNumberStyle();
-    
-    // Validate worksheet content
-    validateWorksheetContent();
-    
-    return cleanup;
-  }, [worksheet, toast]);
+  }, []);
   
-  /**
-   * Scrolls the window to the top
-   */
+  const validateWorksheetStructure = () => {
+    // Check if worksheet has all the required components
+    if (!worksheet) {
+      toast({
+        title: "Invalid worksheet data",
+        description: "The worksheet data is missing or invalid.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check for exercises
+    if (!Array.isArray(worksheet.exercises) || worksheet.exercises.length === 0) {
+      toast({
+        title: "Missing exercises",
+        description: "The worksheet doesn't contain any exercises.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check for reading exercises and word count
+    const readingExercise = worksheet.exercises.find(ex => ex.type === 'reading');
+    if (readingExercise && readingExercise.content) {
+      const wordCount = readingExercise.content.split(/\s+/).filter(Boolean).length;
+      if (wordCount < 280) {
+        toast({
+          title: "Reading exercise issue",
+          description: `Reading content has only ${wordCount} words (should be 280-320).`,
+          variant: "destructive"
+        });
+      }
+    }
+  };
+  
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
@@ -166,7 +143,6 @@ export default function WorksheetDisplay({
     });
   };
   
-  // Set up scroll event listener to show/hide scroll-to-top button
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 300);
@@ -176,16 +152,10 @@ export default function WorksheetDisplay({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
-  /**
-   * Toggles editing mode on
-   */  
   const handleEdit = () => {
     setIsEditing(true);
   };
   
-  /**
-   * Saves edits and toggles editing mode off
-   */
   const handleSave = () => {
     setIsEditing(false);
     toast({
@@ -194,9 +164,6 @@ export default function WorksheetDisplay({
     });
   };
   
-  /**
-   * Generates and downloads the worksheet as PDF
-   */
   const handleDownloadPDF = async () => {
     if (worksheetRef.current) {
       try {
@@ -233,36 +200,6 @@ export default function WorksheetDisplay({
     }
   };
 
-  /**
-   * Updates worksheet title
-   */
-  const handleTitleChange = (value: string) => {
-    setEditableWorksheet({
-      ...editableWorksheet,
-      title: value
-    });
-  };
-
-  /**
-   * Updates worksheet subtitle
-   */
-  const handleSubtitleChange = (value: string) => {
-    setEditableWorksheet({
-      ...editableWorksheet,
-      subtitle: value
-    });
-  };
-
-  /**
-   * Updates worksheet introduction
-   */
-  const handleIntroductionChange = (value: string) => {
-    setEditableWorksheet({
-      ...editableWorksheet,
-      introduction: value
-    });
-  };
-
   return (
     <div className="container mx-auto py-6" data-worksheet-id={worksheetId || undefined}>
       <div className="mb-6">
@@ -272,11 +209,7 @@ export default function WorksheetDisplay({
           sourceCount={sourceCount}
           inputParams={inputParams}
         />
-        
-        <InputParamsCard 
-          inputParams={inputParams} 
-        />
-        
+        <InputParamsCard inputParams={inputParams} />
         <WorksheetToolbar
           viewMode={viewMode}
           setViewMode={setViewMode}
@@ -296,7 +229,10 @@ export default function WorksheetDisplay({
                 <input 
                   type="text" 
                   value={editableWorksheet.title} 
-                  onChange={e => handleTitleChange(e.target.value)} 
+                  onChange={e => setEditableWorksheet({
+                    ...editableWorksheet,
+                    title: e.target.value
+                  })} 
                   className="w-full border p-2 editable-content" 
                 />
               ) : editableWorksheet.title}
@@ -307,7 +243,10 @@ export default function WorksheetDisplay({
                 <input 
                   type="text" 
                   value={editableWorksheet.subtitle} 
-                  onChange={e => handleSubtitleChange(e.target.value)} 
+                  onChange={e => setEditableWorksheet({
+                    ...editableWorksheet,
+                    subtitle: e.target.value
+                  })} 
                   className="w-full border p-2 editable-content" 
                 />
               ) : editableWorksheet.subtitle}
@@ -317,7 +256,10 @@ export default function WorksheetDisplay({
               {isEditing ? (
                 <textarea 
                   value={editableWorksheet.introduction} 
-                  onChange={e => handleIntroductionChange(e.target.value)} 
+                  onChange={e => setEditableWorksheet({
+                    ...editableWorksheet,
+                    introduction: e.target.value
+                  })} 
                   className="w-full h-20 border p-2 editable-content" 
                 />
               ) : (
@@ -348,12 +290,13 @@ export default function WorksheetDisplay({
             />
           )}
 
-          {/* Rating and teacher notes sections */}
+          {/* First display rating section */}
           <WorksheetRating 
-            worksheetId={worksheetId || undefined}
+            worksheetId={worksheetId}
             onSubmitRating={onFeedbackSubmit || onDownload} 
           />
           
+          {/* Then display Teacher Notes Section (both for student and teacher view) */}
           <TeacherNotes />
         </div>
       </div>

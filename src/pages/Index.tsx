@@ -12,27 +12,6 @@ import GenerationView from "@/components/worksheet/GenerationView";
 // Import just as a fallback in case generation fails
 import mockWorksheetData from '@/mockWorksheetData';
 
-// Types
-interface ExerciseType {
-  type: string;
-  title: string;
-  icon: string;
-  time: number;
-  instructions: string;
-  teacher_tip: string;
-  [key: string]: any;
-}
-
-interface WorksheetData {
-  title: string;
-  subtitle: string;
-  introduction: string;
-  exercises: ExerciseType[];
-  vocabulary_sheet: { term: string; meaning: string; }[];
-  sourceCount?: number;
-  id?: string;
-}
-
 // Utility functions
 const getExpectedExerciseCount = (lessonTime: string): number => {
   if (lessonTime === "30 min") return 4;
@@ -70,7 +49,7 @@ const createSampleVocabulary = (count: number) => {
   }));
 };
 
-const validateWorksheet = (worksheetData: WorksheetData | null, expectedCount: number): boolean => {
+const validateWorksheet = (worksheetData: any, expectedCount: number): boolean => {
   if (!worksheetData || !worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
     return false;
   }
@@ -78,8 +57,8 @@ const validateWorksheet = (worksheetData: WorksheetData | null, expectedCount: n
   return worksheetData.exercises.length === expectedCount;
 };
 
-const processExercises = (exercises: ExerciseType[]): ExerciseType[] => {
-  return exercises.map((exercise: ExerciseType, index: number) => {
+const processExercises = (exercises: any[]): any[] => {
+  return exercises.map((exercise: any, index: number) => {
     // Make sure exercise number is correct
     const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
     exercise.title = `Exercise ${index + 1}: ${exerciseType}`;
@@ -114,13 +93,13 @@ const processExercises = (exercises: ExerciseType[]): ExerciseType[] => {
 /**
  * Main Index page component that handles worksheet generation and display
  */
-const Index: React.FC = () => {
+const Index = () => {
   // State for tracking worksheet generation process
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [generatedWorksheet, setGeneratedWorksheet] = useState<WorksheetData | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedWorksheet, setGeneratedWorksheet] = useState<any>(null);
   const [inputParams, setInputParams] = useState<FormData | null>(null);
-  const [generationTime, setGenerationTime] = useState<number>(0);
-  const [sourceCount, setSourceCount] = useState<number>(0);
+  const [generationTime, setGenerationTime] = useState(0);
+  const [sourceCount, setSourceCount] = useState(0);
   const [worksheetId, setWorksheetId] = useState<string | null>(null);
   const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
   
