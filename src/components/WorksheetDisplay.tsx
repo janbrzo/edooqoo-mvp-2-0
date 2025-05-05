@@ -157,7 +157,7 @@ export default function WorksheetDisplay({
           toast({
             title: "Template content detected",
             description: "Some exercises contain generic template sentences.",
-            variant: "warning"
+            variant: "default" // Zmiana z "warning" na "default"
           });
         }
       }
