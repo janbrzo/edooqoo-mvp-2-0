@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from "react";
-import { ArrowUp } from "lucide-react";
+import { ArrowLeft, ArrowUp } from "lucide-react";
 import { generatePDF } from "@/utils/pdfUtils";
 import { useToast } from "@/hooks/use-toast";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
@@ -27,7 +27,6 @@ export interface Exercise {
   word_bank?: string[];
   expressions?: string[];
   expression_instruction?: string;
-  statements?: any[];
   teacher_tip: string;
   [key: string]: any;
 }
@@ -57,7 +56,7 @@ interface WorksheetDisplayProps {
 }
 
 /**
- * Komponent do wyświetlania kompletnego arkusza ćwiczeń z możliwością edycji
+ * Component for displaying a complete worksheet with editing capabilities
  */
 export default function WorksheetDisplay({
   worksheet,
@@ -78,25 +77,12 @@ export default function WorksheetDisplay({
   const worksheetRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
-  // Walidacja struktury worksheetu i ustawienie numeracji stron dla PDF
+  // Validate the worksheet structure and set up page number CSS for PDF
   useEffect(() => {
     validateWorksheetStructure();
-    setupPageNumbersForPDF();
     
-    return () => {
-      const style = document.getElementById('pdf-page-numbers');
-      if (style) {
-        document.head.removeChild(style);
-      }
-    };
-  }, []);
-  
-  /**
-   * Dodaje style CSS do numeracji stron w PDF
-   */
-  const setupPageNumbersForPDF = () => {
+    // Add page numbers CSS for PDF
     const style = document.createElement('style');
-    style.id = 'pdf-page-numbers';
     style.textContent = `
       @media print {
         @page {
@@ -117,10 +103,14 @@ export default function WorksheetDisplay({
       }
     `;
     document.head.appendChild(style);
-  };
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
   
   /**
-   * Sprawdza czy worksheet zawiera wszystkie wymagane komponenty i dane
+   * Validates that the worksheet has all required components and data
    */
   const validateWorksheetStructure = () => {
     if (!worksheet) {
@@ -132,7 +122,7 @@ export default function WorksheetDisplay({
       return;
     }
     
-    // Sprawdzanie ćwiczeń
+    // Check for exercises
     if (!Array.isArray(worksheet.exercises) || worksheet.exercises.length === 0) {
       toast({
         title: "Missing exercises",
@@ -142,7 +132,7 @@ export default function WorksheetDisplay({
       return;
     }
     
-    // Sprawdzanie ćwiczeń reading i liczby słów
+    // Check for reading exercises and word count
     const readingExercise = worksheet.exercises.find(ex => ex.type === 'reading');
     if (readingExercise && readingExercise.content) {
       const wordCount = readingExercise.content.split(/\s+/).filter(Boolean).length;
@@ -155,78 +145,27 @@ export default function WorksheetDisplay({
       }
     }
     
-    // Sprawdzanie zawartości szablonowej
-    checkForTemplateContent();
-  };
-
-  /**
-   * Sprawdza czy worksheet zawiera szablonowe treści
-   */
-  const checkForTemplateContent = () => {
-    const templatePattern = /This is (sentence|question) \d+ with|This is [a-z]+ \d+/i;
-    let hasTemplates = false;
-    let templateCount = 0;
-    let exercisesWithTemplates = [];
-
-    worksheet.exercises.forEach((exercise, index) => {
-      let exerciseTemplates = 0;
-
-      // Sprawdzanie zdań
+    // Check for template content in fill-in-blanks
+    const templatePattern = /This is (sentence|question) \d+ with/i;
+    worksheet.exercises.forEach((exercise) => {
       if (exercise.sentences && Array.isArray(exercise.sentences)) {
-        exercise.sentences.forEach((s: any) => {
-          if (templatePattern.test(s.text || '')) {
-            exerciseTemplates++;
-            templateCount++;
-          }
-        });
-      }
-
-      // Sprawdzanie pytań
-      if (exercise.questions && Array.isArray(exercise.questions)) {
-        if (typeof exercise.questions[0] === 'string') {
-          exercise.questions.forEach((q: string) => {
-            if (templatePattern.test(q)) {
-              exerciseTemplates++;
-              templateCount++;
-            }
-          });
-        } else {
-          exercise.questions.forEach((q: any) => {
-            if (q.text && templatePattern.test(q.text)) {
-              exerciseTemplates++;
-              templateCount++;
-            }
+        const hasTemplates = exercise.sentences.some((s: any) => 
+          templatePattern.test(s.text || '')
+        );
+        
+        if (hasTemplates) {
+          toast({
+            title: "Template content detected",
+            description: "Some exercises contain generic template sentences.",
+            variant: "default" // Zmiana z "warning" na "default"
           });
         }
       }
-
-      // Sprawdzanie dialogów
-      if (exercise.dialogue && Array.isArray(exercise.dialogue)) {
-        exercise.dialogue.forEach((d: any) => {
-          if (templatePattern.test(d.text || '')) {
-            exerciseTemplates++;
-            templateCount++;
-          }
-        });
-      }
-
-      if (exerciseTemplates > 2) {
-        hasTemplates = true;
-        exercisesWithTemplates.push(`Exercise ${index + 1}: ${exercise.type}`);
-      }
     });
-    
-    if (hasTemplates) {
-      toast({
-        title: "Template content detected",
-        description: `Some exercises contain generic template sentences: ${exercisesWithTemplates.join(', ')}`,
-        variant: "default"
-      });
-    }
   };
   
   /**
-   * Przewija okno przeglądarki do góry
+   * Scrolls the window to the top
    */
   const scrollToTop = () => {
     window.scrollTo({
@@ -235,7 +174,7 @@ export default function WorksheetDisplay({
     });
   };
   
-  // Ustawia nasłuchiwanie na zdarzenie scrollowania, aby pokazać/ukryć przycisk przewijania do góry
+  // Set up scroll event listener to show/hide scroll-to-top button
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 300);
@@ -246,14 +185,14 @@ export default function WorksheetDisplay({
   }, []);
   
   /**
-   * Włącza tryb edycji
+   * Toggles editing mode on
    */  
   const handleEdit = () => {
     setIsEditing(true);
   };
   
   /**
-   * Zapisuje zmiany i wyłącza tryb edycji
+   * Saves edits and toggles editing mode off
    */
   const handleSave = () => {
     setIsEditing(false);
@@ -264,12 +203,12 @@ export default function WorksheetDisplay({
   };
   
   /**
-   * Generuje i pobiera worksheet jako PDF
+   * Generates and downloads the worksheet as PDF
    */
   const handleDownloadPDF = async () => {
     if (worksheetRef.current) {
       try {
-        // Utwórz format daty YYYY-MM-DD
+        // Create current date format YYYY-MM-DD
         const today = new Date();
         const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const viewModeText = viewMode === 'teacher' ? 'Teacher' : 'Student';
@@ -305,18 +244,13 @@ export default function WorksheetDisplay({
   return (
     <div className="container mx-auto py-6" data-worksheet-id={worksheetId || undefined}>
       <div className="mb-6">
-        {/* Nagłówek worksheetu */}
         <WorksheetHeader
           onBack={onBack}
           generationTime={generationTime}
           sourceCount={sourceCount}
           inputParams={inputParams}
         />
-        
-        {/* Karta parametrów wejściowych */}
         <InputParamsCard inputParams={inputParams} />
-        
-        {/* Pasek narzędzi worksheetu */}
         <WorksheetToolbar
           viewMode={viewMode}
           setViewMode={setViewMode}
@@ -326,12 +260,10 @@ export default function WorksheetDisplay({
           handleDownloadPDF={handleDownloadPDF}
         />
 
-        {/* Zawartość worksheetu */}
         <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>
-          {/* Element numeracji stron dla PDF */}
+          {/* Add page number element for PDF */}
           <div className="page-number"></div>
           
-          {/* Nagłówek z tytułem i wprowadzeniem */}
           <div className="bg-white p-6 border rounded-lg shadow-sm mb-6">
             <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight">
               {isEditing ? (
@@ -377,7 +309,6 @@ export default function WorksheetDisplay({
             </div>
           </div>
 
-          {/* Ćwiczenia */}
           {editableWorksheet.exercises.map((exercise, index) => (
             <ExerciseSection
               key={index}
@@ -390,7 +321,6 @@ export default function WorksheetDisplay({
             />
           ))}
 
-          {/* Słownictwo */}
           {editableWorksheet.vocabulary_sheet && editableWorksheet.vocabulary_sheet.length > 0 && (
             <VocabularySheet
               vocabularySheet={editableWorksheet.vocabulary_sheet}
@@ -401,7 +331,7 @@ export default function WorksheetDisplay({
             />
           )}
 
-          {/* Oceny i notatki nauczyciela */}
+          {/* Rating and teacher notes sections */}
           <WorksheetRating 
             worksheetId={worksheetId || undefined}
             onSubmitRating={onFeedbackSubmit || onDownload} 
@@ -411,7 +341,6 @@ export default function WorksheetDisplay({
         </div>
       </div>
       
-      {/* Przycisk przewijania do góry */}
       {showScrollTop && (
         <button 
           onClick={scrollToTop}
