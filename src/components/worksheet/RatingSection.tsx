@@ -42,6 +42,7 @@ const RatingSection: React.FC<RatingSectionProps> = ({
             onMouseLeave={() => setHover(0)} 
             className="focus:outline-none transition-transform transform hover:scale-110" 
             aria-label={`Rate ${star} stars`}
+            type="button"
           >
             <Star size={32} className={`${(hover || rating) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} transition-colors`} />
           </button>
@@ -86,7 +87,10 @@ const RatingSection: React.FC<RatingSectionProps> = ({
             <Button 
               size="sm" 
               variant="default" 
-              onClick={handleSubmitRating} 
+              onClick={() => {
+                handleSubmitRating();
+                setIsDialogOpen(false);
+              }} 
               className="bg-[#3d348b] text-white hover:bg-[#3d348b]/90"
             >
               Submit Feedback
