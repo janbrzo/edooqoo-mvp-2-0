@@ -14,11 +14,11 @@ export async function generateWorksheetWithOpenAI(
   console.log('Generating worksheet with OpenAI...');
   
   try {
-    // Generate worksheet using OpenAI
+    // Generate worksheet using OpenAI with improved prompting to avoid template answers
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o",
-      temperature: 0.7,
-      response_format: { type: "json_object" }, // Usunięto nieprawidłowy parametr schema
+      temperature: 0.8, // Zwiększona zmienność dla lepszej różnorodności
+      response_format: { type: "json_object" }, 
       messages: [
         {
           role: "system",
@@ -26,17 +26,22 @@ export async function generateWorksheetWithOpenAI(
             Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.
             Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits.
             
-            IMPORTANT RULES AND REQUIREMENTS:
+            IMPORTANT RULES:
             1. Create EXACTLY ${exerciseCount} exercises based on the prompt. No fewer, no more.
             2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
-            3. Ensure variety and progressive difficulty.  
-            4. All exercises should be closely related to the specified topic and goal
-            5. Include specific vocabulary, expressions, and language structures related to the topic
-            6. Keep exercise instructions clear and concise. Students should be able to understand the tasks without any additional explanation.
-            7. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field. 
-            8. Use appropriate time values for each exercise (5-10 minutes).
-            9. DO NOT include any text outside of the JSON structure.
-            10. Exercise 1: Reading Comprehension must have content between 280 and 320 words.
+            3. Ensure variety and progressive difficulty.
+            4. All exercises should be closely related to the specified topic and goal.
+            5. Include specific vocabulary, expressions, and language structures related to the topic.
+            6. Keep exercise instructions clear and concise.
+            
+            CRITICAL QUALITY REQUIREMENTS:
+            1. DO NOT USE GENERIC TEMPLATES or placeholders like "This is sentence X with a _____ to fill in." 
+            2. EVERY exercise, sentence, and question MUST be UNIQUE, AUTHENTIC, and TOPIC-SPECIFIC.
+            3. NEVER repeat similar sentence structures more than twice.
+            4. Exercise 1: Reading Comprehension must have content between 280 and 320 words.
+            5. Each fill-in-blanks, error-correction, word-formation, and similar exercises must have AT LEAST 10 UNIQUE, AUTHENTIC sentences.
+            6. For multiple-choice questions, include at least 3 plausible options for each question.
+            7. True-false exercises need at least 10 statements with varied truth values.
             
             OUTPUT STRUCTURE:
             Return a valid JSON object with the following structure:
@@ -82,20 +87,14 @@ export async function generateWorksheetWithOpenAI(
               "vocabulary_sheet": [
                 {"term": "word or phrase", "meaning": "definition"}
               ]
-            }
-            
-            IMPORTANT QUALITY CHECK BEFORE GENERATING:
-            - Grammar, spelling, formatting – near-flawless (1–2 minor typos allowed).
-            - Difficulty level consistent and appropriate.
-            - Specific vocabulary related to the topic is included.
-            - Confirm that Exercise 1 content is between 280 and 320 words.`
+            }`
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      max_tokens: 4000  // Ensure we have enough tokens for a complete response
+      max_tokens: 4000
     });
 
     const jsonContent = aiResponse.choices[0].message.content;
@@ -112,29 +111,51 @@ export async function generateWorksheetWithOpenAI(
         throw new Error('Invalid worksheet structure returned from AI');
       }
       
-      // Enhanced validation for exercise requirements
+      // Validate each exercise and check for template-like content
+      let hasTemplateContent = false;
       for (const exercise of worksheetData.exercises) {
         validateExercise(exercise);
+        
+        // Check for template-like sentences
+        if (exercise.sentences && Array.isArray(exercise.sentences)) {
+          const templatePattern = /This is sentence \d+ with a|This is [a-z]+ \d+/i;
+          for (const sentence of exercise.sentences) {
+            if (templatePattern.test(sentence.text)) {
+              hasTemplateContent = true;
+              console.log('Detected template content:', sentence.text);
+            }
+          }
+        }
+      }
+      
+      // If template content was found, we could regenerate but for now just log it
+      if (hasTemplateContent) {
+        console.log('Warning: Template-like content detected in the generated worksheet');
       }
       
       // Ensure we have the correct number of exercises
       if (worksheetData.exercises.length !== exerciseCount) {
-        console.log("Received " + worksheetData.exercises.length + " exercises, expected " + exerciseCount);
+        console.log(`Received ${worksheetData.exercises.length} exercises, expected ${exerciseCount}`);
         
         // If we have too few exercises, create additional ones
         if (worksheetData.exercises.length < exerciseCount) {
           // Generate additional exercises with OpenAI
           const additionalExercisesNeeded = exerciseCount - worksheetData.exercises.length;
-          console.log("Generating " + additionalExercisesNeeded + " additional exercises");
+          console.log(`Generating ${additionalExercisesNeeded} additional exercises`);
           
           const additionalExercisesResponse = await openai.chat.completions.create({
             model: "gpt-4o",
-            temperature: 0.7,
+            temperature: 0.8,
             response_format: { type: "json_object" },
             messages: [
               {
                 role: "system",
-                content: "You are an expert at creating ESL exercises that match a specific format and quality level."
+                content: `You are an expert ESL teacher. Create ${additionalExercisesNeeded} additional high-quality exercises following these strict rules:
+                1. EVERY exercise must be UNIQUE, SPECIFIC and AUTHENTIC to the topic
+                2. DO NOT use generic templates like "This is sentence X with a _____ to fill in"
+                3. Each exercise must have proper structure with all required fields
+                4. Use advanced vocabulary and varied sentence structures
+                5. Make content appropriate for 1-on-1 teaching`
               },
               {
                 role: "user",
@@ -171,10 +192,10 @@ export async function generateWorksheetWithOpenAI(
                 throw new Error("Invalid format for additional exercises");
               }
               
-              console.log("Successfully added " + (worksheetData.exercises.length - exerciseCount) + " exercises");
+              console.log(`Successfully added additional exercises. New count: ${worksheetData.exercises.length}`);
               
               // Validate the new exercises
-              for (let i = exerciseCount; i < worksheetData.exercises.length; i++) {
+              for (let i = 0; i < worksheetData.exercises.length; i++) {
                 validateExercise(worksheetData.exercises[i]);
               }
             } catch (jsonError) {
@@ -188,7 +209,7 @@ export async function generateWorksheetWithOpenAI(
         } else if (worksheetData.exercises.length > exerciseCount) {
           // If we have too many, trim them down
           worksheetData.exercises = worksheetData.exercises.slice(0, exerciseCount);
-          console.log("Trimmed exercises to " + worksheetData.exercises.length);
+          console.log(`Trimmed exercises to ${worksheetData.exercises.length}`);
         }
       }
       
@@ -205,7 +226,7 @@ export async function generateWorksheetWithOpenAI(
       });
       
       // Ensure full correct exercise count after all adjustments
-      console.log("Final exercise count: " + worksheetData.exercises.length + " (expected: " + exerciseCount + ")");
+      console.log(`Final exercise count: ${worksheetData.exercises.length} (expected: ${exerciseCount})`);
       
       // Generate random source count for stats
       const sourceCount = Math.floor(Math.random() * (90 - 65) + 65);
