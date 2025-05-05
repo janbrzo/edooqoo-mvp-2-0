@@ -10,6 +10,7 @@ import ExerciseSection from "./worksheet/ExerciseSection";
 import VocabularySheet from "./worksheet/VocabularySheet";
 import TeacherNotes from "./worksheet/TeacherNotes";
 import WorksheetRating from "@/components/WorksheetRating";
+import { validateWorksheet, detectTemplateContent } from "@/utils/worksheetUtils";
 import { FormData } from "@/components/WorksheetForm";
 
 // Types
@@ -79,90 +80,81 @@ export default function WorksheetDisplay({
   
   // Validate the worksheet structure and set up page number CSS for PDF
   useEffect(() => {
-    validateWorksheetStructure();
-    
-    // Add page numbers CSS for PDF
-    const style = document.createElement('style');
-    style.textContent = `
-      @media print {
-        @page {
-          margin: 10mm;
+    const addPageNumberStyle = () => {
+      const style = document.createElement('style');
+      style.textContent = `
+        @media print {
+          @page {
+            margin: 10mm;
+          }
+          
+          .page-number {
+            position: fixed;
+            bottom: 10mm;
+            right: 10mm;
+            font-size: 10pt;
+            color: #666;
+          }
+          
+          .page-number::before {
+            content: "Page " counter(page) " of " counter(pages);
+          }
         }
-        
-        .page-number {
-          position: fixed;
-          bottom: 10mm;
-          right: 10mm;
-          font-size: 10pt;
-          color: #666;
-        }
-        
-        .page-number::before {
-          content: "Page " counter(page) " of " counter(pages);
-        }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    return () => {
-      document.head.removeChild(style);
+      `;
+      document.head.appendChild(style);
+      return () => {
+        document.head.removeChild(style);
+      };
     };
-  }, []);
-  
-  /**
-   * Validates that the worksheet has all required components and data
-   */
-  const validateWorksheetStructure = () => {
-    if (!worksheet) {
-      toast({
-        title: "Invalid worksheet data",
-        description: "The worksheet data is missing or invalid.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Check for exercises
-    if (!Array.isArray(worksheet.exercises) || worksheet.exercises.length === 0) {
-      toast({
-        title: "Missing exercises",
-        description: "The worksheet doesn't contain any exercises.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Check for reading exercises and word count
-    const readingExercise = worksheet.exercises.find(ex => ex.type === 'reading');
-    if (readingExercise && readingExercise.content) {
-      const wordCount = readingExercise.content.split(/\s+/).filter(Boolean).length;
-      if (wordCount < 280 || wordCount > 320) {
-        toast({
-          title: "Reading exercise issue",
-          description: `Reading content has ${wordCount} words (target: 280-320).`,
-          variant: "destructive"
-        });
-      }
-    }
-    
-    // Check for template content in fill-in-blanks
-    const templatePattern = /This is (sentence|question) \d+ with/i;
-    worksheet.exercises.forEach((exercise) => {
-      if (exercise.sentences && Array.isArray(exercise.sentences)) {
-        const hasTemplates = exercise.sentences.some((s: any) => 
-          templatePattern.test(s.text || '')
+
+    const validateWorksheetContent = () => {
+      const issues = validateWorksheet(worksheet);
+      
+      if (issues.length > 0) {
+        // Sort issues by severity
+        const criticalIssues = issues.filter(issue => 
+          issue.includes("Invalid worksheet data") || 
+          issue.includes("doesn't contain any exercises")
         );
         
-        if (hasTemplates) {
+        const templateIssues = issues.filter(issue => 
+          issue.includes("template") || 
+          issue.includes("generic")
+        );
+        
+        // Show critical issues as destructive toasts
+        criticalIssues.forEach(issue => {
+          toast({
+            title: "Critical worksheet issue",
+            description: issue,
+            variant: "destructive"
+          });
+        });
+        
+        // Group non-critical issues for brevity in the UI
+        if (templateIssues.length > 0) {
           toast({
             title: "Template content detected",
-            description: "Some exercises contain generic template sentences.",
-            variant: "default" // Zmiana z "warning" na "default"
+            description: `${templateIssues.length} exercises contain generic template content.`,
+            variant: "default" 
           });
         }
+        
+        // If template content is detected, notify user
+        if (detectTemplateContent(worksheet)) {
+          console.warn("Template content detected in worksheet:", templateIssues);
+        }
       }
-    });
-  };
+    };
+    
+    // Add page number styles for PDF export
+    const cleanup = addPageNumberStyle();
+    
+    // Validate worksheet content
+    validateWorksheetContent();
+    
+    return cleanup;
+  }, [worksheet, toast]);
   
   /**
    * Scrolls the window to the top
@@ -241,6 +233,36 @@ export default function WorksheetDisplay({
     }
   };
 
+  /**
+   * Updates worksheet title
+   */
+  const handleTitleChange = (value: string) => {
+    setEditableWorksheet({
+      ...editableWorksheet,
+      title: value
+    });
+  };
+
+  /**
+   * Updates worksheet subtitle
+   */
+  const handleSubtitleChange = (value: string) => {
+    setEditableWorksheet({
+      ...editableWorksheet,
+      subtitle: value
+    });
+  };
+
+  /**
+   * Updates worksheet introduction
+   */
+  const handleIntroductionChange = (value: string) => {
+    setEditableWorksheet({
+      ...editableWorksheet,
+      introduction: value
+    });
+  };
+
   return (
     <div className="container mx-auto py-6" data-worksheet-id={worksheetId || undefined}>
       <div className="mb-6">
@@ -250,7 +272,11 @@ export default function WorksheetDisplay({
           sourceCount={sourceCount}
           inputParams={inputParams}
         />
-        <InputParamsCard inputParams={inputParams} />
+        
+        <InputParamsCard 
+          inputParams={inputParams} 
+        />
+        
         <WorksheetToolbar
           viewMode={viewMode}
           setViewMode={setViewMode}
@@ -270,10 +296,7 @@ export default function WorksheetDisplay({
                 <input 
                   type="text" 
                   value={editableWorksheet.title} 
-                  onChange={e => setEditableWorksheet({
-                    ...editableWorksheet,
-                    title: e.target.value
-                  })} 
+                  onChange={e => handleTitleChange(e.target.value)} 
                   className="w-full border p-2 editable-content" 
                 />
               ) : editableWorksheet.title}
@@ -284,10 +307,7 @@ export default function WorksheetDisplay({
                 <input 
                   type="text" 
                   value={editableWorksheet.subtitle} 
-                  onChange={e => setEditableWorksheet({
-                    ...editableWorksheet,
-                    subtitle: e.target.value
-                  })} 
+                  onChange={e => handleSubtitleChange(e.target.value)} 
                   className="w-full border p-2 editable-content" 
                 />
               ) : editableWorksheet.subtitle}
@@ -297,10 +317,7 @@ export default function WorksheetDisplay({
               {isEditing ? (
                 <textarea 
                   value={editableWorksheet.introduction} 
-                  onChange={e => setEditableWorksheet({
-                    ...editableWorksheet,
-                    introduction: e.target.value
-                  })} 
+                  onChange={e => handleIntroductionChange(e.target.value)} 
                   className="w-full h-20 border p-2 editable-content" 
                 />
               ) : (
