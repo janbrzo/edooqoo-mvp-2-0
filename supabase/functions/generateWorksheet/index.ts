@@ -60,7 +60,7 @@ serve(async (req) => {
 2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
 3. Ensure variety and progressive difficulty.  
 4. All exercises should be closely related to the specified topic and goal
-5. Include specific vocabulary, expressions, and language structures related to the topic
+5. Include specific vocabulary, expressions, and language structures related to the topic.
 6. Keep exercise instructions clear and concise. Students should be able to understand the tasks without any additional explanation.
 7. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field. 
 8. Use appropriate time values for each exercise (5-10 minutes).
@@ -201,19 +201,8 @@ serve(async (req) => {
 }
 
 IMPORTANT QUALITY CHECK BEFORE GENERATING:
-Please analyze this English worksheet to ensure the following quality standards:
-1. Grammar is correct throughout all exercises
-2. There are no spelling mistakes in any text
-3. All instructions are clear and easily understandable
-4. The difficulty level is consistent and appropriate
-5. Specific vocabulary related to the topic is included
-6. Formatting is consistent across all exercises
-7. All exercises are complete with required elements
-8. Reading texts precisely contain 280-320 words (COUNT CAREFULLY)
-
-IMPORTANT RULES AND REQUIREMENTS:
-1. Create EXACTLY ${exerciseCount} exercises based on the prompt. No fewer, no more.
-2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
+1.  Grammar, spelling, formatting – near-flawless (1–2 minor typos allowed). Difficulty level consistent and appropriate.
+2. Confirm that Exercise 1 `content` is between 280 and 320 words and that the Word count comment is correct.
 3. For "reading" exercises:
    - The content MUST be BETWEEN 280-320 WORDS. Count words carefully.
    - ALWAYS include EXACTLY 5 comprehension questions.
@@ -239,15 +228,8 @@ IMPORTANT RULES AND REQUIREMENTS:
 13. For ALL other exercise types:
    - Include EXACTLY 10 examples/items/questions unless specified otherwise.
 14. For vocabulary sheets, include EXACTLY 15 terms.
-15. Ensure all JSON is valid with no trailing commas.
-16. Make sure all exercises are appropriate for ESL students.
-17. Each exercise must have a teacher_tip field.
-18. Use appropriate time values for each exercise (5-10 minutes).
-19. DO NOT include any text outside of the JSON structure.
-20. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field.
-21. COUNT THE ACTUAL NUMBER OF ITEMS in each exercise to verify you've met the requirements.
-22. Each exercise title MUST include its sequence number (e.g., "Exercise 1: Reading Comprehension").
-23. For reading exercises, COUNT WORDS CAREFULLY to ensure text is between 280-320 words.`
+15. Specific vocabulary related to the topic is included.
+`
         },
         {
           role: "user",
