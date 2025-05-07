@@ -103,6 +103,9 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
   try {
     console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
     
+    // Check if worksheetId is valid
+    const actualWorksheetId = worksheetId || 'unknown';
+    
     // Try using the edge function
     const response = await fetch(SUBMIT_FEEDBACK_URL, {
       method: 'POST',
@@ -110,7 +113,7 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        worksheetId,
+        worksheetId: actualWorksheetId,
         rating,
         comment,
         userId
@@ -126,7 +129,7 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
         .from('feedbacks')
         .insert([
           { 
-            worksheet_id: worksheetId, 
+            worksheet_id: actualWorksheetId, 
             user_id: userId, 
             rating, 
             comment,
@@ -173,7 +176,8 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
                   comment,
                   status: 'new'
                 }
-              ]);
+              ])
+              .select();
                 
             if (retryError) {
               console.error('Retry feedback submission error:', retryError);
@@ -192,6 +196,12 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
     
     const result = await response.json();
     console.log('Feedback submission successful:', result);
+    
+    // Check if we have a data property in the result
+    if (result && result.data) {
+      return result.data;
+    }
+    
     return result;
   } catch (error) {
     console.error('Error submitting feedback:', error);

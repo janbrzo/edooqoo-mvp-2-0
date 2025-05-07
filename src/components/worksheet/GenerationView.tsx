@@ -63,7 +63,8 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     }
 
     try {
-      await submitFeedback(worksheetId || 'unknown', rating, feedback, userId);
+      const actualWorksheetId = worksheetId || 'unknown';
+      await submitFeedback(actualWorksheetId, rating, feedback, userId);
       
       toast({
         title: "Thank you for your feedback!",

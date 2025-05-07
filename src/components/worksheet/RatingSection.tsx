@@ -86,7 +86,10 @@ const RatingSection: React.FC<RatingSectionProps> = ({
             <Button 
               size="sm" 
               variant="default" 
-              onClick={handleSubmitRating} 
+              onClick={() => {
+                handleSubmitRating();
+                setIsDialogOpen(false);
+              }} 
               className="bg-[#3d348b] text-white hover:bg-[#3d348b]/90"
             >
               Submit Feedback
