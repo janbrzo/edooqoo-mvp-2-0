@@ -30,7 +30,6 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
   
   const handleStarClick = async (value: number) => {
     setSelected(value);
-    setIsDialogOpen(true);
     
     try {
       setSubmitting(true);
@@ -38,32 +37,38 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
       // Submit rating immediately when star is clicked
       if (userId) {
         const actualWorksheetId = worksheetId || 
-          (typeof window !== 'undefined' && window.location.href.includes('worksheet_id=')
-            ? new URL(window.location.href).searchParams.get('worksheet_id')
-            : null) || 
-          'unknown';
+          new URL(window.location.href).searchParams.get('worksheet_id') || 
+          null;
             
-        const result = await submitFeedback(actualWorksheetId, value, '', userId);
-        
-        // Store the feedback ID for future updates
-        if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
-          setCurrentFeedbackId(result[0].id);
-        }
-        
-        toast({
-          title: "Rating submitted!",
-          description: "Thanks for your feedback. Add a comment for more details."
-        });
-        
-        // Wywołanie callbacku jeśli został dostarczony
-        if (onSubmitRating) {
-          onSubmitRating(value, '');
+        if (actualWorksheetId) {
+          const result = await submitFeedback(actualWorksheetId, value, '', userId);
+          
+          // Store the feedback ID for future updates
+          if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
+            setCurrentFeedbackId(result[0].id);
+          }
+          
+          toast({
+            title: "Rating submitted!",
+            description: "Thanks for your feedback. Add a comment for more details."
+          });
+          
+          // Wywołanie callbacku jeśli został dostarczony
+          if (onSubmitRating) {
+            onSubmitRating(value, '');
+          }
         }
       }
+      
+      // Then open dialog to collect additional comment
+      setIsDialogOpen(true);
     } catch (error) {
       console.error("Error submitting rating:", error);
-      // Nie pokazuj toastu o błędzie tutaj, bo i tak otwieramy modal
-      // Użytkownik może dodać komentarz i spróbować jeszcze raz
+      toast({
+        title: "Rating submission failed",
+        description: "We couldn't submit your rating. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setSubmitting(false);
     }
@@ -78,21 +83,16 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
       // Try to get worksheet ID from props, URL or DOM
       let actualWorksheetId = worksheetId || null;
       
-      if (!actualWorksheetId && typeof window !== 'undefined' && window.location.href.includes('worksheet_id=')) {
+      if (!actualWorksheetId && window.location.href.includes('worksheet_id=')) {
         actualWorksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
       }
       
       // If no worksheet ID in URL, check for other elements
-      if (!actualWorksheetId && typeof document !== 'undefined') {
+      if (!actualWorksheetId) {
         const worksheetElements = document.querySelectorAll('[data-worksheet-id]');
         if (worksheetElements.length > 0) {
           actualWorksheetId = worksheetElements[0].getAttribute('data-worksheet-id');
         }
-      }
-      
-      // Jeśli nadal nie mamy ID, użyjmy "unknown"
-      if (!actualWorksheetId) {
-        actualWorksheetId = 'unknown';
       }
       
       if (currentFeedbackId) {
@@ -100,7 +100,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
         await updateFeedback(currentFeedbackId, feedback, userId);
       } else {
         // Submit new feedback with rating and comment
-        const result = await submitFeedback(actualWorksheetId, selected, feedback, userId);
+        const result = await submitFeedback(actualWorksheetId || 'unknown', selected, feedback, userId);
         
         // Store the feedback ID
         if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
@@ -150,7 +150,6 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
               onMouseLeave={() => setHovered(0)} 
               className="focus:outline-none transition-transform transform hover:scale-110"
               disabled={submitting} 
-              type="button"
               aria-label={`Rate ${star} stars`}
             >
               <Star size={32} className={`${(hovered || selected) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} transition-colors`} />
