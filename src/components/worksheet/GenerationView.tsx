@@ -63,6 +63,7 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     }
 
     try {
+      // Use a fallback ID if worksheetId is null
       const actualWorksheetId = worksheetId || 'unknown';
       await submitFeedback(actualWorksheetId, rating, feedback, userId);
       
