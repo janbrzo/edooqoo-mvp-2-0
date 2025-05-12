@@ -85,7 +85,7 @@ serve(async (req) => {
       "icon": "fa-book-open",
       "time": 8,
       "instructions": "Read the following text and answer the questions below.",
-      "content": "Content text of more than 280 words goes here",
+      "content": "Content text goes here, MUST BE BETWEEN 280-320 WORDS LONG...",
       "questions": [
         {"text": "Question 1", "answer": "Answer 1"},
         {"text": "Question 2", "answer": "Answer 2"},
@@ -93,7 +93,7 @@ serve(async (req) => {
         {"text": "Question 4", "answer": "Answer 4"},
         {"text": "Question 5", "answer": "Answer 5"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Tip for teachers on this exercise"
     },
     {
       "type": "matching",
@@ -113,7 +113,7 @@ serve(async (req) => {
         {"term": "Term 9", "definition": "Definition 9"},
         {"term": "Term 10", "definition": "Definition 10"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Tip for teachers on this exercise"
     },
     {
       "type": "fill-in-blanks",
@@ -134,7 +134,7 @@ serve(async (req) => {
         {"text": "Ninth sentence has a _____ blank.", "answer": "word9"},
         {"text": "Tenth sentence with a _____ to fill.", "answer": "word10"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Tip for teachers on this exercise"
     },
     {
       "type": "multiple-choice",
@@ -154,7 +154,7 @@ serve(async (req) => {
         },
         // INCLUDE EXACTLY 10 MULTIPLE CHOICE QUESTIONS WITH 4 OPTIONS EACH
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Tip for teachers on this exercise"
     },
     {
       "type": "dialogue",
@@ -170,7 +170,7 @@ serve(async (req) => {
       "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", 
                      "expression6", "expression7", "expression8", "expression9", "expression10"],
       "expression_instruction": "Practice using these expressions in your own dialogues.",
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Tip for teachers on this exercise"
     },
     {
       "type": "true-false",
@@ -190,7 +190,7 @@ serve(async (req) => {
         {"text": "Statement 9", "isTrue": true},
         {"text": "Statement 10", "isTrue": false}
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Tip for teachers on this exercise"
     }
   ],
   "vocabulary_sheet": [
