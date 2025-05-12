@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
@@ -29,7 +30,6 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
   
   const handleStarClick = async (value: number) => {
     setSelected(value);
-    setIsDialogOpen(true);
     
     try {
       setSubmitting(true);
@@ -37,98 +37,91 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
       // Submit rating immediately when star is clicked
       if (userId) {
         const actualWorksheetId = worksheetId || 
-          (typeof window !== 'undefined' && window.location.href.includes('worksheet_id=') ? 
-            new URL(window.location.href).searchParams.get('worksheet_id') : 
-            null) || 
-          'unknown';
+          new URL(window.location.href).searchParams.get('worksheet_id') || 
+          null;
             
         if (actualWorksheetId) {
-          try {
-            const result = await submitFeedback(actualWorksheetId, value, '', userId);
-            
-            // Store the feedback ID for future updates
-            if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
-              setCurrentFeedbackId(result[0].id);
-            }
-            
-            // Wywołanie callbacku jeśli został dostarczony
-            if (onSubmitRating) {
-              onSubmitRating(value, '');
-            }
-          } catch (error) {
-            console.error("Error in initial rating submission:", error);
-            // Continue showing dialog despite error
+          const result = await submitFeedback(actualWorksheetId, value, '', userId);
+          
+          // Store the feedback ID for future updates
+          if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
+            setCurrentFeedbackId(result[0].id);
+          }
+          
+          toast({
+            title: "Rating submitted!",
+            description: "Thanks for your feedback. Add a comment for more details."
+          });
+          
+          // Wywołanie callbacku jeśli został dostarczony
+          if (onSubmitRating) {
+            onSubmitRating(value, '');
           }
         }
       }
+      
+      // Then open dialog to collect additional comment
+      setIsDialogOpen(true);
     } catch (error) {
       console.error("Error submitting rating:", error);
+      toast({
+        title: "Rating submission failed",
+        description: "We couldn't submit your rating. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setSubmitting(false);
     }
   };
   
   const handleSubmit = async () => {
-    if (!selected) return;
+    if (!selected || !userId) return;
     
     try {
       setSubmitting(true);
       
-      if (userId) {
-        // Try to get worksheet ID from props, URL or DOM
-        let actualWorksheetId = worksheetId || null;
-        
-        if (typeof window !== 'undefined') {
-          if (!actualWorksheetId && window.location.href.includes('worksheet_id=')) {
-            actualWorksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
-          }
-          
-          // If no worksheet ID in URL, check for other elements
-          if (!actualWorksheetId) {
-            const worksheetElements = document.querySelectorAll('[data-worksheet-id]');
-            if (worksheetElements.length > 0) {
-              actualWorksheetId = worksheetElements[0].getAttribute('data-worksheet-id');
-            }
-          }
-        }
-          
-        try {
-          if (currentFeedbackId) {
-            // Update existing feedback with comment
-            await updateFeedback(currentFeedbackId, feedback, userId);
-          } else {
-            // Submit new feedback with rating and comment
-            const result = await submitFeedback(actualWorksheetId || 'unknown', selected, feedback, userId);
-            
-            // Store the feedback ID
-            if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
-              setCurrentFeedbackId(result[0].id);
-            }
-          }
-            
-          setIsDialogOpen(false);
-          setThanksOpen(true);
-          setTimeout(() => setThanksOpen(false), 2500);
-          
-          toast({
-            title: "Thank you for your feedback!",
-            description: "Your rating and comments help us improve our service."
-          });
-          
-          // Call the callback with rating and feedback
-          if (onSubmitRating) {
-            onSubmitRating(selected, feedback);
-          }
-        } catch (error) {
-          console.error("Error in feedback submission:", error);
-          toast({
-            title: "Feedback submission failed",
-            description: "We couldn't submit your feedback. Please try again later.",
-            variant: "destructive"
-          });
-          // Keep dialog open if there was an error
+      // Try to get worksheet ID from props, URL or DOM
+      let actualWorksheetId = worksheetId || null;
+      
+      if (!actualWorksheetId && window.location.href.includes('worksheet_id=')) {
+        actualWorksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
+      }
+      
+      // If no worksheet ID in URL, check for other elements
+      if (!actualWorksheetId) {
+        const worksheetElements = document.querySelectorAll('[data-worksheet-id]');
+        if (worksheetElements.length > 0) {
+          actualWorksheetId = worksheetElements[0].getAttribute('data-worksheet-id');
         }
       }
+      
+      if (currentFeedbackId) {
+        // Update existing feedback with comment
+        await updateFeedback(currentFeedbackId, feedback, userId);
+      } else {
+        // Submit new feedback with rating and comment
+        const result = await submitFeedback(actualWorksheetId || 'unknown', selected, feedback, userId);
+        
+        // Store the feedback ID
+        if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
+          setCurrentFeedbackId(result[0].id);
+        }
+      }
+      
+      setIsDialogOpen(false);
+      setThanksOpen(true);
+      setTimeout(() => setThanksOpen(false), 2500);
+      
+      toast({
+        title: "Thank you for your feedback!",
+        description: "Your rating and comments help us improve our service."
+      });
+      
+      // Call the callback with rating and feedback
+      if (onSubmitRating) {
+        onSubmitRating(selected, feedback);
+      }
+      
     } catch (error) {
       console.error("Error submitting feedback:", error);
       toast({
@@ -137,6 +130,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
         variant: "destructive"
       });
     } finally {
+      setFeedback("");
       setSubmitting(false);
     }
   };

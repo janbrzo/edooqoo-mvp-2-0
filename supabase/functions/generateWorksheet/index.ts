@@ -66,10 +66,10 @@ serve(async (req) => {
 8. Use appropriate time values for each exercise (5-10 minutes).
 9. DO NOT include any text outside of the JSON structure.
 10. Exercise 1: Reading Comprehension must follow extra steps:
-    - Generate the content passage between 280 and 320 words.
+    - Generate the `content` passage between 280 and 320 words.
     - After closing JSON, on a separate line add:
       // Word count: X (must be between 280–320)
-    - Don't proceed unless X ∈ [280,320].
+    - Don’t proceed unless X ∈ [280,320].
 11. Focus on overall flow, coherence and pedagogical value; minor typos acceptable.
 
 12. Generate a structured JSON worksheet with the following format:
@@ -202,7 +202,7 @@ serve(async (req) => {
 
 IMPORTANT QUALITY CHECK BEFORE GENERATING:
 1.  Grammar, spelling, formatting – near-flawless (1–2 minor typos allowed). Difficulty level consistent and appropriate.
-2. Confirm that Exercise 1 content is between 280 and 320 words and that the Word count comment is correct.
+2. Confirm that Exercise 1 `content` is between 280 and 320 words and that the Word count comment is correct.
 3. For "reading" exercises:
    - The content MUST be BETWEEN 280-320 WORDS. Count words carefully.
    - ALWAYS include EXACTLY 5 comprehension questions.

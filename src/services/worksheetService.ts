@@ -103,52 +103,30 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
   try {
     console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
     
-    // Validate inputs
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-    
-    if (rating < 1 || rating > 5) {
-      throw new Error('Rating must be between 1 and 5');
-    }
-    
-    // Check if worksheetId is valid
-    const actualWorksheetId = worksheetId || 'unknown';
-    
     // Try using the edge function
-    try {
-      const response = await fetch(SUBMIT_FEEDBACK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          worksheetId: actualWorksheetId,
-          rating,
-          comment,
-          userId
-        })
-      });
+    const response = await fetch(SUBMIT_FEEDBACK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        worksheetId,
+        rating,
+        comment,
+        userId
+      })
+    });
 
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Feedback submission successful:', result);
-        return result;
-      }
-      
+    if (!response.ok) {
       const errorText = await response.text();
       console.error('Error submitting feedback via API:', errorText);
-      throw new Error('Edge function failed to submit feedback');
-      
-    } catch (apiError) {
-      console.error('API submission failed, trying direct database insertion:', apiError);
       
       // If edge function fails, try direct database submission
       const { data, error } = await supabase
         .from('feedbacks')
         .insert([
           { 
-            worksheet_id: actualWorksheetId, 
+            worksheet_id: worksheetId, 
             user_id: userId, 
             rating, 
             comment,
@@ -161,62 +139,60 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
         console.error('Direct feedback submission error:', error);
         
         // If direct insert fails and we don't have a worksheet_id, try creating a placeholder
-        if (error.message?.includes('violates foreign key constraint')) {
+        if (error.message.includes('violates foreign key constraint')) {
           console.log('Creating placeholder worksheet for feedback');
           
-          try {
-            const { data: placeholderData, error: placeholderError } = await supabase
-              .from('worksheets')
-              .insert([
-                {
-                  prompt: 'Generated worksheet',
-                  html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
-                  user_id: userId,
-                  ip_address: 'client-side',
-                  status: 'created',
-                  title: 'Generated Worksheet'
-                }
-              ])
-              .select();
-              
-            if (placeholderError) {
-              console.error('Error creating placeholder worksheet:', placeholderError);
-              throw new Error('Failed to create feedback record: worksheet reference is required');
-            }
-              
-            if (placeholderData && placeholderData.length > 0) {
-              // Try feedback again with new worksheet ID
-              const { data: retryData, error: retryError } = await supabase
-                .from('feedbacks')
-                .insert([
-                  { 
-                    worksheet_id: placeholderData[0].id, 
-                    user_id: userId, 
-                    rating, 
-                    comment,
-                    status: 'new'
-                  }
-                ])
-                .select();
-                  
-              if (retryError) {
-                console.error('Retry feedback submission error:', retryError);
-                throw new Error(`Failed to submit feedback after retry: ${retryError.message}`);
+          const { data: placeholderData, error: placeholderError } = await supabase
+            .from('worksheets')
+            .insert([
+              {
+                prompt: 'Generated worksheet',
+                html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
+                user_id: userId,
+                ip_address: 'client-side',
+                status: 'created',
+                title: 'Generated Worksheet'
               }
+            ])
+            .select();
+            
+          if (placeholderError) {
+            console.error('Error creating placeholder worksheet:', placeholderError);
+            throw new Error('Failed to create feedback record: worksheet reference is required');
+          }
+            
+          if (placeholderData && placeholderData.length > 0) {
+            // Try feedback again with new worksheet ID
+            const { data: retryData, error: retryError } = await supabase
+              .from('feedbacks')
+              .insert([
+                { 
+                  worksheet_id: placeholderData[0].id, 
+                  user_id: userId, 
+                  rating, 
+                  comment,
+                  status: 'new'
+                }
+              ]);
                 
-              return retryData;
+            if (retryError) {
+              console.error('Retry feedback submission error:', retryError);
+              throw new Error(`Failed to submit feedback after retry: ${retryError.message}`);
             }
-          } catch (placeholderError) {
-            console.error('Error handling placeholder creation:', placeholderError);
-            throw new Error('Failed to submit feedback due to database constraints');
+              
+            return retryData;
           }
         } else {
           throw new Error(`Failed to submit feedback: ${error.message}`);
         }
       }
-          
+        
       return data;
     }
+    
+    const result = await response.json();
+    console.log('Feedback submission successful:', result);
+    return result;
   } catch (error) {
     console.error('Error submitting feedback:', error);
     throw error;
@@ -275,7 +251,7 @@ export async function trackWorksheetEvent(type: string, worksheetId: string, use
       console.error(`Error tracking ${type} event:`, error);
       
       // If FK constraint error, try creating a placeholder worksheet
-      if (error.message?.includes('violates foreign key constraint')) {
+      if (error.message.includes('violates foreign key constraint')) {
         console.log('Creating placeholder worksheet for event tracking');
         
         const { data: placeholderData, error: placeholderError } = await supabase
