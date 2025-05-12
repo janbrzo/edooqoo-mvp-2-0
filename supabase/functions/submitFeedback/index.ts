@@ -54,35 +54,28 @@ serve(async (req) => {
 
     // Create placeholder worksheet if needed
     if (shouldCreatePlaceholder) {
-      try {
-        // Używamy zwykłego insertu zamiast funkcji insert_worksheet_bypass_limit
-        const { data: placeholderData, error: placeholderError } = await supabase
-          .from('worksheets')
-          .insert({
-            prompt: 'Generated worksheet',
-            html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
-            user_id: userId,
-            ip_address: ip,
-            status: 'created',
-            title: 'Generated Worksheet'
-          })
-          .select();
+      const { data: placeholderData, error: placeholderError } = await supabase
+        .from('worksheets')
+        .insert({
+          prompt: 'Generated worksheet',
+          html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
+          user_id: userId,
+          ip_address: ip,
+          status: 'created',
+          title: 'Generated Worksheet'
+        })
+        .select();
 
-        if (placeholderError) {
-          console.error('Error creating placeholder worksheet:', placeholderError);
-          throw new Error(`Failed to create placeholder worksheet: ${placeholderError.message}`);
-        }
+      if (placeholderError) {
+        console.error('Error creating placeholder worksheet:', placeholderError);
+        throw new Error(`Failed to create placeholder worksheet: ${placeholderError.message}`);
+      }
 
-        if (placeholderData && placeholderData.length > 0) {
-          actualWorksheetId = placeholderData[0].id;
-          console.log(`Created placeholder worksheet with ID: ${actualWorksheetId}`);
-        } else {
-          throw new Error('Failed to create placeholder worksheet');
-        }
-      } catch (insertError) {
-        // Jeśli nie możemy utworzyć placeholder z powodu limitu, używamy "unknown" jako ID
-        console.error('Cannot create placeholder worksheet, using "unknown" ID instead:', insertError);
-        actualWorksheetId = 'unknown-worksheet';
+      if (placeholderData && placeholderData.length > 0) {
+        actualWorksheetId = placeholderData[0].id;
+        console.log(`Created placeholder worksheet with ID: ${actualWorksheetId}`);
+      } else {
+        throw new Error('Failed to create placeholder worksheet');
       }
     }
 
@@ -94,7 +87,7 @@ serve(async (req) => {
         user_id: userId,
         rating,
         comment,
-        status: 'new' 
+        status: 'new' // Changed from 'submitted' to 'new' to match the check constraint
       })
       .select();
 
