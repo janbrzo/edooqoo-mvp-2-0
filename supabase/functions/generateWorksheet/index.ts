@@ -69,7 +69,7 @@ serve(async (req) => {
     - Generate the content passage between 280 and 320 words.
     - After closing JSON, on a separate line add:
       // Word count: X (must be between 280–320)
-    - Don't proceed unless X ∈ [280,320].
+    - Don't proceed unless X is between 280 and 320.
 11. Focus on overall flow, coherence and pedagogical value; minor typos acceptable.
 
 12. Generate a structured JSON worksheet with the following format:
@@ -229,6 +229,8 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
    - Include EXACTLY 10 examples/items/questions unless specified otherwise.
 14. For vocabulary sheets, include EXACTLY 15 terms.
 15. Specific vocabulary related to the topic is included.
+
+RETURN ONLY VALID JSON.
 `
         },
         {
@@ -243,10 +245,23 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
     
     console.log('AI response received, processing...');
     
-    // Parse and validate the JSON response
+    // Poprawione parsowanie JSON - czyścimy odpowiedź przed parsowaniem
     let worksheetData;
     try {
-      worksheetData = JSON.parse(jsonContent);
+      // Wydobądź tylko część JSON z odpowiedzi AI (usuń komentarze, dodatkowy tekst, itp.)
+      let cleanJsonContent = jsonContent;
+      
+      // Znajdź pierwsze wystąpienie { i ostatnie wystąpienie }
+      const firstBrace = cleanJsonContent.indexOf('{');
+      const lastBrace = cleanJsonContent.lastIndexOf('}');
+      
+      if (firstBrace >= 0 && lastBrace > firstBrace) {
+        // Wyciągnij tylko tekst między pierwszym { a ostatnim }
+        cleanJsonContent = cleanJsonContent.substring(firstBrace, lastBrace + 1);
+      }
+      
+      console.log('Attempting to parse cleaned JSON content');
+      worksheetData = JSON.parse(cleanJsonContent);
       
       // Basic validation of the structure
       if (!worksheetData.title || !worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
@@ -317,6 +332,8 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
           
           try {
             const additionalExercisesText = additionalExercisesResponse.choices[0].message.content;
+            
+            // Czyścimy i parsujemy odpowiedź dla dodatkowych ćwiczeń
             const jsonStartIndex = additionalExercisesText.indexOf('[');
             const jsonEndIndex = additionalExercisesText.lastIndexOf(']') + 1;
             
@@ -360,7 +377,7 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
       worksheetData.sourceCount = sourceCount;
       
     } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', parseError);
+      console.error('Failed to parse AI response as JSON:', parseError, 'Response content:', jsonContent);
       throw new Error('Failed to generate a valid worksheet structure. Please try again.');
     }
 
