@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 
@@ -130,7 +129,7 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
             user_id: userId, 
             rating, 
             comment,
-            status: 'new'
+            status: 'submitted'
           }
         ])
         .select();
@@ -171,9 +170,10 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
                   user_id: userId, 
                   rating, 
                   comment,
-                  status: 'new'
+                  status: 'submitted'
                 }
-              ]);
+              ])
+              .select();
                 
             if (retryError) {
               console.error('Retry feedback submission error:', retryError);
@@ -192,7 +192,7 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
     
     const result = await response.json();
     console.log('Feedback submission successful:', result);
-    return result;
+    return result.data;
   } catch (error) {
     console.error('Error submitting feedback:', error);
     throw error;
