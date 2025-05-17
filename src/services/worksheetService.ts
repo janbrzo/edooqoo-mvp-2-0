@@ -1,5 +1,7 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
+import { toast } from 'sonner';
 
 // URLs for the Edge Functions
 const GENERATE_WORKSHEET_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/v1/generateWorksheet';
@@ -102,6 +104,11 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
   try {
     console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
     
+    if (!worksheetId || !userId) {
+      console.error('Missing required parameters for feedback:', { worksheetId, userId });
+      throw new Error('Missing worksheet ID or user ID');
+    }
+    
     // Try using the edge function
     const response = await fetch(SUBMIT_FEEDBACK_URL, {
       method: 'POST',
@@ -112,7 +119,8 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
         worksheetId,
         rating,
         comment,
-        userId
+        userId,
+        status: 'submitted' // Ensure status is set to 'submitted'
       })
     });
 
@@ -187,14 +195,17 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
         }
       }
         
+      toast.success('Thank you for your feedback!');
       return data;
     }
     
     const result = await response.json();
     console.log('Feedback submission successful:', result);
+    toast.success('Thank you for your feedback!');
     return result.data;
   } catch (error) {
     console.error('Error submitting feedback:', error);
+    toast.error(`We couldn't submit your rating: ${error instanceof Error ? error.message : 'Unknown error'}`);
     throw error;
   }
 }
