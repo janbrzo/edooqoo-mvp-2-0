@@ -15,25 +15,35 @@ export async function trackWorksheetEventAPI(type: string, worksheetId: string, 
     console.log(`Tracking event: ${type} for worksheet: ${worksheetId}`);
     
     try {
-      // Create events table if it doesn't exist yet
-      await supabase.rpc('create_events_table_if_not_exists').catch(err => {
-        console.log('Table might already exist or we have no permission to create it:', err);
-      });
+      // Log event in console
+      console.log(`Event tracked: ${type} for worksheet ${worksheetId} by user ${userId}`, metadata);
       
-      // Insert the event
-      const { error } = await supabase.from('events').insert({
-        type: type,
-        event_type: type,
-        worksheet_id: worksheetId,
-        user_id: userId,
-        metadata,
-        ip_address: "client-side" // Since we can't get IP on client side
-      });
-
-      if (error) {
-        console.error(`Error tracking ${type} event:`, error);
-      } else {
-        console.log(`Successfully tracked ${type} event`);
+      // For download events, increment the download counter
+      if (type === 'download') {
+        try {
+          // Use the dedicated function for incrementing download count
+          await supabase.rpc('increment_worksheet_download_count', {
+            p_worksheet_id: worksheetId
+          });
+          console.log(`Download count incremented for worksheet: ${worksheetId}`);
+        } catch (countError) {
+          console.error(`Failed to increment download count: ${countError}`);
+        }
+      }
+      
+      // For view events, update the last_modified_at timestamp
+      if (type === 'view') {
+        try {
+          await supabase
+            .from('worksheets')
+            .update({ 
+              last_modified_at: new Date().toISOString() 
+            })
+            .eq('id', worksheetId);
+          console.log(`Last viewed timestamp updated for worksheet: ${worksheetId}`);
+        } catch (viewError) {
+          console.error(`Failed to update view timestamp: ${viewError}`);
+        }
       }
     } catch (innerError) {
       console.error(`Error in event tracking flow: ${innerError}`);

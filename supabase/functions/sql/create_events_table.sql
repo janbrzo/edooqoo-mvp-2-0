@@ -1,4 +1,6 @@
 
+-- Plik SQL został zachowany, ale nie będziemy z niego korzystać w obecnej strukturze
+
 CREATE OR REPLACE FUNCTION public.create_events_table_if_not_exists()
 RETURNS void
 LANGUAGE plpgsql
