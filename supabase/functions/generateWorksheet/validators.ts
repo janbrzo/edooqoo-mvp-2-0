@@ -1,5 +1,5 @@
 
-import { generateFakeText, getIconForType } from './helpers';
+import { generateFakeText, getIconForType } from './helpers.ts';
 
 /**
  * Validate and potentially fix an exercise
