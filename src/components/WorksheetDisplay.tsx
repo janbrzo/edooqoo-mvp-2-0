@@ -1,7 +1,6 @@
-
 import { useState, useRef, useEffect } from "react";
 import { ArrowLeft, ArrowUp } from "lucide-react";
-import { generatePDF } from "@/utils/pdfUtils";
+import { generatePDF, exportAsHTML } from "@/utils/pdfUtils";
 import { useToast } from "@/hooks/use-toast";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
 import InputParamsCard from "./worksheet/InputParamsCard";
@@ -200,6 +199,41 @@ export default function WorksheetDisplay({
     }
   };
 
+  const handleDownloadHTML = async () => {
+    if (worksheetRef.current) {
+      try {
+        // Create current date format YYYY-MM-DD
+        const today = new Date();
+        const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const filename = `${formattedDate}-worksheet-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.html`;
+        
+        const result = exportAsHTML('worksheet-content', filename);
+        if (result) {
+          toast({
+            title: "HTML Downloaded",
+            description: "Your worksheet HTML has been downloaded successfully."
+          });
+          if (onDownload) {
+            onDownload();
+          }
+        } else {
+          toast({
+            title: "HTML Generation Failed",
+            description: "There was an error generating your HTML. Please try again.",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error('HTML generation error:', error);
+        toast({
+          title: "HTML Generation Failed",
+          description: "There was an error generating your HTML. Please try again.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   return (
     <div className="container mx-auto py-6" data-worksheet-id={worksheetId || undefined}>
       <div className="mb-6">
@@ -216,6 +250,7 @@ export default function WorksheetDisplay({
           isEditing={isEditing}
           handleEdit={handleEdit}
           handleSave={handleSave}
+          handleDownloadHTML={handleDownloadHTML}
           handleDownloadPDF={handleDownloadPDF}
         />
 
