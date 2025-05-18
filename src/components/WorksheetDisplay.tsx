@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { ArrowLeft, ArrowUp } from "lucide-react";
 import { generatePDF, exportAsHTML } from "@/utils/pdfUtils";
@@ -65,6 +66,7 @@ export default function WorksheetDisplay({
   const [isEditing, setIsEditing] = useState(false);
   const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(worksheet);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const worksheetRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -207,7 +209,7 @@ export default function WorksheetDisplay({
         const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const filename = `${formattedDate}-worksheet-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.html`;
         
-        const result = exportAsHTML('worksheet-content', filename);
+        const result = await exportAsHTML('worksheet-content', filename);
         if (result) {
           toast({
             title: "HTML Downloaded",
@@ -230,6 +232,17 @@ export default function WorksheetDisplay({
           description: "There was an error generating your HTML. Please try again.",
           variant: "destructive"
         });
+      }
+    }
+  };
+  
+  // Obsługa feedbacku z jedną notyfikacją
+  const handleFeedbackSubmit = (rating: number, feedback: string) => {
+    if (!feedbackSubmitted) {
+      setFeedbackSubmitted(true);
+      
+      if (onFeedbackSubmit) {
+        onFeedbackSubmit(rating, feedback);
       }
     }
   };
@@ -328,7 +341,7 @@ export default function WorksheetDisplay({
           {/* First display rating section */}
           <WorksheetRating 
             worksheetId={worksheetId}
-            onSubmitRating={onFeedbackSubmit || onDownload} 
+            onSubmitRating={handleFeedbackSubmit}
           />
           
           {/* Then display Teacher Notes Section (both for student and teacher view) */}

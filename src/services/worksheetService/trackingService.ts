@@ -2,53 +2,40 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Tracks an event (view, download, etc.)
+ * Tracks a worksheet event (view, download, etc.)
+ * 
+ * @param type Event type (view, download, etc.)
+ * @param worksheetId The ID of the worksheet
+ * @param userId The ID of the user
+ * @param metadata Additional metadata
+ * @returns Promise with tracking result
  */
 export async function trackWorksheetEventAPI(type: string, worksheetId: string, userId: string, metadata: any = {}) {
   try {
-    // Skip tracking if worksheetId is not a valid UUID
-    if (!worksheetId || worksheetId.length < 10) {
-      console.log(`Skipping ${type} event tracking for invalid worksheetId: ${worksheetId}`);
-      return;
+    console.log(`Tracking worksheet event: ${type} for worksheet ${worksheetId}`);
+    
+    // Increment download count if this is a download event
+    if (type === 'download') {
+      await supabase.rpc('increment_worksheet_download_count', { 
+        p_worksheet_id: worksheetId 
+      });
     }
     
-    console.log(`Tracking event: ${type} for worksheet: ${worksheetId}`);
+    // Log the event in the console for debugging
+    console.log(`Event tracked successfully: ${type} for worksheet ${worksheetId}`);
     
-    try {
-      // Log event in console
-      console.log(`Event tracked: ${type} for worksheet ${worksheetId} by user ${userId}`, metadata);
-      
-      // For download events, increment the download counter
-      if (type === 'download') {
-        try {
-          // Use the dedicated function for incrementing download count
-          await supabase.rpc('increment_worksheet_download_count', {
-            p_worksheet_id: worksheetId
-          });
-          console.log(`Download count incremented for worksheet: ${worksheetId}`);
-        } catch (countError) {
-          console.error(`Failed to increment download count: ${countError}`);
-        }
-      }
-      
-      // For view events, update the last_modified_at timestamp
-      if (type === 'view') {
-        try {
-          await supabase
-            .from('worksheets')
-            .update({ 
-              last_modified_at: new Date().toISOString() 
-            })
-            .eq('id', worksheetId);
-          console.log(`Last viewed timestamp updated for worksheet: ${worksheetId}`);
-        } catch (viewError) {
-          console.error(`Failed to update view timestamp: ${viewError}`);
-        }
-      }
-    } catch (innerError) {
-      console.error(`Error in event tracking flow: ${innerError}`);
-    }
+    return {
+      success: true,
+      type: type,
+      worksheetId: worksheetId,
+      userId: userId,
+      timestamp: new Date().toISOString()
+    };
   } catch (error) {
-    console.error(`Error tracking ${type} event:`, error);
+    console.error('Error tracking worksheet event:', error);
+    return {
+      success: false,
+      error: 'Failed to track worksheet event'
+    };
   }
 }

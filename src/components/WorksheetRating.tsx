@@ -36,8 +36,8 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
     try {
       setSubmitting(true);
       
-      // Submit rating immediately when button is clicked
-      if (userId) {
+      // Zapisujemy rating tylko jeśli nie mamy jeszcze feedback ID
+      if (userId && !currentFeedbackId) {
         const actualWorksheetId = worksheetId || 
           new URL(window.location.href).searchParams.get('worksheet_id') || 
           null;
@@ -45,25 +45,16 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
         if (actualWorksheetId) {
           const result = await submitFeedback(actualWorksheetId, value, '', userId);
           
-          // Store the feedback ID for future updates
           if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
             setCurrentFeedbackId(result[0].id);
           }
           
-          toast({
-            title: "Rating submitted!",
-            description: "Thanks for your feedback. Add a comment for more details."
-          });
-          
-          // Call the callback if provided
-          if (onSubmitRating) {
-            onSubmitRating(value, '');
-          }
+          // Nie pokazujemy toastu tutaj, aby uniknąć duplikacji
         }
       }
     } catch (error) {
       console.error("Error submitting rating:", error);
-      // Don't show error toast here, as the dialog is already open
+      // Nie pokazujemy błędu, bo dialog jest już otwarty
     } finally {
       setSubmitting(false);
     }
@@ -97,16 +88,13 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
         // Submit new feedback with rating and comment
         const result = await submitFeedback(actualWorksheetId, selected, feedback, userId);
         
-        // Store the feedback ID
         if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
           setCurrentFeedbackId(result[0].id);
         }
       } else {
-        // Create a placeholder for unknown worksheets
-        const placeholderResult = await submitFeedback('unknown', selected, feedback, userId);
-        if (placeholderResult && Array.isArray(placeholderResult) && placeholderResult.length > 0) {
-          setCurrentFeedbackId(placeholderResult[0].id);
-        }
+        console.warn("No worksheet ID found, skipping feedback submission");
+        // Nie tworzymy już placeholderów, to powodowało duplikację rekordów
+        return;
       }
       
       setIsDialogOpen(false);

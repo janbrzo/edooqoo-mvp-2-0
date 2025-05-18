@@ -133,7 +133,55 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
   }
 };
 
-export const exportAsHTML = (elementId: string, filename: string) => {
+// Funkcja do pobierania zewnętrznych stylów CSS
+async function fetchExternalStylesheets() {
+  try {
+    const stylesheetLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
+    const cssPromises = stylesheetLinks.map(async (link) => {
+      try {
+        const href = link.getAttribute('href');
+        if (!href) return '';
+        
+        const response = await fetch(href);
+        if (!response.ok) return '';
+        
+        return await response.text();
+      } catch (e) {
+        console.warn('Could not fetch external stylesheet:', e);
+        return '';
+      }
+    });
+    
+    const results = await Promise.all(cssPromises);
+    return results.filter(Boolean).join('\n');
+  } catch (error) {
+    console.warn('Error fetching external stylesheets:', error);
+    return '';
+  }
+}
+
+// Funkcja do pobierania wewnętrznych stylów
+function getInternalStyles() {
+  let internalStyles = '';
+  try {
+    Array.from(document.styleSheets).forEach(sheet => {
+      try {
+        const cssRules = Array.from(sheet.cssRules);
+        cssRules.forEach(rule => {
+          internalStyles += rule.cssText + '\n';
+        });
+      } catch (e) {
+        // Ignoruj błędy CORS dla external stylesheets
+        console.warn('Could not access cssRules (probably CORS issue):', e);
+      }
+    });
+  } catch (error) {
+    console.warn('Error extracting internal styles:', error);
+  }
+  return internalStyles;
+}
+
+export const exportAsHTML = async (elementId: string, filename: string) => {
   try {
     const element = document.getElementById(elementId);
     if (!element) return false;
@@ -145,25 +193,110 @@ export const exportAsHTML = (elementId: string, filename: string) => {
     const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
     noPdfElements.forEach(el => el.remove());
     
+    // Przywrócenie funkcji przełączania widoku w eksporcie HTML
+    const viewToggleJs = `
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          // Get view toggle buttons
+          const studentViewBtn = document.getElementById('student-view-btn');
+          const teacherViewBtn = document.getElementById('teacher-view-btn');
+          
+          // Get teacher tip elements
+          const teacherTips = document.querySelectorAll('.teacher-tip');
+          
+          // Initialize with student view
+          let currentView = 'student';
+          
+          // Function to toggle view
+          const toggleView = (view) => {
+            currentView = view;
+            
+            if (studentViewBtn) studentViewBtn.classList.toggle('active', view === 'student');
+            if (teacherViewBtn) teacherViewBtn.classList.toggle('active', view === 'teacher');
+            
+            // Toggle teacher tips visibility
+            teacherTips.forEach(tip => {
+              tip.style.display = view === 'teacher' ? 'block' : 'none';
+            });
+          };
+          
+          // Set initial view
+          toggleView('student');
+          
+          // Add event listeners
+          if (studentViewBtn) {
+            studentViewBtn.addEventListener('click', () => toggleView('student'));
+          }
+          
+          if (teacherViewBtn) {
+            teacherViewBtn.addEventListener('click', () => toggleView('teacher'));
+          }
+        });
+      </script>
+    `;
+    
+    // Pobierz zewnętrzne i wewnętrzne style
+    const externalCss = await fetchExternalStylesheets();
+    const internalCss = getInternalStyles();
+    
+    // Podstawowe style potrzebne do poprawnego wyświetlania
+    const essentialCss = `
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f9f9f9;
+      }
+      h1 { color: #3d348b; font-size: 24px; margin-bottom: 16px; }
+      h2 { color: #5e44a0; font-size: 20px; margin-bottom: 12px; }
+      .exercise { margin-bottom: 2em; border: 1px solid #eee; padding: 1em; border-radius: 5px; background-color: white; }
+      .exercise-header { display: flex; align-items: center; margin-bottom: 1em; }
+      .exercise-icon { margin-right: 0.5em; }
+      .instruction { background-color: #f9f9f9; padding: 0.8em; border-left: 3px solid #5e44a0; margin-bottom: 1em; }
+      .teacher-tip { background-color: #e6f7ff; border-left: 3px solid #1890ff; padding: 8px 16px; margin: 16px 0; }
+      .view-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+      .view-toggle button { padding: 8px 16px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; background: white; }
+      .view-toggle button.active { background: #3d348b; color: white; }
+      .content-section { background-color: white; padding: 20px; border-radius: 8px; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+      .bg-worksheet-purple { background-color: #3d348b; color: white; }
+      .bg-worksheet-purpleDark { background-color: #2a2360; color: white; }
+      .text-worksheet-purple { color: #3d348b; }
+      .text-worksheet-purpleDark { color: #2a2360; }
+    `;
+    
+    // Przygotuj viewToggle HTML
+    const viewToggleHtml = `
+      <div class="view-toggle content-section">
+        <button id="student-view-btn" class="active">Student View</button>
+        <button id="teacher-view-btn">Teacher View</button>
+      </div>
+    `;
+    
     // Get the HTML content
     const html = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>${filename}</title>
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-            h1 { color: #3d348b; font-size: 24px; }
-            h2 { color: #5e44a0; font-size: 20px; }
-            .exercise { margin-bottom: 2em; border: 1px solid #eee; padding: 1em; border-radius: 5px; }
-            .exercise-header { display: flex; align-items: center; margin-bottom: 1em; }
-            .exercise-icon { margin-right: 0.5em; }
-            .instruction { background-color: #f9f9f9; padding: 0.8em; border-left: 3px solid #5e44a0; margin-bottom: 1em; }
+            ${essentialCss}
+            ${internalCss}
+            ${externalCss}
+            /* Domyślnie ukryj wskazówki nauczyciela w widoku ucznia */
+            .teacher-tip { display: none; }
           </style>
         </head>
         <body>
-          ${clone.innerHTML}
+          <div class="worksheet-container">
+            ${viewToggleHtml}
+            ${clone.innerHTML}
+          </div>
+          ${viewToggleJs}
         </body>
       </html>
     `;
