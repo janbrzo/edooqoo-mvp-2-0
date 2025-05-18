@@ -16,6 +16,16 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: st
     // Create a formatted prompt string
     const formattedPrompt = `${prompt.lessonTopic} - ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.studentProfile ? `. Student profile: ${prompt.studentProfile}` : ''}${prompt.studentStruggles ? `. Student struggles: ${prompt.studentStruggles}` : ''}. Lesson duration: ${prompt.lessonTime}.`;
     
+    // Prepare form data for storage
+    const formData = {
+      lessonTopic: prompt.lessonTopic,
+      lessonGoal: prompt.lessonGoal,
+      teachingPreferences: prompt.teachingPreferences,
+      studentProfile: prompt.studentProfile || null,
+      studentStruggles: prompt.studentStruggles || null,
+      lessonTime: prompt.lessonTime
+    };
+    
     console.log('Sending formatted prompt to API:', formattedPrompt);
     
     const response = await fetch(GENERATE_WORKSHEET_URL, {
@@ -25,6 +35,7 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: st
       },
       body: JSON.stringify({
         prompt: formattedPrompt,
+        formData: formData,
         userId
       })
     });

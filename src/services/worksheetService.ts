@@ -17,6 +17,16 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     // Create a formatted prompt string
     const formattedPrompt = `${prompt.lessonTopic} - ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.studentProfile ? `. Student profile: ${prompt.studentProfile}` : ''}${prompt.studentStruggles ? `. Student struggles: ${prompt.studentStruggles}` : ''}. Lesson duration: ${prompt.lessonTime}.`;
     
+    // Prepare form data for storage
+    const formData = {
+      lessonTopic: prompt.lessonTopic,
+      lessonGoal: prompt.lessonGoal,
+      teachingPreferences: prompt.teachingPreferences,
+      studentProfile: prompt.studentProfile || null,
+      studentStruggles: prompt.studentStruggles || null,
+      lessonTime: prompt.lessonTime
+    };
+    
     console.log('Sending formatted prompt to API:', formattedPrompt);
     
     const response = await fetch(GENERATE_WORKSHEET_URL, {
@@ -26,6 +36,7 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
       },
       body: JSON.stringify({
         prompt: formattedPrompt,
+        formData: formData,
         userId
       })
     });
@@ -110,99 +121,105 @@ export async function submitFeedback(worksheetId: string, rating: number, commen
     }
     
     // Try using the edge function
-    const response = await fetch(SUBMIT_FEEDBACK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        worksheetId,
-        rating,
-        comment,
-        userId,
-        status: 'submitted' // Ensure status is set to 'submitted'
-      })
-    });
+    try {
+      const response = await fetch(SUBMIT_FEEDBACK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          worksheetId,
+          rating,
+          comment,
+          userId,
+          status: 'submitted' // Ensure status is set to 'submitted'
+        })
+      });
 
-    if (!response.ok) {
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Feedback submission successful:', result);
+        toast.success('Thank you for your feedback!');
+        return result.data;
+      }
+      
       const errorText = await response.text();
       console.error('Error submitting feedback via API:', errorText);
+    } catch (apiError) {
+      console.error('API feedback submission error:', apiError);
+    }
+    
+    // If edge function fails, try direct database submission
+    const { data, error } = await supabase
+      .from('feedbacks')
+      .insert([
+        { 
+          worksheet_id: worksheetId, 
+          user_id: userId, 
+          rating, 
+          comment,
+          status: 'submitted'
+        }
+      ])
+      .select();
       
-      // If edge function fails, try direct database submission
-      const { data, error } = await supabase
-        .from('feedbacks')
-        .insert([
-          { 
-            worksheet_id: worksheetId, 
-            user_id: userId, 
-            rating, 
-            comment,
-            status: 'submitted'
-          }
-        ])
-        .select();
+    if (error) {
+      console.error('Direct feedback submission error:', error);
+      
+      // If direct insert fails and we don't have a worksheet_id, try creating a placeholder
+      if (error.message.includes('violates foreign key constraint')) {
+        console.log('Creating placeholder worksheet for feedback');
         
-      if (error) {
-        console.error('Direct feedback submission error:', error);
-        
-        // If direct insert fails and we don't have a worksheet_id, try creating a placeholder
-        if (error.message.includes('violates foreign key constraint')) {
-          console.log('Creating placeholder worksheet for feedback');
+        const { data: placeholderData, error: placeholderError } = await supabase
+          .from('worksheets')
+          .insert([
+            {
+              prompt: 'Generated worksheet',
+              form_data: JSON.stringify({ title: 'Generated Worksheet' }),
+              ai_response: 'Placeholder response',
+              html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
+              user_id: userId,
+              ip_address: 'client-side',
+              status: 'created',
+              title: 'Generated Worksheet'
+            }
+          ])
+          .select();
           
-          const { data: placeholderData, error: placeholderError } = await supabase
-            .from('worksheets')
+        if (placeholderError) {
+          console.error('Error creating placeholder worksheet:', placeholderError);
+          throw new Error('Failed to create feedback record: worksheet reference is required');
+        }
+          
+        if (placeholderData && placeholderData.length > 0) {
+          // Try feedback again with new worksheet ID
+          const { data: retryData, error: retryError } = await supabase
+            .from('feedbacks')
             .insert([
-              {
-                prompt: 'Generated worksheet',
-                html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
-                user_id: userId,
-                ip_address: 'client-side',
-                status: 'created',
-                title: 'Generated Worksheet'
+              { 
+                worksheet_id: placeholderData[0].id, 
+                user_id: userId, 
+                rating, 
+                comment,
+                status: 'submitted'
               }
             ])
             .select();
-            
-          if (placeholderError) {
-            console.error('Error creating placeholder worksheet:', placeholderError);
-            throw new Error('Failed to create feedback record: worksheet reference is required');
-          }
-            
-          if (placeholderData && placeholderData.length > 0) {
-            // Try feedback again with new worksheet ID
-            const { data: retryData, error: retryError } = await supabase
-              .from('feedbacks')
-              .insert([
-                { 
-                  worksheet_id: placeholderData[0].id, 
-                  user_id: userId, 
-                  rating, 
-                  comment,
-                  status: 'submitted'
-                }
-              ])
-              .select();
-                
-            if (retryError) {
-              console.error('Retry feedback submission error:', retryError);
-              throw new Error(`Failed to submit feedback after retry: ${retryError.message}`);
-            }
               
-            return retryData;
+          if (retryError) {
+            console.error('Retry feedback submission error:', retryError);
+            throw new Error(`Failed to submit feedback after retry: ${retryError.message}`);
           }
-        } else {
-          throw new Error(`Failed to submit feedback: ${error.message}`);
+            
+          return retryData;
         }
+      } else {
+        throw new Error(`Failed to submit feedback: ${error.message}`);
       }
-        
-      toast.success('Thank you for your feedback!');
-      return data;
     }
-    
-    const result = await response.json();
-    console.log('Feedback submission successful:', result);
+      
     toast.success('Thank you for your feedback!');
-    return result.data;
+    return data;
   } catch (error) {
     console.error('Error submitting feedback:', error);
     toast.error(`We couldn't submit your rating: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -249,61 +266,29 @@ export async function trackWorksheetEvent(type: string, worksheetId: string, use
     }
     
     console.log(`Tracking event: ${type} for worksheet: ${worksheetId}`);
-    const { error } = await supabase.from('events').insert({
-      type: type,
-      event_type: type,
-      worksheet_id: worksheetId,
-      user_id: userId,
-      metadata,
-      ip_address: "client-side" // Since we can't get IP on client side
-    });
-
-    if (error) {
-      console.error(`Error tracking ${type} event:`, error);
+    
+    // We'll try to create the table if it doesn't exist
+    try {
+      await supabase.rpc('create_events_table_if_not_exists').catch(() => {
+        console.log('Table might already exist or we have no permission to create it');
+      });
       
-      // If FK constraint error, try creating a placeholder worksheet
-      if (error.message.includes('violates foreign key constraint')) {
-        console.log('Creating placeholder worksheet for event tracking');
-        
-        const { data: placeholderData, error: placeholderError } = await supabase
-          .from('worksheets')
-          .insert([
-            {
-              prompt: 'Generated worksheet',
-              html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
-              user_id: userId,
-              ip_address: 'client-side',
-              status: 'created',
-              title: 'Generated Worksheet'
-            }
-          ])
-          .select();
-          
-        if (placeholderError) {
-          console.error('Error creating placeholder worksheet:', placeholderError);
-          return;
-        }
-          
-        if (placeholderData && placeholderData.length > 0) {
-          // Try event again with new worksheet ID
-          const { error: retryError } = await supabase.from('events').insert({
-            type: type,
-            event_type: type,
-            worksheet_id: placeholderData[0].id,
-            user_id: userId,
-            metadata,
-            ip_address: "client-side"
-          });
-            
-          if (retryError) {
-            console.error(`Error tracking ${type} event after retry:`, retryError);
-          } else {
-            console.log(`Successfully tracked ${type} event after creating placeholder worksheet`);
-          }
-        }
+      const { error } = await supabase.from('events').insert({
+        type: type,
+        event_type: type,
+        worksheet_id: worksheetId,
+        user_id: userId,
+        metadata,
+        ip_address: "client-side" // Since we can't get IP on client side
+      });
+
+      if (error) {
+        console.error(`Error tracking ${type} event:`, error);
+      } else {
+        console.log(`Successfully tracked ${type} event`);
       }
-    } else {
-      console.log(`Successfully tracked ${type} event`);
+    } catch (innerError) {
+      console.error(`Failed to track event: ${innerError}`);
     }
   } catch (error) {
     console.error(`Error tracking ${type} event:`, error);

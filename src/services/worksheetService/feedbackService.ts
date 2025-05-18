@@ -72,6 +72,8 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
           .insert([
             {
               prompt: 'Generated worksheet',
+              form_data: JSON.stringify({ title: 'Generated Worksheet' }),
+              ai_response: 'Placeholder response',
               html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
               user_id: userId,
               ip_address: 'client-side',
