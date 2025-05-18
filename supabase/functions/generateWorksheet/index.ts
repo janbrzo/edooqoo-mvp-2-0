@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
@@ -373,24 +372,28 @@ RETURN ONLY VALID JSON.
 
     // Save worksheet to database
     try {
+      // POPRAWIONA CZĘŚĆ - właściwe nazwy parametrów do funkcji insert_worksheet_bypass_limit
       const { data: worksheet, error: worksheetError } = await supabase.rpc(
         'insert_worksheet_bypass_limit',
         {
           p_prompt: prompt,
-          p_content: JSON.stringify(worksheetData),
+          p_form_data: JSON.stringify(prompt),
+          p_ai_response: jsonContent || '',
+          p_html_content: '',  // Puste pole HTML content, będzie wypełnione po stronie klienta
           p_user_id: userId,
           p_ip_address: ip,
           p_status: 'created',
-          p_title: worksheetData.title
+          p_title: worksheetData.title,
+          p_generation_time_seconds: 0  // Czas generowania zostanie zaktualizowany po stronie klienta
         }
       );
 
       if (worksheetError) {
         console.error('Error saving worksheet to database:', worksheetError);
-        // Continue even if database save fails - we'll return the generated content
+        // Kontynuuj nawet jeśli zapis do bazy nie powiódł się - zwrócimy wygenerowaną zawartość
       }
 
-      // Track generation event if we have a worksheet ID
+      // Śledź zdarzenie generowania jeśli mamy ID worksheetu
       if (worksheet && worksheet.length > 0 && worksheet[0].id) {
         const worksheetId = worksheet[0].id;
         await supabase.from('events').insert({
@@ -407,12 +410,13 @@ RETURN ONLY VALID JSON.
       }
     } catch (dbError) {
       console.error('Database operation failed:', dbError);
-      // Continue without failing the request
+      // Kontynuuj bez przerywania requetsu
     }
 
     return new Response(JSON.stringify(worksheetData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+    
   } catch (error) {
     console.error('Error in generateWorksheet:', error);
     return new Response(

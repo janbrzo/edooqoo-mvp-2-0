@@ -9,10 +9,12 @@ import GeneratingModal from "@/components/GeneratingModal";
 import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";
 
-// Import just as a fallback in case generation fails
+// Import jako fallback w przypadku niepowodzenia generowania
 import mockWorksheetData from '@/mockWorksheetData';
 
-// Utility functions
+/**
+ * Utility functions
+ */
 const getExpectedExerciseCount = (lessonTime: string): number => {
   if (lessonTime === "30 min") return 4;
   else if (lessonTime === "45 min") return 6;
@@ -59,22 +61,22 @@ const validateWorksheet = (worksheetData: any, expectedCount: number): boolean =
 
 const processExercises = (exercises: any[]): any[] => {
   return exercises.map((exercise: any, index: number) => {
-    // Make sure exercise number is correct
+    // Upewnij się że numer ćwiczenia jest poprawny
     const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
     exercise.title = `Exercise ${index + 1}: ${exerciseType}`;
     
-    // Process matching exercises
+    // Przetwarzanie ćwiczeń typu matching
     if (exercise.type === "matching" && exercise.items) {
       exercise.originalItems = [...exercise.items];
       exercise.shuffledTerms = shuffleArray([...exercise.items]);
     }
     
-    // Process reading exercise
+    // Przetwarzanie ćwiczeń typu reading
     if (exercise.type === 'reading' && exercise.content) {
       const wordCount = exercise.content.split(/\s+/).filter(Boolean).length;
       console.log(`Reading exercise word count: ${wordCount}`);
       
-      // Ensure it has adequate number of questions
+      // Upewnij się że ma odpowiednią liczbę pytań
       if (!exercise.questions || exercise.questions.length < 5) {
         if (!exercise.questions) exercise.questions = [];
         while (exercise.questions.length < 5) {
@@ -94,7 +96,7 @@ const processExercises = (exercises: any[]): any[] => {
  * Main Index page component that handles worksheet generation and display
  */
 const Index = () => {
-  // State for tracking worksheet generation process
+  // Stan do śledzenia procesu generowania worksheetu
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedWorksheet, setGeneratedWorksheet] = useState<any>(null);
   const [inputParams, setInputParams] = useState<FormData | null>(null);
@@ -103,15 +105,15 @@ const Index = () => {
   const [worksheetId, setWorksheetId] = useState<string | null>(null);
   const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
   
-  // Hooks
+  // Hooki
   const { toast } = useToast();
   const { userId, loading: authLoading } = useAnonymousAuth();
 
   /**
-   * Handles form submission and worksheet generation
+   * Obsługuje wysłanie formularza i generowanie worksheetu
    */
   const handleFormSubmit = async (data: FormData) => {
-    // Check for valid user session
+    // Sprawdź czy mamy ważną sesję użytkownika
     if (!userId) {
       toast({
         title: "Authentication error",
@@ -121,41 +123,41 @@ const Index = () => {
       return;
     }
 
-    // Store form data and start generation process
+    // Zapisz dane formularza i rozpocznij proces generowania
     setInputParams(data);
     setIsGenerating(true);
     
-    // Record start time for accurate generation time calculation
+    // Zapisz czas rozpoczęcia generowania do dokładnego obliczenia czasu
     const startTime = Date.now();
     setStartGenerationTime(startTime);
     
     try {
-      // Generate worksheet using the API
+      // Generuj worksheet poprzez API
       const worksheetData = await generateWorksheet(data, userId);
       
       console.log("Generated worksheet data:", worksheetData);
       
-      // Calculate actual generation time
+      // Oblicz rzeczywisty czas generowania
       const actualGenerationTime = Math.round((Date.now() - startTime) / 1000);
       setGenerationTime(actualGenerationTime);
       
-      // Set source count from the API or default
+      // Ustaw licznik źródeł z API lub domyślny
       setSourceCount(worksheetData.sourceCount || Math.floor(Math.random() * (90 - 65) + 65));
       
-      // Get expected exercise count based on lesson time
+      // Sprawdź oczekiwaną liczbę ćwiczeń na podstawie czasu lekcji
       const expectedExerciseCount = getExpectedExerciseCount(data.lessonTime);
       console.log(`Expected ${expectedExerciseCount} exercises for ${data.lessonTime}`);
       
-      // If we have a valid worksheet, use it
+      // Jeśli mamy poprawny worksheet, użyj go
       if (validateWorksheet(worksheetData, expectedExerciseCount)) {
-        // Process exercises (numbering, shuffling terms, etc)
+        // Przetwórz ćwiczenia (numerowanie, mieszanie terminów, itp.)
         worksheetData.exercises = processExercises(worksheetData.exercises);
         
-        // Use the ID returned from the API or generate a temporary one
+        // Użyj ID zwróconego z API lub wygeneruj tymczasowe
         const wsId = worksheetData.id || uuidv4();
         setWorksheetId(wsId);
         
-        // Check if we need to add vocabulary sheet
+        // Sprawdź czy potrzebujemy dodać arkusz słownictwa
         if (!worksheetData.vocabulary_sheet || worksheetData.vocabulary_sheet.length === 0) {
           worksheetData.vocabulary_sheet = createSampleVocabulary(15);
         }
@@ -173,23 +175,23 @@ const Index = () => {
     } catch (error) {
       console.error("Worksheet generation error:", error);
       
-      // Fallback to mock data if generation fails
+      // Użyj danych testowych jeśli generowanie nie powiodło się
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
       
-      // Get correct exercise count based on lesson time
+      // Pobierz odpowiednią liczbę ćwiczeń na podstawie czasu lekcji
       const expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60 min');
       
-      // Adjust mock exercises to match expected count
+      // Dostosuj liczbę ćwiczeń
       fallbackWorksheet.exercises = fallbackWorksheet.exercises.slice(0, expectedExerciseCount);
       
-      // Process the fallback exercises
+      // Przetwórz ćwiczenia zastępcze
       fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises);
       
       const tempId = uuidv4();
       setWorksheetId(tempId);
       setGeneratedWorksheet(fallbackWorksheet);
       
-      // Let the user know we're using a fallback
+      // Poinformuj użytkownika, że używamy danych zastępczych
       toast({
         title: "Using sample worksheet",
         description: error instanceof Error 
@@ -203,7 +205,7 @@ const Index = () => {
   };
 
   /**
-   * Resets the view to the form
+   * Resetuje widok do formularza
    */
   const handleBack = () => {
     setGeneratedWorksheet(null);
@@ -211,7 +213,7 @@ const Index = () => {
     setWorksheetId(null);
   };
 
-  // Show loading indicator while auth is initializing
+  // Pokaż indykator ładowania podczas inicjalizacji uwierzytelniania
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -236,7 +238,10 @@ const Index = () => {
         />
       )}
       
-      <GeneratingModal isOpen={isGenerating} />
+      <GeneratingModal 
+        isOpen={isGenerating} 
+        startTime={startGenerationTime} 
+      />
     </div>
   );
 };
