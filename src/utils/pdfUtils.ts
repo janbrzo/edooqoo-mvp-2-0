@@ -193,7 +193,11 @@ export const exportAsHTML = async (elementId: string, filename: string) => {
     const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
     noPdfElements.forEach(el => el.remove());
     
-    // Przywrócenie funkcji przełączania widoku w eksporcie HTML
+    // Pobierz zewnętrzne i wewnętrzne style
+    const externalCss = await fetchExternalStylesheets();
+    const internalCss = getInternalStyles();
+    
+    // Przygotuj JS do przełączania widoków
     const viewToggleJs = `
       <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -235,18 +239,14 @@ export const exportAsHTML = async (elementId: string, filename: string) => {
       </script>
     `;
     
-    // Pobierz zewnętrzne i wewnętrzne style
-    const externalCss = await fetchExternalStylesheets();
-    const internalCss = getInternalStyles();
-    
     // Podstawowe style potrzebne do poprawnego wyświetlania
     const essentialCss = `
-      body {
+      .lovable-root {
+        max-width: 900px;
+        margin: 0 auto;
         font-family: Arial, sans-serif;
         line-height: 1.6;
         color: #333;
-        max-width: 980px;
-        margin: 0 auto;
         padding: 20px;
         background-color: #f9f9f9;
       }
@@ -292,7 +292,7 @@ export const exportAsHTML = async (elementId: string, filename: string) => {
           </style>
         </head>
         <body>
-          <div class="worksheet-container">
+          <div class="lovable-root">
             ${viewToggleHtml}
             ${clone.innerHTML}
           </div>

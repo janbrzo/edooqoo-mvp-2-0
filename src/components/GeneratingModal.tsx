@@ -9,19 +9,20 @@ interface GeneratingModalProps {
 
 // Bardziej realistyczne etapy generowania z odpowiednimi wagami procentowymi
 const generationSteps = [
-  { message: "Analyzing your requirements...", weight: 5 },
-  { message: "Researching industry-specific content...", weight: 15 },
-  { message: "Creating exercise structure...", weight: 20 },
-  { message: "Generating exercises...", weight: 35 },
-  { message: "Polishing final content...", weight: 20 },
-  { message: "Preparing your worksheet...", weight: 5 }
+  { message: "Analizuję wymagania...", weight: 5 },
+  { message: "Badam źródła treści specjalistycznych...", weight: 15 },
+  { message: "Tworzę strukturę ćwiczeń...", weight: 15 },
+  { message: "Generuję ćwiczenia 1-4...", weight: 25 },
+  { message: "Generuję ćwiczenia 5-8...", weight: 25 },
+  { message: "Dopracowuję końcową treść...", weight: 10 },
+  { message: "Przygotowuję arkusz pracy...", weight: 5 }
 ];
 
 // Łączna suma wag
 const totalWeight = generationSteps.reduce((sum, step) => sum + step.weight, 0);
 
-// Szacowany całkowity czas generowania w sekundach (średnio 60 sekund)
-const estimatedTotalTime = 60;
+// Bardziej realistyczny szacowany całkowity czas generowania w sekundach
+const estimatedTotalTime = 60; // średnio 60 sekund dla generowania
 
 export default function GeneratingModal({
   isOpen,
@@ -33,6 +34,7 @@ export default function GeneratingModal({
   
   useEffect(() => {
     if (!isOpen) {
+      // Resetuj stan gdy modal jest zamknięty
       setProgress(0);
       setCurrentStepIndex(0);
       setElapsedTime(0);
@@ -51,36 +53,42 @@ export default function GeneratingModal({
     // Bardziej realistyczna progresja kroków
     const stepInterval = setInterval(() => {
       setCurrentStepIndex(prevStep => {
-        // Oblicz kiedy powinien nastąpić kolejny krok na podstawie wag i szacowanego całkowitego czasu
         const totalElapsed = elapsedTime;
-        let weightSum = 0;
         
+        // Obliczamy, w którym kroku powinniśmy być na podstawie czasu
+        let cumulativeWeight = 0;
         for (let i = 0; i < generationSteps.length; i++) {
-          weightSum += generationSteps[i].weight;
-          const stepThreshold = (weightSum / totalWeight) * estimatedTotalTime;
+          cumulativeWeight += generationSteps[i].weight;
+          const stepThreshold = (cumulativeWeight / totalWeight) * estimatedTotalTime;
           
           if (totalElapsed < stepThreshold && i > prevStep) {
             return i;
           }
         }
         
-        // Jeśli minęło więcej czasu niż szacowano, po prostu pokazuj ostatni etap
+        // Jeśli przetwarzanie trwa dłużej niż szacowano, zostajemy przy ostatnim kroku
         return Math.min(prevStep + 1, generationSteps.length - 1);
       });
-    }, 3000);
+    }, 5000); // Wolniejsze przejścia między krokami
 
     // Progresywne zwiększanie paska postępu
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         const totalElapsed = elapsedTime;
         
-        // Wolniejszy postęp na podstawie upływu czasu
-        // Dochodzimy do 95% postępu w szacowanym czasie, pozostałe 5% zostawiamy na końcową fazę
-        let newProgress = Math.min(95, (totalElapsed / estimatedTotalTime) * 95);
+        // Mapowanie czasu na postęp, maksymalnie do 95%
+        // Tak aby użytkownik widział że coś się dzieje
+        let newProgress;
         
-        // Jeśli minęło więcej czasu niż szacowano, zwiększamy postęp powoli do 99%
-        if (totalElapsed > estimatedTotalTime) {
-          newProgress = 95 + Math.min(4, (totalElapsed - estimatedTotalTime) / 20);
+        if (totalElapsed < estimatedTotalTime) {
+          // Przez pierwsze 60 sekund dążymy do 95% postępu
+          newProgress = Math.min(95, (totalElapsed / estimatedTotalTime) * 95);
+        } else {
+          // Po przekroczeniu szacowanego czasu, postęp powoli dochodzi do 99%
+          const extraTimeElapsed = totalElapsed - estimatedTotalTime;
+          // Każde dodatkowe 20 sekund daje +1% postępu, aż do 99%
+          const extraProgress = Math.min(4, extraTimeElapsed / 20);
+          newProgress = 95 + extraProgress;
         }
         
         return newProgress;
@@ -96,6 +104,7 @@ export default function GeneratingModal({
 
   if (!isOpen) return null;
 
+  // Formatuje czas w postaci MM:SS
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -106,7 +115,7 @@ export default function GeneratingModal({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white p-8 rounded-lg shadow-xl w-[450px] space-y-6">
         <h2 className="text-2xl font-semibold text-center bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 bg-clip-text text-transparent">
-          Generating Your Worksheet
+          Generuję Twój Arkusz Pracy
         </h2>
         <Progress 
           value={progress} 
@@ -114,7 +123,7 @@ export default function GeneratingModal({
           indicatorClassName="bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500" 
         />
         <div className="flex justify-between items-center text-sm text-gray-500">
-          <span>Time: {formatTime(elapsedTime)}</span>
+          <span>Czas: {formatTime(elapsedTime)}</span>
           <span>{Math.round(progress)}%</span>
         </div>
         <p className="text-center min-h-[24px] animate-pulse font-normal text-sky-400">

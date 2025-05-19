@@ -5,10 +5,7 @@ import { submitFeedbackAPI, updateFeedbackAPI } from './worksheetService/feedbac
 import { trackWorksheetEventAPI } from './worksheetService/trackingService';
 
 /**
- * Main service export for worksheet functionality
- * 
- * This file exports all worksheet-related functionality from separate modules
- * for easier maintainability and organization.
+ * Główny eksport usługi dla funkcjonalności worksheetu
  */
 export { 
   generateWorksheet,
@@ -18,49 +15,49 @@ export {
 };
 
 /**
- * Generates a worksheet using the Edge Function
+ * Generuje worksheet przy użyciu Edge Function
  * 
- * @param prompt The worksheet form data
- * @param userId The ID of the requesting user
- * @returns Promise with the generated worksheet
+ * @param prompt Dane formularza worksheetu
+ * @param userId ID użytkownika
+ * @returns Obietnica z wygenerowanym worksheetem
  */
 async function generateWorksheet(prompt: WorksheetFormData, userId: string) {
   return generateWorksheetAPI(prompt, userId);
 }
 
 /**
- * Submits feedback for a worksheet
+ * Wysyła ocenę dla arkusza pracy
  * 
- * @param worksheetId The ID of the worksheet
- * @param rating Rating value (1-5)
- * @param comment User comment (optional)
- * @param userId The ID of the user submitting feedback
- * @returns Promise with feedback submission result
+ * @param worksheetId ID arkusza pracy
+ * @param rating Ocena (1-5)
+ * @param comment Komentarz użytkownika (opcjonalny)
+ * @param userId ID użytkownika
+ * @returns Obietnica z wynikiem wysyłania oceny
  */
 async function submitFeedback(worksheetId: string, rating: number, comment: string, userId: string) {
   return submitFeedbackAPI(worksheetId, rating, comment, userId);
 }
 
 /**
- * Updates existing feedback with a comment
+ * Aktualizuje komentarz do istniejącej oceny
  * 
- * @param id Feedback ID
- * @param comment User comment
- * @param userId User ID for verification
- * @returns Promise with feedback update result
+ * @param id ID oceny
+ * @param comment Komentarz
+ * @param userId ID użytkownika dla weryfikacji
+ * @returns Obietnica z wynikiem aktualizacji
  */
 async function updateFeedback(id: string, comment: string, userId: string) {
   return updateFeedbackAPI(id, comment, userId);
 }
 
 /**
- * Tracks an event (view, download, etc.)
+ * Śledzi zdarzenie (wyświetlenie, pobranie, itp.)
  * 
- * @param type Event type (view, download, etc.)
- * @param worksheetId The ID of the worksheet
- * @param userId The ID of the user
- * @param metadata Additional metadata
- * @returns Promise with tracking result
+ * @param type Typ zdarzenia (np. 'view', 'download', 'share')
+ * @param worksheetId ID arkusza pracy
+ * @param userId ID użytkownika
+ * @param metadata Dodatkowe dane
+ * @returns Obietnica z wynikiem śledzenia
  */
 async function trackWorksheetEvent(type: string, worksheetId: string, userId: string, metadata: any = {}) {
   return trackWorksheetEventAPI(type, worksheetId, userId, metadata);

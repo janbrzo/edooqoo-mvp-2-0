@@ -5,7 +5,9 @@ import { ArrowUp } from "lucide-react";
 import { FormData } from "@/components/WorksheetForm";
 import { useToast } from "@/hooks/use-toast";
 import { submitFeedback, trackWorksheetEvent } from "@/services/worksheetService";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
+// Typy
 interface GenerationViewProps {
   worksheetId: string | null;
   generatedWorksheet: any;
@@ -16,6 +18,9 @@ interface GenerationViewProps {
   userId: string | null;
 }
 
+/**
+ * Widok po wygenerowaniu arkusza pracy
+ */
 const GenerationView: React.FC<GenerationViewProps> = ({
   worksheetId,
   generatedWorksheet,
@@ -25,38 +30,25 @@ const GenerationView: React.FC<GenerationViewProps> = ({
   onBack,
   userId
 }) => {
-  const [showScrollTop, setShowScrollTop] = useState(false);
   const { toast } = useToast();
+  const { showScrollTop, scrollToTop } = useScrollToTop();
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
+  // Po załadowaniu, śledź zdarzenie wyświetlenia
   useEffect(() => {
     if (userId && worksheetId && generatedWorksheet) {
-      // Only track events if we have a valid ID
-      if (worksheetId.length > 10) {
-        trackWorksheetEvent('view', worksheetId, userId);
-      }
+      // Śledź tylko gdy ID jest prawidłowe
+      trackWorksheetEvent('view', worksheetId, userId);
     }
   }, [userId, worksheetId, generatedWorksheet]);
 
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  };
-
+  /**
+   * Obsługuje wysłanie oceny
+   */
   const handleFeedbackSubmit = async (rating: number, feedback: string) => {
     if (!userId) {
       toast({
-        title: "Feedback submission error",
-        description: "There was a problem with your session. Please refresh the page and try again.",
+        title: "Błąd wysyłania oceny",
+        description: "Wystąpił problem z sesją. Odśwież stronę i spróbuj ponownie.",
         variant: "destructive"
       });
       return;
@@ -66,25 +58,25 @@ const GenerationView: React.FC<GenerationViewProps> = ({
       await submitFeedback(worksheetId || 'unknown', rating, feedback, userId);
       
       toast({
-        title: "Thank you for your feedback!",
-        description: "Your rating and comments help us improve our service."
+        title: "Dziękujemy za ocenę!",
+        description: "Twoja ocena i komentarze pomagają nam ulepszać naszą usługę."
       });
     } catch (error) {
-      console.error("Feedback submission error:", error);
+      console.error("Błąd wysyłania oceny:", error);
       toast({
-        title: "Feedback submission failed",
-        description: "We couldn't submit your feedback. Please try again later.",
+        title: "Nie udało się wysłać oceny",
+        description: "Nie mogliśmy wysłać Twojej oceny. Spróbuj ponownie później.",
         variant: "destructive"
       });
     }
   };
 
+  /**
+   * Śledzi zdarzenie pobrania
+   */
   const handleDownloadEvent = () => {
     if (userId && worksheetId) {
-      // Only track events if we have a valid ID
-      if (worksheetId.length > 10) {
-        trackWorksheetEvent('download', worksheetId, userId);
-      }
+      trackWorksheetEvent('download', worksheetId, userId);
     }
   };
 
@@ -106,7 +98,7 @@ const GenerationView: React.FC<GenerationViewProps> = ({
         <button 
           onClick={scrollToTop} 
           className="fixed bottom-6 right-6 z-50 bg-worksheet-purple text-white p-3 rounded-full shadow-lg hover:bg-worksheet-purpleDark transition-colors" 
-          aria-label="Scroll to top"
+          aria-label="Przewiń do góry"
         >
           <ArrowUp size={24} />
         </button>

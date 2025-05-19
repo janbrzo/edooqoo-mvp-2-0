@@ -2,94 +2,110 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Submits feedback for a worksheet
+ * Wysyła ocenę dla arkusza pracy
  * 
- * @param worksheetId The ID of the worksheet
- * @param rating Rating value (1-5)
- * @param comment User comment (optional)
- * @param userId The ID of the user submitting feedback
- * @returns Promise with feedback submission result
+ * @param worksheetId ID arkusza pracy
+ * @param rating Ocena (1-5)
+ * @param comment Komentarz użytkownika (opcjonalny)
+ * @param userId ID użytkownika
+ * @returns Obietnica z wynikiem wysyłania oceny
  */
 export async function submitFeedbackAPI(worksheetId: string, rating: number, comment: string, userId: string) {
   try {
-    // Check if the worksheet exists
-    const { data: worksheetExists } = await supabase
-      .from('worksheets')
-      .select('id')
-      .eq('id', worksheetId)
-      .single();
-    
-    if (!worksheetExists) {
-      console.warn(`Worksheet ${worksheetId} not found, skipping feedback submission`);
-      return { error: 'Worksheet not found' };
+    // Weryfikacja poprawności danych
+    if (!worksheetId || !rating || rating < 1 || rating > 5) {
+      throw new Error("Invalid feedback data");
     }
-
-    // Insert the feedback
-    const { data, error } = await supabase
+    
+    // Sprawdź czy ocena już istnieje
+    const { data: existingFeedback, error: checkError } = await supabase
       .from('feedbacks')
-      .insert([{
-        worksheet_id: worksheetId,
-        rating: rating,
-        comment: comment || '',
-        user_id: userId
-      }])
-      .select();
+      .select('id')
+      .eq('worksheet_id', worksheetId)
+      .eq('user_id', userId)
+      .maybeSingle();
     
-    if (error) {
-      console.error('Error submitting feedback:', error);
-      return { error: 'Failed to submit feedback' };
+    if (checkError) {
+      throw new Error(`Error checking existing feedback: ${checkError.message}`);
     }
     
-    return data;
+    let response;
+    
+    if (existingFeedback) {
+      // Aktualizuj istniejącą ocenę
+      response = await supabase
+        .from('feedbacks')
+        .update({ 
+          rating,
+          comment,
+          status: 'updated'
+        })
+        .eq('id', existingFeedback.id)
+        .select();
+    } else {
+      // Dodaj nową ocenę
+      response = await supabase
+        .from('feedbacks')
+        .insert({
+          worksheet_id: worksheetId,
+          user_id: userId,
+          rating,
+          comment,
+          status: 'submitted'
+        })
+        .select();
+    }
+    
+    if (response.error) {
+      throw new Error(`Error submitting feedback: ${response.error.message}`);
+    }
+    
+    return response.data?.[0] || null;
   } catch (error) {
-    console.error('Error in submitFeedbackAPI:', error);
-    return { error: 'Failed to submit feedback due to server error' };
+    console.error("Error in submitFeedback:", error);
+    throw error;
   }
 }
 
 /**
- * Updates existing feedback with a comment
+ * Aktualizuje komentarz do istniejącej oceny
  * 
- * @param id Feedback ID
- * @param comment User comment
- * @param userId User ID for verification
- * @returns Promise with feedback update result
+ * @param id ID oceny
+ * @param comment Komentarz
+ * @param userId ID użytkownika dla weryfikacji
+ * @returns Obietnica z wynikiem aktualizacji
  */
 export async function updateFeedbackAPI(id: string, comment: string, userId: string) {
   try {
-    // Verify ownership
-    const { data: feedback } = await supabase
+    // Weryfikacja, czy ocena należy do tego użytkownika
+    const { data: existingFeedback, error: checkError } = await supabase
       .from('feedbacks')
-      .select('id, user_id')
+      .select('id')
       .eq('id', id)
-      .single();
+      .eq('user_id', userId)
+      .maybeSingle();
     
-    if (!feedback) {
-      return { error: 'Feedback not found' };
+    if (checkError || !existingFeedback) {
+      throw new Error("Feedback not found or access denied");
     }
     
-    if (feedback.user_id !== userId) {
-      return { error: 'Not authorized to update this feedback' };
-    }
-    
-    // Update the feedback
+    // Aktualizuj komentarz
     const { data, error } = await supabase
       .from('feedbacks')
-      .update({
-        comment: comment,
-        updated_at: new Date().toISOString()
+      .update({ 
+        comment,
+        status: 'updated'
       })
       .eq('id', id)
       .select();
     
     if (error) {
-      console.error('Error updating feedback:', error);
-      return { error: 'Failed to update feedback' };
+      throw new Error(`Error updating feedback comment: ${error.message}`);
     }
     
-    return data;
+    return data?.[0] || null;
   } catch (error) {
-    console.error('Error in updateFeedbackAPI:', error);
-    return { error: 'Failed to update feedback due to server error' };
+    console.error("Error in updateFeedback:", error);
+    throw error;
   }
 }
