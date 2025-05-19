@@ -52,12 +52,23 @@ export async function trackWorksheetEventAPI(type: string, worksheetId: string, 
     };
     
     // Zaktualizuj dane formularza, dodając nowe zdarzenie śledzenia
-    const currentData = currentWorksheet.form_data || {};
+    // Upewnij się, że form_data jest obiektem i ma prawidłową strukturę
+    const currentData = typeof currentWorksheet.form_data === 'object' && currentWorksheet.form_data !== null 
+      ? currentWorksheet.form_data 
+      : {};
+      
+    // Sprawdź, czy tracking istnieje i jest tablicą
+    const currentTracking = currentData && 
+                           typeof currentData === 'object' && 
+                           'tracking' in currentData && 
+                           Array.isArray(currentData.tracking) 
+                             ? currentData.tracking 
+                             : [];
+    
+    // Utwórz zaktualizowane dane z nowym zdarzeniem śledzenia
     const updatedData = {
       ...currentData,
-      tracking: Array.isArray(currentData.tracking) 
-        ? [...currentData.tracking, trackingEvent]
-        : [trackingEvent]
+      tracking: [...currentTracking, trackingEvent]
     };
     
     // Zapisz zaktualizowane dane w tabeli worksheets
