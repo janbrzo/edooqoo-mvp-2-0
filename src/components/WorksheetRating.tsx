@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,18 +42,18 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
           null;
             
         if (actualWorksheetId) {
+          console.log("Submitting initial rating", { worksheetId: actualWorksheetId, rating: value, userId });
           const result = await submitFeedback(actualWorksheetId, value, '', userId);
+          console.log("Rating submission result:", result);
           
-          if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
-            setCurrentFeedbackId(result[0].id);
+          if (result && result.id) {
+            setCurrentFeedbackId(result.id);
+            console.log("Set feedback ID from initial rating:", result.id);
           }
-          
-          // Nie pokazujemy toastu tutaj, aby uniknąć duplikacji
         }
       }
     } catch (error) {
       console.error("Error submitting rating:", error);
-      // Nie pokazujemy błędu, bo dialog jest już otwarty
     } finally {
       setSubmitting(false);
     }
@@ -65,6 +64,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
     
     try {
       setSubmitting(true);
+      console.log("Submitting full feedback");
       
       // Try to get worksheet ID from props, URL or DOM
       let actualWorksheetId = worksheetId || null;
@@ -81,19 +81,25 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
         }
       }
       
+      console.log("Final worksheet ID:", actualWorksheetId);
+      console.log("Current feedback ID:", currentFeedbackId);
+      
       if (currentFeedbackId) {
         // Update existing feedback with comment
+        console.log("Updating existing feedback", { id: currentFeedbackId, comment: feedback });
         await updateFeedback(currentFeedbackId, feedback, userId);
       } else if (actualWorksheetId) {
         // Submit new feedback with rating and comment
+        console.log("Submitting new feedback", { worksheetId: actualWorksheetId, rating: selected, comment: feedback });
         const result = await submitFeedback(actualWorksheetId, selected, feedback, userId);
+        console.log("Feedback submission result:", result);
         
-        if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
-          setCurrentFeedbackId(result[0].id);
+        if (result && result.id) {
+          setCurrentFeedbackId(result.id);
+          console.log("Set feedback ID from full submission:", result.id);
         }
       } else {
         console.warn("No worksheet ID found, skipping feedback submission");
-        // Nie tworzymy już placeholderów, to powodowało duplikację rekordów
         return;
       }
       

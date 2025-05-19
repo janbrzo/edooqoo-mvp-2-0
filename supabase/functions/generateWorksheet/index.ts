@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
@@ -23,7 +24,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, userId } = await req.json();
+    const { prompt, formData, userId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
     
     if (!prompt) {
@@ -31,16 +32,23 @@ serve(async (req) => {
     }
 
     console.log('Received prompt:', prompt);
+    console.log('Form data:', formData);
 
-    // Parse the lesson time from the prompt to determine exercise count
-    let exerciseCount = 6; // Default
-    if (prompt.includes('30 min')) {
+    // Parse the lesson time from the form data to determine exercise count
+    let exerciseCount = 8; // Default to 8 exercises (60 min)
+    if (formData && formData.lessonTime) {
+      if (formData.lessonTime === "30 min") {
+        exerciseCount = 4;
+      } else if (formData.lessonTime === "45 min") {
+        exerciseCount = 6;
+      }
+    } else if (prompt.includes('30 min')) {
       exerciseCount = 4;
     } else if (prompt.includes('45 min')) {
       exerciseCount = 6;
-    } else if (prompt.includes('60 min')) {
-      exerciseCount = 8;
     }
+    
+    console.log(`Generating ${exerciseCount} exercises for lesson duration: ${formData?.lessonTime || 'unknown'}`);
     
     // Determine exercise types to include based on exerciseCount
     const exerciseTypes = getExerciseTypesForCount(exerciseCount);
@@ -115,84 +123,8 @@ serve(async (req) => {
         {"term": "Term 10", "definition": "Definition 10"}
       ],
       "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
-    },
-    {
-      "type": "fill-in-blanks",
-      "title": "Exercise 3: Fill in the Blanks",
-      "icon": "fa-pencil-alt",
-      "time": 8,
-      "instructions": "Complete each sentence with the correct word from the box.",
-      "word_bank": ["word1", "word2", "word3", "word4", "word5", "word6", "word7", "word8", "word9", "word10"],
-      "sentences": [
-        {"text": "Sentence with _____ blank.", "answer": "word1"},
-        {"text": "Another _____ here.", "answer": "word2"},
-        {"text": "Third sentence with a _____ to complete.", "answer": "word3"},
-        {"text": "Fourth sentence _____ blank.", "answer": "word4"},
-        {"text": "Fifth sentence needs a _____ here.", "answer": "word5"},
-        {"text": "Sixth _____ for completion.", "answer": "word6"},
-        {"text": "Seventh sentence with _____ word missing.", "answer": "word7"},
-        {"text": "Eighth sentence requires a _____.", "answer": "word8"},
-        {"text": "Ninth sentence has a _____ blank.", "answer": "word9"},
-        {"text": "Tenth sentence with a _____ to fill.", "answer": "word10"}
-      ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
-    },
-    {
-      "type": "multiple-choice",
-      "title": "Exercise 4: Multiple Choice",
-      "icon": "fa-check-square",
-      "time": 6,
-      "instructions": "Choose the best option to complete each sentence.",
-      "questions": [
-        {
-          "text": "Question 1 text?",
-          "options": [
-            {"label": "A", "text": "Option A", "correct": false},
-            {"label": "B", "text": "Option B", "correct": true},
-            {"label": "C", "text": "Option C", "correct": false},
-            {"label": "D", "text": "Option D", "correct": false}
-          ]
-        },
-        // INCLUDE EXACTLY 10 MULTIPLE CHOICE QUESTIONS WITH 4 OPTIONS EACH
-      ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
-    },
-    {
-      "type": "dialogue",
-      "title": "Exercise 5: Dialogue Practice",
-      "icon": "fa-comments",
-      "time": 7,
-      "instructions": "Read the dialogue and practice with a partner.",
-      "dialogue": [
-        {"speaker": "Person A", "text": "Hello, how are you?"},
-        {"speaker": "Person B", "text": "I'm fine, thank you. And you?"}
-        // INCLUDE AT LEAST 10 DIALOGUE EXCHANGES
-      ],
-      "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", 
-                     "expression6", "expression7", "expression8", "expression9", "expression10"],
-      "expression_instruction": "Practice using these expressions in your own dialogues.",
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
-    },
-    {
-      "type": "true-false",
-      "title": "Exercise 6: True or False",
-      "icon": "fa-balance-scale",
-      "time": 5,
-      "instructions": "Read each statement and decide if it is true or false.",
-      "statements": [
-        {"text": "Statement 1", "isTrue": true},
-        {"text": "Statement 2", "isTrue": false},
-        {"text": "Statement 3", "isTrue": true},
-        {"text": "Statement 4", "isTrue": false},
-        {"text": "Statement 5", "isTrue": true},
-        {"text": "Statement 6", "isTrue": false},
-        {"text": "Statement 7", "isTrue": true},
-        {"text": "Statement 8", "isTrue": false},
-        {"text": "Statement 9", "isTrue": true},
-        {"text": "Statement 10", "isTrue": false}
-      ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     }
+    // IMPORTANT: INCLUDE EXACTLY ${exerciseCount} EXERCISES, NO MORE, NO LESS
   ],
   "vocabulary_sheet": [
     {"term": "Term 1", "meaning": "Definition 1"},
@@ -372,12 +304,13 @@ RETURN ONLY VALID JSON.
 
     // Save worksheet to database
     try {
-      // FIX: Create specific column names to avoid ambiguity in the SQL query
+      console.log('Saving worksheet to database...');
+      // Use the insert_worksheet_bypass_limit function with explicit parameter names
       const { data: worksheet, error: worksheetError } = await supabase.rpc(
         'insert_worksheet_bypass_limit',
         {
           p_prompt: prompt,
-          p_form_data: JSON.stringify(prompt),
+          p_form_data: formData ? formData : {},
           p_ai_response: jsonContent || '',
           p_html_content: '',  // Empty HTML content field, will be filled on client side
           p_user_id: userId,
@@ -391,16 +324,18 @@ RETURN ONLY VALID JSON.
       if (worksheetError) {
         console.error('Error saving worksheet to database:', worksheetError);
         // Continue even if the database save failed - we'll return the generated content
+      } else {
+        console.log('Worksheet saved successfully:', worksheet);
       }
 
       // Track generation event if we have worksheet ID
       if (worksheet && worksheet.length > 0 && worksheet[0].id) {
         const worksheetId = worksheet[0].id;
         
-        // FIX: Explicitly specify columns when inserting to events table to avoid ambiguity
+        // Insert event with explicit column names
         await supabase.from('events').insert({
-          type: 'generate',
           event_type: 'generate',
+          type: 'generate',
           worksheet_id: worksheetId,
           user_id: userId,
           metadata: { prompt, ip },

@@ -53,6 +53,7 @@ export default function GeneratingModal({
     // More realistic step progression
     const stepInterval = setInterval(() => {
       setCurrentStepIndex(prevStep => {
+        let nextStep = prevStep;
         const totalElapsed = elapsedTime;
         
         // Calculate which step we should be at based on time
@@ -61,15 +62,25 @@ export default function GeneratingModal({
           cumulativeWeight += generationSteps[i].weight;
           const stepThreshold = (cumulativeWeight / totalWeight) * estimatedTotalTime;
           
-          if (totalElapsed < stepThreshold && i > prevStep) {
-            return i;
+          if (totalElapsed < stepThreshold) {
+            if (i > prevStep) {
+              return i;
+            }
+            break;
           }
         }
         
-        // If processing takes longer than estimated, stay at the last step
-        return Math.min(prevStep + 1, generationSteps.length - 1);
+        // If processing takes longer than estimated, cycle through the last few steps
+        if (totalElapsed > estimatedTotalTime) {
+          // Cycle between the last 3 steps to show activity
+          const lastSteps = [generationSteps.length - 3, generationSteps.length - 2, generationSteps.length - 1];
+          const cyclePosition = Math.floor(totalElapsed / 5) % 3; // Change every 5 seconds
+          return lastSteps[cyclePosition];
+        }
+        
+        return prevStep;
       });
-    }, 5000); // Slower transitions between steps
+    }, 4000); // Change steps slightly faster
 
     // Progressive progress bar increase
     const progressInterval = setInterval(() => {

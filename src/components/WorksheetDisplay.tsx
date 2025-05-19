@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { ArrowLeft, ArrowUp } from "lucide-react";
 import { generatePDF, exportAsHTML } from "@/utils/pdfUtils";
@@ -207,9 +206,30 @@ export default function WorksheetDisplay({
         // Create current date format YYYY-MM-DD
         const today = new Date();
         const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const filename = `${formattedDate}-worksheet-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.html`;
+        const viewModeText = viewMode === 'teacher' ? 'Teacher' : 'Student';
+        const filename = `${formattedDate}-${viewModeText}-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.html`;
         
-        const result = await exportAsHTML('worksheet-content', filename);
+        // Clone the worksheet content for HTML export
+        const worksheetContent = worksheetRef.current.cloneNode(true) as HTMLElement;
+        
+        // Add view mode banner at the top
+        const viewModeBanner = document.createElement('div');
+        viewModeBanner.className = 'bg-blue-100 p-3 mb-4 text-center text-blue-700 font-bold';
+        viewModeBanner.textContent = `${viewModeText} View`;
+        
+        // Find the first element in worksheetContent and insert the banner before it
+        if (worksheetContent.firstElementChild) {
+          worksheetContent.insertBefore(viewModeBanner, worksheetContent.firstElementChild);
+        }
+        
+        // Remove toolbar (Student/Teacher toggle buttons)
+        const toolbar = worksheetContent.querySelector('[class*="sticky top-0"]');
+        if (toolbar) {
+          toolbar.remove();
+        }
+        
+        // Export the modified HTML content
+        const result = await exportAsHTML(worksheetContent, filename);
         if (result) {
           toast({
             title: "HTML Downloaded",
