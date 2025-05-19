@@ -372,30 +372,32 @@ RETURN ONLY VALID JSON.
 
     // Save worksheet to database
     try {
-      // POPRAWIONA CZĘŚĆ - właściwe nazwy parametrów do funkcji insert_worksheet_bypass_limit
+      // FIX: Create specific column names to avoid ambiguity in the SQL query
       const { data: worksheet, error: worksheetError } = await supabase.rpc(
         'insert_worksheet_bypass_limit',
         {
           p_prompt: prompt,
           p_form_data: JSON.stringify(prompt),
           p_ai_response: jsonContent || '',
-          p_html_content: '',  // Puste pole HTML content, będzie wypełnione po stronie klienta
+          p_html_content: '',  // Empty HTML content field, will be filled on client side
           p_user_id: userId,
           p_ip_address: ip,
           p_status: 'created',
           p_title: worksheetData.title,
-          p_generation_time_seconds: 0  // Czas generowania zostanie zaktualizowany po stronie klienta
+          p_generation_time_seconds: 0  // Generation time will be updated on client side
         }
       );
 
       if (worksheetError) {
         console.error('Error saving worksheet to database:', worksheetError);
-        // Kontynuuj nawet jeśli zapis do bazy nie powiódł się - zwrócimy wygenerowaną zawartość
+        // Continue even if the database save failed - we'll return the generated content
       }
 
-      // Śledź zdarzenie generowania jeśli mamy ID worksheetu
+      // Track generation event if we have worksheet ID
       if (worksheet && worksheet.length > 0 && worksheet[0].id) {
         const worksheetId = worksheet[0].id;
+        
+        // FIX: Explicitly specify columns when inserting to events table to avoid ambiguity
         await supabase.from('events').insert({
           type: 'generate',
           event_type: 'generate',
@@ -404,13 +406,14 @@ RETURN ONLY VALID JSON.
           metadata: { prompt, ip },
           ip_address: ip
         });
+        
         console.log('Worksheet generated and saved successfully with ID:', worksheetId);
         // Add the ID to the worksheet data so frontend can use it
         worksheetData.id = worksheetId;
       }
     } catch (dbError) {
       console.error('Database operation failed:', dbError);
-      // Kontynuuj bez przerywania requetsu
+      // Continue without interrupting the request
     }
 
     return new Response(JSON.stringify(worksheetData), {
