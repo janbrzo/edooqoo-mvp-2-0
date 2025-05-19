@@ -68,7 +68,8 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
       throw new Error(`Error submitting feedback: ${response.error.message}`);
     }
     
-    return response.data?.[0] || null;
+    // Bezpieczne zwracanie danych - jeśli data jest null, zwróć null zamiast próbować dostępu do data[0]
+    return response.data && response.data.length > 0 ? response.data[0] : null;
   } catch (error) {
     console.error("Error in submitFeedback:", error);
     throw error;
@@ -118,7 +119,8 @@ export async function updateFeedbackAPI(id: string, comment: string, userId: str
       throw new Error(`Error updating feedback comment: ${error.message}`);
     }
     
-    return data?.[0] || null;
+    // Bezpieczne zwracanie danych - sprawdzamy czy data nie jest null przed dostępem do elementów tablicy
+    return data && data.length > 0 ? data[0] : null;
   } catch (error) {
     console.error("Error in updateFeedback:", error);
     throw error;
