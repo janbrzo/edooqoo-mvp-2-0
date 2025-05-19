@@ -110,7 +110,8 @@ export async function updateFeedbackAPI(id: string, comment: string, userId: str
         comment,
         status: 'updated'
       })
-      .eq('id', id);
+      .eq('id', id)
+      .select();
     
     console.log("Update feedback response:", { data, error });
     
@@ -119,20 +120,12 @@ export async function updateFeedbackAPI(id: string, comment: string, userId: str
       throw new Error(`Error updating feedback comment: ${error.message}`);
     }
     
-    // Properly type the data and handle null cases
+    // Poprawiona obsługa zwracanych danych
     if (!data) {
       return null;
     }
     
-    // Type assertion to inform TypeScript that data is an array
-    const dataArray = data as any[];
-    
-    // Check if the array has elements
-    if (dataArray.length > 0) {
-      return dataArray[0];
-    }
-    
-    return null;
+    return Array.isArray(data) && data.length > 0 ? data[0] : null;
   } catch (error) {
     console.error("Error in updateFeedback:", error);
     throw error;
