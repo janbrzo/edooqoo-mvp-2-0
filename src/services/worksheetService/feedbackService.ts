@@ -120,7 +120,8 @@ export async function updateFeedbackAPI(id: string, comment: string, userId: str
     }
     
     // Bezpieczne zwracanie danych - sprawdzamy czy data nie jest null przed dostępem do elementów tablicy
-    return data && data.length > 0 ? data[0] : null;
+    // Naprawione typowanie - upewniamy się, że TypeScript wie, że data to tablica lub null
+    return data && Array.isArray(data) && data.length > 0 ? data[0] : null;
   } catch (error) {
     console.error("Error in updateFeedback:", error);
     throw error;
