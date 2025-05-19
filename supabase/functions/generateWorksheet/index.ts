@@ -305,8 +305,9 @@ RETURN ONLY VALID JSON.
     // Save worksheet to database
     try {
       console.log('Saving worksheet to database...');
+      
       // Use the insert_worksheet_bypass_limit function with explicit parameter names
-      const { data: worksheet, error: worksheetError } = await supabase.rpc(
+      const { data: worksheetResult, error: worksheetError } = await supabase.rpc(
         'insert_worksheet_bypass_limit',
         {
           p_prompt: prompt,
@@ -325,15 +326,15 @@ RETURN ONLY VALID JSON.
         console.error('Error saving worksheet to database:', worksheetError);
         // Continue even if the database save failed - we'll return the generated content
       } else {
-        console.log('Worksheet saved successfully:', worksheet);
+        console.log('Worksheet saved successfully:', worksheetResult);
       }
 
       // Track generation event if we have worksheet ID
-      if (worksheet && worksheet.length > 0 && worksheet[0].id) {
-        const worksheetId = worksheet[0].id;
+      if (worksheetResult && worksheetResult.length > 0 && worksheetResult[0].id) {
+        const worksheetId = worksheetResult[0].id;
         
         // Insert event with explicit column names
-        await supabase.from('events').insert({
+        const { error: eventError } = await supabase.from('events').insert({
           event_type: 'generate',
           type: 'generate',
           worksheet_id: worksheetId,
@@ -341,6 +342,12 @@ RETURN ONLY VALID JSON.
           metadata: { prompt, ip },
           ip_address: ip
         });
+        
+        if (eventError) {
+          console.error('Error tracking generation event:', eventError);
+        } else {
+          console.log('Worksheet generation event tracked successfully');
+        }
         
         console.log('Worksheet generated and saved successfully with ID:', worksheetId);
         // Add the ID to the worksheet data so frontend can use it

@@ -2,24 +2,24 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Wysyła ocenę dla arkusza pracy
+ * Sends a rating for a worksheet
  * 
- * @param worksheetId ID arkusza pracy
- * @param rating Ocena (1-5)
- * @param comment Komentarz użytkownika (opcjonalny)
- * @param userId ID użytkownika
- * @returns Obietnica z wynikiem wysyłania oceny
+ * @param worksheetId ID of the worksheet
+ * @param rating Rating (1-5)
+ * @param comment User's comment (optional)
+ * @param userId User's ID
+ * @returns Promise with the result of sending the rating
  */
 export async function submitFeedbackAPI(worksheetId: string, rating: number, comment: string, userId: string) {
   try {
-    // Weryfikacja poprawności danych
+    // Verify data validity
     if (!worksheetId || !rating || rating < 1 || rating > 5) {
       throw new Error("Invalid feedback data");
     }
     
     console.log("submitFeedbackAPI - Starting with params:", { worksheetId, rating, userId });
     
-    // Sprawdź czy ocena już istnieje
+    // Check if rating already exists
     const { data: existingFeedback, error: checkError } = await supabase
       .from('feedbacks')
       .select('id')
@@ -37,7 +37,7 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
     let response;
     
     if (existingFeedback) {
-      // Aktualizuj istniejącą ocenę
+      // Update existing rating
       console.log("Updating existing feedback:", existingFeedback.id);
       response = await supabase
         .from('feedbacks')
@@ -46,10 +46,9 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
           comment,
           status: 'updated'
         })
-        .eq('id', existingFeedback.id)
-        .select();
+        .eq('id', existingFeedback.id);
     } else {
-      // Dodaj nową ocenę
+      // Add new rating
       console.log("Inserting new feedback");
       response = await supabase
         .from('feedbacks')
@@ -59,8 +58,7 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
           rating,
           comment,
           status: 'submitted'
-        })
-        .select();
+        });
     }
     
     console.log("Feedback upsert response:", response);
@@ -78,18 +76,18 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
 }
 
 /**
- * Aktualizuje komentarz do istniejącej oceny
+ * Updates a comment for an existing rating
  * 
- * @param id ID oceny
- * @param comment Komentarz
- * @param userId ID użytkownika dla weryfikacji
- * @returns Obietnica z wynikiem aktualizacji
+ * @param id Rating ID
+ * @param comment Comment
+ * @param userId User's ID for verification
+ * @returns Promise with the update result
  */
 export async function updateFeedbackAPI(id: string, comment: string, userId: string) {
   try {
     console.log("updateFeedbackAPI - Starting with params:", { id, userId });
     
-    // Weryfikacja, czy ocena należy do tego użytkownika
+    // Verify the rating belongs to this user
     const { data: existingFeedback, error: checkError } = await supabase
       .from('feedbacks')
       .select('id')
@@ -104,15 +102,14 @@ export async function updateFeedbackAPI(id: string, comment: string, userId: str
     
     console.log("Existing feedback verified:", existingFeedback);
     
-    // Aktualizuj komentarz
+    // Update comment
     const { data, error } = await supabase
       .from('feedbacks')
       .update({ 
         comment,
         status: 'updated'
       })
-      .eq('id', id)
-      .select();
+      .eq('id', id);
     
     console.log("Update feedback response:", { data, error });
     

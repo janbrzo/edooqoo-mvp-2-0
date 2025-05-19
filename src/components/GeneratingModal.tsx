@@ -50,45 +50,12 @@ export default function GeneratingModal({
       setElapsedTime(prev => prev + 1);
     }, 1000);
 
-    // More realistic step progression
-    const stepInterval = setInterval(() => {
-      setCurrentStepIndex(prevStep => {
-        let nextStep = prevStep;
-        const totalElapsed = elapsedTime;
-        
-        // Calculate which step we should be at based on time
-        let cumulativeWeight = 0;
-        for (let i = 0; i < generationSteps.length; i++) {
-          cumulativeWeight += generationSteps[i].weight;
-          const stepThreshold = (cumulativeWeight / totalWeight) * estimatedTotalTime;
-          
-          if (totalElapsed < stepThreshold) {
-            if (i > prevStep) {
-              return i;
-            }
-            break;
-          }
-        }
-        
-        // If processing takes longer than estimated, cycle through the last few steps
-        if (totalElapsed > estimatedTotalTime) {
-          // Cycle between the last 3 steps to show activity
-          const lastSteps = [generationSteps.length - 3, generationSteps.length - 2, generationSteps.length - 1];
-          const cyclePosition = Math.floor(totalElapsed / 5) % 3; // Change every 5 seconds
-          return lastSteps[cyclePosition];
-        }
-        
-        return prevStep;
-      });
-    }, 4000); // Change steps slightly faster
-
-    // Progressive progress bar increase
+    // Progress interval to update progress and steps
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         const totalElapsed = elapsedTime;
         
         // Map time to progress, up to 95% maximum
-        // So user can see something is happening
         let newProgress;
         
         if (totalElapsed < estimatedTotalTime) {
@@ -101,6 +68,20 @@ export default function GeneratingModal({
           const extraProgress = Math.min(4, extraTimeElapsed / 20);
           newProgress = 95 + extraProgress;
         }
+
+        // Calculate which step we should be at based on progress
+        let cumulativeWeight = 0;
+        for (let i = 0; i < generationSteps.length; i++) {
+          cumulativeWeight += generationSteps[i].weight;
+          const stepThreshold = (cumulativeWeight / totalWeight) * 95;
+          
+          if (newProgress < stepThreshold) {
+            if (i !== currentStepIndex) {
+              setCurrentStepIndex(i);
+            }
+            break;
+          }
+        }
         
         return newProgress;
       });
@@ -108,10 +89,9 @@ export default function GeneratingModal({
 
     return () => {
       clearInterval(timerInterval);
-      clearInterval(stepInterval);
       clearInterval(progressInterval);
     };
-  }, [isOpen, elapsedTime, startTime]);
+  }, [isOpen, elapsedTime, startTime, currentStepIndex]);
 
   if (!isOpen) return null;
 

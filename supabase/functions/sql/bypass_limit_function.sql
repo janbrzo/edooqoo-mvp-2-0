@@ -43,7 +43,7 @@ BEGIN
     p_generation_time_seconds,
     p_title
   )
-  RETURNING id, created_at INTO new_id, created_timestamp;
+  RETURNING worksheets.id, worksheets.created_at INTO new_id, created_timestamp;
   
   RETURN QUERY SELECT new_id, created_timestamp, p_title;
 END;
