@@ -119,9 +119,17 @@ export async function updateFeedbackAPI(id: string, comment: string, userId: str
       throw new Error(`Error updating feedback comment: ${error.message}`);
     }
     
-    // Bezpieczne zwracanie danych - sprawdzamy czy data nie jest null przed dostępem do elementów tablicy
-    // Naprawione typowanie - upewniamy się, że TypeScript wie, że data to tablica lub null
-    return data && Array.isArray(data) && data.length > 0 ? data[0] : null;
+    // Properly type the data and handle null/array cases
+    if (!data) {
+      return null;
+    }
+    
+    // Explicit type check and handling
+    if (Array.isArray(data) && data.length > 0) {
+      return data[0];
+    }
+    
+    return null;
   } catch (error) {
     console.error("Error in updateFeedback:", error);
     throw error;
