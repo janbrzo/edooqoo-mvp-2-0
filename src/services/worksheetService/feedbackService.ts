@@ -119,14 +119,17 @@ export async function updateFeedbackAPI(id: string, comment: string, userId: str
       throw new Error(`Error updating feedback comment: ${error.message}`);
     }
     
-    // Properly type the data and handle null/array cases
+    // Properly type the data and handle null cases
     if (!data) {
       return null;
     }
     
-    // Explicit type check and handling
-    if (Array.isArray(data) && data.length > 0) {
-      return data[0];
+    // Type assertion to inform TypeScript that data is an array
+    const dataArray = data as any[];
+    
+    // Check if the array has elements
+    if (dataArray.length > 0) {
+      return dataArray[0];
     }
     
     return null;
