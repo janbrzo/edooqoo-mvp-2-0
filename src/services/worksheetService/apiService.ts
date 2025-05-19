@@ -13,7 +13,7 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: st
   try {
     console.log("Generating worksheet with params:", prompt);
     
-    // Buduj prosty prompt do generowania
+    // Buduj prosty prompt do generowania - używamy typu WorksheetFormData, który ma właściwe pola
     const promptText = `${prompt.topic}: ${prompt.focusArea} - ${prompt.teachingObjective}. Teaching preferences: ${prompt.teachingPreferences}. Student profile: ${prompt.studentProfile}. Student struggles: ${prompt.studentStruggles}. Lesson duration: ${prompt.lessonTime}.`;
     
     // Wywołaj Edge Function

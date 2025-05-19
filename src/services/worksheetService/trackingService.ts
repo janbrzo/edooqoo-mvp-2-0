@@ -31,16 +31,24 @@ export async function trackWorksheetEventAPI(type: string, worksheetId: string, 
       });
     }
     
-    // Dodaj zdarzenie do tabeli zdarzeń
+    // Zapisz zdarzenie w tabeli worksheets jako aktualizację
+    // Zamiast dodawania do nieistniejącej tabeli "events",
+    // uaktualnimy istniejący worksheet z dodatkowymi metadanymi
     const { data, error } = await supabase
-      .from('events')
-      .insert({
-        worksheet_id: worksheetId,
-        user_id: userId,
-        type: type,
-        device_type: deviceType,
-        metadata: metadata
+      .from('worksheets')
+      .update({
+        last_modified_at: new Date().toISOString(),
+        // Dodajemy wydarzenia jako część metadanych w kolumnie form_data
+        form_data: supabase.sql`form_data || ${JSON.stringify({
+          tracking: {
+            event_type: type,
+            device_type: deviceType,
+            timestamp: new Date().toISOString(),
+            ...metadata
+          }
+        })}`
       })
+      .eq('id', worksheetId)
       .select()
       .single();
     
