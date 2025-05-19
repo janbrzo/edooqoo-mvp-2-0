@@ -31,22 +31,41 @@ export async function trackWorksheetEventAPI(type: string, worksheetId: string, 
       });
     }
     
-    // Zapisz zdarzenie w tabeli worksheets jako aktualizację
-    // Zamiast dodawania do nieistniejącej tabeli "events",
-    // uaktualnimy istniejący worksheet z dodatkowymi metadanymi
+    // Pobierz bieżące dane formularza z worksheetu
+    const { data: currentWorksheet, error: fetchError } = await supabase
+      .from('worksheets')
+      .select('form_data')
+      .eq('id', worksheetId)
+      .single();
+      
+    if (fetchError) {
+      console.warn("Error fetching worksheet for tracking:", fetchError);
+      return null;
+    }
+    
+    // Przygotuj nowe dane śledzenia
+    const trackingEvent = {
+      event_type: type,
+      device_type: deviceType,
+      timestamp: new Date().toISOString(),
+      ...metadata
+    };
+    
+    // Zaktualizuj dane formularza, dodając nowe zdarzenie śledzenia
+    const currentData = currentWorksheet.form_data || {};
+    const updatedData = {
+      ...currentData,
+      tracking: Array.isArray(currentData.tracking) 
+        ? [...currentData.tracking, trackingEvent]
+        : [trackingEvent]
+    };
+    
+    // Zapisz zaktualizowane dane w tabeli worksheets
     const { data, error } = await supabase
       .from('worksheets')
       .update({
         last_modified_at: new Date().toISOString(),
-        // Dodajemy wydarzenia jako część metadanych w kolumnie form_data
-        form_data: supabase.sql`form_data || ${JSON.stringify({
-          tracking: {
-            event_type: type,
-            device_type: deviceType,
-            timestamp: new Date().toISOString(),
-            ...metadata
-          }
-        })}`
+        form_data: updatedData
       })
       .eq('id', worksheetId)
       .select()
