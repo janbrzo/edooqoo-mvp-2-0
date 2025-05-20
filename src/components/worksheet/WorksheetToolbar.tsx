@@ -11,7 +11,6 @@ interface WorksheetToolbarProps {
   handleSave: () => void;
   handleDownloadHTML: () => void;
   handleDownloadPDF: () => void;
-  title?: string;
 }
 
 const WorksheetToolbar = ({
@@ -22,7 +21,6 @@ const WorksheetToolbar = ({
   handleSave,
   handleDownloadHTML,
   handleDownloadPDF,
-  title = "Worksheet"
 }: WorksheetToolbarProps) => (
   <div className="sticky top-0 z-10 bg-white border-b mb-6 py-3 px-4">
     <div className="flex justify-between items-center max-w-[98%] mx-auto">
@@ -34,7 +32,7 @@ const WorksheetToolbar = ({
           size="sm"
         >
           <User className="mr-2 h-4 w-4" />
-          Widok studenta
+          Student View
         </Button>
         <Button
           variant={viewMode === 'teacher' ? 'default' : 'outline'}
@@ -43,7 +41,7 @@ const WorksheetToolbar = ({
           size="sm"
         >
           <Lightbulb className="mr-2 h-4 w-4" />
-          Widok nauczyciela
+          Teacher View
         </Button>
       </div>
       <div className="flex items-center">
@@ -54,7 +52,7 @@ const WorksheetToolbar = ({
             className="border-worksheet-purple text-worksheet-purple mr-2"
             size="sm"
           >
-            <Edit className="mr-2 h-4 w-4" /> Edytuj worksheet
+            <Edit className="mr-2 h-4 w-4" /> Edit Worksheet
           </Button>
         )}
         {isEditing && (
@@ -63,24 +61,22 @@ const WorksheetToolbar = ({
             className="bg-green-600 hover:bg-green-700 mr-2"
             size="sm"
           >
-            Zapisz zmiany
+            Save Changes
           </Button>
         )}
         <Button
           onClick={handleDownloadHTML}
           className="bg-worksheet-purple hover:bg-worksheet-purpleDark mr-2"
           size="sm"
-          title={`Pobierz jako HTML (${viewMode === 'teacher' ? 'wersja nauczyciela' : 'wersja studenta'})`}
         >
-          <Download className="mr-2 h-4 w-4" /> HTML
+          <Download className="mr-2 h-4 w-4" /> Download HTML
         </Button>
         <Button
           onClick={handleDownloadPDF}
           className="bg-worksheet-purple hover:bg-worksheet-purpleDark"
           size="sm"
-          title={`Pobierz jako PDF (${viewMode === 'teacher' ? 'wersja nauczyciela' : 'wersja studenta'})`}
         >
-          <Download className="mr-2 h-4 w-4" /> PDF
+          <Download className="mr-2 h-4 w-4" /> Download PDF
         </Button>
       </div>
     </div>
