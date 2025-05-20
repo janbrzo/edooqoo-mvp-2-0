@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect } from "react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
-import { ArrowUp } from "lucide-react";
 import { FormData } from "@/components/WorksheetForm";
 import { useToast } from "@/hooks/use-toast";
 import { submitFeedback, trackWorksheetEvent } from "@/services/worksheetService";
+import { Worksheet } from "@/types/worksheet";
 
 interface GenerationViewProps {
   worksheetId: string | null;
-  generatedWorksheet: any;
+  generatedWorksheet: Worksheet;
   inputParams: FormData | null;
   generationTime: number;
   sourceCount: number;
@@ -25,16 +25,7 @@ const GenerationView: React.FC<GenerationViewProps> = ({
   onBack,
   userId
 }) => {
-  const [showScrollTop, setShowScrollTop] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   useEffect(() => {
     if (userId && worksheetId && generatedWorksheet) {
@@ -44,13 +35,6 @@ const GenerationView: React.FC<GenerationViewProps> = ({
       }
     }
   }, [userId, worksheetId, generatedWorksheet]);
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  };
 
   const handleFeedbackSubmit = async (rating: number, feedback: string) => {
     if (!userId) {
@@ -89,29 +73,17 @@ const GenerationView: React.FC<GenerationViewProps> = ({
   };
 
   return (
-    <>
-      <WorksheetDisplay 
-        worksheet={generatedWorksheet} 
-        inputParams={inputParams} 
-        generationTime={generationTime} 
-        sourceCount={sourceCount} 
-        onBack={onBack}
-        worksheetId={worksheetId}
-        wordBankOrder={generatedWorksheet?.exercises?.find((ex: any) => ex.type === "matching")?.shuffledTerms?.map((item: any) => item.definition)}
-        onDownload={handleDownloadEvent}
-        onFeedbackSubmit={handleFeedbackSubmit}
-      />
-      
-      {showScrollTop && (
-        <button 
-          onClick={scrollToTop} 
-          className="fixed bottom-6 right-6 z-50 bg-worksheet-purple text-white p-3 rounded-full shadow-lg hover:bg-worksheet-purpleDark transition-colors" 
-          aria-label="Scroll to top"
-        >
-          <ArrowUp size={24} />
-        </button>
-      )}
-    </>
+    <WorksheetDisplay 
+      worksheet={generatedWorksheet} 
+      inputParams={inputParams} 
+      generationTime={generationTime} 
+      sourceCount={sourceCount} 
+      onBack={onBack}
+      worksheetId={worksheetId}
+      wordBankOrder={generatedWorksheet?.exercises?.find((ex: any) => ex.type === "matching")?.shuffledTerms?.map((item: any) => item.definition)}
+      onDownload={handleDownloadEvent}
+      onFeedbackSubmit={handleFeedbackSubmit}
+    />
   );
 };
 

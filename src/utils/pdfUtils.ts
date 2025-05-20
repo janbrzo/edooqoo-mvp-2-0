@@ -1,4 +1,3 @@
-
 import html2pdf from 'html2pdf.js';
 
 export const generatePDF = async (elementId: string, filename: string, isTeacherVersion: boolean, title: string) => {
@@ -133,7 +132,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
   }
 };
 
-export const exportAsHTML = (elementId: string, filename: string) => {
+export const exportAsHTML = async (elementId: string, filename: string, isTeacherVersion: boolean, title: string) => {
   try {
     const element = document.getElementById(elementId);
     if (!element) return false;
@@ -141,9 +140,71 @@ export const exportAsHTML = (elementId: string, filename: string) => {
     // Create a clone of the element to modify it
     const clone = element.cloneNode(true) as HTMLElement;
     
-    // Remove elements with data-no-pdf attribute (they also shouldn't be in HTML export)
+    // Remove elements with data-no-pdf attribute
     const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
     noPdfElements.forEach(el => el.remove());
+    
+    // Remove all teacher tips sections when generating student version
+    if (!isTeacherVersion) {
+      const teacherTips = clone.querySelectorAll('.teacher-tip');
+      teacherTips.forEach(el => el.remove());
+    }
+    
+    // Get all stylesheets from the document
+    const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
+    
+    // Fetch content from external stylesheets
+    const stylesPromises = stylesheets.map(async (stylesheet) => {
+      const link = stylesheet as HTMLLinkElement;
+      if (!link.href) return '';
+      
+      try {
+        const response = await fetch(link.href);
+        if (!response.ok) return '';
+        const cssText = await response.text();
+        return cssText;
+      } catch (err) {
+        console.error('Failed to fetch stylesheet:', link.href, err);
+        return '';
+      }
+    });
+    
+    // Wait for all stylesheet content
+    const stylesContent = await Promise.all(stylesPromises);
+    
+    // Extract inline styles as well
+    const inlineStyles = Array.from(document.querySelectorAll('style'))
+      .map(style => style.innerHTML)
+      .join('\n');
+    
+    // Extract CSSOM accessible styles
+    let cssomStyles = '';
+    try {
+      Array.from(document.styleSheets).forEach(sheet => {
+        try {
+          if (sheet.cssRules) {
+            const rules = Array.from(sheet.cssRules)
+              .map(rule => rule.cssText)
+              .join('\n');
+            cssomStyles += rules + '\n';
+          }
+        } catch (e) {
+          // CORS restricted stylesheet, already handled by fetch above
+        }
+      });
+    } catch (e) {
+      console.warn('Error accessing some stylesheets:', e);
+    }
+    
+    // Combine all styles
+    const allStyles = [...stylesContent, inlineStyles, cssomStyles].filter(Boolean).join('\n');
+    
+    // Add header to show whether it's a student or teacher version
+    const versionHeader = `
+      <div style="text-align: center; padding: 10px 0; margin-bottom: 20px; background-color: #f5f5f5; border-bottom: 1px solid #ddd;">
+        <h2 style="color: #3d348b; margin: 0;">${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version</h2>
+      </div>
+    `;
     
     // Get the HTML content
     const html = `
@@ -151,18 +212,49 @@ export const exportAsHTML = (elementId: string, filename: string) => {
       <html>
         <head>
           <meta charset="utf-8">
-          <title>${filename}</title>
+          <title>${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+            /* Base styles */
+            body { 
+              font-family: Arial, sans-serif; 
+              line-height: 1.6; 
+              color: #333; 
+              max-width: 800px; 
+              margin: 0 auto; 
+              padding: 20px; 
+            }
+            
+            /* Typography */
             h1 { color: #3d348b; font-size: 24px; }
             h2 { color: #5e44a0; font-size: 20px; }
-            .exercise { margin-bottom: 2em; border: 1px solid #eee; padding: 1em; border-radius: 5px; }
-            .exercise-header { display: flex; align-items: center; margin-bottom: 1em; }
+            
+            /* Layout components */
+            .exercise { 
+              margin-bottom: 2em; 
+              border: 1px solid #eee; 
+              padding: 1em; 
+              border-radius: 5px; 
+            }
+            .exercise-header { 
+              display: flex; 
+              align-items: center; 
+              margin-bottom: 1em; 
+            }
             .exercise-icon { margin-right: 0.5em; }
-            .instruction { background-color: #f9f9f9; padding: 0.8em; border-left: 3px solid #5e44a0; margin-bottom: 1em; }
+            .instruction { 
+              background-color: #f9f9f9; 
+              padding: 0.8em; 
+              border-left: 3px solid #5e44a0; 
+              margin-bottom: 1em; 
+            }
+            
+            /* Custom framework styles */
+            ${allStyles}
           </style>
         </head>
         <body>
+          ${versionHeader}
           ${clone.innerHTML}
         </body>
       </html>
