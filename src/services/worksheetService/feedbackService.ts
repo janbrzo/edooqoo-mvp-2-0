@@ -9,7 +9,7 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
     
     // Check if this user has already submitted feedback for this worksheet
     const { data: existingFeedback, error: checkError } = await supabase
-      .from('worksheet_feedback')
+      .from('feedbacks')
       .select('*')
       .eq('worksheet_id', worksheetId)
       .eq('user_id', userId);
@@ -27,7 +27,7 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
     
     // Otherwise, insert new feedback
     const { data, error } = await supabase
-      .from('worksheet_feedback')
+      .from('feedbacks')
       .insert({
         worksheet_id: worksheetId,
         user_id: userId,
@@ -73,7 +73,7 @@ export async function updateFeedbackAPI(id: string, comment: string, userId: str
     
     // Update the feedback
     const { data, error } = await supabase
-      .from('worksheet_feedback')
+      .from('feedbacks')
       .update(updateData)
       .eq('id', id)
       .eq('user_id', userId)  // Security check
