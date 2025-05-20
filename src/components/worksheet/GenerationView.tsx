@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
 import { FormData } from "@/components/WorksheetForm";
-import { useToast } from "@/hooks/use-toast";
-import { submitFeedback, trackWorksheetEvent } from "@/services/worksheetService";
 import { Worksheet } from "@/types/worksheet";
+import { useGenerationView } from "@/hooks/useGenerationView";
 
 interface GenerationViewProps {
   worksheetId: string | null;
@@ -25,52 +24,28 @@ const GenerationView: React.FC<GenerationViewProps> = ({
   onBack,
   userId
 }) => {
-  const { toast } = useToast();
+  const { handleFeedbackSubmit, handleDownloadEvent } = useGenerationView({
+    worksheetId,
+    userId,
+    generatedWorksheet
+  });
 
-  useEffect(() => {
-    if (userId && worksheetId && generatedWorksheet) {
-      // Only track events if we have a valid ID
-      if (worksheetId.length > 10) {
-        trackWorksheetEvent('view', worksheetId, userId);
-      }
-    }
-  }, [userId, worksheetId, generatedWorksheet]);
-
-  const handleFeedbackSubmit = async (rating: number, feedback: string) => {
-    if (!userId) {
-      toast({
-        title: "Feedback submission error",
-        description: "There was a problem with your session. Please refresh the page and try again.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      await submitFeedback(worksheetId || 'unknown', rating, feedback, userId);
-      
-      toast({
-        title: "Thank you for your feedback!",
-        description: "Your rating and comments help us improve our service."
-      });
-    } catch (error) {
-      console.error("Feedback submission error:", error);
-      toast({
-        title: "Feedback submission failed",
-        description: "We couldn't submit your feedback. Please try again later.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleDownloadEvent = () => {
-    if (userId && worksheetId) {
-      // Only track events if we have a valid ID
-      if (worksheetId.length > 10) {
-        trackWorksheetEvent('download', worksheetId, userId);
-      }
-    }
-  };
+  if (!generatedWorksheet) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center p-6 bg-white rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold text-red-600">No worksheet data</h2>
+          <p className="mt-2">There was a problem loading the worksheet. Please try again.</p>
+          <button
+            onClick={onBack}
+            className="mt-4 px-4 py-2 bg-worksheet-purple text-white rounded hover:bg-worksheet-purpleDark"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <WorksheetDisplay 

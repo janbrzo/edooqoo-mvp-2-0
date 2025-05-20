@@ -132,150 +132,178 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
   }
 };
 
-export const exportAsHTML = async (elementId: string, filename: string, isTeacherVersion: boolean, title: string) => {
+export const exportAsHTML = async (
+  elementId: string, 
+  filename: string, 
+  isTeacher: boolean = false,
+  title: string = "Worksheet"
+): Promise<boolean> => {
   try {
+    // Get the element to export
     const element = document.getElementById(elementId);
-    if (!element) return false;
-    
-    // Create a clone of the element to modify it
-    const clone = element.cloneNode(true) as HTMLElement;
-    
-    // Remove elements with data-no-pdf attribute
-    const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
-    noPdfElements.forEach(el => el.remove());
-    
-    // Remove all teacher tips sections when generating student version
-    if (!isTeacherVersion) {
-      const teacherTips = clone.querySelectorAll('.teacher-tip');
-      teacherTips.forEach(el => el.remove());
+    if (!element) {
+      console.error("Element not found:", elementId);
+      return false;
     }
     
-    // Get all stylesheets from the document
-    const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
+    // Create a new document to build our HTML output
+    const doc = document.implementation.createHTMLDocument(title);
     
-    // Fetch content from external stylesheets
-    const stylesPromises = stylesheets.map(async (stylesheet) => {
-      const link = stylesheet as HTMLLinkElement;
-      if (!link.href) return '';
-      
-      try {
-        const response = await fetch(link.href);
-        if (!response.ok) return '';
-        const cssText = await response.text();
-        return cssText;
-      } catch (err) {
-        console.error('Failed to fetch stylesheet:', link.href, err);
-        return '';
+    // Add meta tags
+    const meta = doc.createElement('meta');
+    meta.setAttribute('charset', 'utf-8');
+    doc.head.appendChild(meta);
+    
+    const viewportMeta = doc.createElement('meta');
+    viewportMeta.setAttribute('name', 'viewport');
+    viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0');
+    doc.head.appendChild(viewportMeta);
+    
+    // Add a title
+    const titleElement = doc.createElement('title');
+    titleElement.textContent = title;
+    doc.head.appendChild(titleElement);
+    
+    // Version banner at the top
+    const versionBanner = doc.createElement('div');
+    versionBanner.style.backgroundColor = isTeacher ? '#f0f4ff' : '#f0fff4';
+    versionBanner.style.color = isTeacher ? '#3b82f6' : '#10b981';
+    versionBanner.style.padding = '8px 16px';
+    versionBanner.style.marginBottom = '16px';
+    versionBanner.style.textAlign = 'center';
+    versionBanner.style.fontWeight = 'bold';
+    versionBanner.style.borderRadius = '4px';
+    versionBanner.textContent = isTeacher ? 'TEACHER VERSION' : 'STUDENT VERSION';
+    
+    // Initialize style string we'll populate with all external and internal styles
+    let allStyles = '';
+    
+    // Capture all stylesheet rules from the page
+    // First, get all external CSS stylesheets
+    const stylesheetPromises = [];
+    const styleLinks = document.querySelectorAll('link[rel="stylesheet"]');
+    
+    for (let i = 0; i < styleLinks.length; i++) {
+      const href = styleLinks[i].getAttribute('href');
+      if (href) {
+        // Try to fetch the CSS content
+        const promise = fetch(href)
+          .then(response => {
+            if (response.ok) return response.text();
+            return '/* Failed to load external CSS */';
+          })
+          .catch(error => {
+            console.error('Error fetching external CSS:', error);
+            return '/* Failed to load external CSS */';
+          });
+        
+        stylesheetPromises.push(promise);
       }
+    }
+    
+    // Wait for all stylesheet fetches to complete
+    const externalStyles = await Promise.all(stylesheetPromises);
+    
+    // Add external CSS
+    externalStyles.forEach(cssText => {
+      allStyles += cssText + '\n';
     });
     
-    // Wait for all stylesheet content
-    const stylesContent = await Promise.all(stylesPromises);
-    
-    // Extract inline styles as well
-    const inlineStyles = Array.from(document.querySelectorAll('style'))
-      .map(style => style.innerHTML)
-      .join('\n');
-    
-    // Extract CSSOM accessible styles
-    let cssomStyles = '';
-    try {
-      Array.from(document.styleSheets).forEach(sheet => {
-        try {
-          if (sheet.cssRules) {
-            const rules = Array.from(sheet.cssRules)
-              .map(rule => rule.cssText)
-              .join('\n');
-            cssomStyles += rules + '\n';
-          }
-        } catch (e) {
-          // CORS restricted stylesheet, already handled by fetch above
-        }
-      });
-    } catch (e) {
-      console.warn('Error accessing some stylesheets:', e);
+    // Add internal CSS from style tags
+    const internalStyles = document.querySelectorAll('style');
+    for (let i = 0; i < internalStyles.length; i++) {
+      allStyles += internalStyles[i].textContent + '\n';
     }
     
-    // Combine all styles
-    const allStyles = [...stylesContent, inlineStyles, cssomStyles].filter(Boolean).join('\n');
+    // Add document.styleSheets rules that are accessible (non-CORS protected)
+    for (let i = 0; i < document.styleSheets.length; i++) {
+      try {
+        const styleSheet = document.styleSheets[i];
+        const rules = styleSheet.cssRules;
+        if (rules) {
+          for (let j = 0; j < rules.length; j++) {
+            allStyles += rules[j].cssText + '\n';
+          }
+        }
+      } catch (e) {
+        // CORS policy might prevent accessing cssRules
+        console.log('Could not access cssRules for stylesheet', i);
+      }
+    }
     
-    // Add header to show whether it's a student or teacher version
-    const versionHeader = `
-      <div style="text-align: center; padding: 10px 0; margin-bottom: 20px; background-color: #f5f5f5; border-bottom: 1px solid #ddd;">
-        <h2 style="color: #3d348b; margin: 0;">${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version</h2>
-      </div>
+    // Create a style element and add all the CSS
+    const style = doc.createElement('style');
+    style.textContent = allStyles;
+    doc.head.appendChild(style);
+    
+    // Additional styles for center alignment and margins
+    const additionalStyles = doc.createElement('style');
+    additionalStyles.textContent = `
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h1, h2, h3, h4, h5, h6 {
+        color: #333;
+        margin-top: 1.2em;
+        margin-bottom: 0.6em;
+      }
+      .worksheet-container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
     `;
+    doc.head.appendChild(additionalStyles);
     
-    // Get the HTML content
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <style>
-            /* Base styles */
-            body { 
-              font-family: Arial, sans-serif; 
-              line-height: 1.6; 
-              color: #333; 
-              max-width: 800px; 
-              margin: 0 auto; 
-              padding: 20px; 
-            }
-            
-            /* Typography */
-            h1 { color: #3d348b; font-size: 24px; }
-            h2 { color: #5e44a0; font-size: 20px; }
-            
-            /* Layout components */
-            .exercise { 
-              margin-bottom: 2em; 
-              border: 1px solid #eee; 
-              padding: 1em; 
-              border-radius: 5px; 
-            }
-            .exercise-header { 
-              display: flex; 
-              align-items: center; 
-              margin-bottom: 1em; 
-            }
-            .exercise-icon { margin-right: 0.5em; }
-            .instruction { 
-              background-color: #f9f9f9; 
-              padding: 0.8em; 
-              border-left: 3px solid #5e44a0; 
-              margin-bottom: 1em; 
-            }
-            
-            /* Custom framework styles */
-            ${allStyles}
-          </style>
-        </head>
-        <body>
-          ${versionHeader}
-          ${clone.innerHTML}
-        </body>
-      </html>
-    `;
+    // Clone the element and append to body
+    const clonedElement = element.cloneNode(true) as HTMLElement;
     
-    // Create a Blob from the HTML content
-    const blob = new Blob([html], { type: 'text/html' });
+    // Create worksheet container div for proper centering
+    const worksheetContainer = doc.createElement('div');
+    worksheetContainer.className = 'worksheet-container';
     
-    // Create an anchor element and set properties for download
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
+    // Add version banner first
+    worksheetContainer.appendChild(versionBanner);
     
-    // Append to body, click and remove
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Then add the cloned worksheet content
+    worksheetContainer.appendChild(clonedElement);
+    
+    // Clear the body and add the container
+    doc.body.innerHTML = '';
+    doc.body.appendChild(worksheetContainer);
+    
+    // Remove scripts from the cloned document
+    const scripts = doc.getElementsByTagName('script');
+    while (scripts[0]) {
+      scripts[0].parentNode?.removeChild(scripts[0]);
+    }
+    
+    // Serialize to HTML string
+    const htmlContent = '<!DOCTYPE html>' + doc.documentElement.outerHTML;
+    
+    // Create a Blob and download
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
     
     return true;
   } catch (error) {
-    console.error('Error exporting as HTML:', error);
+    console.error('Error exporting HTML:', error);
     return false;
   }
 };

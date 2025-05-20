@@ -74,7 +74,7 @@ const processExercises = (exercises: Exercise[]): Exercise[] => {
         if (!exercise.questions) exercise.questions = [];
         while (exercise.questions.length < 5) {
           exercise.questions.push({
-            text: `Additional question ${exercise.questions.length + 1} about the text.`,
+            text: `Additional question ${exercise.questions.length + 1} about the text content.`,
             answer: "Answer would be based on the text content."
           });
         }
@@ -84,25 +84,105 @@ const processExercises = (exercises: Exercise[]): Exercise[] => {
     // Ensure adequate content in discussion exercises
     if (exercise.type === 'discussion' && (!exercise.questions || exercise.questions.length < 10)) {
       if (!exercise.questions) exercise.questions = [];
+      
+      const discussionTopics = [
+        "What challenges might construction workers face when communicating with clients?",
+        "How important is workplace safety in the construction industry?",
+        "What skills do you think are essential for customer-facing roles in construction?",
+        "How can construction professionals ensure clear communication with clients who don't understand technical terms?",
+        "What are the benefits of having safety protocols in place at construction sites?",
+        "How would you handle a difficult customer in a construction-related role?",
+        "In what ways can construction companies improve their customer service?",
+        "What safety precautions should be taken before starting a construction project?",
+        "How can technology improve safety in the construction industry?",
+        "What are the most important qualities for someone in a customer service role in construction?"
+      ];
+      
       while (exercise.questions.length < 10) {
-        const questionNumber = exercise.questions.length + 1;
-        exercise.questions.push({
-          text: `What are your thoughts on topic question ${questionNumber}?`,
-          answer: `Possible answer for discussion question ${questionNumber}.`
-        });
+        const questionNumber = exercise.questions.length;
+        if (questionNumber < discussionTopics.length) {
+          exercise.questions.push({
+            text: discussionTopics[questionNumber],
+            answer: `Possible talking points: This question explores aspects of construction safety and customer service.`
+          });
+        } else {
+          exercise.questions.push({
+            text: `What do you think about the importance of professional development in the construction industry?`,
+            answer: `Possible talking points: Skills improvement, certifications, career advancement opportunities.`
+          });
+        }
       }
     }
     
     // Ensure adequate content in error-correction exercises
     if (exercise.type === 'error-correction' && (!exercise.sentences || exercise.sentences.length < 10)) {
       if (!exercise.sentences) exercise.sentences = [];
+      
+      const errorSentences = [
+        { 
+          text: "The worker don't have the right safety equipment.",
+          error: "don't",
+          correction: "doesn't" 
+        },
+        { 
+          text: "They was working on the site all day.",
+          error: "was",
+          correction: "were" 
+        },
+        { 
+          text: "The customer asked for more informations about the project.",
+          error: "informations",
+          correction: "information" 
+        },
+        { 
+          text: "The construction team have finish the project last week.",
+          error: "have finish",
+          correction: "finished" 
+        },
+        { 
+          text: "She wear a helmet when entering the construction site.",
+          error: "wear",
+          correction: "wears" 
+        },
+        { 
+          text: "The manager don't allow workers without proper training.",
+          error: "don't allow",
+          correction: "doesn't allow" 
+        },
+        { 
+          text: "Every workers needs to follow the safety protocols.",
+          error: "Every workers needs",
+          correction: "Every worker needs" 
+        },
+        { 
+          text: "They delivered the materials yesterday morning, isn't it?",
+          error: "isn't it",
+          correction: "didn't they" 
+        },
+        { 
+          text: "The customer was satisfy with our service.",
+          error: "was satisfy",
+          correction: "was satisfied" 
+        },
+        { 
+          text: "I have worked in construction since five years.",
+          error: "since five years",
+          correction: "for five years" 
+        }
+      ];
+      
       while (exercise.sentences.length < 10) {
-        const sentenceNumber = exercise.sentences.length + 1;
-        exercise.sentences.push({
-          text: `This sentence ${sentenceNumber} has an error in it.`,
-          error: `error ${sentenceNumber}`,
-          correction: `correction ${sentenceNumber}`
-        });
+        const sentenceIndex = exercise.sentences.length;
+        if (sentenceIndex < errorSentences.length) {
+          exercise.sentences.push(errorSentences[sentenceIndex]);
+        } else {
+          const sentenceNumber = exercise.sentences.length + 1;
+          exercise.sentences.push({
+            text: `This sentence ${sentenceNumber} has an grammatical error in it.`,
+            error: `an grammatical`,
+            correction: `a grammatical`
+          });
+        }
       }
     }
     

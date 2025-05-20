@@ -1,9 +1,6 @@
 
 import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 import { generateWorksheetAPI } from './worksheetService/apiService';
-// Tymczasowo usuwamy problematyczne importy
-// import { submitFeedbackAPI, updateFeedbackAPI } from './worksheetService/feedbackService';
-// import { trackWorksheetEventAPI } from './worksheetService/trackingService';
 
 /**
  * Main service export for worksheet functionality

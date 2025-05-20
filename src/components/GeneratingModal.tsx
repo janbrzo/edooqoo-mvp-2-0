@@ -1,112 +1,109 @@
-
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Progress } from "@/components/ui/progress";
+import { Loader } from "lucide-react";
 
 interface GeneratingModalProps {
   isOpen: boolean;
 }
 
-// Expanded generation steps to better reflect real process
-const generationSteps = [
-  "Analyzing your requirements...",
-  "Processing topic and level information...",
-  "Researching industry-specific content...",
-  "Gathering educational materials...",
-  "Planning exercise structure...",
-  "Creating reading content...",
-  "Designing matching exercises...",
-  "Developing fill-in-blanks exercises...",
-  "Preparing multiple-choice questions...",
-  "Creating dialogue examples...",
-  "Formulating discussion questions...",
-  "Developing error correction exercises...",
-  "Finalizing vocabulary lists...",
-  "Polishing worksheet content...",
-  "Preparing final formatting...",
-];
-
-export default function GeneratingModal({
-  isOpen
-}: GeneratingModalProps) {
+const GeneratingModal: React.FC<GeneratingModalProps> = ({ isOpen }) => {
   const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  
+  const [currentTask, setCurrentTask] = useState("Initializing...");
+
   useEffect(() => {
-    if (!isOpen) {
-      setProgress(0);
-      setCurrentStep(0);
-      setElapsedTime(0);
-      return;
-    }
-
-    // More realistic progress calculation for total generation time of ~60 seconds
-    const totalExpectedDuration = 60000; // 60 seconds in milliseconds
-    const progressUpdateInterval = 500; // Update every 500ms
-    const progressIncrement = 100 / (totalExpectedDuration / progressUpdateInterval);
+    let interval: NodeJS.Timeout;
     
-    // Progress animation - slower and more realistic
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        // Slow down as we approach 100%
-        const remaining = 100 - prev;
-        const newIncrement = prev < 90 
-          ? progressIncrement 
-          : progressIncrement * (remaining / 10);
+    if (isOpen) {
+      // Reset progress when modal opens
+      setProgress(0);
+      setCurrentTask("Initializing the content generation process");
+      
+      // Define generation steps with realistic timings
+      const generationSteps = [
+        { task: "Analyzing your requirements", duration: 8 },
+        { task: "Creating outline for worksheet exercises", duration: 10 },
+        { task: "Generating reading content and questions", duration: 15 },
+        { task: "Formulating vocabulary list and definitions", duration: 12 },
+        { task: "Creating matching exercise pairs", duration: 10 },
+        { task: "Developing fill-in-the-blank sentences", duration: 12 },
+        { task: "Generating multiple choice questions", duration: 10 },
+        { task: "Creating dialogue exercise", duration: 8 },
+        { task: "Developing discussion questions", duration: 10 },
+        { task: "Preparing error correction sentences", duration: 10 },
+        { task: "Finalizing teacher notes and tips", duration: 8 },
+        { task: "Organizing worksheet layout", duration: 7 },
+        { task: "Performing final quality check", duration: 5 }
+      ];
+
+      const totalDuration = generationSteps.reduce((sum, step) => sum + step.duration, 0);
+      let elapsed = 0;
+      let stepIndex = 0;
+
+      // Create a more realistic progress animation
+      interval = setInterval(() => {
+        if (stepIndex < generationSteps.length) {
+          const currentStep = generationSteps[stepIndex];
+          setCurrentTask(currentStep.task);
           
-        if (prev >= 99) {
-          return 99; // Hold at 99% until generation completes
+          elapsed++;
+          if (elapsed >= currentStep.duration) {
+            elapsed = 0;
+            stepIndex++;
+          }
+          
+          // Calculate overall progress
+          const completedDuration = generationSteps
+            .slice(0, stepIndex)
+            .reduce((sum, step) => sum + step.duration, 0);
+          
+          const currentProgress = completedDuration + elapsed;
+          const progressPercentage = Math.min(
+            Math.floor((currentProgress / totalDuration) * 100),
+            99 // Never reach 100% until actual completion
+          );
+          
+          setProgress(progressPercentage);
         }
-        return Math.min(99, prev + newIncrement);
-      });
-    }, progressUpdateInterval);
-
-    // Step animation - show each step for longer
-    const stepInterval = setInterval(() => {
-      setCurrentStep(prev => {
-        // Calculate appropriate step based on progress
-        const targetStep = Math.floor((progress / 100) * generationSteps.length);
-        return Math.min(targetStep, generationSteps.length - 1);
-      });
-    }, 2000);
-
-    // Timer
-    const timerInterval = setInterval(() => {
-      setElapsedTime(prev => prev + 1);
-    }, 1000);
+      }, 600);
+    }
     
     return () => {
-      clearInterval(progressInterval);
-      clearInterval(stepInterval);
-      clearInterval(timerInterval);
+      if (interval) {
+        clearInterval(interval);
+      }
     };
-  }, [isOpen, progress]);
+  }, [isOpen]);
 
-  if (!isOpen) return null;
-  
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-  
-  return <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-[450px] space-y-6">
-        <h2 className="text-2xl font-semibold text-center bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 bg-clip-text text-transparent">
-          Generating Your Worksheet
-        </h2>
-        <Progress 
-          value={progress} 
-          className="h-3 bg-gray-200" 
-          indicatorClassName="bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500" 
-        />
-        <div className="flex justify-between items-center text-sm text-gray-500">
-          <span>Time: {formatTime(elapsedTime)}</span>
-          <span>{Math.round(progress)}%</span>
-        </div>
-        <p className="text-center min-h-[24px] animate-pulse font-normal text-sky-400">
-          {generationSteps[currentStep]}
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+      <div className="bg-white p-8 rounded-lg shadow-xl w-11/12 max-w-md">
+        <h2 className="text-xl font-semibold text-center mb-4">Generating Your Worksheet</h2>
+        <p className="text-center mb-6 text-gray-600">
+          {currentTask}
         </p>
+        
+        <div className="mb-4">
+          <Progress
+            value={progress}
+            className="h-2 mb-2"
+            indicatorClassName="bg-worksheet-purple"
+          />
+          <p className="text-xs text-right text-gray-500">{progress}% complete</p>
+        </div>
+        
+        <div className="flex justify-center">
+          <div className="flex items-center text-worksheet-purple">
+            <Loader className="animate-spin mr-2 h-5 w-5" />
+            <span>This may take up to a minute...</span>
+          </div>
+        </div>
       </div>
-    </div>;
-}
+    </div>
+  );
+};
+
+export default GeneratingModal;
