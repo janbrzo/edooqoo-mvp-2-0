@@ -2,95 +2,53 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Śledzi zdarzenia związane z arkuszem pracy
- * 
- * @param type Typ zdarzenia (np. 'view', 'download', 'share')
- * @param worksheetId ID arkusza pracy
- * @param userId ID użytkownika
- * @param metadata Dodatkowe dane
- * @returns Obietnica z wynikiem śledzenia
+ * Tracks an event (view, download, etc.)
  */
 export async function trackWorksheetEventAPI(type: string, worksheetId: string, userId: string, metadata: any = {}) {
-  // Unikaj śledzenia dla nieprawidłowych ID
-  if (!worksheetId || worksheetId === 'unknown' || worksheetId.length < 10) {
-    console.log("Skipping tracking for invalid worksheet ID:", worksheetId);
-    return null;
-  }
-  
   try {
-    // Pobierz informacje o przeglądarce i urządzeniu
-    const userAgent = navigator.userAgent;
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(userAgent);
-    const deviceType = isMobile ? 'mobile' : 'desktop';
-    
-    // Jeśli to zdarzenie pobrania, zaktualizuj licznik pobrań w arkuszu
-    if (type === 'download') {
-      // Wywołaj procedurę bazodanową przez RPC
-      await supabase.rpc('increment_worksheet_download_count', { 
-        p_worksheet_id: worksheetId 
-      });
+    // Skip tracking if worksheetId is not a valid UUID
+    if (!worksheetId || worksheetId.length < 10) {
+      console.log(`Skipping ${type} event tracking for invalid worksheetId: ${worksheetId}`);
+      return;
     }
     
-    // Pobierz bieżące dane formularza z worksheetu
-    const { data: currentWorksheet, error: fetchError } = await supabase
-      .from('worksheets')
-      .select('form_data')
-      .eq('id', worksheetId)
-      .single();
+    console.log(`Tracking event: ${type} for worksheet: ${worksheetId}`);
+    
+    try {
+      // Log event in console
+      console.log(`Event tracked: ${type} for worksheet ${worksheetId} by user ${userId}`, metadata);
       
-    if (fetchError) {
-      console.warn("Error fetching worksheet for tracking:", fetchError);
-      return null;
-    }
-    
-    // Przygotuj nowe dane śledzenia
-    const trackingEvent = {
-      event_type: type,
-      device_type: deviceType,
-      timestamp: new Date().toISOString(),
-      ...metadata
-    };
-    
-    // Zaktualizuj dane formularza, dodając nowe zdarzenie śledzenia
-    // Upewnij się, że form_data jest obiektem i ma prawidłową strukturę
-    const currentData = typeof currentWorksheet.form_data === 'object' && currentWorksheet.form_data !== null 
-      ? currentWorksheet.form_data 
-      : {};
+      // For download events, increment the download counter
+      if (type === 'download') {
+        try {
+          // Use the dedicated function for incrementing download count
+          await supabase.rpc('increment_worksheet_download_count', {
+            p_worksheet_id: worksheetId
+          });
+          console.log(`Download count incremented for worksheet: ${worksheetId}`);
+        } catch (countError) {
+          console.error(`Failed to increment download count: ${countError}`);
+        }
+      }
       
-    // Sprawdź, czy tracking istnieje i jest tablicą
-    const currentTracking = currentData && 
-                           typeof currentData === 'object' && 
-                           'tracking' in currentData && 
-                           Array.isArray(currentData.tracking) 
-                             ? currentData.tracking 
-                             : [];
-    
-    // Utwórz zaktualizowane dane z nowym zdarzeniem śledzenia
-    const updatedData = {
-      ...currentData,
-      tracking: [...currentTracking, trackingEvent]
-    };
-    
-    // Zapisz zaktualizowane dane w tabeli worksheets
-    const { data, error } = await supabase
-      .from('worksheets')
-      .update({
-        last_modified_at: new Date().toISOString(),
-        form_data: updatedData
-      })
-      .eq('id', worksheetId)
-      .select()
-      .single();
-    
-    if (error) {
-      console.warn("Error tracking worksheet event:", error);
-      return null;
+      // For view events, update the last_modified_at timestamp
+      if (type === 'view') {
+        try {
+          await supabase
+            .from('worksheets')
+            .update({ 
+              last_modified_at: new Date().toISOString() 
+            })
+            .eq('id', worksheetId);
+          console.log(`Last viewed timestamp updated for worksheet: ${worksheetId}`);
+        } catch (viewError) {
+          console.error(`Failed to update view timestamp: ${viewError}`);
+        }
+      }
+    } catch (innerError) {
+      console.error(`Error in event tracking flow: ${innerError}`);
     }
-    
-    return data;
   } catch (error) {
-    console.error("Error in trackWorksheetEvent:", error);
-    // Nie rzucamy błędu - śledzenie nie powinno przerywać głównego działania aplikacji
-    return null;
+    console.error(`Error tracking ${type} event:`, error);
   }
 }

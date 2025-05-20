@@ -65,7 +65,6 @@ export default function WorksheetDisplay({
   const [isEditing, setIsEditing] = useState(false);
   const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(worksheet);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const worksheetRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -206,30 +205,9 @@ export default function WorksheetDisplay({
         // Create current date format YYYY-MM-DD
         const today = new Date();
         const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const viewModeText = viewMode === 'teacher' ? 'Teacher' : 'Student';
-        const filename = `${formattedDate}-${viewModeText}-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.html`;
+        const filename = `${formattedDate}-worksheet-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.html`;
         
-        // Clone the worksheet content for HTML export
-        const worksheetContent = worksheetRef.current.cloneNode(true) as HTMLElement;
-        
-        // Add view mode banner at the top
-        const viewModeBanner = document.createElement('div');
-        viewModeBanner.className = 'bg-blue-100 p-3 mb-4 text-center text-blue-700 font-bold';
-        viewModeBanner.textContent = `${viewModeText} View`;
-        
-        // Find the first element in worksheetContent and insert the banner before it
-        if (worksheetContent.firstElementChild) {
-          worksheetContent.insertBefore(viewModeBanner, worksheetContent.firstElementChild);
-        }
-        
-        // Remove toolbar (Student/Teacher toggle buttons)
-        const toolbar = worksheetContent.querySelector('[class*="sticky top-0"]');
-        if (toolbar) {
-          toolbar.remove();
-        }
-        
-        // Export the modified HTML content
-        const result = await exportAsHTML(worksheetContent, filename);
+        const result = exportAsHTML('worksheet-content', filename);
         if (result) {
           toast({
             title: "HTML Downloaded",
@@ -252,17 +230,6 @@ export default function WorksheetDisplay({
           description: "There was an error generating your HTML. Please try again.",
           variant: "destructive"
         });
-      }
-    }
-  };
-  
-  // Obsługa feedbacku z jedną notyfikacją
-  const handleFeedbackSubmit = (rating: number, feedback: string) => {
-    if (!feedbackSubmitted) {
-      setFeedbackSubmitted(true);
-      
-      if (onFeedbackSubmit) {
-        onFeedbackSubmit(rating, feedback);
       }
     }
   };
@@ -361,7 +328,7 @@ export default function WorksheetDisplay({
           {/* First display rating section */}
           <WorksheetRating 
             worksheetId={worksheetId}
-            onSubmitRating={handleFeedbackSubmit}
+            onSubmitRating={onFeedbackSubmit || onDownload} 
           />
           
           {/* Then display Teacher Notes Section (both for student and teacher view) */}

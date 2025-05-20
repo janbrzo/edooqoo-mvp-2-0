@@ -1,133 +1,153 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+// URL for the Edge Function
+const SUBMIT_FEEDBACK_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/v1/submitFeedback';
 
 /**
- * Sends a rating for a worksheet
- * 
- * @param worksheetId ID of the worksheet
- * @param rating Rating (1-5)
- * @param comment User's comment (optional)
- * @param userId User's ID
- * @returns Promise with the result of sending the rating
+ * Submits feedback for a worksheet
  */
 export async function submitFeedbackAPI(worksheetId: string, rating: number, comment: string, userId: string) {
   try {
-    // Verify data validity
-    if (!worksheetId || !rating || rating < 1 || rating > 5) {
-      throw new Error("Invalid feedback data");
+    console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
+    
+    if (!worksheetId || !userId) {
+      console.error('Missing required parameters for feedback:', { worksheetId, userId });
+      throw new Error('Missing worksheet ID or user ID');
     }
     
-    console.log("submitFeedbackAPI - Starting with params:", { worksheetId, rating, userId });
-    
-    // Check if rating already exists
-    const { data: existingFeedback, error: checkError } = await supabase
-      .from('feedbacks')
-      .select('id')
-      .eq('worksheet_id', worksheetId)
-      .eq('user_id', userId)
-      .maybeSingle();
-    
-    if (checkError) {
-      console.error("Check existing feedback error:", checkError);
-      throw new Error(`Error checking existing feedback: ${checkError.message}`);
-    }
-    
-    console.log("Existing feedback check result:", existingFeedback);
-    
-    let response;
-    
-    if (existingFeedback) {
-      // Update existing rating
-      console.log("Updating existing feedback:", existingFeedback.id);
-      response = await supabase
-        .from('feedbacks')
-        .update({ 
+    // Try using the edge function first
+    try {
+      const response = await fetch(SUBMIT_FEEDBACK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          worksheetId,
           rating,
           comment,
-          status: 'updated'
+          userId,
+          status: 'submitted' // Ensure status is set to 'submitted'
         })
-        .eq('id', existingFeedback.id);
-    } else {
-      // Add new rating
-      console.log("Inserting new feedback");
-      response = await supabase
-        .from('feedbacks')
-        .insert({
-          worksheet_id: worksheetId,
-          user_id: userId,
-          rating,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Feedback submission successful via API:', result);
+        toast.success('Thank you for your feedback!');
+        return result.data;
+      }
+      
+      const errorText = await response.text();
+      console.error('Error submitting feedback via API:', errorText);
+    } catch (apiError) {
+      console.error('API feedback submission error:', apiError);
+    }
+    
+    // If edge function fails, try direct database submission
+    const { data, error } = await supabase
+      .from('feedbacks')
+      .insert([
+        { 
+          worksheet_id: worksheetId, 
+          user_id: userId, 
+          rating, 
           comment,
           status: 'submitted'
-        });
+        }
+      ])
+      .select();
+      
+    if (error) {
+      console.error('Direct feedback submission error:', error);
+      
+      // If direct insert fails and we don't have a worksheet_id, try creating a placeholder
+      if (error.message.includes('violates foreign key constraint')) {
+        console.log('Creating placeholder worksheet for feedback');
+        
+        const { data: placeholderData, error: placeholderError } = await supabase
+          .from('worksheets')
+          .insert([
+            {
+              prompt: 'Generated worksheet',
+              form_data: JSON.stringify({ title: 'Generated Worksheet' }),
+              ai_response: 'Placeholder response',
+              html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
+              user_id: userId,
+              ip_address: 'client-side',
+              status: 'created',
+              title: 'Generated Worksheet'
+            }
+          ])
+          .select();
+          
+        if (placeholderError) {
+          console.error('Error creating placeholder worksheet:', placeholderError);
+          throw new Error('Failed to create feedback record: worksheet reference is required');
+        }
+          
+        if (placeholderData && placeholderData.length > 0) {
+          // Try feedback again with new worksheet ID
+          const { data: retryData, error: retryError } = await supabase
+            .from('feedbacks')
+            .insert([
+              { 
+                worksheet_id: placeholderData[0].id, 
+                user_id: userId, 
+                rating, 
+                comment,
+                status: 'submitted'
+              }
+            ])
+            .select();
+              
+          if (retryError) {
+            console.error('Retry feedback submission error:', retryError);
+            throw new Error(`Failed to submit feedback after retry: ${retryError.message}`);
+          }
+            
+          toast.success('Thank you for your feedback!');
+          return retryData;
+        }
+      } else {
+        throw new Error(`Failed to submit feedback: ${error.message}`);
+      }
     }
-    
-    console.log("Feedback upsert response:", response);
-    
-    if (response.error) {
-      console.error("Feedback submission error:", response.error);
-      throw new Error(`Error submitting feedback: ${response.error.message}`);
-    }
-    
-    // Bezpieczne zwracanie danych - jeśli data jest null, zwróć null zamiast próbować dostępu do data[0]
-    return response.data && response.data.length > 0 ? response.data[0] : null;
+      
+    toast.success('Thank you for your feedback!');
+    return data;
   } catch (error) {
-    console.error("Error in submitFeedback:", error);
+    console.error('Error submitting feedback:', error);
+    toast.error(`We couldn't submit your rating: ${error instanceof Error ? error.message : 'Unknown error'}`);
     throw error;
   }
 }
 
 /**
- * Updates a comment for an existing rating
- * 
- * @param id Rating ID
- * @param comment Comment
- * @param userId User's ID for verification
- * @returns Promise with the update result
+ * Updates existing feedback with a comment
  */
 export async function updateFeedbackAPI(id: string, comment: string, userId: string) {
   try {
-    console.log("updateFeedbackAPI - Starting with params:", { id, userId });
-    
-    // Verify the rating belongs to this user
-    const { data: existingFeedback, error: checkError } = await supabase
-      .from('feedbacks')
-      .select('id')
-      .eq('id', id)
-      .eq('user_id', userId)
-      .maybeSingle();
-    
-    if (checkError || !existingFeedback) {
-      console.error("Feedback not found error:", checkError);
-      throw new Error("Feedback not found or access denied");
-    }
-    
-    console.log("Existing feedback verified:", existingFeedback);
-    
-    // Update comment
+    console.log('Updating feedback with comment:', { id, comment });
+
     const { data, error } = await supabase
       .from('feedbacks')
-      .update({ 
-        comment,
-        status: 'updated'
-      })
+      .update({ comment })
       .eq('id', id)
+      .eq('user_id', userId)
       .select();
-    
-    console.log("Update feedback response:", { data, error });
-    
+      
     if (error) {
-      console.error("Update feedback error:", error);
-      throw new Error(`Error updating feedback comment: ${error.message}`);
+      console.error('Error updating feedback:', error);
+      throw new Error(`Failed to update feedback: ${error.message}`);
     }
     
-    // Poprawiona obsługa zwracanych danych
-    if (!data) {
-      return null;
-    }
-    
-    return Array.isArray(data) && data.length > 0 ? data[0] : null;
+    console.log('Feedback updated successfully:', data);
+    return data;
   } catch (error) {
-    console.error("Error in updateFeedback:", error);
+    console.error('Error updating feedback:', error);
     throw error;
   }
 }
