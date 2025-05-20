@@ -133,7 +133,49 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
   }
 };
 
-export const exportAsHTML = (elementId: string, filename: string) => {
+// Funkcja do pobierania wszystkich zewnętrznych stylów CSS
+async function fetchExternalStylesheets() {
+  try {
+    // Pobierz wszystkie linki do stylów
+    const linkElements = document.querySelectorAll('link[rel="stylesheet"]');
+    const styleTags = [];
+
+    // Dla każdego linku pobierz zawartość CSS
+    for (const link of linkElements) {
+      const href = link.getAttribute('href');
+      if (href) {
+        try {
+          // Próba pobrania zewnętrznego pliku CSS
+          const response = await fetch(href);
+          if (response.ok) {
+            const cssText = await response.text();
+            const styleTag = `<style data-source="${href}">${cssText}</style>`;
+            styleTags.push(styleTag);
+          } else {
+            console.warn(`Nie udało się pobrać CSS z: ${href}`);
+          }
+        } catch (err) {
+          console.warn(`Problem z pobraniem CSS z: ${href}`, err);
+        }
+      }
+    }
+
+    // Dodaj również wszystkie style inline z dokumentu
+    const styleElements = document.querySelectorAll('style');
+    styleElements.forEach(styleEl => {
+      if (!styleEl.getAttribute('data-source')) {
+        styleTags.push(styleEl.outerHTML);
+      }
+    });
+
+    return styleTags.join('\n');
+  } catch (error) {
+    console.error('Błąd podczas pobierania zewnętrznych stylów:', error);
+    return '';
+  }
+}
+
+export const exportAsHTML = async (elementId: string, filename: string, viewMode: 'student' | 'teacher', title: string) => {
   try {
     const element = document.getElementById(elementId);
     if (!element) return false;
@@ -145,24 +187,55 @@ export const exportAsHTML = (elementId: string, filename: string) => {
     const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
     noPdfElements.forEach(el => el.remove());
     
-    // Get the HTML content
+    // Remove teacher tips in student version
+    if (viewMode === 'student') {
+      const teacherTips = clone.querySelectorAll('.teacher-tip');
+      teacherTips.forEach(el => el.remove());
+    }
+    
+    // Pobierz wszystkie style z dokumentu - zewnętrzne i wewnętrzne
+    const allStyles = await fetchExternalStylesheets();
+    
+    // Dodaj nagłówek wskazujący na wersję (podobnie jak w PDF)
+    const versionHeader = `
+      <div class="version-header" style="font-weight: bold; text-align: center; padding: 10px 0; border-bottom: 1px solid #ddd; color: #3d348b; font-size: 16px; margin-bottom: 20px;">
+        ${title} - ${viewMode === 'teacher' ? 'Teacher' : 'Student'} Version
+      </div>
+    `;
+    
+    // Get the HTML content and add custom styles for better rendering
     const html = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>${filename}</title>
+          ${allStyles}
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+            body { 
+              font-family: Arial, sans-serif; 
+              line-height: 1.6; 
+              color: #333; 
+              max-width: 800px; 
+              margin: 0 auto; 
+              padding: 20px; 
+            }
             h1 { color: #3d348b; font-size: 24px; }
             h2 { color: #5e44a0; font-size: 20px; }
             .exercise { margin-bottom: 2em; border: 1px solid #eee; padding: 1em; border-radius: 5px; }
             .exercise-header { display: flex; align-items: center; margin-bottom: 1em; }
             .exercise-icon { margin-right: 0.5em; }
             .instruction { background-color: #f9f9f9; padding: 0.8em; border-left: 3px solid #5e44a0; margin-bottom: 1em; }
+            .container { width: 100%; max-width: 800px; margin: 0 auto; }
+            .exercise-content { margin-bottom: 1em; }
+            .question-list { padding-left: 1.5em; }
+            .question-item { margin-bottom: 0.8em; }
+            .answer { font-style: italic; color: #555; }
           </style>
         </head>
         <body>
+          ${versionHeader}
           ${clone.innerHTML}
         </body>
       </html>

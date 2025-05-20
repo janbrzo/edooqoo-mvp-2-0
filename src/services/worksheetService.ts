@@ -1,4 +1,5 @@
 
+// Ten plik jest tylko reeksportem funkcji z podfolderu
 import { supabase } from '@/integrations/supabase/client';
 import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 import { generateWorksheetAPI } from './worksheetService/apiService';

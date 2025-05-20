@@ -6,11 +6,27 @@ import { AlertTriangle, Check, Info, X } from "lucide-react";
 export function Toaster() {
   const { toasts } = useToast();
   
+  // Deduplikacja toastów na podstawie treści
+  const uniqueToasts = toasts.reduce((acc: any[], toast) => {
+    const isDuplicate = acc.some(t => 
+      t.title === toast.title && 
+      t.description === toast.description &&
+      t.variant === toast.variant
+    );
+    
+    if (!isDuplicate) {
+      acc.push(toast);
+    }
+    
+    return acc;
+  }, []);
+  
   const getIcon = (variant?: string) => {
     switch (variant) {
       case "success":
         return <Check className="h-4 w-4 text-green-500" />;
       case "error":
+      case "destructive":
         return <X className="h-4 w-4 text-red-500" />;
       case "warning":
         return <AlertTriangle className="h-4 w-4 text-amber-500" />;
@@ -21,7 +37,7 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      {toasts.map(function ({
+      {uniqueToasts.map(function ({
         id,
         title,
         description,

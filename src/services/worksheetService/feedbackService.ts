@@ -12,10 +12,22 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
   try {
     console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
     
+    // Walidacja parametrów wejściowych
     if (!worksheetId || !userId) {
       console.error('Missing required parameters for feedback:', { worksheetId, userId });
       throw new Error('Missing worksheet ID or user ID');
     }
+    
+    // Zapisz informację o tym, że feedback został już wysłany, aby uniknąć duplikacji
+    const feedbackSubmissionKey = `feedback_${worksheetId}_${rating}`;
+    if (localStorage.getItem(feedbackSubmissionKey)) {
+      console.log('Feedback already submitted recently, skipping duplicate submission');
+      return [];
+    }
+    
+    // Ustaw flagę zapobiegającą duplikacji (ważna na 30 sekund)
+    localStorage.setItem(feedbackSubmissionKey, 'submitted');
+    setTimeout(() => localStorage.removeItem(feedbackSubmissionKey), 30000);
     
     // Try using the edge function first
     try {
@@ -36,7 +48,7 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
       if (response.ok) {
         const result = await response.json();
         console.log('Feedback submission successful via API:', result);
-        toast.success('Thank you for your feedback!');
+        // Nie wyświetlaj powiadomienia tutaj - zostanie wyświetlone przez komponent
         return result.data;
       }
       
@@ -108,18 +120,19 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
             throw new Error(`Failed to submit feedback after retry: ${retryError.message}`);
           }
             
-          toast.success('Thank you for your feedback!');
-          return retryData;
+          // Nie wyświetlaj powiadomienia tutaj
+          return retryData || [];
         }
       } else {
         throw new Error(`Failed to submit feedback: ${error.message}`);
       }
     }
       
-    toast.success('Thank you for your feedback!');
-    return data;
+    // Nie wyświetlaj powiadomienia tutaj
+    return data || [];
   } catch (error) {
     console.error('Error submitting feedback:', error);
+    // Toast wyświetlamy tylko w przypadku błędu
     toast.error(`We couldn't submit your rating: ${error instanceof Error ? error.message : 'Unknown error'}`);
     throw error;
   }
@@ -145,7 +158,7 @@ export async function updateFeedbackAPI(id: string, comment: string, userId: str
     }
     
     console.log('Feedback updated successfully:', data);
-    return data;
+    return data || [];
   } catch (error) {
     console.error('Error updating feedback:', error);
     throw error;

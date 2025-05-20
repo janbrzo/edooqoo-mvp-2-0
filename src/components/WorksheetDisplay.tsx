@@ -1,5 +1,6 @@
+
 import { useState, useRef, useEffect } from "react";
-import { ArrowLeft, ArrowUp } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { generatePDF, exportAsHTML } from "@/utils/pdfUtils";
 import { useToast } from "@/hooks/use-toast";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
@@ -9,6 +10,7 @@ import ExerciseSection from "./worksheet/ExerciseSection";
 import VocabularySheet from "./worksheet/VocabularySheet";
 import TeacherNotes from "./worksheet/TeacherNotes";
 import WorksheetRating from "@/components/WorksheetRating";
+import { toast } from "sonner";
 
 interface Exercise {
   type: string;
@@ -66,7 +68,7 @@ export default function WorksheetDisplay({
   const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(worksheet);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const worksheetRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
+  const { toast: shadowToast } = useToast();
   
   // Validate the worksheet structure when component mounts
   useEffect(() => {
@@ -103,21 +105,13 @@ export default function WorksheetDisplay({
   const validateWorksheetStructure = () => {
     // Check if worksheet has all the required components
     if (!worksheet) {
-      toast({
-        title: "Invalid worksheet data",
-        description: "The worksheet data is missing or invalid.",
-        variant: "destructive"
-      });
+      toast.error("Nieprawidłowe dane worksheetu - brak danych");
       return;
     }
     
     // Check for exercises
     if (!Array.isArray(worksheet.exercises) || worksheet.exercises.length === 0) {
-      toast({
-        title: "Missing exercises",
-        description: "The worksheet doesn't contain any exercises.",
-        variant: "destructive"
-      });
+      toast.error("Worksheet nie zawiera żadnych ćwiczeń");
       return;
     }
     
@@ -126,13 +120,32 @@ export default function WorksheetDisplay({
     if (readingExercise && readingExercise.content) {
       const wordCount = readingExercise.content.split(/\s+/).filter(Boolean).length;
       if (wordCount < 280) {
-        toast({
-          title: "Reading exercise issue",
-          description: `Reading content has only ${wordCount} words (should be 280-320).`,
-          variant: "destructive"
-        });
+        toast.warning(`Tekst do czytania ma tylko ${wordCount} słów (powinno być 280-320)`);
       }
     }
+    
+    // Sprawdź czy w jakimkolwiek ćwiczeniu nie ma brakujących danych
+    worksheet.exercises.forEach((exercise, index) => {
+      // Sprawdź braki w pytaniach do dyskusji
+      if (exercise.type === 'discussion' && Array.isArray(exercise.questions)) {
+        const invalidQuestions = exercise.questions.filter(q => 
+          typeof q.text === 'string' && (q.text.includes('Discussion question') || q.text.includes('?')));
+        
+        if (invalidQuestions.length > 0) {
+          toast.warning(`Ćwiczenie ${index + 1}: Niektóre pytania do dyskusji mogą być niekompletne`);
+        }
+      }
+      
+      // Sprawdź braki w zdaniach do poprawy
+      if (exercise.type === 'error-correction' && Array.isArray(exercise.sentences)) {
+        const genericSentences = exercise.sentences.filter(s => 
+          typeof s.text === 'string' && s.text.includes('This sentence'));
+        
+        if (genericSentences.length > 0) {
+          toast.warning(`Ćwiczenie ${index + 1}: Niektóre zdania do poprawy mogą być niekompletne`);
+        }
+      }
+    });
   };
   
   const scrollToTop = () => {
@@ -157,10 +170,7 @@ export default function WorksheetDisplay({
   
   const handleSave = () => {
     setIsEditing(false);
-    toast({
-      title: "Changes saved",
-      description: "Your worksheet has been updated successfully."
-    });
+    toast.success("Zmiany zostały zapisane");
   };
   
   const handleDownloadPDF = async () => {
@@ -174,27 +184,16 @@ export default function WorksheetDisplay({
         
         const result = await generatePDF('worksheet-content', filename, viewMode === 'teacher', editableWorksheet.title);
         if (result) {
-          toast({
-            title: "PDF Downloaded",
-            description: "Your worksheet has been downloaded successfully."
-          });
+          toast.success("PDF został pobrany");
           if (onDownload) {
             onDownload();
           }
         } else {
-          toast({
-            title: "PDF Generation Failed",
-            description: "There was an error generating your PDF. Please try again.",
-            variant: "destructive"
-          });
+          toast.error("Wystąpił błąd podczas generowania PDF. Spróbuj ponownie.");
         }
       } catch (error) {
         console.error('PDF generation error:', error);
-        toast({
-          title: "PDF Generation Failed",
-          description: "There was an error generating your PDF. Please try again.",
-          variant: "destructive"
-        });
+        toast.error("Wystąpił błąd podczas generowania PDF. Spróbuj ponownie.");
       }
     }
   };
@@ -205,31 +204,21 @@ export default function WorksheetDisplay({
         // Create current date format YYYY-MM-DD
         const today = new Date();
         const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const filename = `${formattedDate}-worksheet-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.html`;
+        const viewModeText = viewMode === 'teacher' ? 'Teacher' : 'Student';
+        const filename = `${formattedDate}-${viewModeText}-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.html`;
         
-        const result = exportAsHTML('worksheet-content', filename);
+        const result = await exportAsHTML('worksheet-content', filename, viewMode, editableWorksheet.title);
         if (result) {
-          toast({
-            title: "HTML Downloaded",
-            description: "Your worksheet HTML has been downloaded successfully."
-          });
+          toast.success("Plik HTML został pobrany");
           if (onDownload) {
             onDownload();
           }
         } else {
-          toast({
-            title: "HTML Generation Failed",
-            description: "There was an error generating your HTML. Please try again.",
-            variant: "destructive"
-          });
+          toast.error("Wystąpił błąd podczas generowania pliku HTML. Spróbuj ponownie.");
         }
       } catch (error) {
         console.error('HTML generation error:', error);
-        toast({
-          title: "HTML Generation Failed",
-          description: "There was an error generating your HTML. Please try again.",
-          variant: "destructive"
-        });
+        toast.error("Wystąpił błąd podczas generowania pliku HTML. Spróbuj ponownie.");
       }
     }
   };
@@ -252,6 +241,7 @@ export default function WorksheetDisplay({
           handleSave={handleSave}
           handleDownloadHTML={handleDownloadHTML}
           handleDownloadPDF={handleDownloadPDF}
+          title={editableWorksheet.title}
         />
 
         <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>

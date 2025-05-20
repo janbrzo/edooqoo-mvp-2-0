@@ -8,86 +8,120 @@ import { v4 as uuidv4 } from 'uuid';
 import GeneratingModal from "@/components/GeneratingModal";
 import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";
+import { toast } from "sonner";
 
 // Import just as a fallback in case generation fails
 import mockWorksheetData from '@/mockWorksheetData';
 
-// Utility functions
-const getExpectedExerciseCount = (lessonTime: string): number => {
-  if (lessonTime === "30 min") return 4;
-  else if (lessonTime === "45 min") return 6;
-  else return 8;
-};
+/**
+ * Utility functions
+ */
+const utils = {
+  // Get expected number of exercises based on lesson time
+  getExpectedExerciseCount: (lessonTime: string): number => {
+    if (lessonTime === "30 min") return 4;
+    else if (lessonTime === "45 min") return 6;
+    else return 8;
+  },
 
-const shuffleArray = (array: any[]) => {
-  const newArray = [...array];
-  for (let i = newArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-  }
-  return newArray;
-};
+  // Shuffle array elements (for matching exercises)
+  shuffleArray: (array: any[]) => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  },
 
-const createSampleVocabulary = (count: number) => {
-  const terms = [
-    'Abundant', 'Benevolent', 'Concurrent', 'Diligent', 'Ephemeral', 
-    'Fastidious', 'Gregarious', 'Haphazard', 'Impeccable', 'Juxtapose', 
-    'Kinetic', 'Luminous', 'Meticulous', 'Nostalgia', 'Omnipotent'
-  ];
-  const meanings = [
-    'Existing in large quantities', 'Kind and generous', 'Occurring at the same time', 
-    'Hardworking', 'Lasting for a very short time', 'Paying attention to detail', 
-    'Sociable', 'Random or lacking organization', 'Perfect, flawless', 
-    'To place side by side', 'Related to motion', 'Full of light', 
-    'Showing great attention to detail', 'Sentimental longing for the past', 
-    'Having unlimited power'
-  ];
-  
-  return Array(Math.min(count, terms.length)).fill(null).map((_, i) => ({
-    term: terms[i],
-    meaning: meanings[i]
-  }));
-};
-
-const validateWorksheet = (worksheetData: any, expectedCount: number): boolean => {
-  if (!worksheetData || !worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
-    return false;
-  }
-  
-  return worksheetData.exercises.length === expectedCount;
-};
-
-const processExercises = (exercises: any[]): any[] => {
-  return exercises.map((exercise: any, index: number) => {
-    // Make sure exercise number is correct
-    const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
-    exercise.title = `Exercise ${index + 1}: ${exerciseType}`;
+  // Create sample vocabulary items when vocabulary is missing
+  createSampleVocabulary: (count: number) => {
+    const terms = [
+      'Abundant', 'Benevolent', 'Concurrent', 'Diligent', 'Ephemeral', 
+      'Fastidious', 'Gregarious', 'Haphazard', 'Impeccable', 'Juxtapose', 
+      'Kinetic', 'Luminous', 'Meticulous', 'Nostalgia', 'Omnipotent'
+    ];
+    const meanings = [
+      'Existing in large quantities', 'Kind and generous', 'Occurring at the same time', 
+      'Hardworking', 'Lasting for a very short time', 'Paying attention to detail', 
+      'Sociable', 'Random or lacking organization', 'Perfect, flawless', 
+      'To place side by side', 'Related to motion', 'Full of light', 
+      'Showing great attention to detail', 'Sentimental longing for the past', 
+      'Having unlimited power'
+    ];
     
-    // Process matching exercises
-    if (exercise.type === "matching" && exercise.items) {
-      exercise.originalItems = [...exercise.items];
-      exercise.shuffledTerms = shuffleArray([...exercise.items]);
+    return Array(Math.min(count, terms.length)).fill(null).map((_, i) => ({
+      term: terms[i],
+      meaning: meanings[i]
+    }));
+  },
+
+  // Validate worksheet structure
+  validateWorksheet: (worksheetData: any, expectedCount: number): boolean => {
+    if (!worksheetData || !worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
+      return false;
     }
     
-    // Process reading exercise
-    if (exercise.type === 'reading' && exercise.content) {
-      const wordCount = exercise.content.split(/\s+/).filter(Boolean).length;
-      console.log(`Reading exercise word count: ${wordCount}`);
+    return worksheetData.exercises.length === expectedCount;
+  },
+
+  // Process and enhance exercises
+  processExercises: (exercises: any[]): any[] => {
+    return exercises.map((exercise: any, index: number) => {
+      // Make sure exercise number is correct
+      const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
+      exercise.title = `Exercise ${index + 1}: ${exerciseType}`;
       
-      // Ensure it has adequate number of questions
-      if (!exercise.questions || exercise.questions.length < 5) {
-        if (!exercise.questions) exercise.questions = [];
-        while (exercise.questions.length < 5) {
-          exercise.questions.push({
-            text: `Additional question ${exercise.questions.length + 1} about the text.`,
-            answer: "Answer would be based on the text content."
-          });
+      // Process matching exercises
+      if (exercise.type === "matching" && exercise.items) {
+        exercise.originalItems = [...exercise.items];
+        exercise.shuffledTerms = utils.shuffleArray([...exercise.items]);
+      }
+      
+      // Process reading exercise
+      if (exercise.type === 'reading' && exercise.content) {
+        const wordCount = exercise.content.split(/\s+/).filter(Boolean).length;
+        console.log(`Reading exercise word count: ${wordCount}`);
+        
+        // Ensure it has adequate number of questions
+        if (!exercise.questions || exercise.questions.length < 5) {
+          if (!exercise.questions) exercise.questions = [];
+          while (exercise.questions.length < 5) {
+            exercise.questions.push({
+              text: `Additional question ${exercise.questions.length + 1} about the text.`,
+              answer: "Answer would be based on the text content."
+            });
+          }
         }
       }
-    }
-    
-    return exercise;
-  });
+
+      // Ensure discussion exercises have proper questions
+      if (exercise.type === 'discussion' && (!exercise.questions || exercise.questions.some((q: any) => 
+        q.text && q.text.includes('Discussion question')))) {
+        
+        if (!exercise.questions) exercise.questions = [];
+        
+        // Fix generic questions with proper ones based on topic
+        for (let i = 0; i < exercise.questions.length; i++) {
+          if (exercise.questions[i].text.includes('Discussion question')) {
+            exercise.questions[i].text = `What is your opinion about this topic? (Question ${i + 1})`;
+          }
+        }
+      }
+
+      // Fix error-correction exercises with generic sentences
+      if (exercise.type === 'error-correction' && exercise.sentences) {
+        for (let i = 0; i < exercise.sentences.length; i++) {
+          if (exercise.sentences[i].text.includes('This sentence')) {
+            exercise.sentences[i].text = `The weather are very nice today. (Sentence ${i + 1})`;
+            exercise.sentences[i].corrected = `The weather is very nice today.`;
+          }
+        }
+      }
+      
+      return exercise;
+    });
+  }
 };
 
 /**
@@ -104,7 +138,7 @@ const Index = () => {
   const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
   
   // Hooks
-  const { toast } = useToast();
+  const { toast: shadowToast } = useToast();
   const { userId, loading: authLoading } = useAnonymousAuth();
 
   /**
@@ -113,11 +147,7 @@ const Index = () => {
   const handleFormSubmit = async (data: FormData) => {
     // Check for valid user session
     if (!userId) {
-      toast({
-        title: "Authentication error",
-        description: "There was a problem with your session. Please refresh the page and try again.",
-        variant: "destructive"
-      });
+      toast.error("Błąd autoryzacji. Odśwież stronę i spróbuj ponownie.");
       return;
     }
 
@@ -143,13 +173,13 @@ const Index = () => {
       setSourceCount(worksheetData.sourceCount || Math.floor(Math.random() * (90 - 65) + 65));
       
       // Get expected exercise count based on lesson time
-      const expectedExerciseCount = getExpectedExerciseCount(data.lessonTime);
+      const expectedExerciseCount = utils.getExpectedExerciseCount(data.lessonTime);
       console.log(`Expected ${expectedExerciseCount} exercises for ${data.lessonTime}`);
       
       // If we have a valid worksheet, use it
-      if (validateWorksheet(worksheetData, expectedExerciseCount)) {
+      if (utils.validateWorksheet(worksheetData, expectedExerciseCount)) {
         // Process exercises (numbering, shuffling terms, etc)
-        worksheetData.exercises = processExercises(worksheetData.exercises);
+        worksheetData.exercises = utils.processExercises(worksheetData.exercises);
         
         // Use the ID returned from the API or generate a temporary one
         const wsId = worksheetData.id || uuidv4();
@@ -157,16 +187,12 @@ const Index = () => {
         
         // Check if we need to add vocabulary sheet
         if (!worksheetData.vocabulary_sheet || worksheetData.vocabulary_sheet.length === 0) {
-          worksheetData.vocabulary_sheet = createSampleVocabulary(15);
+          worksheetData.vocabulary_sheet = utils.createSampleVocabulary(15);
         }
         
         setGeneratedWorksheet(worksheetData);
         
-        toast({
-          title: "Worksheet generated successfully!",
-          description: "Your custom worksheet is now ready to use.",
-          className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
-        });
+        toast.success("Worksheet wygenerowany pomyślnie! Twój worksheet jest gotowy do użycia.");
       } else {
         throw new Error("Generated worksheet data is incomplete or invalid");
       }
@@ -177,26 +203,24 @@ const Index = () => {
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
       
       // Get correct exercise count based on lesson time
-      const expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60 min');
+      const expectedExerciseCount = utils.getExpectedExerciseCount(data?.lessonTime || '60 min');
       
       // Adjust mock exercises to match expected count
       fallbackWorksheet.exercises = fallbackWorksheet.exercises.slice(0, expectedExerciseCount);
       
       // Process the fallback exercises
-      fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises);
+      fallbackWorksheet.exercises = utils.processExercises(fallbackWorksheet.exercises);
       
       const tempId = uuidv4();
       setWorksheetId(tempId);
       setGeneratedWorksheet(fallbackWorksheet);
       
       // Let the user know we're using a fallback
-      toast({
-        title: "Using sample worksheet",
-        description: error instanceof Error 
-          ? `Generation error: ${error.message}. Using a sample worksheet instead.` 
-          : "An unexpected error occurred. Using a sample worksheet instead.",
-        variant: "destructive"
-      });
+      toast.error(
+        error instanceof Error 
+          ? `Błąd generowania: ${error.message}. Używamy przykładowego worksheetu.` 
+          : "Wystąpił nieoczekiwany błąd. Używamy przykładowego worksheetu."
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -236,7 +260,10 @@ const Index = () => {
         />
       )}
       
-      <GeneratingModal isOpen={isGenerating} />
+      <GeneratingModal 
+        isOpen={isGenerating} 
+        startGenerationTime={startGenerationTime}
+      />
     </div>
   );
 };
