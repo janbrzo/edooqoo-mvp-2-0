@@ -9,6 +9,27 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
       return false;
     }
 
+    // Clone the element to avoid modifying the original
+    const clonedElement = element.cloneNode(true) as HTMLElement;
+    
+    // Remove elements that shouldn't appear in PDF
+    const elementsToRemove = clonedElement.querySelectorAll('[data-no-pdf="true"]');
+    elementsToRemove.forEach(el => el.remove());
+    
+    // Add version header at the top
+    const versionHeader = document.createElement('div');
+    versionHeader.className = 'text-center mb-4 p-2 bg-blue-50 border border-blue-200 rounded';
+    versionHeader.innerHTML = `<strong>Version: ${isTeacherView ? 'Teacher' : 'Student'} View</strong>`;
+    clonedElement.insertBefore(versionHeader, clonedElement.firstChild);
+    
+    // Create a temporary container
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '-9999px';
+    tempContainer.appendChild(clonedElement);
+    document.body.appendChild(tempContainer);
+
     const options = {
       margin: [10, 10, 15, 10],
       filename: filename,
@@ -29,7 +50,11 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
-    await html2pdf().set(options).from(element).save();
+    await html2pdf().set(options).from(clonedElement).save();
+    
+    // Clean up
+    document.body.removeChild(tempContainer);
+    
     return true;
   } catch (error) {
     console.error('PDF generation failed:', error);
@@ -107,9 +132,19 @@ export const exportAsHTML = async (elementId: string, filename: string, viewMode
     // Clone the document
     const docClone = document.cloneNode(true) as Document;
     
-    // Add version information at the top
+    // Get the worksheet content from cloned document
     const worksheetContent = docClone.getElementById(elementId);
-    if (worksheetContent && viewMode) {
+    if (!worksheetContent) {
+      console.error('Worksheet content not found in cloned document');
+      return false;
+    }
+    
+    // Remove elements that shouldn't appear in HTML export
+    const elementsToRemove = worksheetContent.querySelectorAll('[data-no-pdf="true"]');
+    elementsToRemove.forEach(el => el.remove());
+    
+    // Add version information at the top
+    if (viewMode) {
       const versionInfo = docClone.createElement('div');
       versionInfo.className = 'text-center mb-4 p-2 bg-blue-50 border border-blue-200 rounded';
       versionInfo.innerHTML = `<strong>Version: ${viewMode.charAt(0).toUpperCase() + viewMode.slice(1)} View</strong>`;
@@ -123,7 +158,7 @@ export const exportAsHTML = async (elementId: string, filename: string, viewMode
     // Inline all styles
     await inlineAllStyles(docClone);
     
-    // Add centering styles
+    // Add centering styles and ensure proper layout
     const centeringStyle = docClone.createElement('style');
     centeringStyle.textContent = `
       body {
@@ -154,7 +189,7 @@ export const exportAsHTML = async (elementId: string, filename: string, viewMode
     docClone.head.appendChild(centeringStyle);
     
     // Wrap content in container for centering
-    const bodyContent = docClone.body.innerHTML;
+    const bodyContent = worksheetContent.outerHTML;
     docClone.body.innerHTML = `<div class="container">${bodyContent}</div>`;
     
     // Create the final HTML string

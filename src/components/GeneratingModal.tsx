@@ -33,25 +33,28 @@ export default function GeneratingModal({ isOpen }: GeneratingModalProps) {
       return;
     }
 
-    // More realistic progress animation (slower)
+    // Realistic progress animation (30-80 second generation)
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 95) {
           return prev; // Stop at 95% until completion
         }
-        // Slower progression, more realistic for 30-80 second generation
-        const increment = Math.random() * 2 + 0.5; // 0.5-2.5% increment
-        return Math.min(prev + increment, 95);
+        // Slower progression based on elapsed time
+        const targetProgress = Math.min((elapsedTime / 60) * 100, 95); // 60 seconds = 95%
+        const increment = Math.random() * 1.5 + 0.5; // 0.5-2% increment
+        return Math.min(prev + increment, targetProgress);
       });
-    }, 1000); // Update every second
+    }, 2000); // Update every 2 seconds
 
-    // Step animation - more realistic timing
+    // Step animation - realistic timing based on elapsed time
     const stepInterval = setInterval(() => {
       setCurrentStep(prev => {
-        const nextStep = (prev + 1) % generationSteps.length;
-        return nextStep;
+        // Change step every 5-8 seconds for more realistic feel
+        const stepDuration = 5 + Math.random() * 3; // 5-8 seconds
+        const expectedStep = Math.floor(elapsedTime / stepDuration) % generationSteps.length;
+        return expectedStep;
       });
-    }, 3000); // Change step every 3 seconds
+    }, 1000); // Check every second
 
     // Timer
     const timerInterval = setInterval(() => {
@@ -63,7 +66,7 @@ export default function GeneratingModal({ isOpen }: GeneratingModalProps) {
       clearInterval(stepInterval);
       clearInterval(timerInterval);
     };
-  }, [isOpen]);
+  }, [isOpen, elapsedTime]);
 
   // Complete progress when modal should close
   useEffect(() => {
