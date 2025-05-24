@@ -1,9 +1,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
-import { generateWorksheetAPI } from './apiService';
-import { submitFeedbackAPI, updateFeedbackAPI } from './feedbackService';
-import { trackWorksheetEventAPI } from './trackingService';
+import { generateWorksheetAPI } from './worksheetService/apiService';
+import { submitFeedbackAPI, updateFeedbackAPI } from './worksheetService/feedbackService';
+import { trackWorksheetEventAPI } from './worksheetService/trackingService';
 
 /**
  * Main service export for worksheet functionality
