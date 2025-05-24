@@ -1,7 +1,6 @@
 
 import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 import { generateWorksheet } from "@/services/worksheetService";
 import { FormData } from "@/components/WorksheetForm";
 import { v4 as uuidv4 } from 'uuid';
@@ -101,37 +100,24 @@ const Index = () => {
   const [generationTime, setGenerationTime] = useState(0);
   const [sourceCount, setSourceCount] = useState(0);
   const [worksheetId, setWorksheetId] = useState<string | null>(null);
-  const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
   
   // Hooks
   const { toast } = useToast();
-  const { userId, loading: authLoading } = useAnonymousAuth();
 
   /**
    * Handles form submission and worksheet generation
    */
   const handleFormSubmit = async (data: FormData) => {
-    // Check for valid user session
-    if (!userId) {
-      toast({
-        title: "Authentication error",
-        description: "There was a problem with your session. Please refresh the page and try again.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     // Store form data and start generation process
     setInputParams(data);
     setIsGenerating(true);
     
     // Record start time for accurate generation time calculation
     const startTime = Date.now();
-    setStartGenerationTime(startTime);
     
     try {
-      // Generate worksheet using the API
-      const worksheetData = await generateWorksheet(data, userId);
+      // Generate worksheet using the API (without user ID for now)
+      const worksheetData = await generateWorksheet(data, 'anonymous');
       
       console.log("Generated worksheet data:", worksheetData);
       
@@ -211,15 +197,6 @@ const Index = () => {
     setWorksheetId(null);
   };
 
-  // Show loading indicator while auth is initializing
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin h-8 w-8 border-4 border-worksheet-purple border-t-transparent rounded-full"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-100">
       {!generatedWorksheet ? (
@@ -232,7 +209,7 @@ const Index = () => {
           generationTime={generationTime}
           sourceCount={sourceCount}
           onBack={handleBack}
-          userId={userId}
+          userId="anonymous"
         />
       )}
       
