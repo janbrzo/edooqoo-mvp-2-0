@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import OpenAI from "https://esm.sh/openai@4.28.0";
-import { getExerciseTypesForCount, getExerciseTypesForMissing, parseAIResponse } from './helpers.ts';
+import { getExerciseTypesForCount } from './helpers.ts';
 import { validateExercise } from './validators.ts';
 
 const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
@@ -12,27 +12,31 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  console.log('=== EDGE FUNCTION START ===');
+
   try {
     const requestData = await req.json();
-    console.log('Received request data:', requestData);
+    console.log('=== REQUEST DATA RECEIVED ===');
+    console.log('Request keys:', Object.keys(requestData));
     
     const { prompt, formData, userId } = requestData;
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
     
     if (!prompt) {
+      console.error('Missing prompt parameter');
       throw new Error('Missing prompt parameter');
     }
 
-    console.log('Processing prompt:', prompt);
+    console.log('=== PROCESSING PROMPT ===');
+    console.log('Prompt length:', prompt.length);
 
-    // Parse the lesson time from formData to determine exercise count
-    let exerciseCount = 6; // Default
-    let lessonTime = '60 min'; // Default
+    let exerciseCount = 6;
+    let lessonTime = '60 min';
     
     if (formData && formData.lessonTime) {
       lessonTime = formData.lessonTime;
@@ -43,21 +47,16 @@ serve(async (req) => {
       } else if (lessonTime === '60 min') {
         exerciseCount = 8;
       }
-    } else if (prompt.includes('30 min')) {
-      exerciseCount = 4;
-    } else if (prompt.includes('45 min')) {
-      exerciseCount = 6;
-    } else if (prompt.includes('60 min')) {
-      exerciseCount = 8;
     }
     
-    console.log(`Determined exercise count: ${exerciseCount} for lesson time: ${lessonTime}`);
+    console.log(`=== EXERCISE CONFIGURATION ===`);
+    console.log(`Lesson time: ${lessonTime}, Exercise count: ${exerciseCount}`);
     
-    // Determine exercise types to include based on exerciseCount
     const exerciseTypes = getExerciseTypesForCount(exerciseCount);
-    console.log('Exercise types to include:', exerciseTypes);
+    console.log('Exercise types:', exerciseTypes);
     
-    // Generate worksheet using OpenAI with improved prompt structure and VERY SPECIFIC requirements
+    console.log('=== CALLING OPENAI API ===');
+    
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o",
       temperature: 0.7,
@@ -137,56 +136,66 @@ CRITICAL: Return ONLY the JSON object. No additional text, no markdown formattin
       max_tokens: 4000
     });
 
+    console.log('=== OPENAI RESPONSE RECEIVED ===');
     const jsonContent = aiResponse.choices[0].message.content?.trim();
-    console.log('Raw AI response length:', jsonContent?.length);
-    console.log('Raw AI response first 200 chars:', jsonContent?.substring(0, 200));
+    console.log('Response length:', jsonContent?.length || 0);
+    console.log('Response first 100 chars:', jsonContent?.substring(0, 100));
     
     if (!jsonContent) {
+      console.error('Empty response from OpenAI');
       throw new Error('Empty response from AI');
     }
     
-    // Parse the JSON response with enhanced error handling
+    console.log('=== PARSING JSON RESPONSE ===');
     let worksheetData;
+    
     try {
-      // Clean and parse JSON more carefully
       let cleanedJson = jsonContent;
       
-      // Remove any markdown code blocks if present
+      // Remove markdown code blocks if present
       if (cleanedJson.includes('```json')) {
+        console.log('Removing markdown json blocks');
         cleanedJson = cleanedJson.replace(/^.*?```json\s*/, '').replace(/\s*```.*$/, '');
       } else if (cleanedJson.includes('```')) {
+        console.log('Removing markdown blocks');
         cleanedJson = cleanedJson.replace(/^.*?```\s*/, '').replace(/\s*```.*$/, '');
       }
       
-      // Remove any leading/trailing whitespace and non-JSON content
       cleanedJson = cleanedJson.trim();
       
-      // Find JSON boundaries more precisely
+      // Find JSON boundaries
       const jsonStart = cleanedJson.indexOf('{');
       const jsonEnd = cleanedJson.lastIndexOf('}') + 1;
       
       if (jsonStart >= 0 && jsonEnd > jsonStart) {
         cleanedJson = cleanedJson.substring(jsonStart, jsonEnd);
-        console.log('Cleaned JSON first 200 chars:', cleanedJson.substring(0, 200));
+        console.log('Cleaned JSON first 100 chars:', cleanedJson.substring(0, 100));
         
         worksheetData = JSON.parse(cleanedJson);
-        console.log('Successfully parsed worksheet data');
+        console.log('=== JSON PARSE SUCCESS ===');
+        console.log('Worksheet title:', worksheetData.title);
+        console.log('Exercises count:', worksheetData.exercises?.length || 0);
       } else {
-        console.error('Could not find valid JSON boundaries in response');
+        console.error('Could not find valid JSON boundaries');
+        console.error('jsonStart:', jsonStart, 'jsonEnd:', jsonEnd);
         throw new Error('Could not find valid JSON in response');
       }
       
-      // Validate basic structure
+      // Validate structure
       if (!worksheetData || typeof worksheetData !== 'object') {
+        console.error('Invalid worksheet object');
         throw new Error('Parsed data is not a valid object');
       }
       
       if (!worksheetData.title || !worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
+        console.error('Missing required properties');
+        console.error('Has title:', !!worksheetData.title);
+        console.error('Has exercises:', !!worksheetData.exercises);
+        console.error('Is exercises array:', Array.isArray(worksheetData.exercises));
         throw new Error('Invalid worksheet structure returned from AI');
       }
       
-      // Enhanced validation for exercise requirements
-      console.log(`Validating ${worksheetData.exercises.length} exercises`);
+      console.log('=== VALIDATING EXERCISES ===');
       for (let i = 0; i < worksheetData.exercises.length; i++) {
         const exercise = worksheetData.exercises[i];
         console.log(`Validating exercise ${i + 1}: ${exercise.type}`);
@@ -194,11 +203,11 @@ CRITICAL: Return ONLY the JSON object. No additional text, no markdown formattin
         try {
           validateExercise(exercise);
           
-          // Additional checks for problematic exercises
+          // Fix problematic exercises
           if (exercise.type === 'discussion' && exercise.questions) {
             exercise.questions = exercise.questions.map((q: string, index: number) => {
               if (q.includes(`Discussion question ${index + 1}?`) || q.includes('Discussion question')) {
-                console.warn(`Fixing generic discussion question: ${q}`);
+                console.warn(`Fixed generic discussion question: ${q}`);
                 return `How would you apply this topic in your professional context? (Question ${index + 1})`;
               }
               return q;
@@ -208,7 +217,7 @@ CRITICAL: Return ONLY the JSON object. No additional text, no markdown formattin
           if (exercise.type === 'error-correction' && exercise.sentences) {
             exercise.sentences = exercise.sentences.map((s: any, index: number) => {
               if (s.text && (s.text.includes(`This sentence ${index + 1}`) || s.text.includes('This sentence'))) {
-                console.warn(`Fixing generic error correction sentence: ${s.text}`);
+                console.warn(`Fixed generic error correction sentence: ${s.text}`);
                 return {
                   text: `The presentation was very helpfull for understanding the topic.`,
                   answer: `The presentation was very helpful for understanding the topic.`
@@ -220,34 +229,27 @@ CRITICAL: Return ONLY the JSON object. No additional text, no markdown formattin
           
         } catch (validationError) {
           console.error(`Validation failed for exercise ${i + 1}:`, validationError.message);
-          // Continue with other exercises instead of failing completely
         }
       }
       
-      // Ensure we have the correct number of exercises
+      // Ensure correct exercise count
       if (worksheetData.exercises.length !== exerciseCount) {
         console.warn(`Expected ${exerciseCount} exercises but got ${worksheetData.exercises.length}`);
         
-        if (worksheetData.exercises.length < exerciseCount) {
-          const additionalExercisesNeeded = exerciseCount - worksheetData.exercises.length;
-          console.log(`Need to generate ${additionalExercisesNeeded} additional exercises`);
-          
-          // For now, just log this - we could implement additional exercise generation here
-          console.log('Proceeding with current exercises');
-        } else if (worksheetData.exercises.length > exerciseCount) {
+        if (worksheetData.exercises.length > exerciseCount) {
           worksheetData.exercises = worksheetData.exercises.slice(0, exerciseCount);
           console.log(`Trimmed exercises to ${worksheetData.exercises.length}`);
         }
       }
       
-      // Make sure exercise titles have correct sequential numbering
+      // Fix exercise titles
       worksheetData.exercises.forEach((exercise: any, index: number) => {
         const exerciseNumber = index + 1;
         const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
         exercise.title = `Exercise ${exerciseNumber}: ${exerciseType}`;
       });
       
-      // Ensure vocabulary sheet exists
+      // Ensure vocabulary sheet
       if (!worksheetData.vocabulary_sheet || worksheetData.vocabulary_sheet.length === 0) {
         worksheetData.vocabulary_sheet = [
           {"term": "Professional", "meaning": "Related to work or career"},
@@ -258,32 +260,41 @@ CRITICAL: Return ONLY the JSON object. No additional text, no markdown formattin
         ];
       }
       
-      console.log(`Final exercise count: ${worksheetData.exercises.length} (expected: ${exerciseCount})`);
+      console.log(`=== WORKSHEET COMPLETE ===`);
+      console.log(`Final exercise count: ${worksheetData.exercises.length}`);
       
-      // Count API sources used for accurate stats
       const sourceCount = Math.floor(Math.random() * (90 - 65) + 65);
       worksheetData.sourceCount = sourceCount;
       
     } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', parseError);
-      console.error('Raw response content:', jsonContent);
+      console.error('=== JSON PARSE ERROR ===');
+      console.error('Parse error:', parseError.message);
+      console.error('Raw content length:', jsonContent.length);
+      console.error('Raw content sample:', jsonContent.substring(0, 500));
       throw new Error(`Failed to generate a valid worksheet structure: ${parseError.message}`);
     }
 
-    // Generate a simple ID without database save for now
     const worksheetId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     worksheetData.id = worksheetId;
 
-    console.log('Returning successful worksheet data');
+    const processingTime = Date.now() - startTime;
+    console.log(`=== SUCCESS - Processing time: ${processingTime}ms ===`);
+    
     return new Response(JSON.stringify(worksheetData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in generateWorksheet:', error);
+    const processingTime = Date.now() - startTime;
+    console.error(`=== ERROR after ${processingTime}ms ===`);
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
     return new Response(
       JSON.stringify({ 
         error: error.message || 'An error occurred while generating the worksheet',
-        details: error.stack
+        details: error.stack,
+        processingTime: processingTime
       }),
       { 
         status: 500,
