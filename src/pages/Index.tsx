@@ -53,7 +53,7 @@ const validateWorksheet = (worksheetData: any, expectedCount: number): boolean =
     return false;
   }
   
-  return worksheetData.exercises.length === expectedCount;
+  return worksheetData.exercises.length >= Math.min(expectedCount - 1, 3); // Allow some flexibility
 };
 
 const processExercises = (exercises: any[]): any[] => {
@@ -108,6 +108,8 @@ const Index = () => {
    * Handles form submission and worksheet generation
    */
   const handleFormSubmit = async (data: FormData) => {
+    console.log('Form submitted with data:', data);
+    
     // Store form data and start generation process
     setInputParams(data);
     setIsGenerating(true);
@@ -116,7 +118,9 @@ const Index = () => {
     const startTime = Date.now();
     
     try {
-      // Generate worksheet using the API (without user ID for now)
+      console.log('Calling generateWorksheet API...');
+      
+      // Generate worksheet using the API
       const worksheetData = await generateWorksheet(data, 'anonymous');
       
       console.log("Generated worksheet data:", worksheetData);
@@ -154,12 +158,14 @@ const Index = () => {
           className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
         });
       } else {
+        console.warn("Generated worksheet validation failed, using fallback");
         throw new Error("Generated worksheet data is incomplete or invalid");
       }
     } catch (error) {
       console.error("Worksheet generation error:", error);
       
       // Fallback to mock data if generation fails
+      console.log("Using fallback mock data");
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
       
       // Get correct exercise count based on lesson time

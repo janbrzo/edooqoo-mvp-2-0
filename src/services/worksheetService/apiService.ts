@@ -11,40 +11,47 @@ const GENERATE_WORKSHEET_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functio
  */
 export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: string) {
   try {
-    console.log('Generating worksheet with prompt:', prompt);
+    console.log('Starting worksheet generation with form data:', prompt);
     
     // Create a formatted prompt string
-    const formattedPrompt = `${prompt.lessonTopic} - ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.studentProfile ? `. Student profile: ${prompt.studentProfile}` : ''}${prompt.studentStruggles ? `. Student struggles: ${prompt.studentStruggles}` : ''}. Lesson duration: ${prompt.lessonTime}.`;
+    const formattedPrompt = `Topic: ${prompt.lessonTopic}. Goal: ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.studentProfile ? `. Student profile: ${prompt.studentProfile}` : ''}${prompt.studentStruggles ? `. Student struggles: ${prompt.studentStruggles}` : ''}. Lesson duration: ${prompt.lessonTime}.`;
     
-    // Prepare form data for storage
-    const formData = {
-      lessonTopic: prompt.lessonTopic,
-      lessonGoal: prompt.lessonGoal,
-      teachingPreferences: prompt.teachingPreferences,
-      studentProfile: prompt.studentProfile || null,
-      studentStruggles: prompt.studentStruggles || null,
-      lessonTime: prompt.lessonTime
+    // Prepare form data for the API
+    const requestBody = {
+      prompt: formattedPrompt,
+      formData: {
+        lessonTopic: prompt.lessonTopic,
+        lessonGoal: prompt.lessonGoal,
+        teachingPreferences: prompt.teachingPreferences,
+        studentProfile: prompt.studentProfile || null,
+        studentStruggles: prompt.studentStruggles || null,
+        lessonTime: prompt.lessonTime
+      },
+      userId
     };
     
-    console.log('Sending formatted prompt to API:', formattedPrompt);
+    console.log('Sending request to API:', requestBody);
     
     const response = await fetch(GENERATE_WORKSHEET_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        prompt: formattedPrompt,
-        formData: formData,
-        userId
-      })
+      body: JSON.stringify(requestBody)
     });
 
     console.log('API response status:', response.status);
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      console.error('API error data:', errorData);
+      const errorText = await response.text();
+      console.error('API error response:', errorText);
+      
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { error: errorText };
+      }
       
       if (response.status === 429) {
         throw new Error('You have reached your daily limit for worksheet generation. Please try again tomorrow.');
@@ -52,13 +59,22 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: st
       throw new Error(`Failed to generate worksheet: ${errorData?.error || response.statusText}`);
     }
 
-    // Parse the response as JSON directly
-    const worksheetData = await response.json();
-    console.log('API returned worksheet data:', worksheetData);
+    // Parse the response as JSON
+    const responseText = await response.text();
+    console.log('Raw API response:', responseText.substring(0, 200) + '...');
+    
+    let worksheetData;
+    try {
+      worksheetData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse API response:', parseError);
+      throw new Error('Received invalid response format from the server');
+    }
+    
+    console.log('Parsed worksheet data successfully');
     
     if (!worksheetData || typeof worksheetData !== 'object') {
-      console.error('Invalid response format:', worksheetData);
-      throw new Error('Received invalid worksheet data format');
+      throw new Error('Invalid worksheet data format received');
     }
     
     // Perform validation on the returned data
@@ -74,7 +90,6 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: st
         
         if (wordCount < 280 || wordCount > 320) {
           console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
-          // We'll let the main component handle this warning
         }
         
         if (!exercise.questions || exercise.questions.length < 5) {
@@ -92,9 +107,9 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: st
     
     // Check exercise count based on lesson time
     const getExpectedExerciseCount = (lessonTime: string): number => {
-      if (lessonTime === "30 min") return 4;  // 30 minutes = 4 exercises
-      else if (lessonTime === "45 min") return 6;  // 45 minutes = 6 exercises
-      else return 8;  // 60 minutes = 8 exercises
+      if (lessonTime === "30 min") return 4;
+      else if (lessonTime === "45 min") return 6;
+      else return 8;
     };
     
     const expectedCount = getExpectedExerciseCount(prompt.lessonTime);
@@ -102,7 +117,7 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: st
     
     return worksheetData;
   } catch (error) {
-    console.error('Error generating worksheet:', error);
+    console.error('Error in generateWorksheetAPI:', error);
     throw error;
   }
 }
