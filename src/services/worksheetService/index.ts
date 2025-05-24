@@ -1,5 +1,4 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 import { generateWorksheetAPI } from './apiService';
 import { submitFeedbackAPI, updateFeedbackAPI } from './feedbackService';
@@ -12,7 +11,8 @@ export {
   generateWorksheet,
   submitFeedback, 
   updateFeedback, 
-  trackWorksheetEvent 
+  trackWorksheetEvent,
+  generateWorksheetAPI 
 };
 
 /**

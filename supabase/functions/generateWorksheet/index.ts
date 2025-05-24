@@ -12,6 +12,11 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Add this log to see if function is being called at all
+  console.log('=== EDGE FUNCTION CALLED ===');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

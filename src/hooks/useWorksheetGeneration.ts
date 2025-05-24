@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import { generateWorksheet } from "@/services/worksheetService";
+import { generateWorksheetAPI } from "@/services/worksheetService/apiService";
 import { FormData } from "@/components/WorksheetForm";
 import { v4 as uuidv4 } from 'uuid';
 import mockWorksheetData from '@/mockWorksheetData';
@@ -102,13 +102,13 @@ export const useWorksheetGeneration = () => {
     const startTime = Date.now();
     
     try {
-      console.log('=== CALLING API ===');
-      console.log('Calling generateWorksheet API with userId: anonymous');
+      console.log('=== CALLING EDGE FUNCTION API ===');
+      console.log('Using generateWorksheetAPI with userId: anonymous');
       
-      // Call the API with proper error handling
-      const worksheetData = await generateWorksheet(data, 'anonymous');
+      // Call the CORRECT API service that uses Edge Function
+      const worksheetData = await generateWorksheetAPI(data, 'anonymous');
       
-      console.log('=== API RESPONSE RECEIVED ===');
+      console.log('=== EDGE FUNCTION RESPONSE RECEIVED ===');
       console.log("Generated worksheet data type:", typeof worksheetData);
       console.log("Generated worksheet keys:", worksheetData ? Object.keys(worksheetData) : 'null');
       
@@ -148,8 +148,8 @@ export const useWorksheetGeneration = () => {
       console.error("=== WORKSHEET GENERATION ERROR ===");
       console.error("Error details:", error);
       
-      // Only use fallback in case of actual API error, not immediately
-      console.log("Using fallback mock data due to error");
+      // Only use fallback if there was an actual API error
+      console.log("Using fallback mock data due to API error:", error.message);
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
       
       const expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60 min');
