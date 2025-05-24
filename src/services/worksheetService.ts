@@ -1,6 +1,9 @@
 
+import { supabase } from '@/integrations/supabase/client';
 import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 import { generateWorksheetAPI } from './worksheetService/apiService';
+import { submitFeedbackAPI, updateFeedbackAPI } from './worksheetService/feedbackService';
+import { trackWorksheetEventAPI } from './worksheetService/trackingService';
 
 /**
  * Main service export for worksheet functionality
@@ -20,25 +23,22 @@ async function generateWorksheet(prompt: WorksheetFormData, userId: string) {
 }
 
 /**
- * Submits feedback for a worksheet - temporary mock implementation
+ * Submits feedback for a worksheet
  */
 async function submitFeedback(worksheetId: string, rating: number, comment: string, userId: string) {
-  console.log('Feedback submitted:', { worksheetId, rating, comment, userId });
-  return { success: true, id: 'mock-feedback-id' };
+  return submitFeedbackAPI(worksheetId, rating, comment, userId);
 }
 
 /**
- * Updates existing feedback with a comment - temporary mock implementation
+ * Updates existing feedback with a comment
  */
 async function updateFeedback(id: string, comment: string, userId: string) {
-  console.log('Feedback updated:', { id, comment, userId });
-  return { success: true };
+  return updateFeedbackAPI(id, comment, userId);
 }
 
 /**
- * Tracks an event (view, download, etc.) - temporary mock implementation
+ * Tracks an event (view, download, etc.)
  */
 async function trackWorksheetEvent(type: string, worksheetId: string, userId: string, metadata: any = {}) {
-  console.log('Event tracked:', { type, worksheetId, userId, metadata });
-  return { success: true };
+  return trackWorksheetEventAPI(type, worksheetId, userId, metadata);
 }
