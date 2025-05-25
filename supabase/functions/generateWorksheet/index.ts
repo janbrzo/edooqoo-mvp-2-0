@@ -66,10 +66,10 @@ serve(async (req) => {
 8. Use appropriate time values for each exercise (5-10 minutes).
 9. DO NOT include any text outside of the JSON structure.
 10. Exercise 1: Reading Comprehension must follow extra steps:
-    - Generate the content passage between 280 and 320 words.
+    - Generate the `content` passage between 280 and 320 words.
     - After closing JSON, on a separate line add:
       // Word count: X (must be between 280–320)
-    - Don't proceed unless X ∈ [280,320].
+    - Don’t proceed unless X ∈ [280,320].
 11. Focus on overall flow, coherence and pedagogical value; minor typos acceptable.
 
 12. Generate a structured JSON worksheet with the following format:
@@ -151,7 +151,8 @@ serve(async (req) => {
             {"label": "C", "text": "Option C", "correct": false},
             {"label": "D", "text": "Option D", "correct": false}
           ]
-        }
+        },
+        // INCLUDE EXACTLY 10 MULTIPLE CHOICE QUESTIONS WITH 4 OPTIONS EACH
       ],
       "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
@@ -164,6 +165,7 @@ serve(async (req) => {
       "dialogue": [
         {"speaker": "Person A", "text": "Hello, how are you?"},
         {"speaker": "Person B", "text": "I'm fine, thank you. And you?"}
+        // INCLUDE AT LEAST 10 DIALOGUE EXCHANGES
       ],
       "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", 
                      "expression6", "expression7", "expression8", "expression9", "expression10"],
@@ -194,12 +196,13 @@ serve(async (req) => {
   "vocabulary_sheet": [
     {"term": "Term 1", "meaning": "Definition 1"},
     {"term": "Term 2", "meaning": "Definition 2"}
+    // INCLUDE EXACTLY 15 TERMS
   ]
 }
 
 IMPORTANT QUALITY CHECK BEFORE GENERATING:
 1.  Grammar, spelling, formatting – near-flawless (1–2 minor typos allowed). Difficulty level consistent and appropriate.
-2. Confirm that Exercise 1 content is between 280 and 320 words and that the Word count comment is correct.
+2. Confirm that Exercise 1 `content` is between 280 and 320 words and that the Word count comment is correct.
 3. For "reading" exercises:
    - The content MUST be BETWEEN 280-320 WORDS. Count words carefully.
    - ALWAYS include EXACTLY 5 comprehension questions.
@@ -225,14 +228,15 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
 13. For ALL other exercise types:
    - Include EXACTLY 10 examples/items/questions unless specified otherwise.
 14. For vocabulary sheets, include EXACTLY 15 terms.
-15. Specific vocabulary related to the topic is included.`
+15. Specific vocabulary related to the topic is included.
+`
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      max_tokens: 5000  // Ensure we have enough tokens for a complete response
+      max_tokens: 4000  // Ensure we have enough tokens for a complete response
     });
 
     const jsonContent = aiResponse.choices[0].message.content;
@@ -302,6 +306,7 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
                         {"label": "D", "text": "Option D", "correct": false}
                       ]
                     }
+                    // 10 questions total
                   ],
                   "teacher_tip": "Tip for teachers on this exercise"
                 }`
@@ -357,6 +362,47 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
       throw new Error('Failed to generate a valid worksheet structure. Please try again.');
+    }
+
+    // Save worksheet to database using the correct function parameters
+    try {
+      const htmlContent = `<div id="worksheet-content">${JSON.stringify(worksheetData)}</div>`;
+      
+      const { data: worksheet, error: worksheetError } = await supabase.rpc(
+        'insert_worksheet_bypass_limit',
+        {
+          p_prompt: prompt,
+          p_content: JSON.stringify(worksheetData),
+          p_user_id: userId,
+          p_ip_address: ip,
+          p_status: 'created',
+          p_title: worksheetData.title
+        }
+      );
+
+      if (worksheetError) {
+        console.error('Error saving worksheet to database:', worksheetError);
+        // Continue even if database save fails - we'll return the generated content
+      }
+
+      // Track generation event if we have a worksheet ID
+      if (worksheet && worksheet.length > 0 && worksheet[0].id) {
+        const worksheetId = worksheet[0].id;
+        await supabase.from('events').insert({
+          type: 'generate',
+          event_type: 'generate',
+          worksheet_id: worksheetId,
+          user_id: userId,
+          metadata: { prompt, ip },
+          ip_address: ip
+        });
+        console.log('Worksheet generated and saved successfully with ID:', worksheetId);
+        // Add the ID to the worksheet data so frontend can use it
+        worksheetData.id = worksheetId;
+      }
+    } catch (dbError) {
+      console.error('Database operation failed:', dbError);
+      // Continue without failing the request
     }
 
     return new Response(JSON.stringify(worksheetData), {
