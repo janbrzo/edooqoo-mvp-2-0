@@ -216,6 +216,12 @@ export const downloadCurrentViewAsHtml = async (elementId: string, filename: str
     metaCharset.setAttribute('charset', 'utf-8');
     head.appendChild(metaCharset);
     
+    // Add viewport meta tag for better responsive behavior
+    const metaViewport = document.createElement('meta');
+    metaViewport.setAttribute('name', 'viewport');
+    metaViewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
+    head.appendChild(metaViewport);
+    
     // Add title
     const titleElement = document.createElement('title');
     titleElement.textContent = `${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version`;
@@ -239,18 +245,27 @@ export const downloadCurrentViewAsHtml = async (elementId: string, filename: str
     versionHeader.innerHTML = `${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version`;
     body.appendChild(versionHeader);
     
-    // Add margin to body to account for fixed header and center content
+    // Add margin to body to account for fixed header and CENTER the content
     const bodyStyle = document.createElement('style');
     bodyStyle.textContent = `
       body { 
         margin-top: 60px !important; 
+        margin-left: auto !important;
+        margin-right: auto !important;
         font-family: Arial, sans-serif; 
         line-height: 1.6; 
         color: #333; 
         max-width: 1200px; 
-        margin-left: auto; 
-        margin-right: auto; 
         padding: 20px; 
+        background-color: #f5f5f5;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       }
     `;
     head.appendChild(bodyStyle);
@@ -291,14 +306,20 @@ export const downloadCurrentViewAsHtml = async (elementId: string, filename: str
       console.warn('Error accessing document.styleSheets:', error);
     }
     
-    // Add additional styles for better layout
+    // Add additional styles for better layout and CENTERING
     const additionalStyles = document.createElement('style');
     additionalStyles.textContent = `
       /* Ensure proper centering and layout */
-      .container { max-width: 1200px; margin: 0 auto; }
-      .worksheet-content { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-      h1 { color: #3d348b; font-size: 28px; margin-bottom: 16px; }
-      h2 { color: #5e44a0; font-size: 22px; margin-bottom: 12px; }
+      .worksheet-content { 
+        background: white; 
+        padding: 20px; 
+        border-radius: 8px; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin: 0 auto;
+        max-width: 1200px;
+      }
+      h1 { color: #3d348b; font-size: 28px; margin-bottom: 16px; text-align: center; }
+      h2 { color: #5e44a0; font-size: 22px; margin-bottom: 12px; text-align: center; }
       h3 { color: #3d348b; font-size: 18px; margin-bottom: 10px; }
       .exercise { margin-bottom: 2em; border: 1px solid #eee; padding: 1em; border-radius: 5px; }
       .exercise-header { display: flex; align-items: center; margin-bottom: 1em; font-weight: bold; }
@@ -313,11 +334,22 @@ export const downloadCurrentViewAsHtml = async (elementId: string, filename: str
       .p-4 { padding: 1rem; }
       .mb-4 { margin-bottom: 1rem; }
       .leading-snug { line-height: 1.375; }
+      /* Center everything properly */
+      .mx-auto { margin-left: auto; margin-right: auto; }
+      .text-center { text-align: center; }
+      /* Make sure the main content is centered */
+      #worksheet-content {
+        margin: 0 auto;
+        max-width: 1200px;
+      }
     `;
     head.appendChild(additionalStyles);
     
-    // Add the cloned content to body
-    body.appendChild(elementClone);
+    // Wrap the cloned content in a container for better centering
+    const containerDiv = document.createElement('div');
+    containerDiv.className = 'container';
+    containerDiv.appendChild(elementClone);
+    body.appendChild(containerDiv);
     
     // Assemble the document
     htmlDocContent.appendChild(head);
