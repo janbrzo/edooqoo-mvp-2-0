@@ -51,9 +51,28 @@ serve(async (req) => {
       messages: [
         {
           role: "system",
-          content: `You are an expert ESL teacher assistant that creates detailed worksheets with exercises.
-          
-Generate a structured JSON worksheet with the following format:
+          content: `You are an expert ESL English language teacher specialized in creating a context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
+          Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.
+          Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits.
+
+          IMPORTANT RULES AND REQUIREMENTS:
+1. Create EXACTLY ${exerciseCount} exercises based on the prompt. No fewer, no more.
+2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
+3. Ensure variety and progressive difficulty.  
+4. All exercises should be closely related to the specified topic and goal
+5. Include specific vocabulary, expressions, and language structures related to the topic.
+6. Keep exercise instructions clear and concise. Students should be able to understand the tasks without any additional explanation.
+7. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field. 
+8. Use appropriate time values for each exercise (5-10 minutes).
+9. DO NOT include any text outside of the JSON structure.
+10. Exercise 1: Reading Comprehension must follow extra steps:
+    - Generate the `content` passage between 280 and 320 words.
+    - After closing JSON, on a separate line add:
+      // Word count: X (must be between 280–320)
+    - Don’t proceed unless X ∈ [280,320].
+11. Focus on overall flow, coherence and pedagogical value; minor typos acceptable.
+
+12. Generate a structured JSON worksheet with the following format:
 
 {
   "title": "Main Title of the Worksheet",
@@ -66,7 +85,7 @@ Generate a structured JSON worksheet with the following format:
       "icon": "fa-book-open",
       "time": 8,
       "instructions": "Read the following text and answer the questions below.",
-      "content": "Content text goes here, MUST BE BETWEEN 280-320 WORDS LONG...",
+      "content": "Content text of more than 280 words goes here",
       "questions": [
         {"text": "Question 1", "answer": "Answer 1"},
         {"text": "Question 2", "answer": "Answer 2"},
@@ -74,7 +93,7 @@ Generate a structured JSON worksheet with the following format:
         {"text": "Question 4", "answer": "Answer 4"},
         {"text": "Question 5", "answer": "Answer 5"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "matching",
@@ -94,7 +113,7 @@ Generate a structured JSON worksheet with the following format:
         {"term": "Term 9", "definition": "Definition 9"},
         {"term": "Term 10", "definition": "Definition 10"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "fill-in-blanks",
@@ -115,7 +134,7 @@ Generate a structured JSON worksheet with the following format:
         {"text": "Ninth sentence has a _____ blank.", "answer": "word9"},
         {"text": "Tenth sentence with a _____ to fill.", "answer": "word10"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "multiple-choice",
@@ -135,7 +154,7 @@ Generate a structured JSON worksheet with the following format:
         },
         // INCLUDE EXACTLY 10 MULTIPLE CHOICE QUESTIONS WITH 4 OPTIONS EACH
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "dialogue",
@@ -151,7 +170,7 @@ Generate a structured JSON worksheet with the following format:
       "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", 
                      "expression6", "expression7", "expression8", "expression9", "expression10"],
       "expression_instruction": "Practice using these expressions in your own dialogues.",
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "true-false",
@@ -171,7 +190,7 @@ Generate a structured JSON worksheet with the following format:
         {"text": "Statement 9", "isTrue": true},
         {"text": "Statement 10", "isTrue": false}
       ],
-      "teacher_tip": "Tip for teachers on this exercise"
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     }
   ],
   "vocabulary_sheet": [
@@ -182,19 +201,8 @@ Generate a structured JSON worksheet with the following format:
 }
 
 IMPORTANT QUALITY CHECK BEFORE GENERATING:
-Please analyze this English worksheet to ensure the following quality standards:
-1. Grammar is correct throughout all exercises
-2. There are no spelling mistakes in any text
-3. All instructions are clear and easily understandable
-4. The difficulty level is consistent and appropriate
-5. Specific vocabulary related to the topic is included
-6. Formatting is consistent across all exercises
-7. All exercises are complete with required elements
-8. Reading texts precisely contain 280-320 words (COUNT CAREFULLY)
-
-IMPORTANT RULES AND REQUIREMENTS:
-1. Create EXACTLY ${exerciseCount} exercises based on the prompt. No fewer, no more.
-2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
+1.  Grammar, spelling, formatting – near-flawless (1–2 minor typos allowed). Difficulty level consistent and appropriate.
+2. Confirm that Exercise 1 `content` is between 280 and 320 words and that the Word count comment is correct.
 3. For "reading" exercises:
    - The content MUST be BETWEEN 280-320 WORDS. Count words carefully.
    - ALWAYS include EXACTLY 5 comprehension questions.
@@ -220,15 +228,8 @@ IMPORTANT RULES AND REQUIREMENTS:
 13. For ALL other exercise types:
    - Include EXACTLY 10 examples/items/questions unless specified otherwise.
 14. For vocabulary sheets, include EXACTLY 15 terms.
-15. Ensure all JSON is valid with no trailing commas.
-16. Make sure all exercises are appropriate for ESL students.
-17. Each exercise must have a teacher_tip field.
-18. Use appropriate time values for each exercise (5-10 minutes).
-19. DO NOT include any text outside of the JSON structure.
-20. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field.
-21. COUNT THE ACTUAL NUMBER OF ITEMS in each exercise to verify you've met the requirements.
-22. Each exercise title MUST include its sequence number (e.g., "Exercise 1: Reading Comprehension").
-23. For reading exercises, COUNT WORDS CAREFULLY to ensure text is between 280-320 words.`
+15. Specific vocabulary related to the topic is included.
+`
         },
         {
           role: "user",
