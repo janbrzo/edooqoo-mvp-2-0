@@ -9,86 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      events: {
-        Row: {
-          created_at: string | null
-          device_type: string | null
-          event_type: string | null
-          geo_location: string | null
-          id: string
-          ip_address: string | null
-          metadata: Json | null
-          referrer_url: string | null
-          type: string
-          user_id: string | null
-          worksheet_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          device_type?: string | null
-          event_type?: string | null
-          geo_location?: string | null
-          id?: string
-          ip_address?: string | null
-          metadata?: Json | null
-          referrer_url?: string | null
-          type: string
-          user_id?: string | null
-          worksheet_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          device_type?: string | null
-          event_type?: string | null
-          geo_location?: string | null
-          id?: string
-          ip_address?: string | null
-          metadata?: Json | null
-          referrer_url?: string | null
-          type?: string
-          user_id?: string | null
-          worksheet_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "events_worksheet_id_fkey"
-            columns: ["worksheet_id"]
-            isOneToOne: false
-            referencedRelation: "worksheets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       feedbacks: {
         Row: {
           comment: string | null
-          created_at: string | null
+          created_at: string
           id: string
-          moderated_by: string | null
-          rating: number | null
+          rating: number
           status: string | null
           user_id: string | null
-          worksheet_id: string | null
+          worksheet_id: string
         }
         Insert: {
           comment?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
-          moderated_by?: string | null
-          rating?: number | null
+          rating: number
           status?: string | null
           user_id?: string | null
-          worksheet_id?: string | null
+          worksheet_id: string
         }
         Update: {
           comment?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
-          moderated_by?: string | null
-          rating?: number | null
+          rating?: number
           status?: string | null
           user_id?: string | null
-          worksheet_id?: string | null
+          worksheet_id?: string
         }
         Relationships: [
           {
@@ -102,35 +49,56 @@ export type Database = {
       }
       worksheets: {
         Row: {
-          created_at: string | null
+          ai_response: string
+          city: string | null
+          country: string | null
+          created_at: string
+          download_count: number
+          form_data: Json
+          generation_time_seconds: number | null
           html_content: string
           id: string
           ip_address: string | null
-          last_modified_at: string | null
+          last_modified_at: string
           prompt: string
-          status: string | null
+          sequence_number: number
+          status: string
           title: string | null
           user_id: string | null
         }
         Insert: {
-          created_at?: string | null
+          ai_response: string
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          download_count?: number
+          form_data: Json
+          generation_time_seconds?: number | null
           html_content: string
           id?: string
           ip_address?: string | null
-          last_modified_at?: string | null
+          last_modified_at?: string
           prompt: string
-          status?: string | null
+          sequence_number?: number
+          status?: string
           title?: string | null
           user_id?: string | null
         }
         Update: {
-          created_at?: string | null
+          ai_response?: string
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          download_count?: number
+          form_data?: Json
+          generation_time_seconds?: number | null
           html_content?: string
           id?: string
           ip_address?: string | null
-          last_modified_at?: string | null
+          last_modified_at?: string
           prompt?: string
-          status?: string | null
+          sequence_number?: number
+          status?: string
           title?: string | null
           user_id?: string | null
         }
@@ -141,7 +109,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_worksheet_download_count: {
+        Args: { p_worksheet_id: string }
+        Returns: undefined
+      }
+      insert_worksheet_bypass_limit: {
+        Args: {
+          p_prompt: string
+          p_form_data: Json
+          p_ai_response: string
+          p_html_content: string
+          p_user_id: string
+          p_ip_address: string
+          p_status: string
+          p_title: string
+          p_generation_time_seconds: number
+        }
+        Returns: {
+          id: string
+          created_at: string
+          title: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
