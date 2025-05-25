@@ -2,9 +2,8 @@
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Toggle } from "@/components/ui/toggle";
 import { submitFeedback, updateFeedback } from "@/services/worksheetService";
 import { useToast } from "@/hooks/use-toast";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
@@ -15,7 +14,7 @@ interface WorksheetRatingProps {
 }
 
 /**
- * A modern-looking worksheet rating section with thumbs up/down rating and feedback modal.
+ * A modern-looking worksheet rating section with 1-5 stars and feedback modal.
  * Should not display on PDF.
  */
 const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, worksheetId }) => {
@@ -29,14 +28,13 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
   const { toast } = useToast();
   const { userId } = useAnonymousAuth();
   
-  const handleRatingClick = async (value: number) => {
+  const handleStarClick = async (value: number) => {
     setSelected(value);
-    setIsDialogOpen(true);
     
     try {
       setSubmitting(true);
       
-      // Submit rating immediately when button is clicked
+      // Submit rating immediately when star is clicked
       if (userId) {
         const actualWorksheetId = worksheetId || 
           new URL(window.location.href).searchParams.get('worksheet_id') || 
@@ -55,15 +53,22 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
             description: "Thanks for your feedback. Add a comment for more details."
           });
           
-          // Call the callback if provided
+          // Wywołanie callbacku jeśli został dostarczony
           if (onSubmitRating) {
             onSubmitRating(value, '');
           }
         }
       }
+      
+      // Then open dialog to collect additional comment
+      setIsDialogOpen(true);
     } catch (error) {
       console.error("Error submitting rating:", error);
-      // Don't show error toast here, as the dialog is already open
+      toast({
+        title: "Rating submission failed",
+        description: "We couldn't submit your rating. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setSubmitting(false);
     }
@@ -93,19 +98,13 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
       if (currentFeedbackId) {
         // Update existing feedback with comment
         await updateFeedback(currentFeedbackId, feedback, userId);
-      } else if (actualWorksheetId) {
+      } else {
         // Submit new feedback with rating and comment
-        const result = await submitFeedback(actualWorksheetId, selected, feedback, userId);
+        const result = await submitFeedback(actualWorksheetId || 'unknown', selected, feedback, userId);
         
         // Store the feedback ID
         if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
           setCurrentFeedbackId(result[0].id);
-        }
-      } else {
-        // Create a placeholder for unknown worksheets
-        const placeholderResult = await submitFeedback('unknown', selected, feedback, userId);
-        if (placeholderResult && Array.isArray(placeholderResult) && placeholderResult.length > 0) {
-          setCurrentFeedbackId(placeholderResult[0].id);
         }
       }
       
@@ -131,6 +130,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
         variant: "destructive"
       });
     } finally {
+      setFeedback("");
       setSubmitting(false);
     }
   };
@@ -141,40 +141,20 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
         <h3 className="text-indigo-800 mb-2 font-bold text-2xl">How would you rate this worksheet?</h3>
         <p className="text-blue-400 mb-4 text-base">Your feedback helps us improve our AI-generated worksheets</p>
         
-        <div className="flex justify-center space-x-8 mb-2">
-          <Toggle
-            variant="feedback"
-            size="icon"
-            pressed={selected === 5}
-            onPressedChange={() => handleRatingClick(5)}
-            disabled={submitting}
-            className="transition-transform transform hover:scale-110"
-            aria-label="Thumbs up"
-          >
-            <ThumbsUp 
-              size={32} 
-              className={`${selected === 5 ? 'text-blue-500' : 'text-gray-300'} ${hovered === 5 ? 'text-blue-300' : ''}`} 
-              onMouseEnter={() => setHovered(5)} 
-              onMouseLeave={() => setHovered(null)}
-            />
-          </Toggle>
-          
-          <Toggle
-            variant="feedback"
-            size="icon"
-            pressed={selected === 1}
-            onPressedChange={() => handleRatingClick(1)}
-            disabled={submitting}
-            className="transition-transform transform hover:scale-110"
-            aria-label="Thumbs down"
-          >
-            <ThumbsDown 
-              size={32} 
-              className={`${selected === 1 ? 'text-blue-500' : 'text-gray-300'} ${hovered === 1 ? 'text-blue-300' : ''}`} 
-              onMouseEnter={() => setHovered(1)} 
-              onMouseLeave={() => setHovered(null)}
-            />
-          </Toggle>
+        <div className="flex justify-center space-x-2 mb-2 rounded-none bg-transparent">
+          {[1, 2, 3, 4, 5].map(star => (
+            <button 
+              key={star} 
+              onClick={() => handleStarClick(star)} 
+              onMouseEnter={() => setHovered(star)} 
+              onMouseLeave={() => setHovered(0)} 
+              className="focus:outline-none transition-transform transform hover:scale-110"
+              disabled={submitting} 
+              aria-label={`Rate ${star} stars`}
+            >
+              <Star size={32} className={`${(hovered || selected) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} transition-colors`} />
+            </button>
+          ))}
         </div>
         
         {thanksOpen && (
@@ -192,11 +172,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
             </DialogTitle>
           </DialogHeader>
           <div className="flex justify-center mt-3 mb-4">
-            {selected === 5 ? (
-              <ThumbsUp size={38} className="text-blue-500" />
-            ) : (
-              <ThumbsDown size={38} className="text-blue-500" />
-            )}
+            {[1, 2, 3, 4, 5].map(idx => <Star key={idx} size={38} strokeWidth={1.3} className={selected && selected >= idx ? "text-yellow-400 fill-yellow-400" : "text-gray-300"} />)}
           </div>
           <label className="block text-base font-semibold mb-1 mt-2" htmlFor="feedbackTextarea">
             What did you think about this worksheet? (optional)

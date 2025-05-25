@@ -79,7 +79,7 @@ serve(async (req) => {
       }
     }
 
-    // Insert feedback into database with explicit status value
+    // Insert feedback into database
     const { data: feedback, error: feedbackError } = await supabase
       .from('feedbacks')
       .insert({
@@ -87,7 +87,7 @@ serve(async (req) => {
         user_id: userId,
         rating,
         comment,
-        status: 'submitted'
+        status: 'new' // Changed from 'submitted' to 'new' to match the check constraint
       })
       .select();
 
