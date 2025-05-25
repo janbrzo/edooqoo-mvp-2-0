@@ -205,9 +205,10 @@ export default function WorksheetDisplay({
         // Create current date format YYYY-MM-DD
         const today = new Date();
         const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const filename = `${formattedDate}-worksheet-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.html`;
+        const viewModeText = viewMode === 'teacher' ? 'Teacher' : 'Student';
+        const filename = `${formattedDate}-${viewModeText}-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.html`;
         
-        const result = exportAsHTML('worksheet-content', filename);
+        const result = await exportAsHTML('worksheet-content', filename, viewMode === 'teacher', editableWorksheet.title);
         if (result) {
           toast({
             title: "HTML Downloaded",
