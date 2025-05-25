@@ -236,7 +236,7 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
           content: prompt
         }
       ],
-      max_tokens: 4000  // Ensure we have enough tokens for a complete response
+      max_tokens: 5000  // Ensure we have enough tokens for a complete response
     });
 
     const jsonContent = aiResponse.choices[0].message.content;
