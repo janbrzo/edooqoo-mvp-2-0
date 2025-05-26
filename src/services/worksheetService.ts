@@ -1,7 +1,7 @@
 
 import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 
-// URL for the Edge Function
+// URLs for the Edge Functions
 const GENERATE_WORKSHEET_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/v1/generateWorksheet';
 
 /**
@@ -32,13 +32,10 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       console.error('API error data:', errorData);
-      
-      if (response.status === 429) {
-        throw new Error('You have reached your daily limit for worksheet generation. Please try again tomorrow.');
-      }
       throw new Error(`Failed to generate worksheet: ${errorData?.error || response.statusText}`);
     }
 
+    // Parse the response as JSON directly
     const worksheetData = await response.json();
     console.log('API returned worksheet data:', worksheetData);
     
@@ -77,9 +74,9 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     
     // Check exercise count based on lesson time
     const getExpectedExerciseCount = (lessonTime: string): number => {
-      if (lessonTime === "30 min") return 4;
-      else if (lessonTime === "45 min") return 6;
-      else return 8;
+      if (lessonTime === "30 min") return 4;  // 30 minutes = 4 exercises
+      else if (lessonTime === "45 min") return 6;  // 45 minutes = 6 exercises
+      else return 8;  // 60 minutes = 8 exercises
     };
     
     const expectedCount = getExpectedExerciseCount(prompt.lessonTime);

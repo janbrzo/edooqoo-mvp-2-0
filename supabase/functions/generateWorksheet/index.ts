@@ -1,12 +1,10 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import OpenAI from "https://esm.sh/openai@4.28.0";
-
-const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
@@ -17,58 +15,35 @@ serve(async (req) => {
 
   try {
     const { prompt, userId } = await req.json();
-    
-    if (!prompt) {
-      throw new Error('Missing prompt parameter');
-    }
-
     console.log('Received prompt:', prompt);
 
-    // Parse the lesson time from the prompt to determine exercise count
-    let exerciseCount = 6; // Default
-    if (prompt.includes('30 min')) {
-      exerciseCount = 4;
-    } else if (prompt.includes('45 min')) {
-      exerciseCount = 6;
-    } else if (prompt.includes('60 min')) {
-      exerciseCount = 8;
+    if (!prompt) {
+      throw new Error('Prompt is required');
     }
-    
-    // Determine exercise types to include based on exerciseCount
-    const exerciseTypes = getExerciseTypesForCount(exerciseCount);
-    
-    console.log(`Generating ${exerciseCount} exercises with types:`, exerciseTypes);
-    
-    // Generate worksheet using OpenAI
-    const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
-      temperature: 0.7,
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert ESL English language teacher specialized in creating context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
 
-CRITICAL REQUIREMENTS:
-1. Create EXACTLY ${exerciseCount} exercises. No fewer, no more.
-2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}.
-3. RETURN ONLY VALID JSON. NO text before or after the JSON structure.
-4. All content must be complete - NO placeholders or incomplete fields.
-5. Reading exercise must be 280-320 words with exactly 5 questions.
-6. Each exercise type must have exactly the required number of items (10 for most types).
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
 
-JSON Structure Required:
+    const apiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY environment variable is not set.');
+    }
+
+    const systemPrompt = `You are an expert English teacher creating worksheets for adult 1-on-1 lessons. Create a comprehensive worksheet in JSON format with the following structure:
+
 {
-  "title": "Worksheet Title",
-  "subtitle": "Subtitle",
-  "introduction": "Brief introduction",
+  "title": "Clear, engaging title",
+  "subtitle": "Brief subtitle describing the focus",
+  "introduction": "Brief introduction paragraph explaining the lesson goals",
   "exercises": [
     {
       "type": "reading",
       "title": "Exercise 1: Reading Comprehension",
-      "icon": "fa-book-open",
-      "time": 8,
-      "instructions": "Read the text and answer questions.",
-      "content": "280-320 word text here",
+      "icon": "📖",
+      "time": 15,
+      "instructions": "Read the passage and answer the questions below.",
+      "content": "Generate a passage between 280 and 320 words on the given topic",
       "questions": [
         {"text": "Question 1", "answer": "Answer 1"},
         {"text": "Question 2", "answer": "Answer 2"},
@@ -76,141 +51,115 @@ JSON Structure Required:
         {"text": "Question 4", "answer": "Answer 4"},
         {"text": "Question 5", "answer": "Answer 5"}
       ],
-      "teacher_tip": "Teaching tip here"
+      "teacher_tip": "Teaching guidance for this exercise"
     }
   ],
   "vocabulary_sheet": [
-    {"term": "Term 1", "meaning": "Definition 1"},
-    {"term": "Term 2", "meaning": "Definition 2"}
+    {"term": "Word 1", "meaning": "Definition 1"},
+    {"term": "Word 2", "meaning": "Definition 2"}
   ]
-}`
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      max_tokens: 3500
+}
+
+CRITICAL REQUIREMENTS:
+- Reading exercise content must be exactly 280-320 words
+- Include exactly 5 comprehension questions
+- All exercises must have teacher_tip field
+- Return ONLY valid JSON, no additional text or explanations
+- Ensure all quotes are properly escaped`;
+
+    console.log('Sending prompt to OpenAI:', prompt);
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 4000,
+      }),
     });
 
-    let jsonContent = aiResponse.choices[0].message.content;
-    
-    console.log('AI response received, processing...');
-    
-    // Clean up the response - remove any text before the first { and after the last }
-    const firstBrace = jsonContent.indexOf('{');
-    const lastBrace = jsonContent.lastIndexOf('}');
-    
-    if (firstBrace >= 0 && lastBrace > firstBrace) {
-      jsonContent = jsonContent.substring(firstBrace, lastBrace + 1);
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
+
+    const aiResponse = await response.json();
+    console.log('AI response received, processing...');
+
+    let content = aiResponse.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No content received from AI');
+    }
+
+    // Clean up the response to ensure it's valid JSON
+    content = content.trim();
     
-    // Parse and validate the JSON response
+    // Remove any markdown code blocks if present
+    if (content.startsWith('```json')) {
+      content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (content.startsWith('```')) {
+      content = content.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
+    // Try to find JSON content between first { and last }
+    const firstBrace = content.indexOf('{');
+    const lastBrace = content.lastIndexOf('}');
+    
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      content = content.substring(firstBrace, lastBrace + 1);
+    }
+
     let worksheetData;
     try {
-      worksheetData = JSON.parse(jsonContent);
-      
-      // Basic validation
-      if (!worksheetData.title || !worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
-        throw new Error('Invalid worksheet structure returned from AI');
-      }
-      
-      // Simple validation - ensure we have exercises
-      if (worksheetData.exercises.length === 0) {
-        throw new Error('No exercises generated');
-      }
-      
-      // Basic exercise validation
-      worksheetData.exercises.forEach((exercise: any, index: number) => {
-        if (!exercise.type || !exercise.title) {
-          console.warn(`Exercise ${index + 1} missing basic fields, fixing...`);
-          exercise.type = exercise.type || 'multiple-choice';
-          exercise.title = exercise.title || `Exercise ${index + 1}: ${exercise.type}`;
-          exercise.icon = exercise.icon || 'fa-tasks';
-          exercise.time = exercise.time || 5;
-          exercise.instructions = exercise.instructions || `Complete this ${exercise.type} exercise.`;
-          exercise.teacher_tip = exercise.teacher_tip || `Help students with this exercise.`;
-        }
-      });
-      
-      // Ensure correct number of exercises (trim if too many, but don't add if too few)
-      if (worksheetData.exercises.length > exerciseCount) {
-        worksheetData.exercises = worksheetData.exercises.slice(0, exerciseCount);
-        console.log(`Trimmed exercises to ${exerciseCount}`);
-      }
-      
-      // Make sure exercise titles have correct sequential numbering
-      worksheetData.exercises.forEach((exercise: any, index: number) => {
-        const exerciseNumber = index + 1;
-        const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
-        exercise.title = `Exercise ${exerciseNumber}: ${exerciseType}`;
-      });
-      
-      // Add vocabulary sheet if missing
-      if (!worksheetData.vocabulary_sheet || !Array.isArray(worksheetData.vocabulary_sheet)) {
-        worksheetData.vocabulary_sheet = [
-          {"term": "Essential", "meaning": "Absolutely necessary"},
-          {"term": "Comprehensive", "meaning": "Complete and thorough"},
-          {"term": "Efficient", "meaning": "Working in a well-organized way"}
-        ];
-      }
-      
-      console.log(`Final worksheet generated with ${worksheetData.exercises.length} exercises`);
-      
-      // Generate a temporary ID
-      worksheetData.id = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Add source count for stats
-      worksheetData.sourceCount = Math.floor(Math.random() * (90 - 65) + 65);
-      
+      worksheetData = JSON.parse(content);
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
-      console.error('Raw AI response length:', jsonContent?.length || 0);
-      console.error('First 500 chars:', jsonContent?.substring(0, 500) || 'No content');
-      throw new Error('Failed to generate a valid worksheet structure. Please try again.');
+      console.error('Raw content:', content);
+      
+      // Try to fix common JSON issues
+      try {
+        // Fix common escape issues
+        const fixedContent = content
+          .replace(/\\'/g, "'")
+          .replace(/([^\\])"/g, '$1\\"')
+          .replace(/\\n/g, '\\\\n');
+        
+        worksheetData = JSON.parse(fixedContent);
+      } catch (secondParseError) {
+        console.error('Second parse attempt failed:', secondParseError);
+        throw new Error('Failed to generate a valid worksheet structure. Please try again.');
+      }
     }
+
+    // Validate the worksheet structure
+    if (!worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
+      throw new Error('Invalid worksheet structure: missing exercises array');
+    }
+
+    // Ensure all required fields are present
+    if (!worksheetData.title) worksheetData.title = 'English Worksheet';
+    if (!worksheetData.subtitle) worksheetData.subtitle = 'Practice Exercise';
+    if (!worksheetData.introduction) worksheetData.introduction = 'Complete the exercises below to practice your English skills.';
 
     return new Response(JSON.stringify(worksheetData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+
   } catch (error) {
     console.error('Error in generateWorksheet:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message || 'An error occurred',
-        details: error.stack
-      }),
+      JSON.stringify({ error: error.message || 'Internal server error' }),
       { 
-        status: error.status || 500,
+        status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
 });
-
-// Helper function to get exercise types based on count
-function getExerciseTypesForCount(count: number): string[] {
-  const baseTypes = [
-    'reading', 
-    'matching', 
-    'fill-in-blanks', 
-    'multiple-choice'
-  ];
-  
-  const additionalTypes = [
-    'dialogue', 
-    'true-false', 
-    'discussion', 
-    'error-correction'
-  ];
-  
-  if (count <= 4) {
-    return baseTypes;
-  }
-  
-  if (count <= 6) {
-    return [...baseTypes, 'dialogue', 'true-false'];
-  }
-  
-  return [...baseTypes, ...additionalTypes];
-}

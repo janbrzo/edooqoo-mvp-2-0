@@ -40,15 +40,14 @@ const GenerationView: React.FC<GenerationViewProps> = ({
     });
   };
 
-  // Simple placeholder functions for feedback that don't save to database
   const handleFeedbackSubmit = async (rating: number, feedback: string) => {
-    console.log('User feedback:', { rating, feedback, worksheetId });
-    // Just log feedback locally - no database storage
+    // Just log the feedback - no database storage
+    console.log('Feedback received:', { rating, feedback });
   };
 
   const handleDownloadEvent = () => {
-    console.log('Download event:', { worksheetId, userId });
-    // Just log download event locally - no database storage
+    // Just log the download event - no database tracking
+    console.log('Download event triggered');
   };
 
   return (
