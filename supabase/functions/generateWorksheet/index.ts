@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import OpenAI from "https://esm.sh/openai@4.28.0";
 
@@ -56,12 +57,9 @@ serve(async (req) => {
 6. Keep exercise instructions clear and concise. Students should be able to understand the tasks without any additional explanation.
 7. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field. 
 8. Use appropriate time values for each exercise (5-10 minutes).
-9. DO NOT include any text outside of the JSON structure.
+9. RETURN ONLY VALID JSON. DO NOT include any text outside of the JSON structure.
 10. Exercise 1: Reading Comprehension must follow extra steps:
     - Generate the content passage between 280 and 320 words.
-    - After closing JSON, on a separate line add:
-      // Word count: X (must be between 280–320)
-    - Don't proceed unless X ∈ [280,320].
 11. Focus on overall flow, coherence and pedagogical value; minor typos acceptable.
 
 12. Generate a structured JSON worksheet with the following format:
@@ -96,7 +94,7 @@ serve(async (req) => {
 
 IMPORTANT QUALITY CHECK BEFORE GENERATING:
 1. Grammar, spelling, formatting – near-flawless (1–2 minor typos allowed). Difficulty level consistent and appropriate.
-2. Confirm that Exercise 1 content is between 280 and 320 words and that the Word count comment is correct.
+2. Confirm that Exercise 1 content is between 280 and 320 words.
 3. For "reading" exercises: The content MUST be BETWEEN 280-320 WORDS. Include EXACTLY 5 comprehension questions.
 4. For "matching" exercises: Include EXACTLY 10 items to match.
 5. For "fill-in-blanks" exercises: Include EXACTLY 10 sentences and 10 words in the word bank.
@@ -120,9 +118,17 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
       max_tokens: 4000
     });
 
-    const jsonContent = aiResponse.choices[0].message.content;
+    let jsonContent = aiResponse.choices[0].message.content;
     
     console.log('AI response received, processing...');
+    
+    // Clean up the response - remove any text before the first { and after the last }
+    const firstBrace = jsonContent.indexOf('{');
+    const lastBrace = jsonContent.lastIndexOf('}');
+    
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      jsonContent = jsonContent.substring(firstBrace, lastBrace + 1);
+    }
     
     // Parse and validate the JSON response
     let worksheetData;
@@ -154,14 +160,14 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
             messages: [
               {
                 role: "system",
-                content: "You are an expert at creating ESL exercises that match a specific format and quality level."
+                content: "You are an expert at creating ESL exercises that match a specific format and quality level. RETURN ONLY VALID JSON ARRAY."
               },
               {
                 role: "user",
                 content: `Create ${additionalExercisesNeeded} additional ESL exercises related to this topic: "${prompt}". 
                 Use only these exercise types: ${getExerciseTypesForMissing(worksheetData.exercises, exerciseTypes)}.
                 Each exercise should be complete with all required fields as shown in the examples.
-                Return them in valid JSON format as an array of exercises.
+                Return them as a valid JSON array of exercises.
                 
                 Existing exercise types: ${worksheetData.exercises.map((ex: any) => ex.type).join(', ')}
                 
@@ -174,12 +180,14 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
           });
           
           try {
-            const additionalExercisesText = additionalExercisesResponse.choices[0].message.content;
-            const jsonStartIndex = additionalExercisesText.indexOf('[');
-            const jsonEndIndex = additionalExercisesText.lastIndexOf(']') + 1;
+            let additionalExercisesText = additionalExercisesResponse.choices[0].message.content;
             
-            if (jsonStartIndex >= 0 && jsonEndIndex > jsonStartIndex) {
-              const jsonPortion = additionalExercisesText.substring(jsonStartIndex, jsonEndIndex);
+            // Clean up the response to extract only the JSON array
+            const firstBracket = additionalExercisesText.indexOf('[');
+            const lastBracket = additionalExercisesText.lastIndexOf(']');
+            
+            if (firstBracket >= 0 && lastBracket > firstBracket) {
+              const jsonPortion = additionalExercisesText.substring(firstBracket, lastBracket + 1);
               const additionalExercises = JSON.parse(jsonPortion);
               
               if (Array.isArray(additionalExercises)) {
@@ -218,6 +226,7 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
       
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
+      console.error('Raw AI response:', jsonContent);
       throw new Error('Failed to generate a valid worksheet structure. Please try again.');
     }
 
