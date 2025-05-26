@@ -9,33 +9,86 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      events: {
+        Row: {
+          created_at: string | null
+          device_type: string | null
+          event_type: string | null
+          geo_location: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          referrer_url: string | null
+          type: string
+          user_id: string | null
+          worksheet_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_type?: string | null
+          event_type?: string | null
+          geo_location?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          referrer_url?: string | null
+          type: string
+          user_id?: string | null
+          worksheet_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device_type?: string | null
+          event_type?: string | null
+          geo_location?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          referrer_url?: string | null
+          type?: string
+          user_id?: string | null
+          worksheet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_worksheet_id_fkey"
+            columns: ["worksheet_id"]
+            isOneToOne: false
+            referencedRelation: "worksheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedbacks: {
         Row: {
           comment: string | null
-          created_at: string
+          created_at: string | null
           id: string
-          rating: number
+          moderated_by: string | null
+          rating: number | null
           status: string | null
           user_id: string | null
-          worksheet_id: string
+          worksheet_id: string | null
         }
         Insert: {
           comment?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
-          rating: number
+          moderated_by?: string | null
+          rating?: number | null
           status?: string | null
           user_id?: string | null
-          worksheet_id: string
+          worksheet_id?: string | null
         }
         Update: {
           comment?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
-          rating?: number
+          moderated_by?: string | null
+          rating?: number | null
           status?: string | null
           user_id?: string | null
-          worksheet_id?: string
+          worksheet_id?: string | null
         }
         Relationships: [
           {
@@ -47,76 +100,37 @@ export type Database = {
           },
         ]
       }
-      rate_limits: {
-        Row: {
-          count: number
-          last_reset: string
-          user_id: string
-        }
-        Insert: {
-          count?: number
-          last_reset?: string
-          user_id: string
-        }
-        Update: {
-          count?: number
-          last_reset?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       worksheets: {
         Row: {
-          ai_response: string
-          city: string | null
-          country: string | null
-          created_at: string
-          download_count: number
-          form_data: Json
-          generation_time_seconds: number | null
+          created_at: string | null
           html_content: string
           id: string
           ip_address: string | null
-          last_modified_at: string
+          last_modified_at: string | null
           prompt: string
-          sequence_number: number
-          status: string
+          status: string | null
           title: string | null
           user_id: string | null
         }
         Insert: {
-          ai_response: string
-          city?: string | null
-          country?: string | null
-          created_at?: string
-          download_count?: number
-          form_data: Json
-          generation_time_seconds?: number | null
+          created_at?: string | null
           html_content: string
           id?: string
           ip_address?: string | null
-          last_modified_at?: string
+          last_modified_at?: string | null
           prompt: string
-          sequence_number?: number
-          status?: string
+          status?: string | null
           title?: string | null
           user_id?: string | null
         }
         Update: {
-          ai_response?: string
-          city?: string | null
-          country?: string | null
-          created_at?: string
-          download_count?: number
-          form_data?: Json
-          generation_time_seconds?: number | null
+          created_at?: string | null
           html_content?: string
           id?: string
           ip_address?: string | null
-          last_modified_at?: string
+          last_modified_at?: string | null
           prompt?: string
-          sequence_number?: number
-          status?: string
+          status?: string | null
           title?: string | null
           user_id?: string | null
         }
@@ -127,28 +141,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      increment_worksheet_download_count: {
-        Args: { p_worksheet_id: string }
-        Returns: undefined
-      }
-      insert_worksheet_bypass_limit: {
-        Args: {
-          p_prompt: string
-          p_form_data: Json
-          p_ai_response: string
-          p_html_content: string
-          p_user_id: string
-          p_ip_address: string
-          p_status: string
-          p_title: string
-          p_generation_time_seconds: number
-        }
-        Returns: {
-          id: string
-          created_at: string
-          title: string
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

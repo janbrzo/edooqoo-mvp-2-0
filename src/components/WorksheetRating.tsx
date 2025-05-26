@@ -2,9 +2,11 @@
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { submitFeedback, updateFeedback } from "@/services/worksheetService";
 import { useToast } from "@/hooks/use-toast";
+import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 
 interface WorksheetRatingProps {
   onSubmitRating?: (rating: number, feedback: string) => void;
@@ -12,33 +14,50 @@ interface WorksheetRatingProps {
 }
 
 /**
- * A modern-looking worksheet rating section with thumbs up/down and feedback modal.
+ * A modern-looking worksheet rating section with 1-5 stars and feedback modal.
  * Should not display on PDF.
  */
 const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, worksheetId }) => {
-  const [hovered, setHovered] = useState<'up' | 'down' | null>(null);
-  const [selected, setSelected] = useState<'up' | 'down' | null>(null);
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [thanksOpen, setThanksOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [currentFeedbackId, setCurrentFeedbackId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { userId } = useAnonymousAuth();
   
-  const handleThumbClick = async (value: 'up' | 'down') => {
+  const handleStarClick = async (value: number) => {
     setSelected(value);
     
     try {
       setSubmitting(true);
       
-      // Show immediate feedback
-      toast({
-        title: "Rating submitted!",
-        description: "Thanks for your feedback. Add a comment for more details."
-      });
-      
-      // Call the callback if provided
-      if (onSubmitRating) {
-        onSubmitRating(value === 'up' ? 5 : 1, '');
+      // Submit rating immediately when star is clicked
+      if (userId) {
+        const actualWorksheetId = worksheetId || 
+          new URL(window.location.href).searchParams.get('worksheet_id') || 
+          null;
+            
+        if (actualWorksheetId) {
+          const result = await submitFeedback(actualWorksheetId, value, '', userId);
+          
+          // Store the feedback ID for future updates
+          if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
+            setCurrentFeedbackId(result[0].id);
+          }
+          
+          toast({
+            title: "Rating submitted!",
+            description: "Thanks for your feedback. Add a comment for more details."
+          });
+          
+          // Wywołanie callbacku jeśli został dostarczony
+          if (onSubmitRating) {
+            onSubmitRating(value, '');
+          }
+        }
       }
       
       // Then open dialog to collect additional comment
@@ -56,10 +75,38 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
   };
   
   const handleSubmit = async () => {
-    if (!selected) return;
+    if (!selected || !userId) return;
     
     try {
       setSubmitting(true);
+      
+      // Try to get worksheet ID from props, URL or DOM
+      let actualWorksheetId = worksheetId || null;
+      
+      if (!actualWorksheetId && window.location.href.includes('worksheet_id=')) {
+        actualWorksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
+      }
+      
+      // If no worksheet ID in URL, check for other elements
+      if (!actualWorksheetId) {
+        const worksheetElements = document.querySelectorAll('[data-worksheet-id]');
+        if (worksheetElements.length > 0) {
+          actualWorksheetId = worksheetElements[0].getAttribute('data-worksheet-id');
+        }
+      }
+      
+      if (currentFeedbackId) {
+        // Update existing feedback with comment
+        await updateFeedback(currentFeedbackId, feedback, userId);
+      } else {
+        // Submit new feedback with rating and comment
+        const result = await submitFeedback(actualWorksheetId || 'unknown', selected, feedback, userId);
+        
+        // Store the feedback ID
+        if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
+          setCurrentFeedbackId(result[0].id);
+        }
+      }
       
       setIsDialogOpen(false);
       setThanksOpen(true);
@@ -72,7 +119,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
       
       // Call the callback with rating and feedback
       if (onSubmitRating) {
-        onSubmitRating(selected === 'up' ? 5 : 1, feedback);
+        onSubmitRating(selected, feedback);
       }
       
     } catch (error) {
@@ -94,41 +141,20 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
         <h3 className="text-indigo-800 mb-2 font-bold text-2xl">How would you rate this worksheet?</h3>
         <p className="text-blue-400 mb-4 text-base">Your feedback helps us improve our AI-generated worksheets</p>
         
-        <div className="flex justify-center space-x-8 mb-2 rounded-none bg-transparent">
-          <button 
-            onClick={() => handleThumbClick('up')} 
-            onMouseEnter={() => setHovered('up')} 
-            onMouseLeave={() => setHovered(null)} 
-            className="focus:outline-none transition-transform transform hover:scale-110 p-2"
-            disabled={submitting} 
-            aria-label="Rate positively"
-          >
-            <ThumbsUp 
-              size={40} 
-              className={`${
-                (hovered === 'up' || selected === 'up') 
-                  ? 'text-green-500 fill-green-500' 
-                  : 'text-gray-300'
-              } transition-colors`} 
-            />
-          </button>
-          <button 
-            onClick={() => handleThumbClick('down')} 
-            onMouseEnter={() => setHovered('down')} 
-            onMouseLeave={() => setHovered(null)} 
-            className="focus:outline-none transition-transform transform hover:scale-110 p-2"
-            disabled={submitting} 
-            aria-label="Rate negatively"
-          >
-            <ThumbsDown 
-              size={40} 
-              className={`${
-                (hovered === 'down' || selected === 'down') 
-                  ? 'text-red-500 fill-red-500' 
-                  : 'text-gray-300'
-              } transition-colors`} 
-            />
-          </button>
+        <div className="flex justify-center space-x-2 mb-2 rounded-none bg-transparent">
+          {[1, 2, 3, 4, 5].map(star => (
+            <button 
+              key={star} 
+              onClick={() => handleStarClick(star)} 
+              onMouseEnter={() => setHovered(star)} 
+              onMouseLeave={() => setHovered(0)} 
+              className="focus:outline-none transition-transform transform hover:scale-110"
+              disabled={submitting} 
+              aria-label={`Rate ${star} stars`}
+            >
+              <Star size={32} className={`${(hovered || selected) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} transition-colors`} />
+            </button>
+          ))}
         </div>
         
         {thanksOpen && (
@@ -146,23 +172,12 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
             </DialogTitle>
           </DialogHeader>
           <div className="flex justify-center mt-3 mb-4">
-            {selected === 'up' ? (
-              <ThumbsUp size={48} className="text-green-500 fill-green-500" />
-            ) : (
-              <ThumbsDown size={48} className="text-red-500 fill-red-500" />
-            )}
+            {[1, 2, 3, 4, 5].map(idx => <Star key={idx} size={38} strokeWidth={1.3} className={selected && selected >= idx ? "text-yellow-400 fill-yellow-400" : "text-gray-300"} />)}
           </div>
           <label className="block text-base font-semibold mb-1 mt-2" htmlFor="feedbackTextarea">
             What did you think about this worksheet? (optional)
           </label>
-          <Textarea 
-            id="feedbackTextarea" 
-            value={feedback} 
-            onChange={e => setFeedback(e.target.value)} 
-            placeholder="Your feedback helps us improve our worksheet generator" 
-            rows={4} 
-            className="mb-3" 
-          />
+          <Textarea id="feedbackTextarea" value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="Your feedback helps us improve our worksheet generator" rows={4} className="mb-3" />
           <div className="flex justify-end space-x-2 mt-2">
             <DialogClose asChild>
               <Button size="sm" variant="outline" disabled={submitting}>Cancel</Button>
