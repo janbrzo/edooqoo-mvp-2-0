@@ -24,7 +24,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, userId } = await req.json();
+    const { prompt, formData, userId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
     
     if (!prompt) {
@@ -153,8 +153,7 @@ serve(async (req) => {
             {"label": "C", "text": "Option C", "correct": false},
             {"label": "D", "text": "Option D", "correct": false}
           ]
-        },
-        // INCLUDE EXACTLY 10 MULTIPLE CHOICE QUESTIONS WITH 4 OPTIONS EACH
+        }
       ],
       "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     },
@@ -167,7 +166,6 @@ serve(async (req) => {
       "dialogue": [
         {"speaker": "Person A", "text": "Hello, how are you?"},
         {"speaker": "Person B", "text": "I'm fine, thank you. And you?"}
-        // INCLUDE AT LEAST 10 DIALOGUE EXCHANGES
       ],
       "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", 
                      "expression6", "expression7", "expression8", "expression9", "expression10"],
@@ -198,7 +196,6 @@ serve(async (req) => {
   "vocabulary_sheet": [
     {"term": "Term 1", "meaning": "Definition 1"},
     {"term": "Term 2", "meaning": "Definition 2"}
-    // INCLUDE EXACTLY 15 TERMS
   ]
 }
 
@@ -240,7 +237,7 @@ RETURN ONLY VALID JSON.
           content: prompt
         }
       ],
-      max_tokens: 4000  // Ensure we have enough tokens for a complete response
+      max_tokens: 4000
     });
 
     const jsonContent = aiResponse.choices[0].message.content;
@@ -250,10 +247,8 @@ RETURN ONLY VALID JSON.
     // Parse the JSON response with error handling
     let worksheetData;
     try {
-      // Parse and clean the JSON response
       worksheetData = parseAIResponse(jsonContent);
       
-      // Basic validation of the structure
       if (!worksheetData.title || !worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
         throw new Error('Invalid worksheet structure returned from AI');
       }
@@ -267,9 +262,7 @@ RETURN ONLY VALID JSON.
       if (worksheetData.exercises.length !== exerciseCount) {
         console.warn(`Expected ${exerciseCount} exercises but got ${worksheetData.exercises.length}`);
         
-        // If we have too few exercises, create additional ones
         if (worksheetData.exercises.length < exerciseCount) {
-          // Generate additional exercises with OpenAI
           const additionalExercisesNeeded = exerciseCount - worksheetData.exercises.length;
           console.log(`Generating ${additionalExercisesNeeded} additional exercises`);
           
@@ -292,29 +285,7 @@ RETURN ONLY VALID JSON.
                 
                 Exercise types to use: ${getExerciseTypesForMissing(worksheetData.exercises, exerciseTypes)}
                 
-                Number the exercises sequentially starting from ${worksheetData.exercises.length + 1}.
-                
-                Example exercise formats:
-                {
-                  "type": "multiple-choice",
-                  "title": "Exercise ${worksheetData.exercises.length + 1}: Multiple Choice",
-                  "icon": "fa-check-square",
-                  "time": 6,
-                  "instructions": "Choose the best option to complete each sentence.",
-                  "questions": [
-                    {
-                      "text": "Question text?",
-                      "options": [
-                        {"label": "A", "text": "Option A", "correct": false},
-                        {"label": "B", "text": "Option B", "correct": true},
-                        {"label": "C", "text": "Option C", "correct": false},
-                        {"label": "D", "text": "Option D", "correct": false}
-                      ]
-                    }
-                    // 10 questions total
-                  ],
-                  "teacher_tip": "Tip for teachers on this exercise"
-                }`
+                Number the exercises sequentially starting from ${worksheetData.exercises.length + 1}.`
               }
             ],
             max_tokens: 3000
@@ -322,8 +293,6 @@ RETURN ONLY VALID JSON.
           
           try {
             const additionalExercisesText = additionalExercisesResponse.choices[0].message.content;
-            
-            // Clean and parse the response for additional exercises
             const jsonStartIndex = additionalExercisesText.indexOf('[');
             const jsonEndIndex = additionalExercisesText.lastIndexOf(']') + 1;
             
@@ -332,11 +301,9 @@ RETURN ONLY VALID JSON.
               const additionalExercises = JSON.parse(jsonPortion);
               
               if (Array.isArray(additionalExercises)) {
-                // Add the new exercises
                 worksheetData.exercises = [...worksheetData.exercises, ...additionalExercises];
                 console.log(`Successfully added ${additionalExercises.length} exercises`);
                 
-                // Validate the new exercises
                 for (const exercise of additionalExercises) {
                   validateExercise(exercise);
                 }
@@ -346,7 +313,6 @@ RETURN ONLY VALID JSON.
             console.error('Failed to parse or add additional exercises:', parseError);
           }
         } else if (worksheetData.exercises.length > exerciseCount) {
-          // If we have too many, trim them down
           worksheetData.exercises = worksheetData.exercises.slice(0, exerciseCount);
           console.log(`Trimmed exercises to ${worksheetData.exercises.length}`);
         }
@@ -359,10 +325,8 @@ RETURN ONLY VALID JSON.
         exercise.title = `Exercise ${exerciseNumber}: ${exerciseType}`;
       });
       
-      // Ensure full correct exercise count after all adjustments
       console.log(`Final exercise count: ${worksheetData.exercises.length} (expected: ${exerciseCount})`);
       
-      // Count API sources used for accurate stats
       const sourceCount = Math.floor(Math.random() * (90 - 65) + 65);
       worksheetData.sourceCount = sourceCount;
       
@@ -371,43 +335,35 @@ RETURN ONLY VALID JSON.
       throw new Error('Failed to generate a valid worksheet structure. Please try again.');
     }
 
-    // Save worksheet to database
+    // Save worksheet to database with correct parameters
     try {
       const { data: worksheet, error: worksheetError } = await supabase.rpc(
         'insert_worksheet_bypass_limit',
         {
           p_prompt: prompt,
-          p_content: JSON.stringify(worksheetData),
+          p_form_data: formData || {},
+          p_ai_response: jsonContent,
+          p_html_content: JSON.stringify(worksheetData),
           p_user_id: userId,
           p_ip_address: ip,
           p_status: 'created',
-          p_title: worksheetData.title
+          p_title: worksheetData.title,
+          p_generation_time_seconds: null
         }
       );
 
       if (worksheetError) {
         console.error('Error saving worksheet to database:', worksheetError);
-        // Continue even if database save fails - we'll return the generated content
       }
 
       // Track generation event if we have a worksheet ID
       if (worksheet && worksheet.length > 0 && worksheet[0].id) {
         const worksheetId = worksheet[0].id;
-        await supabase.from('events').insert({
-          type: 'generate',
-          event_type: 'generate',
-          worksheet_id: worksheetId,
-          user_id: userId,
-          metadata: { prompt, ip },
-          ip_address: ip
-        });
-        console.log('Worksheet generated and saved successfully with ID:', worksheetId);
-        // Add the ID to the worksheet data so frontend can use it
         worksheetData.id = worksheetId;
+        console.log('Worksheet generated and saved successfully with ID:', worksheetId);
       }
     } catch (dbError) {
       console.error('Database operation failed:', dbError);
-      // Continue without failing the request
     }
 
     return new Response(JSON.stringify(worksheetData), {

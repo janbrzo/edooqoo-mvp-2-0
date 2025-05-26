@@ -52,7 +52,6 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: st
       throw new Error(`Failed to generate worksheet: ${errorData?.error || response.statusText}`);
     }
 
-    // Parse the response as JSON directly
     const worksheetData = await response.json();
     console.log('API returned worksheet data:', worksheetData);
     
@@ -61,7 +60,6 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: st
       throw new Error('Received invalid worksheet data format');
     }
     
-    // Perform validation on the returned data
     if (!worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
       throw new Error('No exercises found in generated worksheet');
     }
@@ -74,7 +72,6 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: st
         
         if (wordCount < 280 || wordCount > 320) {
           console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
-          // We'll let the main component handle this warning
         }
         
         if (!exercise.questions || exercise.questions.length < 5) {
@@ -90,11 +87,10 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: st
       }
     }
     
-    // Check exercise count based on lesson time
     const getExpectedExerciseCount = (lessonTime: string): number => {
-      if (lessonTime === "30 min") return 4;  // 30 minutes = 4 exercises
-      else if (lessonTime === "45 min") return 6;  // 45 minutes = 6 exercises
-      else return 8;  // 60 minutes = 8 exercises
+      if (lessonTime === "30 min") return 4;
+      else if (lessonTime === "45 min") return 6;
+      else return 8;
     };
     
     const expectedCount = getExpectedExerciseCount(prompt.lessonTime);
