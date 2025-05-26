@@ -110,7 +110,7 @@ const Index = () => {
   /**
    * Handles form submission and worksheet generation
    */
-  const handleFormSubmit = async (data: FormData, useV2: boolean = false) => {
+  const handleFormSubmit = async (data: FormData) => {
     // Check for valid user session
     if (!userId) {
       toast({
@@ -130,20 +130,8 @@ const Index = () => {
     setStartGenerationTime(startTime);
     
     try {
-      let worksheetData;
-      
-      console.log(`Starting generation with ${useV2 ? 'V2' : 'V1'} system`);
-      
-      if (useV2) {
-        console.log("Using V2 generation system");
-        // Import V2 API service dynamically
-        const { generateWorksheetV2API } = await import('@/services/worksheetService/apiServiceV2');
-        worksheetData = await generateWorksheetV2API(data, userId);
-      } else {
-        console.log("Using V1 generation system");
-        // Use the current generation system
-        worksheetData = await generateWorksheet(data, userId);
-      }
+      // Generate worksheet using the API
+      const worksheetData = await generateWorksheet(data, userId);
       
       console.log("Generated worksheet data:", worksheetData);
       
@@ -174,9 +162,8 @@ const Index = () => {
         
         setGeneratedWorksheet(worksheetData);
         
-        const versionText = useV2 ? "V2" : "V1";
         toast({
-          title: `Worksheet generated successfully! (${versionText})`,
+          title: "Worksheet generated successfully!",
           description: "Your custom worksheet is now ready to use.",
           className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
         });
@@ -186,32 +173,7 @@ const Index = () => {
     } catch (error) {
       console.error("Worksheet generation error:", error);
       
-      // Calculate how long the generation took
-      const generationTime = Date.now() - startTime;
-      const versionText = useV2 ? "V2" : "V1";
-      
-      // Show specific error message with version info
-      let errorMessage = `${versionText} Generation failed`;
-      let errorDescription = "An unexpected error occurred during generation.";
-      
-      if (error instanceof Error) {
-        errorDescription = `${versionText}: ${error.message}`;
-      }
-      
-      // Only use fallback after significant time has passed (30+ seconds)
-      if (generationTime < 30000) {
-        // If it failed quickly, show the actual error
-        toast({
-          title: errorMessage,
-          description: errorDescription,
-          variant: "destructive"
-        });
-        setIsGenerating(false);
-        return;
-      }
-      
-      // Fallback to mock data only if generation took a long time
-      console.log("Using fallback mock data due to timeout");
+      // Fallback to mock data if generation fails
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
       
       // Get correct exercise count based on lesson time
@@ -230,7 +192,9 @@ const Index = () => {
       // Let the user know we're using a fallback
       toast({
         title: "Using sample worksheet",
-        description: `${versionText} generation timeout. Using a sample worksheet instead.`,
+        description: error instanceof Error 
+          ? `Generation error: ${error.message}. Using a sample worksheet instead.` 
+          : "An unexpected error occurred. Using a sample worksheet instead.",
         variant: "destructive"
       });
     } finally {

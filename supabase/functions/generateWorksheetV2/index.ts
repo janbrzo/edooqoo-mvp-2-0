@@ -15,7 +15,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Improved exercise type selection
+// Improved exercise type selection - ensures variety and logical progression
 const getOptimalExerciseTypes = (count: number): string[] => {
   const coreTypes = ['reading', 'matching', 'fill-in-blanks', 'multiple-choice'];
   const supplementaryTypes = ['dialogue', 'true-false', 'discussion', 'error-correction'];
@@ -29,7 +29,7 @@ const getOptimalExerciseTypes = (count: number): string[] => {
   }
 };
 
-// Enhanced validation
+// Enhanced validation with specific requirements
 const validateWorksheetStructure = (worksheetData: any, expectedCount: number): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
@@ -53,26 +53,26 @@ const validateWorksheetStructure = (worksheetData: any, expectedCount: number): 
         errors.push(`Exercise ${index + 1}: Reading exercise missing content`);
       } else {
         const wordCount = exercise.content.split(/\s+/).filter(Boolean).length;
-        if (wordCount < 250) {
-          errors.push(`Exercise ${index + 1}: Reading content too short (${wordCount} words)`);
+        if (wordCount < 280 || wordCount > 320) {
+          errors.push(`Exercise ${index + 1}: Reading content has ${wordCount} words, expected 280-320`);
         }
       }
       
       if (!exercise.questions || exercise.questions.length < 5) {
-        errors.push(`Exercise ${index + 1}: Reading exercise needs at least 5 questions`);
+        errors.push(`Exercise ${index + 1}: Reading exercise needs exactly 5 questions`);
       }
     }
     
-    if (exercise.type === 'matching' && (!exercise.items || exercise.items.length < 8)) {
-      errors.push(`Exercise ${index + 1}: Matching exercise needs at least 8 items`);
+    if (exercise.type === 'matching' && (!exercise.items || exercise.items.length < 10)) {
+      errors.push(`Exercise ${index + 1}: Matching exercise needs exactly 10 items`);
     }
     
     if (exercise.type === 'fill-in-blanks') {
-      if (!exercise.sentences || exercise.sentences.length < 8) {
-        errors.push(`Exercise ${index + 1}: Fill-in-blanks needs at least 8 sentences`);
+      if (!exercise.sentences || exercise.sentences.length < 10) {
+        errors.push(`Exercise ${index + 1}: Fill-in-blanks needs exactly 10 sentences`);
       }
-      if (!exercise.word_bank || exercise.word_bank.length < 8) {
-        errors.push(`Exercise ${index + 1}: Fill-in-blanks needs at least 8 words in word bank`);
+      if (!exercise.word_bank || exercise.word_bank.length < 10) {
+        errors.push(`Exercise ${index + 1}: Fill-in-blanks needs exactly 10 words in word bank`);
       }
     }
   });
@@ -80,37 +80,39 @@ const validateWorksheetStructure = (worksheetData: any, expectedCount: number): 
   return { isValid: errors.length === 0, errors };
 };
 
-// Simplified prompt system
+// Simplified, more reliable prompt system
 const createEnhancedPrompt = (prompt: string, exerciseCount: number): string => {
   const exerciseTypes = getOptimalExerciseTypes(exerciseCount);
   
-  return `You are an expert ESL teacher creating a complete English worksheet for 1-on-1 tutoring.
+  return `You are an expert ESL teacher creating a complete, ready-to-use English worksheet for 1-on-1 tutoring.
 
 TOPIC: ${prompt}
 
 REQUIREMENTS:
-- Create EXACTLY ${exerciseCount} exercises: ${exerciseTypes.map((type, i) => `${i + 1}. ${type}`).join(', ')}
-- Exercise 1 (reading): 280-320 words with 5 comprehension questions
-- All other exercises: At least 8-10 items/questions each
+- Create EXACTLY ${exerciseCount} exercises in this exact order: ${exerciseTypes.map((type, i) => `${i + 1}. ${type}`).join(', ')}
+- Each exercise must be complete and pedagogically sound
+- Exercise 1 (reading): Content MUST be 280-320 words, followed by exactly 5 comprehension questions
+- All other exercises: Exactly 10 items/questions/sentences each
 - Include practical teacher tips for each exercise
 - Ensure all content relates to the specified topic
+- Use clear, age-appropriate language
 
-CRITICAL: Return ONLY valid JSON. No additional text.
+CRITICAL: Return ONLY valid JSON. No additional text or comments.
 
 JSON Structure:
 {
-  "title": "Worksheet title",
-  "subtitle": "Brief subtitle", 
-  "introduction": "2-3 sentence introduction",
+  "title": "Worksheet title related to topic",
+  "subtitle": "Brief subtitle",
+  "introduction": "2-3 sentence introduction about the topic and learning goals",
   "exercises": [
-    // Exactly ${exerciseCount} exercises
+    // Exercises array with exactly ${exerciseCount} items
   ],
   "vocabulary_sheet": [
-    // 15 vocabulary terms
+    // Exactly 15 vocabulary terms related to the topic
   ]
 }
 
-Generate the worksheet now:`;
+Generate the complete worksheet now:`;
 };
 
 serve(async (req) => {
@@ -119,22 +121,14 @@ serve(async (req) => {
   }
 
   try {
-    console.log('V2: Starting worksheet generation');
-    
     const { prompt, formData, userId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
     
-    console.log('V2: Received data:', { prompt: prompt?.substring(0, 100), userId, hasFormData: !!formData });
-    
     if (!prompt) {
-      console.error('V2: Missing prompt parameter');
       throw new Error('Missing prompt parameter');
     }
 
-    if (!Deno.env.get('OPENAI_API_KEY')) {
-      console.error('V2: Missing OpenAI API key');
-      throw new Error('OpenAI API key not configured');
-    }
+    console.log('V2: Generating worksheet with simplified approach');
 
     // Determine exercise count
     let exerciseCount = 6;
@@ -146,16 +140,14 @@ serve(async (req) => {
       exerciseCount = 8;
     }
 
-    console.log(`V2: Target exercise count: ${exerciseCount}`);
-
     const enhancedPrompt = createEnhancedPrompt(prompt, exerciseCount);
     
-    console.log('V2: Calling OpenAI API');
+    console.log('V2: Sending enhanced prompt to OpenAI');
     
-    // Single, comprehensive AI call
+    // Single, comprehensive AI call with better parameters
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o",
-      temperature: 0.3,
+      temperature: 0.3, // Lower temperature for more consistent output
       messages: [
         {
           role: "system",
@@ -169,19 +161,13 @@ serve(async (req) => {
       max_tokens: 4000
     });
 
-    console.log('V2: OpenAI API call completed');
     const jsonContent = aiResponse.choices[0].message.content;
-    
-    if (!jsonContent) {
-      throw new Error('Empty response from OpenAI');
-    }
-    
-    console.log('V2: Parsing JSON response');
+    console.log('V2: AI response received, parsing JSON');
 
     // Parse and validate
     let worksheetData;
     try {
-      // Extract JSON from response
+      // Extract JSON from response (in case there's extra text)
       const jsonStart = jsonContent.indexOf('{');
       const jsonEnd = jsonContent.lastIndexOf('}') + 1;
       
@@ -196,7 +182,6 @@ serve(async (req) => {
       
     } catch (parseError) {
       console.error('V2: JSON parsing failed:', parseError);
-      console.error('V2: Response content:', jsonContent?.substring(0, 500));
       throw new Error('Failed to parse AI response as valid JSON');
     }
 
@@ -205,23 +190,10 @@ serve(async (req) => {
     
     if (!validation.isValid) {
       console.error('V2: Validation failed:', validation.errors);
-      console.log('V2: Attempting to fix validation issues...');
       
-      // Try to fix some common issues
-      if (!worksheetData.exercises) {
-        worksheetData.exercises = [];
-      }
-      
-      // Ensure we have vocabulary sheet
-      if (!worksheetData.vocabulary_sheet) {
-        worksheetData.vocabulary_sheet = [];
-      }
-      
-      // Re-validate after fixes
-      const revalidation = validateWorksheetStructure(worksheetData, exerciseCount);
-      if (!revalidation.isValid) {
-        throw new Error(`Worksheet validation failed: ${revalidation.errors.join('; ')}`);
-      }
+      // Instead of trying to fix, return a clear error for now
+      // In production, you could implement fallback templates here
+      throw new Error(`Worksheet validation failed: ${validation.errors.join('; ')}`);
     }
 
     console.log('V2: Validation passed, finalizing worksheet');
@@ -251,7 +223,6 @@ serve(async (req) => {
 
     // Save to database
     try {
-      console.log('V2: Saving to database');
       const { data: worksheet, error: worksheetError } = await supabase.rpc(
         'insert_worksheet_bypass_limit',
         {
@@ -277,7 +248,7 @@ serve(async (req) => {
       console.error('V2: Database operation failed:', dbError);
     }
 
-    console.log('V2: Generation completed successfully');
+    console.log('V2: Worksheet generation completed successfully');
     
     return new Response(JSON.stringify(worksheetData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -288,8 +259,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message || 'An error occurred',
-        version: 'v2',
-        stack: error.stack
+        version: 'v2'
       }),
       { 
         status: error.status || 500,
