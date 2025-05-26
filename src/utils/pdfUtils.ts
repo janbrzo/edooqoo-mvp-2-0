@@ -11,18 +11,26 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     // Clone the element to avoid modifying the original
     const clonedElement = element.cloneNode(true) as HTMLElement;
     
-    // Remove elements that shouldn't be in PDF
-    const elementsToRemove = clonedElement.querySelectorAll('[data-no-pdf="true"]:not(.teacher-tip)');
-    elementsToRemove.forEach(el => el.remove());
-
     // For teacher view, keep teacher tips but remove other data-no-pdf elements
     if (isTeacherView) {
-      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not(.teacher-tip)');
+      // Remove non-teacher-tip elements marked with data-no-pdf
+      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([class*="teacher-tip"])');
       nonTeacherTipElements.forEach(el => el.remove());
+      
+      // Make sure teacher tips are visible
+      const teacherTips = clonedElement.querySelectorAll('[class*="teacher-tip"], .bg-amber-50');
+      teacherTips.forEach(tip => {
+        (tip as HTMLElement).style.display = 'block';
+        (tip as HTMLElement).style.visibility = 'visible';
+      });
     } else {
       // For student view, remove all data-no-pdf elements including teacher tips
       const allNoPublishElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
       allNoPublishElements.forEach(el => el.remove());
+      
+      // Also remove teacher tips by class
+      const teacherTipElements = clonedElement.querySelectorAll('[class*="teacher-tip"], .bg-amber-50');
+      teacherTipElements.forEach(el => el.remove());
     }
 
     // Create a temporary container for the cloned content
@@ -70,6 +78,17 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
         .exercise-content { font-size: 13.5px !important; } /* Reduced from 15px */
         .question-text { font-size: 13.5px !important; } /* Reduced from 15px */
         .answer-text { font-size: 12.6px !important; } /* Reduced from 14px */
+        
+        /* Teacher tips styling for PDF */
+        .bg-amber-50, [class*="teacher-tip"] {
+          background: linear-gradient(90deg, #FEF7CD 85%, #FAF5E3 100%) !important;
+          border: 1.5px solid #ffeab9 !important;
+          padding: 8px !important;
+          margin: 4px 0 !important;
+          border-radius: 6px !important;
+          display: block !important;
+          visibility: visible !important;
+        }
         
         /* Reduce whitespace - aggressive space reduction */
         .mb-6 { margin-bottom: 0.5rem !important; }
@@ -258,9 +277,20 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
         padding: 20px;
       }
       
-      /* Hide rating and teacher notes sections in HTML export */
-      [data-no-pdf="true"] {
+      /* Hide rating section in HTML export */
+      [data-no-pdf="true"]:not(.teacher-tip):not(.bg-amber-50) {
         display: none !important;
+      }
+      
+      /* Show teacher tips in teacher version */
+      .teacher-tip, .bg-amber-50 {
+        display: ${viewMode === 'teacher' ? 'block' : 'none'} !important;
+        background: linear-gradient(90deg, #FEF7CD 85%, #FAF5E3 100%) !important;
+        border: 1.5px solid #ffeab9 !important;
+        padding: 12px !important;
+        margin: 8px 0 !important;
+        border-radius: 6px !important;
+        visibility: visible !important;
       }
       
       /* Tailwind-like utility classes for fallback */
@@ -306,18 +336,26 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
       return false;
     }
 
-    // Remove elements that shouldn't be in HTML export
-    const elementsToRemove = clonedElement.querySelectorAll('[data-no-pdf="true"]:not(.teacher-tip)');
-    elementsToRemove.forEach(el => el.remove());
-
-    // For teacher view, keep teacher tips but remove other data-no-pdf elements
+    // Handle teacher tips and data-no-pdf elements
     if (viewMode === 'teacher') {
-      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not(.teacher-tip)');
+      // Remove non-teacher-tip elements marked with data-no-pdf
+      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([class*="teacher-tip"]):not(.bg-amber-50)');
       nonTeacherTipElements.forEach(el => el.remove());
+      
+      // Make sure teacher tips are visible
+      const teacherTips = clonedElement.querySelectorAll('[class*="teacher-tip"], .bg-amber-50');
+      teacherTips.forEach(tip => {
+        (tip as HTMLElement).style.display = 'block';
+        (tip as HTMLElement).style.visibility = 'visible';
+      });
     } else {
       // For student view, remove all data-no-pdf elements including teacher tips
       const allNoPublishElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
       allNoPublishElements.forEach(el => el.remove());
+      
+      // Also remove teacher tips by class
+      const teacherTipElements = clonedElement.querySelectorAll('[class*="teacher-tip"], .bg-amber-50');
+      teacherTipElements.forEach(el => el.remove());
     }
 
     // Create a header to show whether it's a student or teacher version
