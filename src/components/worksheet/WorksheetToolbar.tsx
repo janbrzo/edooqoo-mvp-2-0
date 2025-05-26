@@ -102,39 +102,17 @@ const WorksheetToolbar = ({
             )}
             <Button
               onClick={() => handleDownloadClick('html')}
-              className={paymentStatus.isPaid 
-                ? "bg-worksheet-purple hover:bg-worksheet-purpleDark mr-2" 
-                : "bg-orange-500 hover:bg-orange-600 mr-2"
-              }
+              className="bg-worksheet-purple hover:bg-worksheet-purpleDark mr-2"
               size="sm"
             >
-              {paymentStatus.isPaid ? (
-                <>
-                  <Download className="mr-2 h-4 w-4" /> Download HTML
-                </>
-              ) : (
-                <>
-                  <Lock className="mr-2 h-4 w-4" /> HTML - $1.00
-                </>
-              )}
+              <Download className="mr-2 h-4 w-4" /> Download HTML
             </Button>
             <Button
               onClick={() => handleDownloadClick('pdf')}
-              className={paymentStatus.isPaid 
-                ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" 
-                : "bg-orange-500 hover:bg-orange-600"
-              }
+              className="bg-worksheet-purple hover:bg-worksheet-purpleDark"
               size="sm"
             >
-              {paymentStatus.isPaid ? (
-                <>
-                  <Download className="mr-2 h-4 w-4" /> Download PDF
-                </>
-              ) : (
-                <>
-                  <Lock className="mr-2 h-4 w-4" /> PDF - $1.00
-                </>
-              )}
+              <Download className="mr-2 h-4 w-4" /> Download PDF
             </Button>
           </div>
         </div>

@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, CreditCard, Download } from 'lucide-react';
+import { Loader2, CreditCard, Download, SkipForward } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const { markAsPaid } = usePaymentStatus(worksheetId);
 
   const handlePayment = async () => {
     setIsProcessing(true);
@@ -65,6 +67,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleSkipPayment = () => {
+    // Mark as paid for testing purposes
+    markAsPaid('test-session-' + Date.now());
+    
+    toast({
+      title: "Payment Skipped (Test Mode)",
+      description: "Download access granted for testing purposes.",
+    });
+    
+    onPaymentSuccess();
+    onClose();
   };
 
   return (
@@ -117,6 +132,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   Pay $1.00
                 </>
               )}
+            </Button>
+          </div>
+          
+          {/* Test mode skip button */}
+          <div className="border-t pt-3">
+            <Button
+              onClick={handleSkipPayment}
+              variant="outline"
+              className="w-full text-orange-600 border-orange-200 hover:bg-orange-50"
+              disabled={isProcessing}
+            >
+              <SkipForward className="mr-2 h-4 w-4" />
+              Skip Payment (Test Mode)
             </Button>
           </div>
         </div>
