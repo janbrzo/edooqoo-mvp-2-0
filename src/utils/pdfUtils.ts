@@ -1,4 +1,3 @@
-
 import html2pdf from 'html2pdf.js';
 
 export const generatePDF = async (elementId: string, filename: string, isTeacherVersion: boolean, title: string) => {
@@ -133,57 +132,205 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
   }
 };
 
-export const exportAsHTML = (elementId: string, filename: string) => {
+/**
+ * Fetches CSS content from a URL
+ */
+async function fetchCSSContent(url: string): Promise<string> {
+  try {
+    const response = await fetch(url);
+    if (response.ok) {
+      return await response.text();
+    }
+  } catch (error) {
+    console.warn(`Failed to fetch CSS from ${url}:`, error);
+  }
+  return '';
+}
+
+/**
+ * Exports the current view as a standalone HTML file with all styles inlined
+ */
+export async function exportAsHTML(elementId: string, filename: string): Promise<boolean> {
   try {
     const element = document.getElementById(elementId);
-    if (!element) return false;
+    if (!element) {
+      console.error('Element not found:', elementId);
+      return false;
+    }
+
+    // Clone the entire document
+    const docClone = document.cloneNode(true) as Document;
     
-    // Create a clone of the element to modify it
-    const clone = element.cloneNode(true) as HTMLElement;
+    // Remove all script tags to prevent JavaScript execution
+    const scripts = docClone.querySelectorAll('script');
+    scripts.forEach(script => script.remove());
     
-    // Remove elements with data-no-pdf attribute (they also shouldn't be in HTML export)
-    const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
-    noPdfElements.forEach(el => el.remove());
+    // Remove any existing style elements to avoid duplication
+    const existingStyles = docClone.querySelectorAll('style[data-inline="true"]');
+    existingStyles.forEach(style => style.remove());
+
+    // Get all external stylesheets
+    const externalStylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]')) as HTMLLinkElement[];
     
-    // Get the HTML content
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>${filename}</title>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-            h1 { color: #3d348b; font-size: 24px; }
-            h2 { color: #5e44a0; font-size: 20px; }
-            .exercise { margin-bottom: 2em; border: 1px solid #eee; padding: 1em; border-radius: 5px; }
-            .exercise-header { display: flex; align-items: center; margin-bottom: 1em; }
-            .exercise-icon { margin-right: 0.5em; }
-            .instruction { background-color: #f9f9f9; padding: 0.8em; border-left: 3px solid #5e44a0; margin-bottom: 1em; }
-          </style>
-        </head>
-        <body>
-          ${clone.innerHTML}
-        </body>
-      </html>
+    // Fetch and inline all external CSS
+    const cssPromises = externalStylesheets.map(async (link) => {
+      const href = link.href;
+      console.log('Fetching CSS from:', href);
+      
+      try {
+        // Handle relative URLs
+        const absoluteUrl = new URL(href, window.location.origin).href;
+        const cssContent = await fetchCSSContent(absoluteUrl);
+        
+        if (cssContent) {
+          return `/* CSS from ${href} */\n${cssContent}\n`;
+        }
+      } catch (error) {
+        console.warn(`Failed to process CSS from ${href}:`, error);
+      }
+      return '';
+    });
+
+    // Wait for all CSS to be fetched
+    const allCSS = await Promise.all(cssPromises);
+    const combinedCSS = allCSS.filter(css => css.length > 0).join('\n');
+
+    // Also collect CSS from existing <style> elements and document.styleSheets
+    let inlineCSS = '';
+    
+    // Get CSS from existing <style> elements
+    const styleElements = document.querySelectorAll('style');
+    styleElements.forEach(style => {
+      if (style.textContent) {
+        inlineCSS += `/* Inline styles */\n${style.textContent}\n`;
+      }
+    });
+
+    // Try to get CSS from document.styleSheets (for same-origin stylesheets)
+    try {
+      Array.from(document.styleSheets).forEach((sheet) => {
+        try {
+          if (sheet.cssRules) {
+            const rules = Array.from(sheet.cssRules).map(rule => rule.cssText).join('\n');
+            if (rules) {
+              inlineCSS += `/* Document stylesheet rules */\n${rules}\n`;
+            }
+          }
+        } catch (e) {
+          // CORS blocked or other error - skip this stylesheet
+          console.warn('Could not access stylesheet rules (likely CORS):', e);
+        }
+      });
+    } catch (error) {
+      console.warn('Error accessing document.styleSheets:', error);
+    }
+
+    // Add additional styles to ensure proper rendering
+    const additionalCSS = `
+      /* Additional styles for standalone HTML */
+      body {
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        line-height: 1.6;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+        background-color: #f8f9fa;
+      }
+      
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      
+      .worksheet-content {
+        background: white;
+        padding: 20px;
+      }
+      
+      /* Tailwind-like utility classes for fallback */
+      .bg-white { background-color: #ffffff; }
+      .p-6 { padding: 1.5rem; }
+      .mb-6 { margin-bottom: 1.5rem; }
+      .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+      .font-bold { font-weight: 700; }
+      .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+      .border { border-width: 1px; border-color: #d1d5db; }
+      .rounded-lg { border-radius: 0.5rem; }
+      .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
     `;
+
+    // Create comprehensive CSS content
+    const finalCSS = [
+      combinedCSS,
+      inlineCSS,
+      additionalCSS
+    ].filter(css => css.length > 0).join('\n');
+
+    // Create a new style element with all CSS
+    if (finalCSS) {
+      const newStyleElement = docClone.createElement('style');
+      newStyleElement.setAttribute('data-inline', 'true');
+      newStyleElement.textContent = finalCSS;
+      
+      // Insert the style element at the beginning of head
+      const head = docClone.querySelector('head');
+      if (head) {
+        head.insertBefore(newStyleElement, head.firstChild);
+      }
+    }
+
+    // Remove external stylesheet links since we've inlined them
+    const clonedLinks = docClone.querySelectorAll('link[rel="stylesheet"]');
+    clonedLinks.forEach(link => link.remove());
+
+    // Find the worksheet content in the cloned document
+    const clonedElement = docClone.getElementById(elementId);
+    if (!clonedElement) {
+      console.error('Cloned element not found:', elementId);
+      return false;
+    }
+
+    // Create a minimal HTML structure with only the necessary content
+    const minimalHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Worksheet</title>
+    <style>
+${finalCSS}
+    </style>
+</head>
+<body>
+    <div class="container">
+        ${clonedElement.outerHTML}
+    </div>
+</body>
+</html>`;
+
+    // Create and download the file
+    const blob = new Blob([minimalHTML], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
     
-    // Create a Blob from the HTML content
-    const blob = new Blob([html], { type: 'text/html' });
-    
-    // Create an anchor element and set properties for download
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    link.href = url;
     link.download = filename;
-    
-    // Append to body, click and remove
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
+    // Clean up
+    URL.revokeObjectURL(url);
+    
+    console.log('HTML export completed successfully');
     return true;
   } catch (error) {
-    console.error('Error exporting as HTML:', error);
+    console.error('Error exporting HTML:', error);
     return false;
   }
-};
+}
