@@ -150,7 +150,7 @@ async function fetchCSSContent(url: string): Promise<string> {
 /**
  * Exports the current view as a standalone HTML file with all styles inlined
  */
-export async function exportAsHTML(elementId: string, filename: string): Promise<boolean> {
+export async function exportAsHTML(elementId: string, filename: string, viewMode: 'student' | 'teacher' = 'student', title: string = 'English Worksheet'): Promise<boolean> {
   try {
     const element = document.getElementById(elementId);
     if (!element) {
@@ -251,6 +251,11 @@ export async function exportAsHTML(elementId: string, filename: string): Promise
         padding: 20px;
       }
       
+      /* Hide rating and teacher notes sections in HTML export */
+      [data-no-pdf="true"] {
+        display: none !important;
+      }
+      
       /* Tailwind-like utility classes for fallback */
       .bg-white { background-color: #ffffff; }
       .p-6 { padding: 1.5rem; }
@@ -294,6 +299,27 @@ export async function exportAsHTML(elementId: string, filename: string): Promise
       return false;
     }
 
+    // Remove elements that shouldn't be in HTML export
+    const elementsToRemove = clonedElement.querySelectorAll('[data-no-pdf="true"]');
+    elementsToRemove.forEach(el => el.remove());
+
+    // Remove teacher tips if it's student version
+    if (viewMode === 'student') {
+      const teacherTips = clonedElement.querySelectorAll('.teacher-tip');
+      teacherTips.forEach(el => el.remove());
+    }
+
+    // Create a header to show whether it's a student or teacher version
+    const versionHeader = docClone.createElement('div');
+    versionHeader.style.textAlign = 'center';
+    versionHeader.style.padding = '20px 0';
+    versionHeader.style.borderBottom = '2px solid #3d348b';
+    versionHeader.style.marginBottom = '20px';
+    versionHeader.style.color = '#3d348b';
+    versionHeader.style.fontSize = '18px';
+    versionHeader.style.fontWeight = 'bold';
+    versionHeader.innerHTML = `${title} - ${viewMode === 'teacher' ? 'Teacher' : 'Student'} Version`;
+
     // Create a minimal HTML structure with only the necessary content
     const minimalHTML = `
 <!DOCTYPE html>
@@ -301,13 +327,14 @@ export async function exportAsHTML(elementId: string, filename: string): Promise
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English Worksheet</title>
+    <title>${title} - ${viewMode === 'teacher' ? 'Teacher' : 'Student'} Version</title>
     <style>
 ${finalCSS}
     </style>
 </head>
 <body>
     <div class="container">
+        ${versionHeader.outerHTML}
         ${clonedElement.outerHTML}
     </div>
 </body>
