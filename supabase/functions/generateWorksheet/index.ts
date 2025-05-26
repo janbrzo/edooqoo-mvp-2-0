@@ -1,14 +1,7 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
 
 const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
-
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,7 +16,6 @@ serve(async (req) => {
 
   try {
     const { prompt, userId } = await req.json();
-    const ip = req.headers.get('x-forwarded-for') || 'unknown';
     
     if (!prompt) {
       throw new Error('Missing prompt parameter');
@@ -44,7 +36,7 @@ serve(async (req) => {
     // Determine exercise types to include based on exerciseCount
     const exerciseTypes = getExerciseTypesForCount(exerciseCount);
     
-    // Generate worksheet using OpenAI with improved prompt structure and VERY SPECIFIC requirements
+    // Generate worksheet using OpenAI
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o",
       temperature: 0.7,
@@ -66,10 +58,10 @@ serve(async (req) => {
 8. Use appropriate time values for each exercise (5-10 minutes).
 9. DO NOT include any text outside of the JSON structure.
 10. Exercise 1: Reading Comprehension must follow extra steps:
-    - Generate the `content` passage between 280 and 320 words.
+    - Generate the content passage between 280 and 320 words.
     - After closing JSON, on a separate line add:
       // Word count: X (must be between 280–320)
-    - Don’t proceed unless X ∈ [280,320].
+    - Don't proceed unless X ∈ [280,320].
 11. Focus on overall flow, coherence and pedagogical value; minor typos acceptable.
 
 12. Generate a structured JSON worksheet with the following format:
@@ -94,139 +86,28 @@ serve(async (req) => {
         {"text": "Question 5", "answer": "Answer 5"}
       ],
       "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
-    },
-    {
-      "type": "matching",
-      "title": "Exercise 2: Vocabulary Matching",
-      "icon": "fa-link",
-      "time": 7,
-      "instructions": "Match each term with its correct definition.",
-      "items": [
-        {"term": "Term 1", "definition": "Definition 1"},
-        {"term": "Term 2", "definition": "Definition 2"},
-        {"term": "Term 3", "definition": "Definition 3"},
-        {"term": "Term 4", "definition": "Definition 4"},
-        {"term": "Term 5", "definition": "Definition 5"},
-        {"term": "Term 6", "definition": "Definition 6"},
-        {"term": "Term 7", "definition": "Definition 7"},
-        {"term": "Term 8", "definition": "Definition 8"},
-        {"term": "Term 9", "definition": "Definition 9"},
-        {"term": "Term 10", "definition": "Definition 10"}
-      ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
-    },
-    {
-      "type": "fill-in-blanks",
-      "title": "Exercise 3: Fill in the Blanks",
-      "icon": "fa-pencil-alt",
-      "time": 8,
-      "instructions": "Complete each sentence with the correct word from the box.",
-      "word_bank": ["word1", "word2", "word3", "word4", "word5", "word6", "word7", "word8", "word9", "word10"],
-      "sentences": [
-        {"text": "Sentence with _____ blank.", "answer": "word1"},
-        {"text": "Another _____ here.", "answer": "word2"},
-        {"text": "Third sentence with a _____ to complete.", "answer": "word3"},
-        {"text": "Fourth sentence _____ blank.", "answer": "word4"},
-        {"text": "Fifth sentence needs a _____ here.", "answer": "word5"},
-        {"text": "Sixth _____ for completion.", "answer": "word6"},
-        {"text": "Seventh sentence with _____ word missing.", "answer": "word7"},
-        {"text": "Eighth sentence requires a _____.", "answer": "word8"},
-        {"text": "Ninth sentence has a _____ blank.", "answer": "word9"},
-        {"text": "Tenth sentence with a _____ to fill.", "answer": "word10"}
-      ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
-    },
-    {
-      "type": "multiple-choice",
-      "title": "Exercise 4: Multiple Choice",
-      "icon": "fa-check-square",
-      "time": 6,
-      "instructions": "Choose the best option to complete each sentence.",
-      "questions": [
-        {
-          "text": "Question 1 text?",
-          "options": [
-            {"label": "A", "text": "Option A", "correct": false},
-            {"label": "B", "text": "Option B", "correct": true},
-            {"label": "C", "text": "Option C", "correct": false},
-            {"label": "D", "text": "Option D", "correct": false}
-          ]
-        },
-        // INCLUDE EXACTLY 10 MULTIPLE CHOICE QUESTIONS WITH 4 OPTIONS EACH
-      ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
-    },
-    {
-      "type": "dialogue",
-      "title": "Exercise 5: Dialogue Practice",
-      "icon": "fa-comments",
-      "time": 7,
-      "instructions": "Read the dialogue and practice with a partner.",
-      "dialogue": [
-        {"speaker": "Person A", "text": "Hello, how are you?"},
-        {"speaker": "Person B", "text": "I'm fine, thank you. And you?"}
-        // INCLUDE AT LEAST 10 DIALOGUE EXCHANGES
-      ],
-      "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", 
-                     "expression6", "expression7", "expression8", "expression9", "expression10"],
-      "expression_instruction": "Practice using these expressions in your own dialogues.",
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
-    },
-    {
-      "type": "true-false",
-      "title": "Exercise 6: True or False",
-      "icon": "fa-balance-scale",
-      "time": 5,
-      "instructions": "Read each statement and decide if it is true or false.",
-      "statements": [
-        {"text": "Statement 1", "isTrue": true},
-        {"text": "Statement 2", "isTrue": false},
-        {"text": "Statement 3", "isTrue": true},
-        {"text": "Statement 4", "isTrue": false},
-        {"text": "Statement 5", "isTrue": true},
-        {"text": "Statement 6", "isTrue": false},
-        {"text": "Statement 7", "isTrue": true},
-        {"text": "Statement 8", "isTrue": false},
-        {"text": "Statement 9", "isTrue": true},
-        {"text": "Statement 10", "isTrue": false}
-      ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
     }
   ],
   "vocabulary_sheet": [
     {"term": "Term 1", "meaning": "Definition 1"},
     {"term": "Term 2", "meaning": "Definition 2"}
-    // INCLUDE EXACTLY 15 TERMS
   ]
 }
 
 IMPORTANT QUALITY CHECK BEFORE GENERATING:
-1.  Grammar, spelling, formatting – near-flawless (1–2 minor typos allowed). Difficulty level consistent and appropriate.
-2. Confirm that Exercise 1 `content` is between 280 and 320 words and that the Word count comment is correct.
-3. For "reading" exercises:
-   - The content MUST be BETWEEN 280-320 WORDS. Count words carefully.
-   - ALWAYS include EXACTLY 5 comprehension questions.
-4. For "matching" exercises:
-   - Include EXACTLY 10 items to match.
-5. For "fill-in-blanks" exercises:
-   - Include EXACTLY 10 sentences and 10 words in the word bank.
-6. For "multiple-choice" exercises:
-   - Include EXACTLY 10 questions with 4 options each.
-7. For "dialogue" exercises:
-   - Include AT LEAST 10 dialogue exchanges.
-   - Include EXACTLY 10 expressions to practice.
-8. For "true-false" exercises:
-   - Include EXACTLY 10 statements with clear true/false answers.
-9. For "discussion" exercises:
-   - Include EXACTLY 10 discussion questions.
-10. For "error-correction" exercises:
-   - Include EXACTLY 10 sentences with errors to correct.
-11. For "word-formation" exercises:
-   - Include EXACTLY 10 sentences with gaps for word formation.
-12. For "word-order" exercises:
-   - Include EXACTLY 10 sentences with words to rearrange.
-13. For ALL other exercise types:
-   - Include EXACTLY 10 examples/items/questions unless specified otherwise.
+1. Grammar, spelling, formatting – near-flawless (1–2 minor typos allowed). Difficulty level consistent and appropriate.
+2. Confirm that Exercise 1 content is between 280 and 320 words and that the Word count comment is correct.
+3. For "reading" exercises: The content MUST be BETWEEN 280-320 WORDS. Include EXACTLY 5 comprehension questions.
+4. For "matching" exercises: Include EXACTLY 10 items to match.
+5. For "fill-in-blanks" exercises: Include EXACTLY 10 sentences and 10 words in the word bank.
+6. For "multiple-choice" exercises: Include EXACTLY 10 questions with 4 options each.
+7. For "dialogue" exercises: Include AT LEAST 10 dialogue exchanges and EXACTLY 10 expressions to practice.
+8. For "true-false" exercises: Include EXACTLY 10 statements with clear true/false answers.
+9. For "discussion" exercises: Include EXACTLY 10 discussion questions.
+10. For "error-correction" exercises: Include EXACTLY 10 sentences with errors to correct.
+11. For "word-formation" exercises: Include EXACTLY 10 sentences with gaps for word formation.
+12. For "word-order" exercises: Include EXACTLY 10 sentences with words to rearrange.
+13. For ALL other exercise types: Include EXACTLY 10 examples/items/questions unless specified otherwise.
 14. For vocabulary sheets, include EXACTLY 15 terms.
 15. Specific vocabulary related to the topic is included.
 `
@@ -236,7 +117,7 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
           content: prompt
         }
       ],
-      max_tokens: 4000  // Ensure we have enough tokens for a complete response
+      max_tokens: 4000
     });
 
     const jsonContent = aiResponse.choices[0].message.content;
@@ -264,7 +145,6 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
         
         // If we have too few exercises, create additional ones
         if (worksheetData.exercises.length < exerciseCount) {
-          // Generate additional exercises with OpenAI
           const additionalExercisesNeeded = exerciseCount - worksheetData.exercises.length;
           console.log(`Generating ${additionalExercisesNeeded} additional exercises`);
           
@@ -287,29 +167,7 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
                 
                 Exercise types to use: ${getExerciseTypesForMissing(worksheetData.exercises, exerciseTypes)}
                 
-                Number the exercises sequentially starting from ${worksheetData.exercises.length + 1}.
-                
-                Example exercise formats:
-                {
-                  "type": "multiple-choice",
-                  "title": "Exercise ${worksheetData.exercises.length + 1}: Multiple Choice",
-                  "icon": "fa-check-square",
-                  "time": 6,
-                  "instructions": "Choose the best option to complete each sentence.",
-                  "questions": [
-                    {
-                      "text": "Question text?",
-                      "options": [
-                        {"label": "A", "text": "Option A", "correct": false},
-                        {"label": "B", "text": "Option B", "correct": true},
-                        {"label": "C", "text": "Option C", "correct": false},
-                        {"label": "D", "text": "Option D", "correct": false}
-                      ]
-                    }
-                    // 10 questions total
-                  ],
-                  "teacher_tip": "Tip for teachers on this exercise"
-                }`
+                Number the exercises sequentially starting from ${worksheetData.exercises.length + 1}.`
               }
             ],
             max_tokens: 3000
@@ -325,11 +183,9 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
               const additionalExercises = JSON.parse(jsonPortion);
               
               if (Array.isArray(additionalExercises)) {
-                // Add the new exercises
                 worksheetData.exercises = [...worksheetData.exercises, ...additionalExercises];
                 console.log(`Successfully added ${additionalExercises.length} exercises`);
                 
-                // Validate the new exercises
                 for (const exercise of additionalExercises) {
                   validateExercise(exercise);
                 }
@@ -339,7 +195,6 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
             console.error('Failed to parse or add additional exercises:', parseError);
           }
         } else if (worksheetData.exercises.length > exerciseCount) {
-          // If we have too many, trim them down
           worksheetData.exercises = worksheetData.exercises.slice(0, exerciseCount);
           console.log(`Trimmed exercises to ${worksheetData.exercises.length}`);
         }
@@ -352,8 +207,10 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
         exercise.title = `Exercise ${exerciseNumber}: ${exerciseType}`;
       });
       
-      // Ensure full correct exercise count after all adjustments
       console.log(`Final exercise count: ${worksheetData.exercises.length} (expected: ${exerciseCount})`);
+      
+      // Generate a temporary ID for frontend use
+      worksheetData.id = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       // Count API sources used for accurate stats
       const sourceCount = Math.floor(Math.random() * (90 - 65) + 65);
@@ -362,47 +219,6 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
       throw new Error('Failed to generate a valid worksheet structure. Please try again.');
-    }
-
-    // Save worksheet to database using the correct function parameters
-    try {
-      const htmlContent = `<div id="worksheet-content">${JSON.stringify(worksheetData)}</div>`;
-      
-      const { data: worksheet, error: worksheetError } = await supabase.rpc(
-        'insert_worksheet_bypass_limit',
-        {
-          p_prompt: prompt,
-          p_content: JSON.stringify(worksheetData),
-          p_user_id: userId,
-          p_ip_address: ip,
-          p_status: 'created',
-          p_title: worksheetData.title
-        }
-      );
-
-      if (worksheetError) {
-        console.error('Error saving worksheet to database:', worksheetError);
-        // Continue even if database save fails - we'll return the generated content
-      }
-
-      // Track generation event if we have a worksheet ID
-      if (worksheet && worksheet.length > 0 && worksheet[0].id) {
-        const worksheetId = worksheet[0].id;
-        await supabase.from('events').insert({
-          type: 'generate',
-          event_type: 'generate',
-          worksheet_id: worksheetId,
-          user_id: userId,
-          metadata: { prompt, ip },
-          ip_address: ip
-        });
-        console.log('Worksheet generated and saved successfully with ID:', worksheetId);
-        // Add the ID to the worksheet data so frontend can use it
-        worksheetData.id = worksheetId;
-      }
-    } catch (dbError) {
-      console.error('Database operation failed:', dbError);
-      // Continue without failing the request
     }
 
     return new Response(JSON.stringify(worksheetData), {
@@ -425,7 +241,6 @@ IMPORTANT QUALITY CHECK BEFORE GENERATING:
 
 // Helper function to get exercise types based on count
 function getExerciseTypesForCount(count: number): string[] {
-  // Base set of exercise types
   const baseTypes = [
     'reading', 
     'matching', 
@@ -433,7 +248,6 @@ function getExerciseTypesForCount(count: number): string[] {
     'multiple-choice'
   ];
   
-  // Additional types when we need more exercises
   const additionalTypes = [
     'dialogue', 
     'true-false', 
@@ -443,17 +257,14 @@ function getExerciseTypesForCount(count: number): string[] {
     'word-order'
   ];
   
-  // For 4 exercises (30 min), use just the base types
   if (count <= 4) {
     return baseTypes;
   }
   
-  // For 6 exercises (45 min), add 2 more
   if (count <= 6) {
     return [...baseTypes, 'dialogue', 'true-false'];
   }
   
-  // For 8 or more exercises (60 min), use all types
   return [...baseTypes, ...additionalTypes];
 }
 
@@ -463,7 +274,6 @@ function getExerciseTypesForMissing(existingExercises: any[], allTypes: string[]
   return allTypes.filter(type => !existingTypes.has(type));
 }
 
-// Validate and potentially fix an exercise
 function validateExercise(exercise: any): void {
   if (!exercise.type) {
     console.error('Exercise missing type field');
@@ -726,17 +536,7 @@ function generateFakeText(wordCount: number): string {
     "Students should focus on both speaking and listening skills to improve overall fluency.",
     "Regular vocabulary review helps to reinforce new words and phrases.",
     "Grammar exercises are important for building proper sentence structures.",
-    "Reading comprehension improves with exposure to diverse texts and topics.",
-    "Practicing writing helps students organize their thoughts in the target language.",
-    "Cultural understanding enhances language learning and contextual usage.",
-    "Listening to native speakers helps with pronunciation and intonation.",
-    "Group activities encourage students to use the language in realistic scenarios.",
-    "Technology can be a valuable tool for interactive language learning.",
-    "Language games make the learning process more engaging and enjoyable.",
-    "Watching films in the target language improves listening comprehension.",
-    "Translation exercises help students understand nuances between languages.",
-    "Language immersion accelerates the learning process significantly.",
-    "Setting achievable goals motivates students to continue their language journey.",
+    "Reading comprehension improves with exposure to diverse texts and topics."
   ];
   
   let text = "";

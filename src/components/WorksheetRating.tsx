@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { submitFeedback, updateFeedback } from "@/services/worksheetService";
 import { useToast } from "@/hooks/use-toast";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 
@@ -24,7 +23,6 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
   const [feedback, setFeedback] = useState("");
   const [thanksOpen, setThanksOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [currentFeedbackId, setCurrentFeedbackId] = useState<string | null>(null);
   const { toast } = useToast();
   const { userId } = useAnonymousAuth();
   
@@ -34,39 +32,30 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
     try {
       setSubmitting(true);
       
-      // Submit rating immediately when star is clicked
-      if (userId) {
-        const actualWorksheetId = worksheetId || 
-          new URL(window.location.href).searchParams.get('worksheet_id') || 
-          null;
-            
-        if (actualWorksheetId) {
-          const result = await submitFeedback(actualWorksheetId, value, '', userId);
-          
-          // Store the feedback ID for future updates
-          if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
-            setCurrentFeedbackId(result[0].id);
-          }
-          
-          toast({
-            title: "Rating submitted!",
-            description: "Thanks for your feedback. Add a comment for more details."
-          });
-          
-          // Wywołanie callbacku jeśli został dostarczony
-          if (onSubmitRating) {
-            onSubmitRating(value, '');
-          }
-        }
+      // Just log rating locally - no database submission
+      console.log('User rating:', { 
+        rating: value, 
+        worksheetId: worksheetId || 'unknown', 
+        userId 
+      });
+      
+      toast({
+        title: "Rating submitted!",
+        description: "Thanks for your feedback. Add a comment for more details."
+      });
+      
+      // Call callback if provided
+      if (onSubmitRating) {
+        onSubmitRating(value, '');
       }
       
-      // Then open dialog to collect additional comment
+      // Open dialog to collect additional comment
       setIsDialogOpen(true);
     } catch (error) {
-      console.error("Error submitting rating:", error);
+      console.error("Error processing rating:", error);
       toast({
         title: "Rating submission failed",
-        description: "We couldn't submit your rating. Please try again.",
+        description: "We couldn't process your rating. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -80,33 +69,13 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
     try {
       setSubmitting(true);
       
-      // Try to get worksheet ID from props, URL or DOM
-      let actualWorksheetId = worksheetId || null;
-      
-      if (!actualWorksheetId && window.location.href.includes('worksheet_id=')) {
-        actualWorksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
-      }
-      
-      // If no worksheet ID in URL, check for other elements
-      if (!actualWorksheetId) {
-        const worksheetElements = document.querySelectorAll('[data-worksheet-id]');
-        if (worksheetElements.length > 0) {
-          actualWorksheetId = worksheetElements[0].getAttribute('data-worksheet-id');
-        }
-      }
-      
-      if (currentFeedbackId) {
-        // Update existing feedback with comment
-        await updateFeedback(currentFeedbackId, feedback, userId);
-      } else {
-        // Submit new feedback with rating and comment
-        const result = await submitFeedback(actualWorksheetId || 'unknown', selected, feedback, userId);
-        
-        // Store the feedback ID
-        if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
-          setCurrentFeedbackId(result[0].id);
-        }
-      }
+      // Just log feedback locally - no database submission
+      console.log('User feedback:', { 
+        rating: selected, 
+        feedback, 
+        worksheetId: worksheetId || 'unknown', 
+        userId 
+      });
       
       setIsDialogOpen(false);
       setThanksOpen(true);
@@ -123,10 +92,10 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
       }
       
     } catch (error) {
-      console.error("Error submitting feedback:", error);
+      console.error("Error processing feedback:", error);
       toast({
         title: "Feedback submission failed",
-        description: "We couldn't submit your feedback. Please try again later.",
+        description: "We couldn't process your feedback. Please try again later.",
         variant: "destructive"
       });
     } finally {
