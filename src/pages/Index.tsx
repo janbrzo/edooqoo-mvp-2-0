@@ -132,6 +132,8 @@ const Index = () => {
     try {
       let worksheetData;
       
+      console.log(`Starting generation with ${useV2 ? 'V2' : 'V1'} system`);
+      
       if (useV2) {
         console.log("Using V2 generation system");
         // Import V2 API service dynamically
@@ -184,15 +186,24 @@ const Index = () => {
     } catch (error) {
       console.error("Worksheet generation error:", error);
       
-      // Only use fallback after significant time has passed (30+ seconds)
+      // Calculate how long the generation took
       const generationTime = Date.now() - startTime;
+      const versionText = useV2 ? "V2" : "V1";
+      
+      // Show specific error message with version info
+      let errorMessage = `${versionText} Generation failed`;
+      let errorDescription = "An unexpected error occurred during generation.";
+      
+      if (error instanceof Error) {
+        errorDescription = `${versionText}: ${error.message}`;
+      }
+      
+      // Only use fallback after significant time has passed (30+ seconds)
       if (generationTime < 30000) {
         // If it failed quickly, show the actual error
         toast({
-          title: "Generation failed",
-          description: error instanceof Error 
-            ? `Error: ${error.message}` 
-            : "An unexpected error occurred during generation.",
+          title: errorMessage,
+          description: errorDescription,
           variant: "destructive"
         });
         setIsGenerating(false);
@@ -200,6 +211,7 @@ const Index = () => {
       }
       
       // Fallback to mock data only if generation took a long time
+      console.log("Using fallback mock data due to timeout");
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
       
       // Get correct exercise count based on lesson time
@@ -218,9 +230,7 @@ const Index = () => {
       // Let the user know we're using a fallback
       toast({
         title: "Using sample worksheet",
-        description: error instanceof Error 
-          ? `Generation timeout: ${error.message}. Using a sample worksheet instead.` 
-          : "Generation took too long. Using a sample worksheet instead.",
+        description: `${versionText} generation timeout. Using a sample worksheet instead.`,
         variant: "destructive"
       });
     } finally {

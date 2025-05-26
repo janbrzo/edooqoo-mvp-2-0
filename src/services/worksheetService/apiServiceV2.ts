@@ -10,7 +10,7 @@ const GENERATE_WORKSHEET_V2_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/func
  */
 export async function generateWorksheetV2API(prompt: WorksheetFormData, userId: string) {
   try {
-    console.log('V2: Generating worksheet with improved system');
+    console.log('V2 API: Starting generation request');
     
     const formattedPrompt = `${prompt.lessonTopic} - ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.studentProfile ? `. Student profile: ${prompt.studentProfile}` : ''}${prompt.studentStruggles ? `. Student struggles: ${prompt.studentStruggles}` : ''}. Lesson duration: ${prompt.lessonTime}.`;
     
@@ -23,7 +23,8 @@ export async function generateWorksheetV2API(prompt: WorksheetFormData, userId: 
       lessonTime: prompt.lessonTime
     };
     
-    console.log('V2: Sending request to improved generation system');
+    console.log('V2 API: Formatted prompt:', formattedPrompt.substring(0, 200));
+    console.log('V2 API: Sending request to V2 generation system');
     
     const response = await fetch(GENERATE_WORKSHEET_V2_URL, {
       method: 'POST',
@@ -37,24 +38,34 @@ export async function generateWorksheetV2API(prompt: WorksheetFormData, userId: 
       })
     });
 
-    console.log('V2: API response status:', response.status);
+    console.log('V2 API: Response status:', response.status);
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      console.error('V2: API error data:', errorData);
-      throw new Error(`V2 Generation failed: ${errorData?.error || response.statusText}`);
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText };
+      }
+      console.error('V2 API: Error response:', errorData);
+      throw new Error(`V2 Generation failed (${response.status}): ${errorData?.error || response.statusText}`);
     }
 
     const worksheetData = await response.json();
-    console.log('V2: Received worksheet data:', worksheetData);
+    console.log('V2 API: Received worksheet data with', worksheetData?.exercises?.length, 'exercises');
     
     if (!worksheetData || !worksheetData.exercises) {
-      throw new Error('V2: Invalid worksheet data received');
+      console.error('V2 API: Invalid worksheet data structure');
+      throw new Error('V2: Invalid worksheet data received from server');
     }
     
     return worksheetData;
   } catch (error) {
-    console.error('V2: Error generating worksheet:', error);
+    console.error('V2 API: Error generating worksheet:', error);
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error('V2: Network error - unable to connect to generation service');
+    }
     throw error;
   }
 }
