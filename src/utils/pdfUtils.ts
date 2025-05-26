@@ -1,29 +1,36 @@
 import html2pdf from 'html2pdf.js';
 
-export const generatePDF = async (elementId: string, filename: string, isTeacherVersion: boolean, title: string) => {
+export const generatePDF = async (elementId: string, filename: string, isTeacherView = false, title = 'English Worksheet') => {
   try {
-    // Create a clone of the element to modify it for PDF
     const element = document.getElementById(elementId);
-    if (!element) return false;
-    
-    const clone = element.cloneNode(true) as HTMLElement;
-    
-    // Remove any elements with data-no-pdf attribute
-    const noPdfElements = clone.querySelectorAll('[data-no-pdf="true"]');
-    noPdfElements.forEach(el => el.remove());
-    
-    // Remove all teacher tips sections when generating student version (they should not appear in PDF)
-    if (!isTeacherVersion) {
-      const teacherTips = clone.querySelectorAll('.teacher-tip');
-      teacherTips.forEach(el => el.remove());
+    if (!element) {
+      console.error('Element not found:', elementId);
+      return false;
     }
+
+    // Clone the element to avoid modifying the original
+    const clonedElement = element.cloneNode(true) as HTMLElement;
     
+    // Remove elements that shouldn't be in PDF
+    const elementsToRemove = clonedElement.querySelectorAll('[data-no-pdf="true"]:not(.teacher-tip)');
+    elementsToRemove.forEach(el => el.remove());
+
+    // For teacher view, keep teacher tips but remove other data-no-pdf elements
+    if (isTeacherView) {
+      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not(.teacher-tip)');
+      nonTeacherTipElements.forEach(el => el.remove());
+    } else {
+      // For student view, remove all data-no-pdf elements including teacher tips
+      const allNoPublishElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
+      allNoPublishElements.forEach(el => el.remove());
+    }
+
     // Create a temporary container for the cloned content
     const container = document.createElement('div');
-    container.appendChild(clone);
+    container.appendChild(clonedElement);
     
     // Set the wrapper style for the PDF
-    clone.style.padding = '20px';
+    clonedElement.style.padding = '20px';
     
     // Add a header to show whether it's a student or teacher version
     const header = document.createElement('div');
@@ -34,7 +41,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     header.style.borderBottom = '1px solid #ddd';
     header.style.color = '#3d348b';
     header.style.fontSize = '12.6px'; // Reduced by 10% from 14px
-    header.innerHTML = `${title} - ${isTeacherVersion ? 'Teacher' : 'Student'} Version`;
+    header.innerHTML = `${title} - ${isTeacherView ? 'Teacher' : 'Student'} Version`;
     container.prepend(header);
     
     // Add a footer with page numbers
@@ -300,13 +307,17 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
     }
 
     // Remove elements that shouldn't be in HTML export
-    const elementsToRemove = clonedElement.querySelectorAll('[data-no-pdf="true"]');
+    const elementsToRemove = clonedElement.querySelectorAll('[data-no-pdf="true"]:not(.teacher-tip)');
     elementsToRemove.forEach(el => el.remove());
 
-    // Remove teacher tips if it's student version
-    if (viewMode === 'student') {
-      const teacherTips = clonedElement.querySelectorAll('.teacher-tip');
-      teacherTips.forEach(el => el.remove());
+    // For teacher view, keep teacher tips but remove other data-no-pdf elements
+    if (viewMode === 'teacher') {
+      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not(.teacher-tip)');
+      nonTeacherTipElements.forEach(el => el.remove());
+    } else {
+      // For student view, remove all data-no-pdf elements including teacher tips
+      const allNoPublishElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
+      allNoPublishElements.forEach(el => el.remove());
     }
 
     // Create a header to show whether it's a student or teacher version
