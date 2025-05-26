@@ -9,7 +9,7 @@ interface WorksheetToolbarProps {
   isEditing: boolean;
   handleEdit: () => void;
   handleSave: () => void;
-  handleDownloadHTML: () => void;
+  // Usuwamy handleDownloadHTML
   handleDownloadPDF: () => void;
 }
 
@@ -19,7 +19,7 @@ const WorksheetToolbar = ({
   isEditing,
   handleEdit,
   handleSave,
-  handleDownloadHTML,
+  // handleDownloadHTML,
   handleDownloadPDF,
 }: WorksheetToolbarProps) => (
   <div className="sticky top-0 z-10 bg-white border-b mb-6 py-3 px-4">
@@ -46,14 +46,19 @@ const WorksheetToolbar = ({
       </div>
       <div className="flex items-center">
         {!isEditing && (
-          <Button
-            variant="outline"
-            onClick={handleEdit}
-            className="border-worksheet-purple text-worksheet-purple mr-2"
-            size="sm"
-          >
-            <Edit className="mr-2 h-4 w-4" /> Edit Worksheet
-          </Button>
+          <>
+            <div className="text-amber-600 flex items-center mr-4 text-sm italic px-3 py-1.5 bg-amber-50 rounded">
+              Click the Edit button to modify the worksheet →
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleEdit}
+              className="border-worksheet-purple text-worksheet-purple mr-2"
+              size="sm"
+            >
+              <Edit className="mr-2 h-4 w-4" /> Edit Worksheet
+            </Button>
+          </>
         )}
         {isEditing && (
           <Button
@@ -64,14 +69,14 @@ const WorksheetToolbar = ({
             Save Changes
           </Button>
         )}
-        <Button
-          id="download-html-btn"
+        {/* Usuwamy przycisk Download HTML */}
+        {/* <Button
           onClick={handleDownloadHTML}
           className="bg-worksheet-purple hover:bg-worksheet-purpleDark mr-2"
           size="sm"
         >
           <Download className="mr-2 h-4 w-4" /> Download HTML
-        </Button>
+        </Button> */}
         <Button
           onClick={handleDownloadPDF}
           className="bg-worksheet-purple hover:bg-worksheet-purpleDark"
