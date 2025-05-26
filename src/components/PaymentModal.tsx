@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, CreditCard, Download, SkipForward } from 'lucide-react';
+import { Loader2, CreditCard, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -12,7 +12,6 @@ interface PaymentModalProps {
   worksheetId: string;
   exportType: 'pdf' | 'html';
   onPaymentSuccess: () => void;
-  onSkipPayment?: () => void;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -20,8 +19,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   onClose,
   worksheetId,
   exportType,
-  onPaymentSuccess,
-  onSkipPayment
+  onPaymentSuccess
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
@@ -121,20 +119,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               )}
             </Button>
           </div>
-          
-          {onSkipPayment && (
-            <div className="border-t pt-3">
-              <Button
-                variant="outline"
-                onClick={onSkipPayment}
-                className="w-full text-orange-600 border-orange-200 hover:bg-orange-50"
-                size="sm"
-              >
-                <SkipForward className="mr-2 h-3 w-3" />
-                Skip Payment (Test Mode)
-              </Button>
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>
