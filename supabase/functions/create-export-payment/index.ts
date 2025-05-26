@@ -28,6 +28,21 @@ serve(async (req) => {
 
     console.log('Creating Stripe checkout session for worksheet:', worksheetId);
 
+    // Create or get the "free" coupon
+    let freeCoupon;
+    try {
+      freeCoupon = await stripe.coupons.retrieve('free');
+    } catch (error) {
+      // Create the coupon if it doesn't exist
+      freeCoupon = await stripe.coupons.create({
+        id: 'free',
+        name: 'Free Testing Coupon',
+        percent_off: 100,
+        duration: 'forever',
+      });
+      console.log('Created free coupon:', freeCoupon.id);
+    }
+
     const session = await stripe.checkout.sessions.create({
       line_items: [
         {
@@ -49,6 +64,10 @@ serve(async (req) => {
         worksheetId,
         exportType,
       },
+      // Enable discount codes
+      allow_promotion_codes: true,
+      // Optionally add the free coupon directly
+      discounts: [],
     });
 
     console.log('Stripe session created:', session.id);
