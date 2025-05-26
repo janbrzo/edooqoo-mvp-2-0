@@ -4,12 +4,12 @@ project_id = "bvfrkzdlklyvnhlpleck"
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "storage", "graphql_public"]
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
 [db]
 port = 54322
-shadow_port = 54320
-major_version = 15
 
 [db.pooler]
 enabled = false
@@ -20,50 +20,48 @@ max_client_conn = 100
 
 [realtime]
 enabled = true
+ip_version = "ipv4"
+port = 54323
+max_header_length = 4096
 
 [studio]
 enabled = true
-port = 54323
-api_url = "http://localhost"
+port = 54324
+api_url = "http://127.0.0.1:54321"
+openai_api_key = "env(OPENAI_API_KEY)"
 
 [inbucket]
 enabled = true
-port = 54324
+port = 54325
+smtp_port = 54326
+pop3_port = 54327
 
 [storage]
 enabled = true
+file_size_limit = "50MiB"
+s3_credentials_access_key_id = "625729a08b95bf1b7ff351a663f3a23c"
+s3_credentials_secret_access_key = "850181e4652dd023b7a98c58ae0d2d34bd487ee0cc3254aed6ded925671e6f8a"
+s3_credentials_region = "local"
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["https://127.0.0.1:3000"]
+jwt_expiry = 3600
+enable_signup = true
+enable_confirmations = false
 
-[auth.email]
-enabled = true
-double_confirm_changes = true
-enable_confirmations = true
-
-[auth.sms]
-enabled = false
-
-[auth.external.github]
-enabled = false
-client_id = ""
-secret = ""
-
-[analytics]
-enabled = false
-port = 54327
-vector_port = 54328
-backend = "postgres"
-
-[experimental]
-enabled = false
-
-[edge_functions]
-enabled = true
-
-[functions.generateWorksheet]
+[edge_functions.generateWorksheet]
 verify_jwt = false
 
-[functions.submitFeedback]
+[edge_functions.generateWorksheetV2]
+verify_jwt = false
+
+[edge_functions.submitFeedback]
+verify_jwt = false
+
+[edge_functions.create-export-payment]
+verify_jwt = false
+
+[edge_functions.verify-export-payment]
 verify_jwt = false

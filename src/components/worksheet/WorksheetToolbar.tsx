@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Edit, Lightbulb, User, Download, Lock } from "lucide-react";
+import { Edit, Lightbulb, User, Download } from "lucide-react";
 import PaymentModal from "@/components/PaymentModal";
 import { usePaymentStatus } from "@/hooks/usePaymentStatus";
 
@@ -31,7 +31,7 @@ const WorksheetToolbar = ({
     type: null
   });
   
-  const { paymentStatus } = usePaymentStatus(worksheetId);
+  const { paymentStatus, markAsPaid } = usePaymentStatus(worksheetId);
 
   const handleDownloadClick = (type: 'pdf' | 'html') => {
     if (paymentStatus.isPaid) {
@@ -54,6 +54,12 @@ const WorksheetToolbar = ({
   const handlePaymentSuccess = () => {
     closePaymentModal();
     // Payment status will be updated by the hook
+  };
+
+  const handleSkipPayment = () => {
+    // For testing purposes - simulate successful payment
+    markAsPaid('test-session-id');
+    closePaymentModal();
   };
 
   return (
@@ -102,39 +108,17 @@ const WorksheetToolbar = ({
             )}
             <Button
               onClick={() => handleDownloadClick('html')}
-              className={paymentStatus.isPaid 
-                ? "bg-worksheet-purple hover:bg-worksheet-purpleDark mr-2" 
-                : "bg-orange-500 hover:bg-orange-600 mr-2"
-              }
+              className="bg-worksheet-purple hover:bg-worksheet-purpleDark mr-2"
               size="sm"
             >
-              {paymentStatus.isPaid ? (
-                <>
-                  <Download className="mr-2 h-4 w-4" /> Download HTML
-                </>
-              ) : (
-                <>
-                  <Lock className="mr-2 h-4 w-4" /> HTML - $1.00
-                </>
-              )}
+              <Download className="mr-2 h-4 w-4" /> Download HTML
             </Button>
             <Button
               onClick={() => handleDownloadClick('pdf')}
-              className={paymentStatus.isPaid 
-                ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" 
-                : "bg-orange-500 hover:bg-orange-600"
-              }
+              className="bg-worksheet-purple hover:bg-worksheet-purpleDark"
               size="sm"
             >
-              {paymentStatus.isPaid ? (
-                <>
-                  <Download className="mr-2 h-4 w-4" /> Download PDF
-                </>
-              ) : (
-                <>
-                  <Lock className="mr-2 h-4 w-4" /> PDF - $1.00
-                </>
-              )}
+              <Download className="mr-2 h-4 w-4" /> Download PDF
             </Button>
           </div>
         </div>
@@ -146,6 +130,7 @@ const WorksheetToolbar = ({
         worksheetId={worksheetId}
         exportType={paymentModal.type || 'pdf'}
         onPaymentSuccess={handlePaymentSuccess}
+        onSkipPayment={handleSkipPayment}
       />
     </>
   );
