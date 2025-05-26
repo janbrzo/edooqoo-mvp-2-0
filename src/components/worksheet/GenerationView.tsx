@@ -41,12 +41,12 @@ const GenerationView: React.FC<GenerationViewProps> = ({
   };
 
   const handleFeedbackSubmit = async (rating: number, feedback: string) => {
-    // Just log the feedback since we're not storing it anymore
+    // Just log the feedback - no database storage
     console.log('Feedback received:', { rating, feedback });
   };
 
   const handleDownloadEvent = () => {
-    // Just log the download event since we're not tracking it anymore
+    // Just log the download event - no database tracking
     console.log('Download event triggered');
   };
 

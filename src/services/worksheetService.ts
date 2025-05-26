@@ -32,10 +32,6 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       console.error('API error data:', errorData);
-      
-      if (response.status === 429) {
-        throw new Error('You have reached your daily limit for worksheet generation. Please try again tomorrow.');
-      }
       throw new Error(`Failed to generate worksheet: ${errorData?.error || response.statusText}`);
     }
 
@@ -61,7 +57,6 @@ export async function generateWorksheet(prompt: WorksheetFormData, userId: strin
         
         if (wordCount < 280 || wordCount > 320) {
           console.warn(`Reading exercise word count (${wordCount}) outside target range of 280-320 words`);
-          // We'll let the main component handle this warning
         }
         
         if (!exercise.questions || exercise.questions.length < 5) {

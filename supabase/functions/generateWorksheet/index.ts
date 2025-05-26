@@ -1,5 +1,5 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,75 +28,6 @@ serve(async (req) => {
     const apiKey = Deno.env.get('OPENAI_API_KEY');
     if (!apiKey) {
       throw new Error('OPENAI_API_KEY environment variable is not set.');
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.');
-    }
-
-    const supabaseClient = createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        persistSession: false
-      }
-    });
-
-    // Rate Limiting
-    const { data: rateLimitData, error: rateLimitError } = await supabaseClient
-      .from('rate_limits')
-      .select('count, last_reset')
-      .eq('user_id', userId)
-      .single();
-
-    if (rateLimitError && rateLimitError.code !== 'PGRST116') {
-      console.error('Error fetching rate limit:', rateLimitError);
-      throw new Error('Failed to check rate limit');
-    }
-
-    const now = new Date();
-    const resetTime = new Date();
-    resetTime.setUTCHours(24, 0, 0, 0); // UTC midnight
-
-    let count = 0;
-    let lastReset = now.toISOString();
-
-    if (rateLimitData) {
-      count = rateLimitData.count;
-      lastReset = rateLimitData.last_reset;
-    }
-
-    const lastResetDate = new Date(lastReset);
-
-    if (now > resetTime && lastResetDate < resetTime) {
-      // Reset the count if the current time is past midnight UTC and the last reset was before midnight UTC
-      count = 0;
-      lastReset = now.toISOString();
-    }
-
-    if (count >= 10) {
-      console.warn('Rate limit exceeded for user:', userId);
-      return new Response(JSON.stringify({ error: 'You have reached your daily limit for worksheet generation. Please try again tomorrow.' }), {
-        status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Increment the count
-    count++;
-
-    const { error: updateError } = await supabaseClient
-      .from('rate_limits')
-      .upsert({
-        user_id: userId,
-        count: count,
-        last_reset: lastReset,
-      }, { onConflict: 'user_id' });
-
-    if (updateError) {
-      console.error('Error updating rate limit:', updateError);
-      throw new Error('Failed to update rate limit');
     }
 
     const systemPrompt = `You are an expert English teacher creating worksheets for adult 1-on-1 lessons. Create a comprehensive worksheet in JSON format with the following structure:
