@@ -65,7 +65,6 @@ const WorksheetToolbar = ({
           </Button>
         )}
         <Button
-          id="download-html-btn"
           onClick={handleDownloadHTML}
           className="bg-worksheet-purple hover:bg-worksheet-purpleDark mr-2"
           size="sm"

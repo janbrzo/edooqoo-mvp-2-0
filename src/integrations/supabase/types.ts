@@ -47,24 +47,6 @@ export type Database = {
           },
         ]
       }
-      rate_limits: {
-        Row: {
-          count: number
-          last_reset: string
-          user_id: string
-        }
-        Insert: {
-          count?: number
-          last_reset?: string
-          user_id: string
-        }
-        Update: {
-          count?: number
-          last_reset?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       worksheets: {
         Row: {
           ai_response: string

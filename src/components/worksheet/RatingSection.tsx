@@ -1,9 +1,10 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Star } from "lucide-react";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Toggle } from "@/components/ui/toggle";
 
 interface RatingSectionProps {
   rating: number;
@@ -20,10 +21,9 @@ const RatingSection: React.FC<RatingSectionProps> = ({
   setFeedback,
   handleSubmitRating
 }) => {
-  const [hover, setHover] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const handleStarClick = (value: number) => {
+  const handleRatingClick = (value: number) => {
     setRating(value);
     setIsDialogOpen(true);
   };
@@ -33,19 +33,28 @@ const RatingSection: React.FC<RatingSectionProps> = ({
       <h3 className="text-indigo-800 mb-2 font-bold text-2xl">How would you rate this worksheet?</h3>
       <p className="text-blue-400 mb-4 text-base">Your feedback helps us improve our AI-generated worksheets</p>
       
-      <div className="flex justify-center space-x-2 mb-2 rounded-none bg-transparent">
-        {[1, 2, 3, 4, 5].map(star => (
-          <button 
-            key={star} 
-            onClick={() => handleStarClick(star)} 
-            onMouseEnter={() => setHover(star)} 
-            onMouseLeave={() => setHover(0)} 
-            className="focus:outline-none transition-transform transform hover:scale-110" 
-            aria-label={`Rate ${star} stars`}
-          >
-            <Star size={32} className={`${(hover || rating) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} transition-colors`} />
-          </button>
-        ))}
+      <div className="flex justify-center space-x-8 mb-2">
+        <Toggle
+          variant="feedback"
+          size="icon"
+          pressed={rating === 5}
+          onPressedChange={() => handleRatingClick(5)}
+          className="transition-transform transform hover:scale-110"
+          aria-label="Thumbs up"
+        >
+          <ThumbsUp size={32} className={`${rating === 5 ? 'text-blue-500' : 'text-gray-300'}`} />
+        </Toggle>
+        
+        <Toggle
+          variant="feedback"
+          size="icon"
+          pressed={rating === 1}
+          onPressedChange={() => handleRatingClick(1)}
+          className="transition-transform transform hover:scale-110"
+          aria-label="Thumbs down"
+        >
+          <ThumbsDown size={32} className={`${rating === 1 ? 'text-blue-500' : 'text-gray-300'}`} />
+        </Toggle>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -57,14 +66,11 @@ const RatingSection: React.FC<RatingSectionProps> = ({
           </DialogHeader>
           
           <div className="flex justify-center mt-3 mb-4">
-            {[1, 2, 3, 4, 5].map(star => (
-              <Star 
-                key={star} 
-                size={38} 
-                strokeWidth={1.3} 
-                className={rating >= star ? "text-yellow-400 fill-yellow-400" : "text-gray-300"} 
-              />
-            ))}
+            {rating === 5 ? (
+              <ThumbsUp size={38} className="text-blue-500" />
+            ) : (
+              <ThumbsDown size={38} className="text-blue-500" />
+            )}
           </div>
           
           <label className="block text-base font-semibold mb-1 mt-2" htmlFor="feedbackTextarea">

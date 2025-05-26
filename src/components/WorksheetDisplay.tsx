@@ -1,7 +1,6 @@
-
 import { useState, useRef, useEffect } from "react";
 import { ArrowLeft, ArrowUp } from "lucide-react";
-import { generatePDF, downloadCurrentViewAsHtml } from "@/utils/pdfUtils";
+import { generatePDF, exportAsHTML } from "@/utils/pdfUtils";
 import { useToast } from "@/hooks/use-toast";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
 import InputParamsCard from "./worksheet/InputParamsCard";
@@ -163,42 +162,6 @@ export default function WorksheetDisplay({
       description: "Your worksheet has been updated successfully."
     });
   };
-
-  const handleDownloadHTML = async () => {
-    if (worksheetRef.current) {
-      try {
-        // Create current date format YYYY-MM-DD
-        const today = new Date();
-        const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const viewModeText = viewMode === 'teacher' ? 'Teacher' : 'Student';
-        const filename = `${formattedDate}-${viewModeText}-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.html`;
-        
-        const result = await downloadCurrentViewAsHtml('worksheet-content', filename, viewMode === 'teacher', editableWorksheet.title);
-        if (result) {
-          toast({
-            title: "HTML Downloaded",
-            description: "Your worksheet has been downloaded successfully."
-          });
-          if (onDownload) {
-            onDownload();
-          }
-        } else {
-          toast({
-            title: "HTML Export Failed",
-            description: "There was an error exporting your HTML. Please try again.",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        console.error('HTML export error:', error);
-        toast({
-          title: "HTML Export Failed",
-          description: "There was an error exporting your HTML. Please try again.",
-          variant: "destructive"
-        });
-      }
-    }
-  };
   
   const handleDownloadPDF = async () => {
     if (worksheetRef.current) {
@@ -230,6 +193,41 @@ export default function WorksheetDisplay({
         toast({
           title: "PDF Generation Failed",
           description: "There was an error generating your PDF. Please try again.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const handleDownloadHTML = async () => {
+    if (worksheetRef.current) {
+      try {
+        // Create current date format YYYY-MM-DD
+        const today = new Date();
+        const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const filename = `${formattedDate}-worksheet-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.html`;
+        
+        const result = exportAsHTML('worksheet-content', filename);
+        if (result) {
+          toast({
+            title: "HTML Downloaded",
+            description: "Your worksheet HTML has been downloaded successfully."
+          });
+          if (onDownload) {
+            onDownload();
+          }
+        } else {
+          toast({
+            title: "HTML Generation Failed",
+            description: "There was an error generating your HTML. Please try again.",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error('HTML generation error:', error);
+        toast({
+          title: "HTML Generation Failed",
+          description: "There was an error generating your HTML. Please try again.",
           variant: "destructive"
         });
       }
@@ -327,7 +325,7 @@ export default function WorksheetDisplay({
             />
           )}
 
-          {/* Display rating section with thumbs */}
+          {/* First display rating section */}
           <WorksheetRating 
             worksheetId={worksheetId}
             onSubmitRating={onFeedbackSubmit || onDownload} 
