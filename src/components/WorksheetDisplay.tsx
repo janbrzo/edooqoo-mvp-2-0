@@ -253,6 +253,7 @@ export default function WorksheetDisplay({
           handleSave={handleSave}
           handleDownloadHTML={handleDownloadHTML}
           handleDownloadPDF={handleDownloadPDF}
+          worksheetTitle={editableWorksheet.title}
         />
 
         <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>
