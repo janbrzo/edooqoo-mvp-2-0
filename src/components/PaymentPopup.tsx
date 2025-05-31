@@ -60,27 +60,27 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
     };
   }, [paymentWindow, onPaymentSuccess, onClose, toast]);
 
-  // Also listen for storage events (in case token is set in another tab)
+  // Check for existing valid token when popup opens
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'downloadToken' && e.newValue) {
-        const tokenExpiry = sessionStorage.getItem('downloadTokenExpiry');
-        if (tokenExpiry && Date.now() < parseInt(tokenExpiry)) {
-          console.log('Payment detected via storage event, unlocking downloads');
-          toast({
-            title: "Payment successful!",
-            description: "Downloads are now unlocked.",
-            className: "bg-green-50 border-green-200"
-          });
-          onPaymentSuccess(e.newValue);
+    if (isOpen) {
+      const downloadToken = sessionStorage.getItem('downloadToken');
+      const tokenExpiry = sessionStorage.getItem('downloadTokenExpiry');
+      
+      if (downloadToken && tokenExpiry) {
+        const expiryTime = parseInt(tokenExpiry);
+        if (Date.now() < expiryTime) {
+          console.log('Found existing valid token, unlocking downloads');
+          onPaymentSuccess(downloadToken);
           onClose();
+          return;
+        } else {
+          // Token expired, clean up
+          sessionStorage.removeItem('downloadToken');
+          sessionStorage.removeItem('downloadTokenExpiry');
         }
       }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [onPaymentSuccess, onClose, toast]);
+    }
+  }, [isOpen, onPaymentSuccess, onClose]);
 
   const handlePayment = async () => {
     if (!worksheetId) {
