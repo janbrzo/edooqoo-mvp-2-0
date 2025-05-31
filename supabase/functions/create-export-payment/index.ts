@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@12.18.0'
@@ -51,11 +50,11 @@ serve(async (req) => {
 
     console.log('Creating Stripe checkout session for worksheet:', worksheetId);
 
-    // Create Stripe checkout session
+    // Create Stripe checkout session with coupon support
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
-      allow_promotion_codes: true, // Enable discount codes
+      allow_promotion_codes: true, // Enable discount codes including 1CENT
       line_items: [
         {
           price_data: {

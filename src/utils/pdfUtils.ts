@@ -14,7 +14,7 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     // For teacher view, keep teacher tips but remove other data-no-pdf elements
     if (isTeacherView) {
       // Remove non-teacher-tip elements marked with data-no-pdf
-      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([class*="teacher-tip"])');
+      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([class*="teacher-tip"]):not(.bg-amber-50)');
       nonTeacherTipElements.forEach(el => el.remove());
       
       // Make sure teacher tips are visible
@@ -251,7 +251,7 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
       console.warn('Error accessing document.styleSheets:', error);
     }
 
-    // Add additional styles to ensure proper rendering
+    // Add additional styles to ensure proper rendering and hide browser print headers/footers
     const additionalCSS = `
       /* Additional styles for standalone HTML */
       body {
@@ -277,6 +277,29 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
         padding: 20px;
       }
       
+      /* Print button styles */
+      .print-button {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: #3d348b;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 1000;
+      }
+      
+      .print-button:hover {
+        background-color: #2d1b7b;
+      }
+      
       /* Hide rating section in HTML export */
       [data-no-pdf="true"]:not(.teacher-tip):not(.bg-amber-50) {
         display: none !important;
@@ -291,6 +314,30 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
         margin: 8px 0 !important;
         border-radius: 6px !important;
         visibility: visible !important;
+      }
+      
+      /* Print styles - hide browser headers/footers and page numbers */
+      @media print {
+        @page {
+          margin: 15mm;
+          size: A4;
+        }
+        
+        /* Hide print button when printing */
+        .print-button {
+          display: none !important;
+        }
+        
+        /* Hide browser default headers and footers */
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        /* Remove page numbers that show as "Page 0 of 0" */
+        .page-number, .page-counter {
+          display: none !important;
+        }
       }
       
       /* Tailwind-like utility classes for fallback */
@@ -369,6 +416,19 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
     versionHeader.style.fontWeight = 'bold';
     versionHeader.innerHTML = `${title} - ${viewMode === 'teacher' ? 'Teacher' : 'Student'} Version`;
 
+    // Create print button
+    const printButton = docClone.createElement('button');
+    printButton.className = 'print-button';
+    printButton.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6,9 6,2 18,2 18,9"></polyline>
+        <path d="M6,18 L4,18 C2.9,18 2,17.1 2,16 L2,10 C2,8.9 2.9,8 4,8 L20,8 C21.1,8 22,8.9 22,10 L22,16 C22,17.1 21.1,18 20,18 L18,18"></path>
+        <rect x="6" y="14" width="12" height="8"></rect>
+      </svg>
+      PRINT
+    `;
+    printButton.setAttribute('onclick', 'window.print()');
+
     // Create a minimal HTML structure with only the necessary content
     const minimalHTML = `
 <!DOCTYPE html>
@@ -382,6 +442,7 @@ ${finalCSS}
     </style>
 </head>
 <body>
+    ${printButton.outerHTML}
     <div class="container">
         ${versionHeader.outerHTML}
         ${clonedElement.outerHTML}
