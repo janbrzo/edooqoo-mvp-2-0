@@ -65,36 +65,8 @@ export default function WorksheetDisplay({
   const [isEditing, setIsEditing] = useState(false);
   const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(worksheet);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [isDownloadUnlocked, setIsDownloadUnlocked] = useState(false);
   const worksheetRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  
-  // Check if downloads are unlocked on component mount
-  useEffect(() => {
-    checkDownloadStatus();
-  }, []);
-  
-  const checkDownloadStatus = () => {
-    const token = sessionStorage.getItem('downloadToken');
-    const expiry = sessionStorage.getItem('downloadTokenExpiry');
-    
-    if (token && expiry) {
-      const expiryTime = parseInt(expiry);
-      if (Date.now() < expiryTime) {
-        setIsDownloadUnlocked(true);
-      } else {
-        // Token expired, clean up
-        sessionStorage.removeItem('downloadToken');
-        sessionStorage.removeItem('downloadTokenExpiry');
-        setIsDownloadUnlocked(false);
-      }
-    }
-  };
-
-  const handleDownloadUnlock = (token: string) => {
-    setIsDownloadUnlocked(true);
-    // Token is already stored in sessionStorage by PaymentPopup
-  };
   
   // Validate the worksheet structure when component mounts
   useEffect(() => {
@@ -192,15 +164,6 @@ export default function WorksheetDisplay({
   };
   
   const handleDownloadPDF = async () => {
-    if (!isDownloadUnlocked) {
-      toast({
-        title: "Payment Required",
-        description: "Please complete payment to download files.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     if (worksheetRef.current) {
       try {
         // Create current date format YYYY-MM-DD
@@ -237,15 +200,6 @@ export default function WorksheetDisplay({
   };
 
   const handleDownloadHTML = async () => {
-    if (!isDownloadUnlocked) {
-      toast({
-        title: "Payment Required", 
-        description: "Please complete payment to download files.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     if (worksheetRef.current) {
       try {
         // Create current date format YYYY-MM-DD
@@ -299,10 +253,6 @@ export default function WorksheetDisplay({
           handleSave={handleSave}
           handleDownloadHTML={handleDownloadHTML}
           handleDownloadPDF={handleDownloadPDF}
-          worksheetId={worksheetId}
-          userId={inputParams?.userId}
-          isDownloadUnlocked={isDownloadUnlocked}
-          onDownloadUnlock={handleDownloadUnlock}
         />
 
         <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>
