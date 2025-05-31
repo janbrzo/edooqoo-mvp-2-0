@@ -52,6 +52,13 @@ const PaymentSuccess = () => {
           description: "Your downloads are now unlocked. You can download your worksheet files.",
           className: "bg-green-50 border-green-200"
         });
+
+        // Auto-close window after 3 seconds if it's a popup
+        if (window.opener) {
+          setTimeout(() => {
+            window.close();
+          }, 3000);
+        }
       }
     } catch (error) {
       console.error('Payment verification error:', error);
@@ -62,7 +69,13 @@ const PaymentSuccess = () => {
   };
 
   const handleReturnToWorksheet = () => {
-    navigate('/', { replace: true });
+    if (window.opener) {
+      // If this is a popup window, close it
+      window.close();
+    } else {
+      // If this is the main window, navigate back
+      navigate('/', { replace: true });
+    }
   };
 
   if (isVerifying) {
@@ -85,7 +98,7 @@ const PaymentSuccess = () => {
           <h2 className="text-xl font-semibold mb-2 text-red-600">Payment Verification Failed</h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <Button onClick={handleReturnToWorksheet} className="bg-worksheet-purple hover:bg-worksheet-purpleDark">
-            Return to Home
+            {window.opener ? "Close Window" : "Return to Home"}
           </Button>
         </div>
       </div>
@@ -112,6 +125,12 @@ const PaymentSuccess = () => {
                 You can now download HTML and PDF versions of your worksheet.
               </p>
             </div>
+            
+            {window.opener && (
+              <p className="text-sm text-gray-500 mb-4">
+                This window will automatically close in a few seconds...
+              </p>
+            )}
           </>
         ) : (
           <p className="text-gray-600 mb-6">
@@ -120,7 +139,7 @@ const PaymentSuccess = () => {
         )}
         
         <Button onClick={handleReturnToWorksheet} className="bg-worksheet-purple hover:bg-worksheet-purpleDark">
-          Return to Worksheet
+          {window.opener ? "Close Window" : "Return to Worksheet"}
         </Button>
       </div>
     </div>

@@ -79,13 +79,13 @@ serve(async (req) => {
 
     console.log('Stripe session created:', session.id);
 
-    // Store payment record in database - use TEXT field for user_id instead of UUID
+    // Store payment record in database
     const { data: paymentData, error: paymentError } = await supabase
       .from('export_payments')
       .insert({
         worksheet_id: worksheetId,
         stripe_session_id: session.id,
-        user_identifier: userId, // Store as text identifier instead of user_id UUID
+        user_identifier: userId, // Store as text identifier
         status: 'pending',
         amount: 100,
         currency: 'usd',
@@ -95,11 +95,16 @@ serve(async (req) => {
 
     if (paymentError) {
       console.error('Error storing payment:', paymentError);
-      // Don't fail the payment creation if database storage fails
-      console.log('Continuing with payment session despite database error');
-    } else {
-      console.log('Payment record created:', paymentData.id);
+      return new Response(
+        JSON.stringify({ error: 'Failed to store payment information' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
+
+    console.log('Payment record created:', paymentData.id);
 
     return new Response(
       JSON.stringify({ 

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, CreditCard, Lock } from "lucide-react";
@@ -16,7 +16,39 @@ interface PaymentPopupProps {
 
 const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }: PaymentPopupProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentWindow, setPaymentWindow] = useState<Window | null>(null);
   const { toast } = useToast();
+
+  // Check payment status periodically when payment window is open
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (paymentWindow && !paymentWindow.closed) {
+      interval = setInterval(async () => {
+        // Check if payment window was closed (user completed payment or cancelled)
+        if (paymentWindow.closed) {
+          setPaymentWindow(null);
+          setIsProcessing(false);
+          
+          // Check for successful payment in sessionStorage (set by success page)
+          const downloadToken = sessionStorage.getItem('downloadToken');
+          if (downloadToken) {
+            toast({
+              title: "Payment successful!",
+              description: "Downloads are now unlocked.",
+              className: "bg-green-50 border-green-200"
+            });
+            onPaymentSuccess(downloadToken);
+            onClose();
+          }
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [paymentWindow, onPaymentSuccess, onClose, toast]);
 
   const handlePayment = async () => {
     if (!worksheetId) {
@@ -51,9 +83,17 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
       }
 
       if (data?.url) {
-        console.log('Redirecting to Stripe checkout:', data.url);
-        // Redirect to Stripe checkout in the same window
-        window.location.href = data.url;
+        console.log('Opening Stripe checkout in new window:', data.url);
+        // Open Stripe checkout in a new window
+        const newWindow = window.open(data.url, 'stripe_checkout', 'width=800,height=600,scrollbars=yes,resizable=yes');
+        
+        if (newWindow) {
+          setPaymentWindow(newWindow);
+          // Focus the new window
+          newWindow.focus();
+        } else {
+          throw new Error('Pop-up blocked. Please allow pop-ups for this site and try again.');
+        }
       } else {
         throw new Error('No checkout URL received from payment service');
       }
@@ -61,10 +101,9 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
       console.error('Payment error:', error);
       toast({
         title: "Payment Error",
-        description: "Failed to create payment session. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to create payment session. Please try again.",
         variant: "destructive"
       });
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -87,8 +126,18 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
     onClose();
   };
 
+  const handleClose = () => {
+    // Close payment window if open
+    if (paymentWindow && !paymentWindow.closed) {
+      paymentWindow.close();
+      setPaymentWindow(null);
+    }
+    setIsProcessing(false);
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -108,6 +157,14 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
             </div>
           </div>
 
+          {isProcessing && paymentWindow && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                Payment window opened. Complete your payment in the new window. This dialog will automatically close when payment is completed.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-3">
             <Button 
               onClick={handlePayment}
@@ -115,7 +172,7 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
               className="w-full bg-worksheet-purple hover:bg-worksheet-purpleDark"
             >
               <CreditCard className="mr-2 h-4 w-4" />
-              {isProcessing ? "Processing..." : "Pay $1 with Stripe"}
+              {isProcessing ? "Opening Payment Window..." : "Pay $1 with Stripe"}
             </Button>
 
             {/* Temporary skip button for testing */}
@@ -123,14 +180,16 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
               onClick={handleSkipPayment}
               variant="outline"
               className="w-full border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+              disabled={isProcessing}
             >
               Skip Payment (Test Mode)
             </Button>
 
             <Button 
-              onClick={onClose}
+              onClick={handleClose}
               variant="ghost"
               className="w-full"
+              disabled={isProcessing}
             >
               Cancel
             </Button>
