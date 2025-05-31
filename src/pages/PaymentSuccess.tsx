@@ -49,16 +49,14 @@ const PaymentSuccess = () => {
         
         toast({
           title: "Payment successful!",
-          description: "Your downloads are now unlocked. You can download your worksheet files.",
+          description: "Your downloads are now unlocked. Redirecting back to your worksheet...",
           className: "bg-green-50 border-green-200"
         });
 
-        // Auto-close window after 3 seconds if it's a popup
-        if (window.opener) {
-          setTimeout(() => {
-            window.close();
-          }, 3000);
-        }
+        // Redirect back to the main page after 3 seconds
+        setTimeout(() => {
+          navigate('/', { replace: true });
+        }, 3000);
       }
     } catch (error) {
       console.error('Payment verification error:', error);
@@ -69,13 +67,7 @@ const PaymentSuccess = () => {
   };
 
   const handleReturnToWorksheet = () => {
-    if (window.opener) {
-      // If this is a popup window, close it
-      window.close();
-    } else {
-      // If this is the main window, navigate back
-      navigate('/', { replace: true });
-    }
+    navigate('/', { replace: true });
   };
 
   if (isVerifying) {
@@ -98,7 +90,7 @@ const PaymentSuccess = () => {
           <h2 className="text-xl font-semibold mb-2 text-red-600">Payment Verification Failed</h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <Button onClick={handleReturnToWorksheet} className="bg-worksheet-purple hover:bg-worksheet-purpleDark">
-            {window.opener ? "Close Window" : "Return to Home"}
+            Return to Worksheet
           </Button>
         </div>
       </div>
@@ -126,11 +118,9 @@ const PaymentSuccess = () => {
               </p>
             </div>
             
-            {window.opener && (
-              <p className="text-sm text-gray-500 mb-4">
-                This window will automatically close in a few seconds...
-              </p>
-            )}
+            <p className="text-sm text-gray-500 mb-4">
+              Redirecting back to your worksheet in a few seconds...
+            </p>
           </>
         ) : (
           <p className="text-gray-600 mb-6">
@@ -139,7 +129,7 @@ const PaymentSuccess = () => {
         )}
         
         <Button onClick={handleReturnToWorksheet} className="bg-worksheet-purple hover:bg-worksheet-purpleDark">
-          {window.opener ? "Close Window" : "Return to Worksheet"}
+          Return to Worksheet Now
         </Button>
       </div>
     </div>

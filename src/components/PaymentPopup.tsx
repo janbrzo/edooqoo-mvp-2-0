@@ -16,49 +16,7 @@ interface PaymentPopupProps {
 
 const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }: PaymentPopupProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentWindow, setPaymentWindow] = useState<Window | null>(null);
   const { toast } = useToast();
-
-  // Check payment status periodically when payment window is open
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (paymentWindow && !paymentWindow.closed) {
-      interval = setInterval(async () => {
-        // Check if payment window was closed (user completed payment or cancelled)
-        if (paymentWindow.closed) {
-          setPaymentWindow(null);
-          setIsProcessing(false);
-          
-          // Check for successful payment in sessionStorage (set by success page)
-          const downloadToken = sessionStorage.getItem('downloadToken');
-          const tokenExpiry = sessionStorage.getItem('downloadTokenExpiry');
-          
-          if (downloadToken && tokenExpiry) {
-            const expiryTime = parseInt(tokenExpiry);
-            if (Date.now() < expiryTime) {
-              console.log('Payment successful, unlocking downloads with token:', downloadToken);
-              toast({
-                title: "Payment successful!",
-                description: "Downloads are now unlocked.",
-                className: "bg-green-50 border-green-200"
-              });
-              onPaymentSuccess(downloadToken);
-              onClose(); // Close the popup
-            } else {
-              // Token expired, clean up
-              sessionStorage.removeItem('downloadToken');
-              sessionStorage.removeItem('downloadTokenExpiry');
-            }
-          }
-        }
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [paymentWindow, onPaymentSuccess, onClose, toast]);
 
   // Check for existing valid token when popup opens
   useEffect(() => {
@@ -115,17 +73,9 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
       }
 
       if (data?.url) {
-        console.log('Opening Stripe checkout in new window:', data.url);
-        // Open Stripe checkout in a new window
-        const newWindow = window.open(data.url, 'stripe_checkout', 'width=800,height=600,scrollbars=yes,resizable=yes');
-        
-        if (newWindow) {
-          setPaymentWindow(newWindow);
-          // Focus the new window
-          newWindow.focus();
-        } else {
-          throw new Error('Pop-up blocked. Please allow pop-ups for this site and try again.');
-        }
+        console.log('Redirecting to Stripe checkout:', data.url);
+        // Redirect to Stripe checkout in the same window
+        window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received from payment service');
       }
@@ -158,18 +108,8 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
     onClose();
   };
 
-  const handleClose = () => {
-    // Close payment window if open
-    if (paymentWindow && !paymentWindow.closed) {
-      paymentWindow.close();
-      setPaymentWindow(null);
-    }
-    setIsProcessing(false);
-    onClose();
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -189,10 +129,10 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
             </div>
           </div>
 
-          {isProcessing && paymentWindow && (
+          {isProcessing && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800">
-                Payment window opened. Complete your payment in the new window. This dialog will automatically close when payment is completed.
+                Redirecting to payment page...
               </p>
             </div>
           )}
@@ -204,7 +144,7 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
               className="w-full bg-worksheet-purple hover:bg-worksheet-purpleDark"
             >
               <CreditCard className="mr-2 h-4 w-4" />
-              {isProcessing ? "Opening Payment Window..." : "Pay $1 with Stripe"}
+              {isProcessing ? "Redirecting to Payment..." : "Pay $1 with Stripe"}
             </Button>
 
             {/* Temporary skip button for testing */}
@@ -218,7 +158,7 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
             </Button>
 
             <Button 
-              onClick={handleClose}
+              onClick={onClose}
               variant="ghost"
               className="w-full"
               disabled={isProcessing}
