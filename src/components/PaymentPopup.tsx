@@ -52,7 +52,7 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
 
       if (data?.url) {
         console.log('Redirecting to Stripe checkout:', data.url);
-        // Redirect to Stripe checkout
+        // Redirect to Stripe checkout in the same window
         window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received from payment service');
