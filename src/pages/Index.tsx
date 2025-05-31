@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 import { generateWorksheet } from "@/services/worksheetService";
@@ -107,10 +107,75 @@ const Index = () => {
   const { toast } = useToast();
   const { userId, loading: authLoading } = useAnonymousAuth();
 
+  // Restore worksheet state from sessionStorage on component mount
+  useEffect(() => {
+    const restoreWorksheetState = () => {
+      try {
+        const savedWorksheet = sessionStorage.getItem('currentWorksheet');
+        const savedInputParams = sessionStorage.getItem('currentInputParams');
+        const savedGenerationTime = sessionStorage.getItem('currentGenerationTime');
+        const savedSourceCount = sessionStorage.getItem('currentSourceCount');
+        const savedWorksheetId = sessionStorage.getItem('currentWorksheetId');
+
+        if (savedWorksheet && savedInputParams) {
+          console.log('Restoring worksheet state from sessionStorage');
+          setGeneratedWorksheet(JSON.parse(savedWorksheet));
+          setInputParams(JSON.parse(savedInputParams));
+          setGenerationTime(savedGenerationTime ? parseInt(savedGenerationTime) : 0);
+          setSourceCount(savedSourceCount ? parseInt(savedSourceCount) : 0);
+          setWorksheetId(savedWorksheetId);
+          
+          toast({
+            title: "Worksheet restored",
+            description: "Your previous worksheet has been restored.",
+            className: "bg-green-50 border-green-200"
+          });
+        }
+      } catch (error) {
+        console.error('Error restoring worksheet state:', error);
+        // Clear corrupted data
+        sessionStorage.removeItem('currentWorksheet');
+        sessionStorage.removeItem('currentInputParams');
+        sessionStorage.removeItem('currentGenerationTime');
+        sessionStorage.removeItem('currentSourceCount');
+        sessionStorage.removeItem('currentWorksheetId');
+      }
+    };
+
+    if (!authLoading) {
+      restoreWorksheetState();
+    }
+  }, [authLoading, toast]);
+
+  // Save worksheet state to sessionStorage whenever it changes
+  useEffect(() => {
+    if (generatedWorksheet && inputParams) {
+      try {
+        sessionStorage.setItem('currentWorksheet', JSON.stringify(generatedWorksheet));
+        sessionStorage.setItem('currentInputParams', JSON.stringify(inputParams));
+        sessionStorage.setItem('currentGenerationTime', generationTime.toString());
+        sessionStorage.setItem('currentSourceCount', sourceCount.toString());
+        if (worksheetId) {
+          sessionStorage.setItem('currentWorksheetId', worksheetId);
+        }
+        console.log('Worksheet state saved to sessionStorage');
+      } catch (error) {
+        console.error('Error saving worksheet state:', error);
+      }
+    }
+  }, [generatedWorksheet, inputParams, generationTime, sourceCount, worksheetId]);
+
   /**
    * Handles form submission and worksheet generation
    */
   const handleFormSubmit = async (data: FormData) => {
+    // Clear any existing worksheet state
+    sessionStorage.removeItem('currentWorksheet');
+    sessionStorage.removeItem('currentInputParams');
+    sessionStorage.removeItem('currentGenerationTime');
+    sessionStorage.removeItem('currentSourceCount');
+    sessionStorage.removeItem('currentWorksheetId');
+
     // Generate a unique worksheet ID for tracking
     const newWorksheetId = uuidv4();
     setWorksheetId(newWorksheetId);
@@ -200,9 +265,17 @@ const Index = () => {
    * Resets the view to the form
    */
   const handleBack = () => {
+    // Clear worksheet state
     setGeneratedWorksheet(null);
     setInputParams(null);
     setWorksheetId(null);
+    
+    // Clear sessionStorage
+    sessionStorage.removeItem('currentWorksheet');
+    sessionStorage.removeItem('currentInputParams');
+    sessionStorage.removeItem('currentGenerationTime');
+    sessionStorage.removeItem('currentSourceCount');
+    sessionStorage.removeItem('currentWorksheetId');
   };
 
   // Show loading indicator while auth is initializing
