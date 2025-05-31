@@ -79,13 +79,13 @@ serve(async (req) => {
 
     console.log('Stripe session created:', session.id);
 
-    // Store payment record in database
+    // Store payment record in database using user_identifier column
     const { data: paymentData, error: paymentError } = await supabase
       .from('export_payments')
       .insert({
         worksheet_id: worksheetId,
         stripe_session_id: session.id,
-        user_identifier: userId, // Store as text identifier
+        user_identifier: userId, // Store as text identifier in the correct column
         status: 'pending',
         amount: 100,
         currency: 'usd',

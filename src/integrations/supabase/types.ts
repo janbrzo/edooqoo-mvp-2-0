@@ -59,6 +59,7 @@ export type Database = {
           updated_at: string
           user_email: string | null
           user_id: string | null
+          user_identifier: string | null
           worksheet_id: string | null
         }
         Insert: {
@@ -72,6 +73,7 @@ export type Database = {
           updated_at?: string
           user_email?: string | null
           user_id?: string | null
+          user_identifier?: string | null
           worksheet_id?: string | null
         }
         Update: {
@@ -85,6 +87,7 @@ export type Database = {
           updated_at?: string
           user_email?: string | null
           user_id?: string | null
+          user_identifier?: string | null
           worksheet_id?: string | null
         }
         Relationships: []
