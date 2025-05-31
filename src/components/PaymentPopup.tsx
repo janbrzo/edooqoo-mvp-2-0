@@ -11,44 +11,51 @@ interface PaymentPopupProps {
   onClose: () => void;
   onPaymentSuccess: (sessionToken: string) => void;
   worksheetId: string | null;
-  userId: string | null;
+  userIp?: string | null;
 }
 
-const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userId }: PaymentPopupProps) => {
+const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }: PaymentPopupProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
   const handlePayment = async () => {
-    if (!worksheetId || !userId) {
+    if (!worksheetId) {
       toast({
         title: "Error",
-        description: "Missing worksheet or user information",
+        description: "Missing worksheet information. Please try generating the worksheet again.",
         variant: "destructive"
       });
       return;
     }
 
+    // Use IP address as user identifier, fallback to browser fingerprint
+    const userIdentifier = userIp || `browser_${navigator.userAgent.slice(0, 50)}_${Date.now()}`;
+
     setIsProcessing(true);
     try {
+      console.log('Creating payment session for:', { worksheetId, userIdentifier });
+      
       // Call edge function to create Stripe checkout session
       const { data, error } = await supabase.functions.invoke('create-export-payment', {
         body: { 
           worksheetId,
-          userId,
+          userId: userIdentifier,
           successUrl: `${window.location.origin}/success`,
           cancelUrl: window.location.href
         }
       });
 
       if (error) {
+        console.error('Supabase function error:', error);
         throw error;
       }
 
       if (data?.url) {
+        console.log('Redirecting to Stripe checkout:', data.url);
         // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
-        throw new Error('No checkout URL received');
+        throw new Error('No checkout URL received from payment service');
       }
     } catch (error) {
       console.error('Payment error:', error);

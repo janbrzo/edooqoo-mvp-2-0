@@ -13,7 +13,7 @@ interface WorksheetToolbarProps {
   handleDownloadHTML: () => void;
   handleDownloadPDF: () => void;
   worksheetId?: string | null;
-  userId?: string | null;
+  userIp?: string | null;
   isDownloadUnlocked?: boolean;
   onDownloadUnlock?: (token: string) => void;
 }
@@ -27,7 +27,7 @@ const WorksheetToolbar = ({
   handleDownloadHTML,
   handleDownloadPDF,
   worksheetId,
-  userId,
+  userIp,
   isDownloadUnlocked = false,
   onDownloadUnlock,
 }: WorksheetToolbarProps) => {
@@ -150,7 +150,7 @@ const WorksheetToolbar = ({
         onClose={handlePaymentPopupClose}
         onPaymentSuccess={handlePaymentSuccess}
         worksheetId={worksheetId}
-        userId={userId}
+        userIp={userIp}
       />
     </>
   );

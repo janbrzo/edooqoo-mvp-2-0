@@ -66,11 +66,26 @@ export default function WorksheetDisplay({
   const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(worksheet);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isDownloadUnlocked, setIsDownloadUnlocked] = useState(false);
+  const [userIp, setUserIp] = useState<string | null>(null);
   const worksheetRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
-  // Check if downloads are unlocked on component mount
+  // Get user IP address on component mount
   useEffect(() => {
+    const fetchUserIp = async () => {
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        setUserIp(data.ip);
+        console.log('User IP fetched:', data.ip);
+      } catch (error) {
+        console.error('Failed to fetch IP:', error);
+        // Fallback to browser fingerprint
+        setUserIp(`browser_${navigator.userAgent.slice(0, 50)}_${Date.now()}`);
+      }
+    };
+    
+    fetchUserIp();
     checkDownloadStatus();
   }, []);
   
@@ -300,7 +315,7 @@ export default function WorksheetDisplay({
           handleDownloadHTML={handleDownloadHTML}
           handleDownloadPDF={handleDownloadPDF}
           worksheetId={worksheetId}
-          userId={inputParams?.userId}
+          userIp={userIp}
           isDownloadUnlocked={isDownloadUnlocked}
           onDownloadUnlock={handleDownloadUnlock}
         />

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
@@ -111,15 +110,10 @@ const Index = () => {
    * Handles form submission and worksheet generation
    */
   const handleFormSubmit = async (data: FormData) => {
-    // Check for valid user session
-    if (!userId) {
-      toast({
-        title: "Authentication error",
-        description: "There was a problem with your session. Please refresh the page and try again.",
-        variant: "destructive"
-      });
-      return;
-    }
+    // Generate a unique worksheet ID for tracking
+    const newWorksheetId = uuidv4();
+    setWorksheetId(newWorksheetId);
+    console.log('Generated worksheet ID:', newWorksheetId);
 
     // Store form data and start generation process
     setInputParams(data);
@@ -130,8 +124,8 @@ const Index = () => {
     setStartGenerationTime(startTime);
     
     try {
-      // Generate worksheet using the API
-      const worksheetData = await generateWorksheet(data, userId);
+      // Generate worksheet using the API - pass the worksheetId for tracking
+      const worksheetData = await generateWorksheet(data, userId || 'anonymous');
       
       console.log("Generated worksheet data:", worksheetData);
       
@@ -151,9 +145,8 @@ const Index = () => {
         // Process exercises (numbering, shuffling terms, etc)
         worksheetData.exercises = processExercises(worksheetData.exercises);
         
-        // Use the ID returned from the API or generate a temporary one
-        const wsId = worksheetData.id || uuidv4();
-        setWorksheetId(wsId);
+        // Use the generated ID for this worksheet
+        worksheetData.id = newWorksheetId;
         
         // Check if we need to add vocabulary sheet
         if (!worksheetData.vocabulary_sheet || worksheetData.vocabulary_sheet.length === 0) {
@@ -185,8 +178,8 @@ const Index = () => {
       // Process the fallback exercises
       fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises);
       
-      const tempId = uuidv4();
-      setWorksheetId(tempId);
+      // Use the generated ID for this worksheet
+      fallbackWorksheet.id = newWorksheetId;
       setGeneratedWorksheet(fallbackWorksheet);
       
       // Let the user know we're using a fallback
@@ -216,7 +209,6 @@ const Index = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin h-8 w-8 border-4 border-worksheet-purple border-t-transparent rounded-full"></div>
-      </div>
     );
   }
 
@@ -232,7 +224,7 @@ const Index = () => {
           generationTime={generationTime}
           sourceCount={sourceCount}
           onBack={handleBack}
-          userId={userId}
+          userId={userId || 'anonymous'}
         />
       )}
       
