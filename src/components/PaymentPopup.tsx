@@ -32,14 +32,24 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
           
           // Check for successful payment in sessionStorage (set by success page)
           const downloadToken = sessionStorage.getItem('downloadToken');
-          if (downloadToken) {
-            toast({
-              title: "Payment successful!",
-              description: "Downloads are now unlocked.",
-              className: "bg-green-50 border-green-200"
-            });
-            onPaymentSuccess(downloadToken);
-            onClose();
+          const tokenExpiry = sessionStorage.getItem('downloadTokenExpiry');
+          
+          if (downloadToken && tokenExpiry) {
+            const expiryTime = parseInt(tokenExpiry);
+            if (Date.now() < expiryTime) {
+              console.log('Payment successful, unlocking downloads with token:', downloadToken);
+              toast({
+                title: "Payment successful!",
+                description: "Downloads are now unlocked.",
+                className: "bg-green-50 border-green-200"
+              });
+              onPaymentSuccess(downloadToken);
+              onClose(); // Close the popup
+            } else {
+              // Token expired, clean up
+              sessionStorage.removeItem('downloadToken');
+              sessionStorage.removeItem('downloadTokenExpiry');
+            }
           }
         }
       }, 1000);
@@ -49,6 +59,28 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
       if (interval) clearInterval(interval);
     };
   }, [paymentWindow, onPaymentSuccess, onClose, toast]);
+
+  // Also listen for storage events (in case token is set in another tab)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'downloadToken' && e.newValue) {
+        const tokenExpiry = sessionStorage.getItem('downloadTokenExpiry');
+        if (tokenExpiry && Date.now() < parseInt(tokenExpiry)) {
+          console.log('Payment detected via storage event, unlocking downloads');
+          toast({
+            title: "Payment successful!",
+            description: "Downloads are now unlocked.",
+            className: "bg-green-50 border-green-200"
+          });
+          onPaymentSuccess(e.newValue);
+          onClose();
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [onPaymentSuccess, onClose, toast]);
 
   const handlePayment = async () => {
     if (!worksheetId) {
