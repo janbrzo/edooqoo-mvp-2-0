@@ -75,6 +75,9 @@ serve(async (req) => {
         worksheetId,
         userId,
       },
+      // Enable customer email collection in Stripe
+      customer_creation: 'always',
+      billing_address_collection: 'auto',
     });
 
     console.log('Stripe session created:', session.id);

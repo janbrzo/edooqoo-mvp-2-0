@@ -66,13 +66,16 @@ serve(async (req) => {
 
     console.log('Session status:', session.payment_status);
 
+    // Extract customer email from session
+    const customerEmail = session.customer_details?.email || session.customer_email;
+
     // Update payment status in database
     const { data: paymentData, error: updateError } = await supabase
       .from('export_payments')
       .update({
         status: session.payment_status === 'paid' ? 'paid' : 'failed',
         stripe_payment_intent_id: session.payment_intent as string,
-        user_email: session.customer_details?.email,
+        user_email: customerEmail,
         updated_at: new Date().toISOString(),
       })
       .eq('stripe_session_id', sessionId)
@@ -114,6 +117,17 @@ serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
+      }
+
+      // Update worksheet table with customer email if payment successful
+      if (customerEmail && paymentData.worksheet_id) {
+        await supabase
+          .from('worksheets')
+          .update({ 
+            user_email: customerEmail,
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', paymentData.worksheet_id);
       }
 
       console.log('Download session created:', downloadSession.id);
