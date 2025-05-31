@@ -67,3 +67,9 @@ verify_jwt = false
 
 [functions.submitFeedback]
 verify_jwt = false
+
+[functions.create-export-payment]
+verify_jwt = false
+
+[functions.verify-export-payment]
+verify_jwt = false
