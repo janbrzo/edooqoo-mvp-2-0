@@ -1,4 +1,3 @@
-
 import html2pdf from 'html2pdf.js';
 
 export const generatePDF = async (elementId: string, filename: string, isTeacherView = false, title = 'English Worksheet') => {
@@ -521,3 +520,6 @@ ${finalCSS}
     return false;
   }
 }
+
+// Re-export HTML function from htmlUtils
+export { exportAsHTML } from './htmlUtils';
