@@ -67,10 +67,10 @@ serve(async (req) => {
       );
     }
 
-    // Validate UUID formats
-    if (!isValidUUID(worksheetId) || !isValidUUID(userId)) {
+    // Validate worksheetId as UUID only if it looks like a UUID (longer than 10 chars)
+    if (worksheetId.length > 10 && !isValidUUID(worksheetId)) {
       return new Response(
-        JSON.stringify({ error: 'Invalid ID format provided' }),
+        JSON.stringify({ error: 'Invalid worksheet ID format provided' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -110,9 +110,9 @@ serve(async (req) => {
     }
 
     // Initialize Stripe
-    const stripeSecretKey = Deno.env.get('Stripe_Secret_Key');
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeSecretKey) {
-      console.error('Missing Stripe_Secret_Key');
+      console.error('Missing STRIPE_SECRET_KEY');
       return new Response(
         JSON.stringify({ error: 'Payment service configuration error' }),
         { 
@@ -144,7 +144,7 @@ serve(async (req) => {
             currency: 'usd',
             product_data: {
               name: 'Worksheet Export Access',
-              description: 'One-time payment for downloading HTML and PDF versions of your worksheet',
+              description: 'One-time payment for downloading HTML version of your worksheet',
             },
             unit_amount: 100, // $1.00 in cents
           },

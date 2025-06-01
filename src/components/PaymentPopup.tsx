@@ -62,7 +62,7 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
         body: { 
           worksheetId,
           userId: userIdentifier,
-          successUrl: `${window.location.origin}/success`,
+          successUrl: `${window.location.origin}/payment-success`,
           cancelUrl: window.location.href
         }
       });
@@ -121,11 +121,11 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
         <div className="space-y-4">
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
             <p className="text-sm text-amber-800 mb-2">
-              <strong>One-time payment of $1 USD</strong> unlocks downloads for both HTML and PDF versions during your current session.
+              <strong>One-time payment of $1 USD</strong> unlocks downloads for HTML version during your current session.
             </p>
             <div className="flex items-center gap-2 text-sm text-amber-700">
               <Download className="h-4 w-4" />
-              <span>HTML & PDF downloads included</span>
+              <span>HTML download included</span>
             </div>
           </div>
 

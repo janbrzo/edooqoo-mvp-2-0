@@ -1,3 +1,4 @@
+
 import html2pdf from 'html2pdf.js';
 
 export const generatePDF = async (elementId: string, filename: string, isTeacherView = false, title = 'English Worksheet') => {
@@ -119,9 +120,9 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     `;
     container.insertAdjacentHTML('afterbegin', fontSizeAdjustments);
     
-    // Configure html2pdf options
+    // Configure html2pdf options with corrected margins (0.5cm for top/bottom)
     const options = {
-      margin: [15, 3.75, 20, 3.75], // top, right, bottom, left (reduced side margins by half from [15, 7.5, 20, 7.5])
+      margin: [5, 3.75, 5, 3.75], // top, right, bottom, left (top/bottom changed from 15/20 to 5mm = 0.5cm)
       filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
@@ -316,10 +317,10 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
         visibility: visible !important;
       }
       
-      /* Print styles - hide browser headers/footers and page numbers */
+      /* Print styles - hide browser headers/footers, file path and page numbers */
       @media print {
         @page {
-          margin: 15mm;
+          margin: 0.5cm 1.5cm 0.5cm 1.5cm; /* Updated margins: top/bottom 0.5cm, left/right 1.5cm */
           size: A4;
         }
         
@@ -328,15 +329,29 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
           display: none !important;
         }
         
-        /* Hide browser default headers and footers */
+        /* Hide browser default headers and footers including file path */
         body {
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
         
+        /* Hide all browser generated content like file paths, dates, page numbers */
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        
         /* Remove page numbers that show as "Page 0 of 0" */
         .page-number, .page-counter {
           display: none !important;
+        }
+        
+        /* Hide browser generated header/footer content */
+        @media print {
+          html, body {
+            height: initial !important;
+            overflow: initial !important;
+          }
         }
       }
       
