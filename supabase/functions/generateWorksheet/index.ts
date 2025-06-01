@@ -17,6 +17,64 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Security utilities
+function isValidUUID(uuid: string): boolean {
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return typeof uuid === 'string' && UUID_REGEX.test(uuid);
+}
+
+function sanitizeInput(input: string, maxLength: number = 10000): string {
+  if (typeof input !== 'string') {
+    return '';
+  }
+  
+  return input
+    .trim()
+    .slice(0, maxLength)
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+=/gi, '');
+}
+
+function validatePrompt(prompt: string): { isValid: boolean; error?: string } {
+  if (!prompt || typeof prompt !== 'string') {
+    return { isValid: false, error: 'Prompt is required and must be a string' };
+  }
+  
+  if (prompt.length < 10) {
+    return { isValid: false, error: 'Prompt must be at least 10 characters long' };
+  }
+  
+  if (prompt.length > 5000) {
+    return { isValid: false, error: 'Prompt must be less than 5000 characters' };
+  }
+  
+  return { isValid: true };
+}
+
+// Rate limiting
+class RateLimiter {
+  private requests: Map<string, number[]> = new Map();
+  
+  isAllowed(key: string, maxRequests: number = 5, windowMs: number = 300000): boolean { // 5 requests per 5 minutes
+    const now = Date.now();
+    const requests = this.requests.get(key) || [];
+    
+    const validRequests = requests.filter(time => now - time < windowMs);
+    
+    if (validRequests.length >= maxRequests) {
+      return false;
+    }
+    
+    validRequests.push(now);
+    this.requests.set(key, validRequests);
+    
+    return true;
+  }
+}
+
+const rateLimiter = new RateLimiter();
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -25,21 +83,47 @@ serve(async (req) => {
 
   try {
     const { prompt, formData, userId } = await req.json();
-    const ip = req.headers.get('x-forwarded-for') || 'unknown';
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
     
-    if (!prompt) {
-      throw new Error('Missing prompt parameter');
+    // Input validation
+    const promptValidation = validatePrompt(prompt);
+    if (!promptValidation.isValid) {
+      return new Response(
+        JSON.stringify({ error: promptValidation.error }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log('Received prompt:', prompt);
+    // Validate userId if provided
+    if (userId && !isValidUUID(userId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid user ID format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Rate limiting
+    const rateLimitKey = ip;
+    if (!rateLimiter.isAllowed(rateLimitKey)) {
+      console.warn(`Rate limit exceeded for IP: ${ip}`);
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Sanitize inputs
+    const sanitizedPrompt = sanitizeInput(prompt, 5000);
+    
+    console.log('Received validated prompt:', sanitizedPrompt.substring(0, 100) + '...');
 
     // Parse the lesson time from the prompt to determine exercise count
     let exerciseCount = 6; // Default
-    if (prompt.includes('30 min')) {
+    if (sanitizedPrompt.includes('30 min')) {
       exerciseCount = 4;
-    } else if (prompt.includes('45 min')) {
+    } else if (sanitizedPrompt.includes('45 min')) {
       exerciseCount = 6;
-    } else if (prompt.includes('60 min')) {
+    } else if (sanitizedPrompt.includes('60 min')) {
       exerciseCount = 8;
     }
     
@@ -234,7 +318,7 @@ RETURN ONLY VALID JSON.
         },
         {
           role: "user",
-          content: prompt
+          content: sanitizedPrompt
         }
       ],
       max_tokens: 4000
@@ -276,7 +360,7 @@ RETURN ONLY VALID JSON.
               },
               {
                 role: "user",
-                content: `Create ${additionalExercisesNeeded} additional ESL exercises related to this topic: "${prompt}". 
+                content: `Create ${additionalExercisesNeeded} additional ESL exercises related to this topic: "${sanitizedPrompt}". 
                 Use only these exercise types: ${getExerciseTypesForMissing(worksheetData.exercises, exerciseTypes)}.
                 Each exercise should be complete with all required fields as shown in the examples.
                 Return them in valid JSON format as an array of exercises.
@@ -331,23 +415,29 @@ RETURN ONLY VALID JSON.
       worksheetData.sourceCount = sourceCount;
       
     } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', parseError, 'Response content:', jsonContent);
-      throw new Error('Failed to generate a valid worksheet structure. Please try again.');
+      console.error('Failed to parse AI response as JSON:', parseError, 'Response content:', jsonContent?.substring(0, 500));
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate a valid worksheet structure. Please try again.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Save worksheet to database with correct parameters
     try {
+      // Sanitize form data
+      const sanitizedFormData = formData ? JSON.parse(JSON.stringify(formData)) : {};
+      
       const { data: worksheet, error: worksheetError } = await supabase.rpc(
         'insert_worksheet_bypass_limit',
         {
-          p_prompt: prompt,
-          p_form_data: formData || {},
-          p_ai_response: jsonContent,
+          p_prompt: sanitizedPrompt,
+          p_form_data: sanitizedFormData,
+          p_ai_response: jsonContent?.substring(0, 50000) || '', // Limit response size
           p_html_content: JSON.stringify(worksheetData),
-          p_user_id: userId,
+          p_user_id: userId || null,
           p_ip_address: ip,
           p_status: 'created',
-          p_title: worksheetData.title,
+          p_title: worksheetData.title?.substring(0, 255) || 'Generated Worksheet', // Limit title length
           p_generation_time_seconds: null
         }
       );
@@ -371,10 +461,15 @@ RETURN ONLY VALID JSON.
     });
   } catch (error) {
     console.error('Error in generateWorksheet:', error);
+    
+    // Sanitize error message
+    const sanitizedError = typeof error === 'object' && error !== null ? 
+      'An internal error occurred' : 
+      String(error).substring(0, 200);
+      
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'An error occurred',
-        stack: error.stack
+        error: sanitizedError
       }),
       { 
         status: error.status || 500,

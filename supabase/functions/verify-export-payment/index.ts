@@ -8,6 +8,43 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Security utilities
+function isValidEmail(email: string): boolean {
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return typeof email === 'string' && email.length <= 254 && EMAIL_REGEX.test(email);
+}
+
+function generateSecureToken(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  const timestamp = Date.now().toString(36);
+  const randomHex = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  return `ds_${timestamp}_${randomHex}`;
+}
+
+// Rate limiting
+class RateLimiter {
+  private requests: Map<string, number[]> = new Map();
+  
+  isAllowed(key: string, maxRequests: number = 5, windowMs: number = 60000): boolean {
+    const now = Date.now();
+    const requests = this.requests.get(key) || [];
+    
+    const validRequests = requests.filter(time => now - time < windowMs);
+    
+    if (validRequests.length >= maxRequests) {
+      return false;
+    }
+    
+    validRequests.push(now);
+    this.requests.set(key, validRequests);
+    
+    return true;
+  }
+}
+
+const rateLimiter = new RateLimiter();
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -16,14 +53,25 @@ serve(async (req) => {
 
   try {
     const { sessionId } = await req.json();
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
 
-    if (!sessionId) {
+    // Input validation
+    if (!sessionId || typeof sessionId !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Missing session ID' }),
+        JSON.stringify({ error: 'Missing or invalid session ID' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
+      );
+    }
+
+    // Rate limiting
+    if (!rateLimiter.isAllowed(ip)) {
+      console.warn(`Rate limit exceeded for IP: ${ip}`);
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -49,7 +97,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log('Verifying payment session:', sessionId);
+    console.log('Verifying payment session:', sessionId.substring(0, 20) + '...');
 
     // Retrieve the session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -66,8 +114,12 @@ serve(async (req) => {
 
     console.log('Session status:', session.payment_status);
 
-    // Extract customer email from session
+    // Extract and validate customer email from session
     const customerEmail = session.customer_details?.email || session.customer_email;
+    
+    if (customerEmail && !isValidEmail(customerEmail)) {
+      console.warn('Invalid email format received from Stripe:', customerEmail);
+    }
 
     // Update payment status in database
     const { data: paymentData, error: updateError } = await supabase
@@ -75,7 +127,7 @@ serve(async (req) => {
       .update({
         status: session.payment_status === 'paid' ? 'paid' : 'failed',
         stripe_payment_intent_id: session.payment_intent as string,
-        user_email: customerEmail,
+        user_email: customerEmail && isValidEmail(customerEmail) ? customerEmail : null,
         updated_at: new Date().toISOString(),
       })
       .eq('stripe_session_id', sessionId)
@@ -94,8 +146,8 @@ serve(async (req) => {
     }
 
     if (session.payment_status === 'paid') {
-      // Generate download session token
-      const sessionToken = `ds_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Generate secure download session token
+      const sessionToken = generateSecureToken();
       
       const { data: downloadSession, error: sessionError } = await supabase
         .from('download_sessions')
@@ -119,8 +171,8 @@ serve(async (req) => {
         );
       }
 
-      // Update worksheet table with customer email if payment successful
-      if (customerEmail && paymentData.worksheet_id) {
+      // Update worksheet table with customer email if payment successful and email is valid
+      if (customerEmail && isValidEmail(customerEmail) && paymentData.worksheet_id) {
         await supabase
           .from('worksheets')
           .update({ 
@@ -130,7 +182,7 @@ serve(async (req) => {
           .eq('id', paymentData.worksheet_id);
       }
 
-      console.log('Download session created:', downloadSession.id);
+      console.log('Download session created successfully');
 
       return new Response(
         JSON.stringify({ 
@@ -157,8 +209,14 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error verifying payment:', error);
+    
+    // Sanitize error message
+    const sanitizedError = typeof error === 'object' && error !== null ? 
+      'Failed to verify payment' : 
+      String(error).substring(0, 200);
+      
     return new Response(
-      JSON.stringify({ error: 'Failed to verify payment' }),
+      JSON.stringify({ error: sanitizedError }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
