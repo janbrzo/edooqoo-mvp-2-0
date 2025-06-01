@@ -298,6 +298,23 @@ export default function WorksheetDisplay({
 
   return (
     <div className="container mx-auto py-6" data-worksheet-id={worksheetId || undefined}>
+      <style jsx>{`
+        @media print {
+          @page {
+            margin: 5mm 15mm 10mm 15mm !important;
+          }
+          .container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .worksheet-content {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+        }
+      `}</style>
+      
       <div className="mb-6">
         <WorksheetHeader
           onBack={onBack}
@@ -318,6 +335,7 @@ export default function WorksheetDisplay({
           userIp={userIp}
           isDownloadUnlocked={isDownloadUnlocked}
           onDownloadUnlock={handleDownloadUnlock}
+          showPdfButton={false}
         />
 
         <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>
