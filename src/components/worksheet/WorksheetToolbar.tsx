@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Edit, Lightbulb, User, Download, Lock } from "lucide-react";
 import PaymentPopup from "@/components/PaymentPopup";
+import { exportAsHTML } from "@/utils/htmlExport";
 
 interface WorksheetToolbarProps {
   viewMode: "student" | "teacher";
@@ -10,7 +11,6 @@ interface WorksheetToolbarProps {
   isEditing: boolean;
   handleEdit: () => void;
   handleSave: () => void;
-  handleDownloadHTML: () => void;
   handleDownloadPDF: () => void;
   worksheetId?: string | null;
   userIp?: string | null;
@@ -25,7 +25,6 @@ const WorksheetToolbar = ({
   isEditing,
   handleEdit,
   handleSave,
-  handleDownloadHTML,
   handleDownloadPDF,
   worksheetId,
   userIp,
@@ -35,6 +34,17 @@ const WorksheetToolbar = ({
 }: WorksheetToolbarProps) => {
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [pendingAction, setPendingAction] = useState<'html' | 'pdf' | null>(null);
+
+  const handleDownloadHTML = async () => {
+    const title = document.querySelector('h1')?.textContent || 'English Worksheet';
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `${timestamp}-${viewMode}-${title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.html`;
+    
+    const success = await exportAsHTML('worksheet-content', filename, viewMode, title);
+    if (!success) {
+      console.error('Failed to export HTML');
+    }
+  };
 
   const handleDownloadClick = (type: 'html' | 'pdf') => {
     if (isDownloadUnlocked) {

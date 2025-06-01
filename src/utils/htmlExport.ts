@@ -1,162 +1,3 @@
-import html2pdf from 'html2pdf.js';
-
-export const generatePDF = async (elementId: string, filename: string, isTeacherView = false, title = 'English Worksheet') => {
-  try {
-    const element = document.getElementById(elementId);
-    if (!element) {
-      console.error('Element not found:', elementId);
-      return false;
-    }
-
-    // Clone the element to avoid modifying the original
-    const clonedElement = element.cloneNode(true) as HTMLElement;
-    
-    // For teacher view, keep teacher tips but remove other data-no-pdf elements
-    if (isTeacherView) {
-      // Remove non-teacher-tip elements marked with data-no-pdf
-      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([class*="teacher-tip"]):not(.bg-amber-50)');
-      nonTeacherTipElements.forEach(el => el.remove());
-      
-      // Make sure teacher tips are visible
-      const teacherTips = clonedElement.querySelectorAll('[class*="teacher-tip"], .bg-amber-50');
-      teacherTips.forEach(tip => {
-        (tip as HTMLElement).style.display = 'block';
-        (tip as HTMLElement).style.visibility = 'visible';
-      });
-    } else {
-      // For student view, remove all data-no-pdf elements including teacher tips
-      const allNoPublishElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
-      allNoPublishElements.forEach(el => el.remove());
-      
-      // Also remove teacher tips by class
-      const teacherTipElements = clonedElement.querySelectorAll('[class*="teacher-tip"], .bg-amber-50');
-      teacherTipElements.forEach(el => el.remove());
-    }
-
-    // Create a temporary container for the cloned content
-    const container = document.createElement('div');
-    container.appendChild(clonedElement);
-    
-    // Set the wrapper style for the PDF
-    clonedElement.style.padding = '20px';
-    
-    // Add a header to show whether it's a student or teacher version
-    const header = document.createElement('div');
-    header.style.position = 'running(header)';
-    header.style.fontWeight = 'bold';
-    header.style.textAlign = 'center';
-    header.style.padding = '10px 0';
-    header.style.borderBottom = '1px solid #ddd';
-    header.style.color = '#3d348b';
-    header.style.fontSize = '12.6px'; // Reduced by 10% from 14px
-    header.innerHTML = `${title} - ${isTeacherView ? 'Teacher' : 'Student'} Version`;
-    container.prepend(header);
-    
-    // Add a footer with page numbers
-    const footer = document.createElement('div');
-    footer.style.position = 'running(footer)';
-    footer.style.textAlign = 'center';
-    footer.style.padding = '10px 0';
-    footer.style.fontSize = '9px'; // Reduced by 10% from 10px
-    footer.style.color = '#666';
-    footer.innerHTML = 'Page <span class="pageNumber"></span> of <span class="totalPages"></span>';
-    container.appendChild(footer);
-    
-    // Apply font size reductions and space optimization
-    const fontSizeAdjustments = `
-      <style>
-        /* Base font size reductions */
-        h1 { font-size: 27px !important; } /* Reduced from 30px */
-        h2 { font-size: 21.6px !important; } /* Reduced from 24px */
-        h3 { font-size: 18px !important; } /* Reduced from 20px */
-        h4 { font-size: 16.2px !important; } /* Reduced from 18px */
-        p, li, td, th { font-size: 13.5px !important; } /* Reduced from 15px */
-        
-        /* Exercise specific reductions */
-        .exercise-header { font-size: 18px !important; } /* Reduced from 20px */
-        .exercise-instructions { font-size: 13.5px !important; } /* Reduced from 15px */
-        .exercise-content { font-size: 13.5px !important; } /* Reduced from 15px */
-        .question-text { font-size: 13.5px !important; } /* Reduced from 15px */
-        .answer-text { font-size: 12.6px !important; } /* Reduced from 14px */
-        
-        /* Teacher tips styling for PDF */
-        .bg-amber-50, [class*="teacher-tip"] {
-          background: linear-gradient(90deg, #FEF7CD 85%, #FAF5E3 100%) !important;
-          border: 1.5px solid #ffeab9 !important;
-          padding: 8px !important;
-          margin: 4px 0 !important;
-          border-radius: 6px !important;
-          display: block !important;
-          visibility: visible !important;
-        }
-        
-        /* Reduce whitespace - aggressive space reduction */
-        .mb-6 { margin-bottom: 0.5rem !important; }
-        .mb-8 { margin-bottom: 0.5rem !important; }
-        .mb-4 { margin-bottom: 0.4rem !important; }
-        .p-6 { padding: 0.5rem !important; }
-        .p-5 { padding: 0.5rem !important; }
-        .p-4 { padding: 0.4rem !important; }
-        .py-2 { padding-top: 0.15rem !important; padding-bottom: 0.15rem !important; }
-        
-        /* Fix spacing between exercises */
-        .exercise + .exercise { margin-top: 2px !important; }
-        
-        /* Remove vertical white space */
-        .space-y-4 > * + * { margin-top: 0.25rem !important; }
-        .space-y-2 > * + * { margin-top: 0.15rem !important; }
-        
-        /* Target specific exercise types for space optimization */
-        .bg-gray-50 { padding: 0.3rem !important; margin-bottom: 0.3rem !important; }
-        
-        /* Make sure text is compact but still readable */
-        .whitespace-pre-line { white-space: normal !important; }
-        
-        /* Optimize page breaks */
-        .page-break { page-break-before: always; }
-        h1, h2, h3, h4 { page-break-after: avoid; }
-      </style>
-    `;
-    container.insertAdjacentHTML('afterbegin', fontSizeAdjustments);
-    
-    // Configure html2pdf options with corrected margins (0.5cm for top/bottom)
-    const options = {
-      margin: [5, 3.75, 5, 3.75], // top, right, bottom, left (top/bottom changed from 15/20 to 5mm = 0.5cm)
-      filename: filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
-        scale: 2,
-        useCORS: true, 
-        letterRendering: true,
-        logging: false, 
-        dpi: 192, 
-        scrollX: 0,
-        scrollY: 0
-      },
-      jsPDF: { 
-        unit: 'mm', 
-        format: 'a4', 
-        orientation: 'portrait',
-        compress: true,
-        putOnlyUsedFonts: true
-      },
-      pagebreak: { 
-        mode: ['avoid-all', 'css', 'legacy'], 
-        before: '.page-break', 
-        avoid: ['img', 'table', 'div.avoid-page-break'] 
-      },
-      enableLinks: true
-    };
-    
-    // Generate the PDF
-    const result = await html2pdf().set(options).from(container.innerHTML).save();
-    console.log('PDF generated successfully:', filename);
-    return true;
-  } catch (error) {
-    console.error('Error generating PDF:', error);
-    return false;
-  }
-};
 
 /**
  * Fetches CSS content from a URL
@@ -251,7 +92,7 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
       console.warn('Error accessing document.styleSheets:', error);
     }
 
-    // Add additional styles to ensure proper rendering and hide browser print headers/footers
+    // Add additional styles to ensure proper rendering and show page counter while hiding file path
     const additionalCSS = `
       /* Additional styles for standalone HTML */
       body {
@@ -319,7 +160,7 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
       /* Print styles - hide file path but show page counter */
       @media print {
         @page {
-          margin: 0.5cm 1.5cm 0.5cm 1.5cm !important; /* Updated margins: top 0.5cm, left/right 1.5cm, bottom 0.5cm */
+          margin: 0.5cm 1.5cm 0.5cm 1.5cm !important;
           size: A4 !important;
           
           /* Hide default browser headers/footers with file path */
