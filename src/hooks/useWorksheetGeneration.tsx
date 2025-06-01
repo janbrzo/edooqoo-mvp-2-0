@@ -60,29 +60,6 @@ const processExercises = (exercises: any[]): any[] => {
       exercise.shuffledTerms = shuffleArray([...exercise.items]);
     }
     
-    // Randomize correct answers in multiple choice questions
-    if (exercise.type === "multiple-choice" && exercise.questions) {
-      exercise.questions = exercise.questions.map((question: any) => {
-        if (question.options && question.options.length === 4) {
-          // Find correct answer
-          const correctOption = question.options.find((opt: any) => opt.correct);
-          if (correctOption) {
-            // Reset all correct flags
-            question.options.forEach((opt: any) => opt.correct = false);
-            
-            // Randomly assign correct flag to prevent B bias
-            const randomIndex = Math.floor(Math.random() * 4);
-            question.options[randomIndex].correct = true;
-            
-            // Ensure the correct text is in the correct position
-            const correctText = correctOption.text;
-            question.options[randomIndex].text = correctText;
-          }
-        }
-        return question;
-      });
-    }
-    
     if (exercise.type === 'reading' && exercise.content) {
       const wordCount = exercise.content.split(/\s+/).filter(Boolean).length;
       console.log(`Reading exercise word count: ${wordCount}`);
