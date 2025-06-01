@@ -2,13 +2,46 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@12.18.0'
-import { RateLimiter } from './security.ts';
-import { validatePaymentRequest } from './validation.ts';
-import { createStripeSession } from './stripe-service.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+// Security utilities
+function isValidUUID(uuid: string): boolean {
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return typeof uuid === 'string' && UUID_REGEX.test(uuid);
+}
+
+function isValidURL(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Rate limiting
+class RateLimiter {
+  private requests: Map<string, number[]> = new Map();
+  
+  isAllowed(key: string, maxRequests: number = 3, windowMs: number = 300000): boolean { // 3 requests per 5 minutes
+    const now = Date.now();
+    const requests = this.requests.get(key) || [];
+    
+    const validRequests = requests.filter(time => now - time < windowMs);
+    
+    if (validRequests.length >= maxRequests) {
+      return false;
+    }
+    
+    validRequests.push(now);
+    this.requests.set(key, validRequests);
+    
+    return true;
+  }
 }
 
 const rateLimiter = new RateLimiter();
@@ -20,22 +53,51 @@ serve(async (req) => {
   }
 
   try {
-    const requestData = await req.json();
-    const { worksheetId, userId, successUrl, cancelUrl } = requestData;
+    const { worksheetId, userId, successUrl, cancelUrl } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
 
-    console.log('Payment request received:', { 
-      worksheetId: worksheetId?.substring(0, 8) + '...', 
-      userId: userId?.substring(0, 8) + '...', 
-      ip 
-    });
+    console.log('Payment request received:', { worksheetId: worksheetId?.substring(0, 8) + '...', userId: userId?.substring(0, 8) + '...', ip });
 
-    // Validate request
-    const validation = validatePaymentRequest(requestData);
-    if (!validation.isValid) {
-      console.error('Validation error:', validation.error);
+    // Input validation
+    if (!worksheetId || !userId) {
+      console.error('Missing required parameters:', { worksheetId: !!worksheetId, userId: !!userId });
       return new Response(
-        JSON.stringify({ error: validation.error }),
+        JSON.stringify({ error: 'Missing required parameters: worksheetId and userId are required' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Validate worksheetId as UUID only if it looks like a UUID (longer than 10 chars)
+    if (worksheetId.length > 10 && !isValidUUID(worksheetId)) {
+      console.error('Invalid worksheet ID format:', worksheetId);
+      return new Response(
+        JSON.stringify({ error: 'Invalid worksheet ID format provided' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Validate URLs if provided
+    if (successUrl && !isValidURL(successUrl)) {
+      console.error('Invalid success URL:', successUrl);
+      return new Response(
+        JSON.stringify({ error: 'Invalid success URL provided' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    if (cancelUrl && !isValidURL(cancelUrl)) {
+      console.error('Invalid cancel URL:', cancelUrl);
+      return new Response(
+        JSON.stringify({ error: 'Invalid cancel URL provided' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -53,10 +115,10 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Stripe with corrected key name
-    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+    // Initialize Stripe with proper key name
+    const stripeSecretKey = Deno.env.get('Stripe_Secret_Key');
     if (!stripeSecretKey) {
-      console.error('Missing STRIPE_SECRET_KEY environment variable');
+      console.error('Missing Stripe_Secret_Key environment variable');
       return new Response(
         JSON.stringify({ error: 'Payment service configuration error' }),
         { 
@@ -88,17 +150,36 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Create Stripe session
-    const defaultSuccessUrl = successUrl || `${req.headers.get('origin') || 'https://localhost:3000'}/payment-success`;
-    const defaultCancelUrl = cancelUrl || req.headers.get('origin') || 'https://localhost:3000';
-    
-    const session = await createStripeSession(
-      stripe,
-      worksheetId,
-      userId,
-      defaultSuccessUrl,
-      defaultCancelUrl
-    );
+    console.log('Creating Stripe checkout session for worksheet:', worksheetId.substring(0, 8) + '...');
+
+    // Create Stripe checkout session with coupon support
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      allow_promotion_codes: true, // Enable discount codes including 1CENT
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'Worksheet Export Access',
+              description: 'One-time payment for downloading HTML version of your worksheet',
+            },
+            unit_amount: 100, // $1.00 in cents
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: successUrl ? `${successUrl}?session_id={CHECKOUT_SESSION_ID}` : `${req.headers.get('origin') || 'https://localhost:3000'}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || req.headers.get('origin') || 'https://localhost:3000',
+      metadata: {
+        worksheetId,
+        userId,
+      },
+      // Enable customer email collection in Stripe
+      customer_creation: 'always',
+      billing_address_collection: 'auto',
+    });
 
     console.log('Stripe session created successfully:', session.id);
 

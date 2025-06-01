@@ -1,27 +1,25 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Printer, Eye, EyeOff, Edit, Save } from "lucide-react";
-import { generatePDF, exportAsHTML } from "@/utils/pdfUtils";
-import { useToast } from "@/hooks/use-toast";
+import { Edit, Lightbulb, User, Download, Lock } from "lucide-react";
 import PaymentPopup from "@/components/PaymentPopup";
 
 interface WorksheetToolbarProps {
-  viewMode: 'student' | 'teacher';
-  setViewMode: React.Dispatch<React.SetStateAction<'student' | 'teacher'>>;
+  viewMode: "student" | "teacher";
+  setViewMode: (mode: "student" | "teacher") => void;
   isEditing: boolean;
   handleEdit: () => void;
   handleSave: () => void;
   handleDownloadHTML: () => void;
   handleDownloadPDF: () => void;
-  worksheetId: string | null;
+  worksheetId?: string | null;
   userIp?: string | null;
-  isDownloadUnlocked: boolean;
-  onDownloadUnlock: (token: string) => void;
-  showPdfButton: boolean;
+  isDownloadUnlocked?: boolean;
+  onDownloadUnlock?: (token: string) => void;
+  showPdfButton?: boolean;
 }
 
-const WorksheetToolbar = ({ 
+const WorksheetToolbar = ({
   viewMode,
   setViewMode,
   isEditing,
@@ -31,130 +29,129 @@ const WorksheetToolbar = ({
   handleDownloadPDF,
   worksheetId,
   userIp,
-  isDownloadUnlocked,
+  isDownloadUnlocked = false,
   onDownloadUnlock,
-  showPdfButton
+  showPdfButton = false,
 }: WorksheetToolbarProps) => {
-  const { toast } = useToast();
-  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [showPaymentPopup, setShowPaymentPopup] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'html' | 'pdf' | null>(null);
 
-  const handleDownloadClick = () => {
+  const handleDownloadClick = (type: 'html' | 'pdf') => {
     if (isDownloadUnlocked) {
-      handleDownloadHTML();
+      // Downloads are unlocked, proceed directly
+      if (type === 'html') {
+        handleDownloadHTML();
+      } else {
+        handleDownloadPDF();
+      }
     } else {
-      setIsPaymentOpen(true);
+      // Show payment popup
+      setPendingAction(type);
+      setShowPaymentPopup(true);
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePaymentSuccess = (token: string) => {
+    if (onDownloadUnlock) {
+      onDownloadUnlock(token);
+    }
+    
+    // Execute the pending download action
+    if (pendingAction === 'html') {
+      handleDownloadHTML();
+    } else if (pendingAction === 'pdf') {
+      handleDownloadPDF();
+    }
+    
+    setPendingAction(null);
   };
 
-  const handlePaymentSuccess = (sessionToken: string) => {
-    onDownloadUnlock(sessionToken);
-    setIsPaymentOpen(false);
-    
-    toast({
-      title: "Downloads unlocked!",
-      description: "You can now download HTML versions of your worksheet.",
-      className: "bg-green-50 border-green-200"
-    });
+  const handlePaymentPopupClose = () => {
+    setShowPaymentPopup(false);
+    setPendingAction(null);
   };
 
   return (
     <>
-      <div className="flex flex-wrap gap-2 mb-6 print:hidden">
-        {/* View Mode Toggle */}
-        <div className="flex bg-gray-100 rounded-md p-1">
-          <Button
-            onClick={() => setViewMode('student')}
-            variant={viewMode === 'student' ? 'default' : 'ghost'}
-            size="sm"
-            className={viewMode === 'student' ? 'bg-worksheet-purple text-white' : ''}
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            Student View
-          </Button>
-          <Button
-            onClick={() => setViewMode('teacher')}
-            variant={viewMode === 'teacher' ? 'default' : 'ghost'}
-            size="sm"
-            className={viewMode === 'teacher' ? 'bg-worksheet-purple text-white' : ''}
-          >
-            <EyeOff className="w-4 h-4 mr-2" />
-            Teacher View
-          </Button>
+      <div className="sticky top-0 z-10 bg-white border-b mb-6 py-3 px-4">
+        <div className="flex justify-between items-center max-w-[98%] mx-auto">
+          <div className="flex space-x-2">
+            <Button
+              variant={viewMode === 'student' ? 'default' : 'outline'}
+              onClick={() => setViewMode('student')}
+              className={viewMode === 'student' ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' : ''}
+              size="sm"
+            >
+              <User className="mr-2 h-4 w-4" />
+              Student View
+            </Button>
+            <Button
+              variant={viewMode === 'teacher' ? 'default' : 'outline'}
+              onClick={() => setViewMode('teacher')}
+              className={viewMode === 'teacher' ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' : ''}
+              size="sm"
+            >
+              <Lightbulb className="mr-2 h-4 w-4" />
+              Teacher View
+            </Button>
+          </div>
+          <div className="flex items-center">
+            {!isEditing && (
+              <Button
+                variant="outline"
+                onClick={handleEdit}
+                className="border-worksheet-purple text-worksheet-purple mr-2"
+                size="sm"
+              >
+                <Edit className="mr-2 h-4 w-4" /> Edit Worksheet
+              </Button>
+            )}
+            {isEditing && (
+              <Button
+                onClick={handleSave}
+                className="bg-green-600 hover:bg-green-700 mr-2"
+                size="sm"
+              >
+                Save Changes
+              </Button>
+            )}
+            <Button
+              onClick={() => handleDownloadClick('html')}
+              className={`mr-2 ${isDownloadUnlocked 
+                ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
+                : 'bg-gray-400 hover:bg-gray-500'}`}
+              size="sm"
+            >
+              {isDownloadUnlocked ? (
+                <Download className="mr-2 h-4 w-4" />
+              ) : (
+                <Lock className="mr-2 h-4 w-4" />
+              )}
+              Download HTML
+            </Button>
+            {showPdfButton && (
+              <Button
+                onClick={() => handleDownloadClick('pdf')}
+                className={isDownloadUnlocked 
+                  ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
+                  : 'bg-gray-400 hover:bg-gray-500'}
+                size="sm"
+              >
+                {isDownloadUnlocked ? (
+                  <Download className="mr-2 h-4 w-4" />
+                ) : (
+                  <Lock className="mr-2 h-4 w-4" />
+                )}
+                Download PDF
+              </Button>
+            )}
+          </div>
         </div>
-
-        {/* Edit/Save Toggle */}
-        {isEditing ? (
-          <Button
-            onClick={handleSave}
-            className="bg-green-600 hover:bg-green-700 text-white"
-            size="sm"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Save Changes
-          </Button>
-        ) : (
-          <Button
-            onClick={handleEdit}
-            variant="outline"
-            size="sm"
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Edit Worksheet
-          </Button>
-        )}
-        
-        {/* Download Buttons */}
-        <Button
-          onClick={handleDownloadClick}
-          className="bg-worksheet-purple hover:bg-worksheet-purpleDark text-white"
-          size="sm"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          {isDownloadUnlocked ? 'Download HTML' : 'Unlock Downloads ($1)'}
-        </Button>
-        
-        {isDownloadUnlocked && viewMode === 'teacher' && (
-          <Button
-            onClick={handleDownloadHTML}
-            variant="outline"
-            size="sm"
-            className="border-worksheet-purple text-worksheet-purple hover:bg-worksheet-purple hover:text-white"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Teacher Version
-          </Button>
-        )}
-        
-        {/* PDF Download - only show if enabled */}
-        {showPdfButton && isDownloadUnlocked && (
-          <Button
-            onClick={handleDownloadPDF}
-            variant="outline"
-            size="sm"
-            className="border-gray-300 text-gray-700 hover:bg-gray-100"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Download PDF
-          </Button>
-        )}
-        
-        <Button
-          onClick={handlePrint}
-          variant="outline"
-          size="sm"
-        >
-          <Printer className="w-4 h-4 mr-2" />
-          Print
-        </Button>
       </div>
 
       <PaymentPopup
-        isOpen={isPaymentOpen}
-        onClose={() => setIsPaymentOpen(false)}
+        isOpen={showPaymentPopup}
+        onClose={handlePaymentPopupClose}
         onPaymentSuccess={handlePaymentSuccess}
         worksheetId={worksheetId}
         userIp={userIp}
