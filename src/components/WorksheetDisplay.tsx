@@ -298,10 +298,10 @@ export default function WorksheetDisplay({
 
   return (
     <div className="container mx-auto py-6" data-worksheet-id={worksheetId || undefined}>
-      <style jsx>{`
+      <style>{`
         @media print {
           @page {
-            margin: 5mm 15mm 10mm 15mm !important;
+            margin: 2mm 4.5mm 10mm 4.5mm !important;
           }
           .container {
             max-width: 100% !important;
