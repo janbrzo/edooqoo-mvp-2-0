@@ -317,11 +317,11 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
         visibility: visible !important;
       }
       
-      /* Print styles - hide browser headers/footers, file path and page numbers */
+      /* Print styles - completely hide browser headers/footers and file path */
       @media print {
         @page {
-          margin: 0.5cm 1.5cm 0.5cm 1.5cm; /* Updated margins: top/bottom 0.5cm, left/right 1.5cm */
-          size: A4;
+          margin: 0.5cm 1.5cm 0.5cm 1.5cm !important; /* Updated margins: top 0.5cm, left/right 1.5cm, bottom 0.5cm */
+          size: A4 !important;
         }
         
         /* Hide print button when printing */
@@ -329,28 +329,63 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
           display: none !important;
         }
         
-        /* Hide browser default headers and footers including file path */
-        body {
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
+        /* Aggressive browser header/footer hiding */
+        html {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
         
-        /* Hide all browser generated content like file paths, dates, page numbers */
+        body {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        
+        /* Hide all browser generated content including file path */
         * {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
         
-        /* Remove page numbers that show as "Page 0 of 0" */
+        /* Hide page numbers and counters */
         .page-number, .page-counter {
           display: none !important;
         }
         
-        /* Hide browser generated header/footer content */
+        /* Additional browser hiding attempts */
+        @page :first {
+          margin-top: 0.5cm !important;
+        }
+        
+        @page :left {
+          margin-left: 1.5cm !important;
+        }
+        
+        @page :right {
+          margin-right: 1.5cm !important;
+        }
+        
+        /* Force no headers/footers from browser */
+        body::before, body::after,
+        html::before, html::after {
+          display: none !important;
+          content: none !important;
+        }
+        
+        /* Try to override browser default styles */
         @media print {
           html, body {
-            height: initial !important;
-            overflow: initial !important;
+            height: auto !important;
+            overflow: visible !important;
+            background: white !important;
+          }
+          
+          /* Hide any potential browser generated elements */
+          header, footer, nav,
+          .header, .footer, .nav,
+          [role="banner"], [role="contentinfo"], [role="navigation"] {
+            display: none !important;
           }
         }
       }

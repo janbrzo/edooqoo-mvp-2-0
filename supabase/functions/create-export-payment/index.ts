@@ -56,8 +56,11 @@ serve(async (req) => {
     const { worksheetId, userId, successUrl, cancelUrl } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
 
+    console.log('Payment request received:', { worksheetId: worksheetId?.substring(0, 8) + '...', userId: userId?.substring(0, 8) + '...', ip });
+
     // Input validation
     if (!worksheetId || !userId) {
+      console.error('Missing required parameters:', { worksheetId: !!worksheetId, userId: !!userId });
       return new Response(
         JSON.stringify({ error: 'Missing required parameters: worksheetId and userId are required' }),
         { 
@@ -69,6 +72,7 @@ serve(async (req) => {
 
     // Validate worksheetId as UUID only if it looks like a UUID (longer than 10 chars)
     if (worksheetId.length > 10 && !isValidUUID(worksheetId)) {
+      console.error('Invalid worksheet ID format:', worksheetId);
       return new Response(
         JSON.stringify({ error: 'Invalid worksheet ID format provided' }),
         { 
@@ -80,6 +84,7 @@ serve(async (req) => {
 
     // Validate URLs if provided
     if (successUrl && !isValidURL(successUrl)) {
+      console.error('Invalid success URL:', successUrl);
       return new Response(
         JSON.stringify({ error: 'Invalid success URL provided' }),
         { 
@@ -90,6 +95,7 @@ serve(async (req) => {
     }
 
     if (cancelUrl && !isValidURL(cancelUrl)) {
+      console.error('Invalid cancel URL:', cancelUrl);
       return new Response(
         JSON.stringify({ error: 'Invalid cancel URL provided' }),
         { 
@@ -109,10 +115,10 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Stripe
-    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+    // Initialize Stripe with proper key name
+    const stripeSecretKey = Deno.env.get('Stripe_Secret_Key');
     if (!stripeSecretKey) {
-      console.error('Missing STRIPE_SECRET_KEY');
+      console.error('Missing Stripe_Secret_Key environment variable');
       return new Response(
         JSON.stringify({ error: 'Payment service configuration error' }),
         { 
@@ -122,6 +128,7 @@ serve(async (req) => {
       );
     }
 
+    console.log('Initializing Stripe...');
     const stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2023-10-16',
     });
@@ -129,6 +136,18 @@ serve(async (req) => {
     // Initialize Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase configuration');
+      return new Response(
+        JSON.stringify({ error: 'Database configuration error' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log('Creating Stripe checkout session for worksheet:', worksheetId.substring(0, 8) + '...');
@@ -162,7 +181,7 @@ serve(async (req) => {
       billing_address_collection: 'auto',
     });
 
-    console.log('Stripe session created successfully');
+    console.log('Stripe session created successfully:', session.id);
 
     // Store payment record in database using user_identifier column
     const { data: paymentData, error: paymentError } = await supabase
