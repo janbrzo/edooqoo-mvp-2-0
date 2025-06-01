@@ -16,6 +16,7 @@ interface WorksheetToolbarProps {
   userIp?: string | null;
   isDownloadUnlocked?: boolean;
   onDownloadUnlock?: (token: string) => void;
+  showPdfButton?: boolean;
 }
 
 const WorksheetToolbar = ({
@@ -30,6 +31,7 @@ const WorksheetToolbar = ({
   userIp,
   isDownloadUnlocked = false,
   onDownloadUnlock,
+  showPdfButton = false,
 }: WorksheetToolbarProps) => {
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [pendingAction, setPendingAction] = useState<'html' | 'pdf' | null>(null);
@@ -127,20 +129,22 @@ const WorksheetToolbar = ({
               )}
               Download HTML
             </Button>
-            <Button
-              onClick={() => handleDownloadClick('pdf')}
-              className={isDownloadUnlocked 
-                ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
-                : 'bg-gray-400 hover:bg-gray-500'}
-              size="sm"
-            >
-              {isDownloadUnlocked ? (
-                <Download className="mr-2 h-4 w-4" />
-              ) : (
-                <Lock className="mr-2 h-4 w-4" />
-              )}
-              Download PDF
-            </Button>
+            {showPdfButton && (
+              <Button
+                onClick={() => handleDownloadClick('pdf')}
+                className={isDownloadUnlocked 
+                  ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
+                  : 'bg-gray-400 hover:bg-gray-500'}
+                size="sm"
+              >
+                {isDownloadUnlocked ? (
+                  <Download className="mr-2 h-4 w-4" />
+                ) : (
+                  <Lock className="mr-2 h-4 w-4" />
+                )}
+                Download PDF
+              </Button>
+            )}
           </div>
         </div>
       </div>
