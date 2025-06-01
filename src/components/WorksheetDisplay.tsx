@@ -251,51 +251,6 @@ export default function WorksheetDisplay({
     }
   };
 
-  const handleDownloadHTML = async () => {
-    if (!isDownloadUnlocked) {
-      toast({
-        title: "Payment Required", 
-        description: "Please complete payment to download files.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (worksheetRef.current) {
-      try {
-        // Create current date format YYYY-MM-DD
-        const today = new Date();
-        const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const viewModeText = viewMode === 'teacher' ? 'Teacher' : 'Student';
-        const filename = `${formattedDate}-${viewModeText}-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.html`;
-        
-        const result = await exportAsHTML('worksheet-content', filename, viewMode, editableWorksheet.title);
-        if (result) {
-          toast({
-            title: "HTML Downloaded",
-            description: "Your worksheet HTML has been downloaded successfully."
-          });
-          if (onDownload) {
-            onDownload();
-          }
-        } else {
-          toast({
-            title: "HTML Generation Failed",
-            description: "There was an error generating your HTML. Please try again.",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        console.error('HTML generation error:', error);
-        toast({
-          title: "HTML Generation Failed",
-          description: "There was an error generating your HTML. Please try again.",
-          variant: "destructive"
-        });
-      }
-    }
-  };
-
   return (
     <div className="container mx-auto py-6" data-worksheet-id={worksheetId || undefined}>
       <style>{`
@@ -329,7 +284,6 @@ export default function WorksheetDisplay({
           isEditing={isEditing}
           handleEdit={handleEdit}
           handleSave={handleSave}
-          handleDownloadHTML={handleDownloadHTML}
           handleDownloadPDF={handleDownloadPDF}
           worksheetId={worksheetId}
           userIp={userIp}
