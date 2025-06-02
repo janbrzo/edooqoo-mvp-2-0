@@ -32,7 +32,7 @@ const ExerciseContent: React.FC<ExerciseContentProps> = ({
         <div className="mb-4 p-4 bg-gray-50 rounded-md">
           {showWordCount && (
             <div className="text-xs text-gray-500 mb-2">
-              Word count: {wordCount}
+              Word count: {wordCount} {wordCount < 280 && <span className="text-red-500">(should be 280-320 words)</span>}
             </div>
           )}
           {isEditing && onContentChange ? (

@@ -17,7 +17,6 @@ interface WorksheetToolbarProps {
   isDownloadUnlocked?: boolean;
   onDownloadUnlock?: (token: string) => void;
   showPdfButton?: boolean;
-  worksheetTitle?: string;
 }
 
 const WorksheetToolbar = ({
@@ -32,18 +31,16 @@ const WorksheetToolbar = ({
   isDownloadUnlocked = false,
   onDownloadUnlock,
   showPdfButton = false,
-  worksheetTitle = "English Worksheet",
 }: WorksheetToolbarProps) => {
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [pendingAction, setPendingAction] = useState<'html' | 'pdf' | null>(null);
 
   const handleDownloadHTML = async () => {
+    const title = document.querySelector('h1')?.textContent || 'English Worksheet';
     const timestamp = new Date().toISOString().split('T')[0];
-    const viewModeText = viewMode === 'teacher' ? 'Teacher' : 'Student';
-    const cleanTitle = worksheetTitle.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const filename = `${timestamp}-${viewModeText}-${cleanTitle}.html`;
+    const filename = `${timestamp}-${viewMode}-${title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.html`;
     
-    const success = await exportAsHTML('worksheet-content', filename, viewMode, `${worksheetTitle} - ${viewModeText} Version`);
+    const success = await exportAsHTML('worksheet-content', filename, viewMode, title);
     if (!success) {
       console.error('Failed to export HTML');
     }
