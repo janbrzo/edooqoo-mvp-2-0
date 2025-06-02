@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { ArrowLeft, ArrowUp } from "lucide-react";
 import { generatePDF, exportAsHTML } from "@/utils/pdfUtils";
@@ -164,17 +165,11 @@ export default function WorksheetDisplay({
       return;
     }
     
-    // Check for reading exercises and word count
+    // Check for reading exercises and word count (but don't show warnings)
     const readingExercise = worksheet.exercises.find(ex => ex.type === 'reading');
     if (readingExercise && readingExercise.content) {
       const wordCount = readingExercise.content.split(/\s+/).filter(Boolean).length;
-      if (wordCount < 280) {
-        toast({
-          title: "Reading exercise issue",
-          description: `Reading content has only ${wordCount} words (should be 280-320).`,
-          variant: "destructive"
-        });
-      }
+      console.log(`Reading exercise word count: ${wordCount}`);
     }
   };
   
@@ -290,6 +285,7 @@ export default function WorksheetDisplay({
           isDownloadUnlocked={isDownloadUnlocked}
           onDownloadUnlock={handleDownloadUnlock}
           showPdfButton={false}
+          worksheetTitle={editableWorksheet.title}
         />
 
         <div className="worksheet-content mb-8" id="worksheet-content" ref={worksheetRef}>

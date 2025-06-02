@@ -114,7 +114,7 @@ const PaymentSuccess = () => {
                 <span className="font-medium">Downloads Unlocked</span>
               </div>
               <p className="text-sm text-green-600 mt-1">
-                You can now download HTML and PDF versions of your worksheet.
+                You can now download HTML versions of your worksheet.
               </p>
             </div>
             
