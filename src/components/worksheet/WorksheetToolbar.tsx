@@ -11,7 +11,6 @@ interface WorksheetToolbarProps {
   isEditing: boolean;
   handleEdit: () => void;
   handleSave: () => void;
-  handleDownloadPDF: () => void;
   worksheetId?: string | null;
   userIp?: string | null;
   isDownloadUnlocked?: boolean;
@@ -25,7 +24,6 @@ const WorksheetToolbar = ({
   isEditing,
   handleEdit,
   handleSave,
-  handleDownloadPDF,
   worksheetId,
   userIp,
   isDownloadUnlocked = false,
@@ -36,9 +34,14 @@ const WorksheetToolbar = ({
   const [pendingAction, setPendingAction] = useState<'html' | 'pdf' | null>(null);
 
   const handleDownloadHTML = async () => {
-    const title = document.querySelector('h1')?.textContent || 'English Worksheet';
+    // Get the actual worksheet title from the page
+    const titleElement = document.querySelector('.worksheet-content h1');
+    const title = titleElement?.textContent || 'English Worksheet';
+    
     const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `${timestamp}-${viewMode}-${title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.html`;
+    const viewModeText = viewMode === 'teacher' ? 'Teacher' : 'Student';
+    const sanitizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const filename = `${timestamp}-${viewModeText}-${sanitizedTitle}.html`;
     
     const success = await exportAsHTML('worksheet-content', filename, viewMode, title);
     if (!success) {
@@ -48,14 +51,10 @@ const WorksheetToolbar = ({
 
   const handleDownloadClick = (type: 'html' | 'pdf') => {
     if (isDownloadUnlocked) {
-      // Downloads are unlocked, proceed directly
       if (type === 'html') {
         handleDownloadHTML();
-      } else {
-        handleDownloadPDF();
       }
     } else {
-      // Show payment popup
       setPendingAction(type);
       setShowPaymentPopup(true);
     }
@@ -66,11 +65,8 @@ const WorksheetToolbar = ({
       onDownloadUnlock(token);
     }
     
-    // Execute the pending download action
     if (pendingAction === 'html') {
       handleDownloadHTML();
-    } else if (pendingAction === 'pdf') {
-      handleDownloadPDF();
     }
     
     setPendingAction(null);
@@ -139,22 +135,6 @@ const WorksheetToolbar = ({
               )}
               Download HTML
             </Button>
-            {showPdfButton && (
-              <Button
-                onClick={() => handleDownloadClick('pdf')}
-                className={isDownloadUnlocked 
-                  ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
-                  : 'bg-gray-400 hover:bg-gray-500'}
-                size="sm"
-              >
-                {isDownloadUnlocked ? (
-                  <Download className="mr-2 h-4 w-4" />
-                ) : (
-                  <Lock className="mr-2 h-4 w-4" />
-                )}
-                Download PDF
-              </Button>
-            )}
           </div>
         </div>
       </div>

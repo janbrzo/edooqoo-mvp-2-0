@@ -45,7 +45,6 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
       console.log('Fetching CSS from:', href);
       
       try {
-        // Handle relative URLs
         const absoluteUrl = new URL(href, window.location.origin).href;
         const cssContent = await fetchCSSContent(absoluteUrl);
         
@@ -84,7 +83,6 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
             }
           }
         } catch (e) {
-          // CORS blocked or other error - skip this stylesheet
           console.warn('Could not access stylesheet rules (likely CORS):', e);
         }
       });
@@ -92,7 +90,7 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
       console.warn('Error accessing document.styleSheets:', error);
     }
 
-    // Add additional styles to ensure proper rendering and show page counter while hiding file path
+    // Add additional styles including scroll up button
     const additionalCSS = `
       /* Additional styles for standalone HTML */
       body {
@@ -141,6 +139,35 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
         background-color: #2d1b7b;
       }
       
+      /* Scroll up button styles */
+      .scroll-up-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #3d348b;
+        color: white;
+        border: none;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        z-index: 999;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      
+      .scroll-up-button:hover {
+        background-color: #2d1b7b;
+      }
+      
+      .scroll-up-button.visible {
+        opacity: 1;
+      }
+      
       /* Hide rating section in HTML export */
       [data-no-pdf="true"]:not(.teacher-tip):not(.bg-amber-50) {
         display: none !important;
@@ -157,19 +184,17 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
         visibility: visible !important;
       }
       
-      /* Print styles - hide file path but show page counter */
+      /* Print styles */
       @media print {
         @page {
           margin: 0.5cm 1.5cm 0.5cm 1.5cm !important;
           size: A4 !important;
           
-          /* Hide default browser headers/footers with file path */
           @top-left { content: none !important; }
           @top-center { content: none !important; }
           @top-right { content: none !important; }
           @bottom-left { content: none !important; }
           @bottom-center { 
-            /* Show only page numbers */
             content: counter(page) " / " counter(pages) !important;
             font-size: 10px !important;
             color: #666 !important;
@@ -177,30 +202,21 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
           @bottom-right { content: none !important; }
         }
         
-        /* Hide print button when printing */
-        .print-button {
+        .print-button, .scroll-up-button {
           display: none !important;
         }
         
-        /* Ensure page counter is visible */
-        html {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-        
-        body {
+        html, body {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           margin: 0 !important;
           padding: 0 !important;
         }
         
-        /* Enable CSS page counters */
         body {
           counter-reset: page;
         }
         
-        /* Force no browser generated headers/footers except page numbers */
         * {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
@@ -232,7 +248,6 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
       newStyleElement.setAttribute('data-inline', 'true');
       newStyleElement.textContent = finalCSS;
       
-      // Insert the style element at the beginning of head
       const head = docClone.querySelector('head');
       if (head) {
         head.insertBefore(newStyleElement, head.firstChild);
@@ -252,27 +267,23 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
 
     // Handle teacher tips and data-no-pdf elements
     if (viewMode === 'teacher') {
-      // Remove non-teacher-tip elements marked with data-no-pdf
       const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([class*="teacher-tip"]):not(.bg-amber-50)');
       nonTeacherTipElements.forEach(el => el.remove());
       
-      // Make sure teacher tips are visible
       const teacherTips = clonedElement.querySelectorAll('[class*="teacher-tip"], .bg-amber-50');
       teacherTips.forEach(tip => {
         (tip as HTMLElement).style.display = 'block';
         (tip as HTMLElement).style.visibility = 'visible';
       });
     } else {
-      // For student view, remove all data-no-pdf elements including teacher tips
       const allNoPublishElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
       allNoPublishElements.forEach(el => el.remove());
       
-      // Also remove teacher tips by class
       const teacherTipElements = clonedElement.querySelectorAll('[class*="teacher-tip"], .bg-amber-50');
       teacherTipElements.forEach(el => el.remove());
     }
 
-    // Create a header to show whether it's a student or teacher version
+    // Create header with actual worksheet title
     const versionHeader = docClone.createElement('div');
     versionHeader.style.textAlign = 'center';
     versionHeader.style.padding = '20px 0';
@@ -296,6 +307,29 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
     `;
     printButton.setAttribute('onclick', 'window.print()');
 
+    // Create scroll up button
+    const scrollUpButton = docClone.createElement('button');
+    scrollUpButton.className = 'scroll-up-button';
+    scrollUpButton.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m18 15-6-6-6 6"/>
+      </svg>
+    `;
+    scrollUpButton.setAttribute('onclick', 'window.scrollTo({top: 0, behavior: "smooth"})');
+
+    // Add scroll event listener script
+    const scrollScript = docClone.createElement('script');
+    scrollScript.textContent = `
+      window.addEventListener('scroll', function() {
+        const scrollUpBtn = document.querySelector('.scroll-up-button');
+        if (window.scrollY > 300) {
+          scrollUpBtn.classList.add('visible');
+        } else {
+          scrollUpBtn.classList.remove('visible');
+        }
+      });
+    `;
+
     // Create a minimal HTML structure with only the necessary content
     const minimalHTML = `
 <!DOCTYPE html>
@@ -310,10 +344,12 @@ ${finalCSS}
 </head>
 <body>
     ${printButton.outerHTML}
+    ${scrollUpButton.outerHTML}
     <div class="container">
         ${versionHeader.outerHTML}
         ${clonedElement.outerHTML}
     </div>
+    ${scrollScript.outerHTML}
 </body>
 </html>`;
 

@@ -43,7 +43,6 @@ const PaymentSuccess = () => {
       setVerificationResult(data);
 
       if (data.status === 'paid' && data.sessionToken) {
-        // Store download token in sessionStorage
         sessionStorage.setItem('downloadToken', data.sessionToken);
         sessionStorage.setItem('downloadTokenExpiry', new Date(data.expiresAt).getTime().toString());
         
@@ -53,7 +52,6 @@ const PaymentSuccess = () => {
           className: "bg-green-50 border-green-200"
         });
 
-        // Redirect back to the main page after 3 seconds
         setTimeout(() => {
           navigate('/', { replace: true });
         }, 3000);
@@ -114,7 +112,7 @@ const PaymentSuccess = () => {
                 <span className="font-medium">Downloads Unlocked</span>
               </div>
               <p className="text-sm text-green-600 mt-1">
-                You can now download HTML and PDF versions of your worksheet.
+                You can now download HTML versions of your worksheet.
               </p>
             </div>
             
