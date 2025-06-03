@@ -18,16 +18,6 @@ export function getExerciseTypesForCount(count: number): string[] {
     'error-correction'
   ];
   
-  // For 6 exercises (45 min) - first 6 from the set
-  const shortSet = [
-    'reading', 
-    'matching', 
-    'fill-in-blanks', 
-    'multiple-choice',
-    'dialogue', 
-    'true-false'
-  ];
-  
   // Always return the full 8-exercise set for generation
   // Frontend logic will trim to 6 if needed
   return fullSet;
@@ -114,9 +104,19 @@ export function parseAIResponse(jsonContent: string): any {
     if (endIndex > startIndex) {
       cleanJsonContent = cleanJsonContent.substring(startIndex, endIndex).trim();
     }
+  } else if (cleanJsonContent.includes('```')) {
+    // Handle cases where there's just ``` without json
+    const firstTriple = cleanJsonContent.indexOf('```');
+    const lastTriple = cleanJsonContent.lastIndexOf('```');
+    if (lastTriple > firstTriple) {
+      const possibleJson = cleanJsonContent.substring(firstTriple + 3, lastTriple).trim();
+      if (possibleJson.startsWith('{')) {
+        cleanJsonContent = possibleJson;
+      }
+    }
   }
   
-  // Step 2: Extract JSON structure
+  // Step 2: Extract JSON structure - look for the outermost braces
   const firstBrace = cleanJsonContent.indexOf('{');
   const lastBrace = cleanJsonContent.lastIndexOf('}');
   
@@ -127,29 +127,30 @@ export function parseAIResponse(jsonContent: string): any {
   cleanJsonContent = cleanJsonContent.substring(firstBrace, lastBrace + 1);
   console.log('Extracted JSON length:', cleanJsonContent.length);
   
-  // Step 3: Comprehensive JSON cleaning
+  // Step 3: Comprehensive JSON cleaning and fixing
   try {
-    // Fix trailing commas
-    cleanJsonContent = cleanJsonContent.replace(/,(\s*[}\]])/g, '$1');
+    // Remove any non-printable characters except newlines and tabs
+    cleanJsonContent = cleanJsonContent.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
     
-    // Fix missing commas between objects and arrays
-    cleanJsonContent = cleanJsonContent.replace(/}(\s*){/g, '},$1{');
-    cleanJsonContent = cleanJsonContent.replace(/](\s*)\[/g, '],$1[');
-    
-    // Fix unescaped quotes in strings (more robust approach)
-    cleanJsonContent = cleanJsonContent.replace(/(?<!\\)"(?![,}\]:]*[,}\]])/g, '\\"');
-    
-    // Fix common escape sequence issues
-    cleanJsonContent = cleanJsonContent.replace(/\\n/g, '\\\\n');
-    cleanJsonContent = cleanJsonContent.replace(/\\t/g, '\\\\t');
-    
-    // Remove any control characters that might break JSON
-    cleanJsonContent = cleanJsonContent.replace(/[\x00-\x1F\x7F]/g, '');
+    // Fix common JSON issues
+    cleanJsonContent = cleanJsonContent
+      // Remove trailing commas before } or ]
+      .replace(/,(\s*[}\]])/g, '$1')
+      // Add missing commas between objects
+      .replace(/}(\s*){/g, '},$1{')
+      // Add missing commas between arrays
+      .replace(/](\s*)\[/g, '],$1[')
+      // Fix unescaped quotes in strings (more conservative approach)
+      .replace(/(?<!\\)"(?=(?:[^"\\]|\\.)*"[,}\]\s]*[,}\]])/g, '\\"')
+      // Fix newlines in strings
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t');
     
     console.log('Attempting to parse cleaned JSON');
     const parsed = JSON.parse(cleanJsonContent);
     
-    // Validate structure
+    // Validate basic structure
     if (!parsed || typeof parsed !== 'object') {
       throw new Error('Parsed content is not a valid object');
     }
