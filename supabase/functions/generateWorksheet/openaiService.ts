@@ -1,43 +1,39 @@
 
-// OpenAI service for worksheet generation - updated with better parameters
+// OpenAI service for worksheet generation - completely rewritten for better JSON
+
 import OpenAI from "https://esm.sh/openai@4.28.0";
 
 const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
 
 export async function generateWorksheetWithAI(sanitizedPrompt: string, exerciseTypes: string[]) {
+  console.log('=== OPENAI SERVICE DEBUG ===');
   console.log('Generating worksheet with OpenAI...');
+  console.log('Exercise types:', exerciseTypes);
+  console.log('Prompt preview:', sanitizedPrompt.substring(0, 100));
   
-  const aiResponse = await openai.chat.completions.create({
-    model: "gpt-4o",
-    temperature: 0.05, // Lower temperature for more consistent JSON
-    max_tokens: 12000, // Increased token limit
-    messages: [
-      {
-        role: "system",
-        content: `You are an expert ESL English language teacher. Create EXACTLY ONE complete, valid JSON worksheet.
+  const systemPrompt = `You are an expert ESL English language teacher. You MUST return ONLY a valid JSON object - no markdown, no explanations, no other text.
 
-CRITICAL RULES:
-1. Generate EXACTLY 8 exercises using these types in order: ${exerciseTypes.join(', ')}
-2. Return ONLY valid JSON - no markdown, no explanations, no text outside JSON
-3. Reading exercise: EXACTLY 280-320 words in content field
-4. All arrays must have exact counts as specified below
-5. Use proper JSON escaping for quotes and special characters
-6. NO trailing commas anywhere in the JSON
-7. Ensure all strings are properly quoted and escaped
+CRITICAL REQUIREMENTS:
+1. Return ONLY raw JSON - NO markdown formatting like \`\`\`json
+2. Generate EXACTLY 8 exercises using these types: ${exerciseTypes.join(', ')}
+3. Reading exercise MUST have 280-320 words in content field
+4. All string values MUST be properly escaped
+5. NO trailing commas anywhere
+6. NO line breaks inside string values
 
-REQUIRED JSON STRUCTURE - RETURN EXACTLY THIS FORMAT:
+JSON STRUCTURE TO RETURN:
 {
-  "title": "Worksheet Title Here",
-  "subtitle": "Subtitle Here", 
-  "introduction": "Introduction paragraph here",
+  "title": "Worksheet Title",
+  "subtitle": "Subtitle Text", 
+  "introduction": "Introduction paragraph",
   "exercises": [
     {
       "type": "reading",
       "title": "Exercise 1: Reading Comprehension",
       "icon": "fa-book-open",
       "time": 8,
-      "instructions": "Read the following text and answer the questions below.",
-      "content": "EXACTLY 280-320 WORDS OF TEXT HERE - COUNT CAREFULLY",
+      "instructions": "Read the text and answer questions.",
+      "content": "EXACTLY 280-320 WORDS HERE",
       "questions": [
         {"text": "Question 1?", "answer": "Answer 1"},
         {"text": "Question 2?", "answer": "Answer 2"},
@@ -45,14 +41,14 @@ REQUIRED JSON STRUCTURE - RETURN EXACTLY THIS FORMAT:
         {"text": "Question 4?", "answer": "Answer 4"},
         {"text": "Question 5?", "answer": "Answer 5"}
       ],
-      "teacher_tip": "Teaching tip here"
+      "teacher_tip": "Tip for teachers"
     },
     {
       "type": "matching",
       "title": "Exercise 2: Vocabulary Matching",
-      "icon": "fa-link", 
+      "icon": "fa-link",
       "time": 7,
-      "instructions": "Match each term with its correct definition.",
+      "instructions": "Match terms with definitions.",
       "items": [
         {"term": "Term1", "definition": "Definition1"},
         {"term": "Term2", "definition": "Definition2"},
@@ -65,14 +61,14 @@ REQUIRED JSON STRUCTURE - RETURN EXACTLY THIS FORMAT:
         {"term": "Term9", "definition": "Definition9"},
         {"term": "Term10", "definition": "Definition10"}
       ],
-      "teacher_tip": "Teaching tip here"
+      "teacher_tip": "Tip for teachers"
     },
     {
       "type": "fill-in-blanks",
       "title": "Exercise 3: Fill in the Blanks",
       "icon": "fa-pencil-alt",
       "time": 8,
-      "instructions": "Complete each sentence with the correct word from the box.",
+      "instructions": "Complete sentences with correct words.",
       "word_bank": ["word1", "word2", "word3", "word4", "word5", "word6", "word7", "word8", "word9", "word10"],
       "sentences": [
         {"text": "Sentence with _____ blank.", "answer": "word1"},
@@ -86,14 +82,14 @@ REQUIRED JSON STRUCTURE - RETURN EXACTLY THIS FORMAT:
         {"text": "Ninth _____ blank.", "answer": "word9"},
         {"text": "Tenth _____ blank.", "answer": "word10"}
       ],
-      "teacher_tip": "Teaching tip here"
+      "teacher_tip": "Tip for teachers"
     },
     {
       "type": "multiple-choice",
       "title": "Exercise 4: Multiple Choice",
       "icon": "fa-check-square",
       "time": 6,
-      "instructions": "Choose the best option to complete each sentence.",
+      "instructions": "Choose the best option.",
       "questions": [
         {
           "text": "Question 1?",
@@ -186,36 +182,36 @@ REQUIRED JSON STRUCTURE - RETURN EXACTLY THIS FORMAT:
           ]
         }
       ],
-      "teacher_tip": "Teaching tip here"
+      "teacher_tip": "Tip for teachers"
     },
     {
       "type": "dialogue",
       "title": "Exercise 5: Dialogue Practice",
       "icon": "fa-comments",
       "time": 7,
-      "instructions": "Read the dialogue and practice with a partner.",
+      "instructions": "Read and practice the dialogue.",
       "dialogue": [
         {"speaker": "Person A", "text": "Hello, how are you?"},
-        {"speaker": "Person B", "text": "I am fine, thank you. And you?"},
-        {"speaker": "Person A", "text": "I am doing well, thanks."},
-        {"speaker": "Person B", "text": "What brings you here today?"},
-        {"speaker": "Person A", "text": "I am here for a business meeting."},
-        {"speaker": "Person B", "text": "That sounds important."},
-        {"speaker": "Person A", "text": "Yes, it is quite significant."},
-        {"speaker": "Person B", "text": "I hope it goes well."},
-        {"speaker": "Person A", "text": "Thank you, I appreciate that."},
-        {"speaker": "Person B", "text": "You are welcome. Good luck!"}
+        {"speaker": "Person B", "text": "Fine, thank you."},
+        {"speaker": "Person A", "text": "What do you do?"},
+        {"speaker": "Person B", "text": "I am a teacher."},
+        {"speaker": "Person A", "text": "That is interesting."},
+        {"speaker": "Person B", "text": "Yes, I enjoy it."},
+        {"speaker": "Person A", "text": "Where do you work?"},
+        {"speaker": "Person B", "text": "At a local school."},
+        {"speaker": "Person A", "text": "Have a nice day."},
+        {"speaker": "Person B", "text": "You too, goodbye."}
       ],
-      "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", "expression6", "expression7", "expression8", "expression9", "expression10"],
-      "expression_instruction": "Practice using these expressions.",
-      "teacher_tip": "Teaching tip here"
+      "expressions": ["Hello", "How are you?", "Thank you", "Interesting", "I enjoy it", "Where?", "Local school", "Have a nice day", "Goodbye", "You too"],
+      "expression_instruction": "Practice these expressions.",
+      "teacher_tip": "Tip for teachers"
     },
     {
       "type": "true-false",
       "title": "Exercise 6: True or False",
       "icon": "fa-balance-scale",
       "time": 5,
-      "instructions": "Read each statement and decide if it is true or false.",
+      "instructions": "Decide if statements are true or false.",
       "statements": [
         {"text": "Statement 1", "isTrue": true},
         {"text": "Statement 2", "isTrue": false},
@@ -228,14 +224,14 @@ REQUIRED JSON STRUCTURE - RETURN EXACTLY THIS FORMAT:
         {"text": "Statement 9", "isTrue": true},
         {"text": "Statement 10", "isTrue": false}
       ],
-      "teacher_tip": "Teaching tip here"
+      "teacher_tip": "Tip for teachers"
     },
     {
       "type": "discussion",
       "title": "Exercise 7: Discussion Questions",
       "icon": "fa-users",
       "time": 8,
-      "instructions": "Discuss these questions with your teacher or partner.",
+      "instructions": "Discuss these questions.",
       "questions": [
         "Question 1?",
         "Question 2?",
@@ -248,27 +244,27 @@ REQUIRED JSON STRUCTURE - RETURN EXACTLY THIS FORMAT:
         "Question 9?",
         "Question 10?"
       ],
-      "teacher_tip": "Teaching tip here"
+      "teacher_tip": "Tip for teachers"
     },
     {
       "type": "error-correction",
       "title": "Exercise 8: Error Correction",
       "icon": "fa-exclamation-triangle",
       "time": 6,
-      "instructions": "Find and correct the errors in these sentences.",
+      "instructions": "Find and correct errors.",
       "sentences": [
-        {"text": "Sentence with a error.", "answer": "Sentence with an error."},
-        {"text": "This are wrong.", "answer": "This is wrong."},
-        {"text": "I do not have no money.", "answer": "I do not have any money."},
-        {"text": "She go yesterday.", "answer": "She went yesterday."},
-        {"text": "There is many people.", "answer": "There are many people."},
-        {"text": "I am study.", "answer": "I am studying."},
-        {"text": "He do not like.", "answer": "He does not like."},
+        {"text": "I have a error.", "answer": "I have an error."},
+        {"text": "She go home.", "answer": "She goes home."},
+        {"text": "They is happy.", "answer": "They are happy."},
+        {"text": "He don't like it.", "answer": "He doesn't like it."},
         {"text": "We was there.", "answer": "We were there."},
         {"text": "I have see it.", "answer": "I have seen it."},
-        {"text": "She can speaks.", "answer": "She can speak."}
+        {"text": "She can speaks.", "answer": "She can speak."},
+        {"text": "This are good.", "answer": "This is good."},
+        {"text": "I am go now.", "answer": "I am going now."},
+        {"text": "He have done it.", "answer": "He has done it."}
       ],
-      "teacher_tip": "Teaching tip here"
+      "teacher_tip": "Tip for teachers"
     }
   ],
   "vocabulary_sheet": [
@@ -290,12 +286,41 @@ REQUIRED JSON STRUCTURE - RETURN EXACTLY THIS FORMAT:
   ]
 }
 
-GENERATE CONTENT BASED ON THIS TOPIC: ${sanitizedPrompt}
+Generate content for topic: ${sanitizedPrompt}
 
-RETURN ONLY THE JSON OBJECT - NO OTHER TEXT OR FORMATTING.`
+REMEMBER: Return ONLY the JSON object above with content customized for the topic. NO markdown, NO explanations, NO other text.`;
+
+  const userPrompt = `Create a worksheet about: ${sanitizedPrompt}
+
+IMPORTANT: Return ONLY raw JSON - no \`\`\`json formatting, no explanations, just the JSON object starting with { and ending with }.`;
+
+  try {
+    console.log('Calling OpenAI API...');
+    
+    const aiResponse = await openai.chat.completions.create({
+      model: "gpt-4o",
+      temperature: 0.0, // Lowest possible for maximum consistency
+      max_tokens: 15000, // Increased for full content
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user", 
+          content: userPrompt
         }
       ]
     });
 
-  return aiResponse.choices[0].message.content;
+    const content = aiResponse.choices[0].message.content;
+    console.log('OpenAI response received, length:', content?.length || 0);
+    console.log('Response preview:', content?.substring(0, 200));
+    
+    return content;
+    
+  } catch (error) {
+    console.error('OpenAI API error:', error);
+    throw new Error(`OpenAI API call failed: ${error.message}`);
+  }
 }

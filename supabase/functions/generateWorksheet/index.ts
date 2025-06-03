@@ -21,12 +21,21 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== GENERATE WORKSHEET REQUEST ===');
     const { prompt, formData, userId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
+    
+    console.log('Request data:', { 
+      promptLength: prompt?.length, 
+      hasFormData: !!formData, 
+      userId: userId?.substring(0, 8) + '...',
+      ip 
+    });
     
     // Input validation
     const promptValidation = validatePrompt(prompt);
     if (!promptValidation.isValid) {
+      console.error('Prompt validation failed:', promptValidation.error);
       return new Response(
         JSON.stringify({ error: promptValidation.error }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -35,6 +44,7 @@ serve(async (req) => {
 
     // Validate userId if provided
     if (userId && !isValidUUID(userId)) {
+      console.error('Invalid userId format:', userId);
       return new Response(
         JSON.stringify({ error: 'Invalid user ID format' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -53,8 +63,7 @@ serve(async (req) => {
 
     // Sanitize inputs
     const sanitizedPrompt = sanitizeInput(prompt, 5000);
-    
-    console.log('Received validated prompt:', sanitizedPrompt.substring(0, 100) + '...');
+    console.log('Sanitized prompt preview:', sanitizedPrompt.substring(0, 100) + '...');
 
     // Parse the lesson time from the prompt to determine exercise count
     let finalExerciseCount = 8; // Always generate 8 first
@@ -63,28 +72,42 @@ serve(async (req) => {
     if (sanitizedPrompt.includes('45 min')) {
       shouldTrimTo6 = true;
       finalExerciseCount = 6; // Final count will be 6
+      console.log('Detected 45 min lesson - will trim to 6 exercises');
     } else if (sanitizedPrompt.includes('60 min')) {
       finalExerciseCount = 8; // Final count will be 8
+      console.log('Detected 60 min lesson - will keep 8 exercises');
     }
     
     // Always use the 8-exercise set for generation
     const exerciseTypes = getExerciseTypesForCount(8);
+    console.log('Exercise types for generation:', exerciseTypes);
     
     // Generate worksheet using OpenAI
+    console.log('Calling OpenAI service...');
     const jsonContent = await generateWorksheetWithAI(sanitizedPrompt, exerciseTypes);
     
-    console.log('AI response received, processing...');
+    console.log('=== AI RESPONSE ANALYSIS ===');
     console.log('Raw response length:', jsonContent?.length || 0);
-    console.log('Response starts with:', jsonContent?.substring(0, 100));
+    console.log('Response starts with:', jsonContent?.substring(0, 150));
+    console.log('Response ends with:', jsonContent?.substring(-150));
+    console.log('Contains ```json:', jsonContent?.includes('```json'));
+    console.log('Contains ```:', jsonContent?.includes('```'));
     
     // Parse the JSON response with enhanced error handling
     let worksheetData;
     try {
+      console.log('=== PARSING JSON RESPONSE ===');
       worksheetData = parseAIResponse(jsonContent);
       
       if (!worksheetData.title || !worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
         throw new Error('Invalid worksheet structure returned from AI');
       }
+      
+      console.log('Successfully parsed worksheet:', {
+        title: worksheetData.title,
+        exerciseCount: worksheetData.exercises.length,
+        hasVocabSheet: !!worksheetData.vocabulary_sheet
+      });
       
       // Enhanced validation for exercise requirements
       for (const exercise of worksheetData.exercises) {
@@ -126,15 +149,23 @@ serve(async (req) => {
       worksheetData.sourceCount = sourceCount;
       
     } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', parseError);
-      console.error('Response content preview (first 1000 chars):', jsonContent?.substring(0, 1000));
+      console.error('=== PARSING FAILED ===');
+      console.error('Parse error:', parseError.message);
+      console.error('Response content type:', typeof jsonContent);
+      console.error('Response preview (first 2000 chars):', jsonContent?.substring(0, 2000));
+      console.error('Response preview (last 500 chars):', jsonContent?.substring(-500));
+      
       return new Response(
-        JSON.stringify({ error: 'Failed to generate a valid worksheet structure. Please try again.' }),
+        JSON.stringify({ 
+          error: 'Failed to generate a valid worksheet structure. Please try again.',
+          details: parseError.message
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Save worksheet to database
+    console.log('Saving worksheet to database...');
     const worksheetId = await saveWorksheetToDatabase(
       sanitizedPrompt,
       formData,
@@ -146,12 +177,15 @@ serve(async (req) => {
 
     if (worksheetId) {
       worksheetData.id = worksheetId;
+      console.log('Worksheet saved with ID:', worksheetId);
     }
 
+    console.log('=== REQUEST COMPLETED SUCCESSFULLY ===');
     return new Response(JSON.stringify(worksheetData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    console.error('=== REQUEST FAILED ===');
     console.error('Error in generateWorksheet:', error);
     
     // Sanitize error message
@@ -161,7 +195,8 @@ serve(async (req) => {
       
     return new Response(
       JSON.stringify({ 
-        error: sanitizedError
+        error: sanitizedError,
+        details: error.message
       }),
       { 
         status: error.status || 500,
