@@ -1,4 +1,5 @@
 
+
 // Main helper functions - refactored and simplified
 
 import { getExerciseTypesForCount, getExerciseTypesForMissing, getIconForType } from './exerciseHelpers.ts';
