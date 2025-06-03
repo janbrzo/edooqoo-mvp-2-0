@@ -1,5 +1,5 @@
 
-// OpenAI service for worksheet generation
+// OpenAI service for worksheet generation - updated with better parameters
 import OpenAI from "https://esm.sh/openai@4.28.0";
 
 const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
@@ -9,8 +9,8 @@ export async function generateWorksheetWithAI(sanitizedPrompt: string, exerciseT
   
   const aiResponse = await openai.chat.completions.create({
     model: "gpt-4o",
-    temperature: 0.1,
-    max_tokens: 8000,
+    temperature: 0.05, // Lower temperature for more consistent JSON
+    max_tokens: 12000, // Increased token limit
     messages: [
       {
         role: "system",
@@ -22,8 +22,10 @@ CRITICAL RULES:
 3. Reading exercise: EXACTLY 280-320 words in content field
 4. All arrays must have exact counts as specified below
 5. Use proper JSON escaping for quotes and special characters
+6. NO trailing commas anywhere in the JSON
+7. Ensure all strings are properly quoted and escaped
 
-REQUIRED JSON STRUCTURE:
+REQUIRED JSON STRUCTURE - RETURN EXACTLY THIS FORMAT:
 {
   "title": "Worksheet Title Here",
   "subtitle": "Subtitle Here", 
@@ -194,15 +196,15 @@ REQUIRED JSON STRUCTURE:
       "instructions": "Read the dialogue and practice with a partner.",
       "dialogue": [
         {"speaker": "Person A", "text": "Hello, how are you?"},
-        {"speaker": "Person B", "text": "I'm fine, thank you. And you?"},
-        {"speaker": "Person A", "text": "I'm doing well, thanks."},
+        {"speaker": "Person B", "text": "I am fine, thank you. And you?"},
+        {"speaker": "Person A", "text": "I am doing well, thanks."},
         {"speaker": "Person B", "text": "What brings you here today?"},
-        {"speaker": "Person A", "text": "I'm here for a business meeting."},
+        {"speaker": "Person A", "text": "I am here for a business meeting."},
         {"speaker": "Person B", "text": "That sounds important."},
-        {"speaker": "Person A", "text": "Yes, it's quite significant."},
+        {"speaker": "Person A", "text": "Yes, it is quite significant."},
         {"speaker": "Person B", "text": "I hope it goes well."},
         {"speaker": "Person A", "text": "Thank you, I appreciate that."},
-        {"speaker": "Person B", "text": "You're welcome. Good luck!"}
+        {"speaker": "Person B", "text": "You are welcome. Good luck!"}
       ],
       "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", "expression6", "expression7", "expression8", "expression9", "expression10"],
       "expression_instruction": "Practice using these expressions.",
@@ -257,11 +259,11 @@ REQUIRED JSON STRUCTURE:
       "sentences": [
         {"text": "Sentence with a error.", "answer": "Sentence with an error."},
         {"text": "This are wrong.", "answer": "This is wrong."},
-        {"text": "I don't have no money.", "answer": "I don't have any money."},
+        {"text": "I do not have no money.", "answer": "I do not have any money."},
         {"text": "She go yesterday.", "answer": "She went yesterday."},
         {"text": "There is many people.", "answer": "There are many people."},
         {"text": "I am study.", "answer": "I am studying."},
-        {"text": "He don't like.", "answer": "He doesn't like."},
+        {"text": "He do not like.", "answer": "He does not like."},
         {"text": "We was there.", "answer": "We were there."},
         {"text": "I have see it.", "answer": "I have seen it."},
         {"text": "She can speaks.", "answer": "She can speak."}
@@ -290,7 +292,7 @@ REQUIRED JSON STRUCTURE:
 
 GENERATE CONTENT BASED ON THIS TOPIC: ${sanitizedPrompt}
 
-RETURN ONLY THE JSON OBJECT - NO OTHER TEXT.`
+RETURN ONLY THE JSON OBJECT - NO OTHER TEXT OR FORMATTING.`
         }
       ]
     });
