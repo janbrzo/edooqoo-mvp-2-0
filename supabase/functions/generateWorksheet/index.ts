@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
@@ -118,21 +117,24 @@ serve(async (req) => {
     console.log('Received validated prompt:', sanitizedPrompt.substring(0, 100) + '...');
 
     // Parse the lesson time from the prompt to determine exercise count
-    let exerciseCount = 6; // Default
-    if (sanitizedPrompt.includes('30 min')) {
-      exerciseCount = 4;
-    } else if (sanitizedPrompt.includes('45 min')) {
-      exerciseCount = 6;
+    // Always generate 8 exercises, then trim to 6 if needed
+    let finalExerciseCount = 8; // Always generate 8 first
+    let shouldTrimTo6 = false;
+    
+    if (sanitizedPrompt.includes('45 min')) {
+      shouldTrimTo6 = true;
+      finalExerciseCount = 6; // Final count will be 6
     } else if (sanitizedPrompt.includes('60 min')) {
-      exerciseCount = 8;
+      finalExerciseCount = 8; // Final count will be 8
     }
+    // Remove 30 min option completely
     
-    // Determine exercise types to include based on exerciseCount
-    const exerciseTypes = getExerciseTypesForCount(exerciseCount);
+    // Always use the 8-exercise set for generation
+    const exerciseTypes = getExerciseTypesForCount(8);
     
-    // Generate worksheet using OpenAI with improved prompt structure and VERY SPECIFIC requirements
+    // Generate worksheet using OpenAI with GPT-4.1 and complete structures
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4.1", // Changed from gpt-4o to gpt-4.1 for better instruction following
       temperature: 0.7,
       messages: [
         {
@@ -142,7 +144,7 @@ serve(async (req) => {
           Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits.
 
           IMPORTANT RULES AND REQUIREMENTS:
-1. Create EXACTLY ${exerciseCount} exercises based on the prompt. No fewer, no more.
+1. Create EXACTLY 8 exercises based on the prompt. No fewer, no more.
 2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
 3. Ensure variety and progressive difficulty.  
 4. All exercises should be closely related to the specified topic and goal
@@ -152,13 +154,11 @@ serve(async (req) => {
 8. Use appropriate time values for each exercise (5-10 minutes).
 9. DO NOT include any text outside of the JSON structure.
 10. Exercise 1: Reading Comprehension must follow extra steps:
-    - Generate the content passage between 280 and 320 words.
-    - After closing JSON, on a separate line add:
-      // Word count: X (must be between 280–320)
-    - Don't proceed unless X is between 280 and 320.
+    - Generate the content passage between 280 and 320 words. COUNT WORDS CAREFULLY.
+    - The passage MUST contain exactly 280-320 words. This is CRITICAL.
 11. Focus on overall flow, coherence and pedagogical value; minor typos acceptable.
 
-12. Generate a structured JSON worksheet with the following format:
+12. Generate a structured JSON worksheet with the following COMPLETE format:
 
 {
   "title": "Main Title of the Worksheet",
@@ -171,7 +171,7 @@ serve(async (req) => {
       "icon": "fa-book-open",
       "time": 8,
       "instructions": "Read the following text and answer the questions below.",
-      "content": "Content text of more than 280 words goes here",
+      "content": "Content text of EXACTLY 280-320 words goes here - count words carefully and ensure this requirement is met",
       "questions": [
         {"text": "Question 1", "answer": "Answer 1"},
         {"text": "Question 2", "answer": "Answer 2"},
@@ -179,7 +179,7 @@ serve(async (req) => {
         {"text": "Question 4", "answer": "Answer 4"},
         {"text": "Question 5", "answer": "Answer 5"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "matching",
@@ -199,7 +199,7 @@ serve(async (req) => {
         {"term": "Term 9", "definition": "Definition 9"},
         {"term": "Term 10", "definition": "Definition 10"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "fill-in-blanks",
@@ -220,7 +220,7 @@ serve(async (req) => {
         {"text": "Ninth sentence has a _____ blank.", "answer": "word9"},
         {"text": "Tenth sentence with a _____ to fill.", "answer": "word10"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "multiple-choice",
@@ -237,9 +237,90 @@ serve(async (req) => {
             {"label": "C", "text": "Option C", "correct": false},
             {"label": "D", "text": "Option D", "correct": false}
           ]
+        },
+        {
+          "text": "Question 2 text?",
+          "options": [
+            {"label": "A", "text": "Option A", "correct": true},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": false}
+          ]
+        },
+        {
+          "text": "Question 3 text?",
+          "options": [
+            {"label": "A", "text": "Option A", "correct": false},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": true},
+            {"label": "D", "text": "Option D", "correct": false}
+          ]
+        },
+        {
+          "text": "Question 4 text?",
+          "options": [
+            {"label": "A", "text": "Option A", "correct": false},
+            {"label": "B", "text": "Option B", "correct": true},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": false}
+          ]
+        },
+        {
+          "text": "Question 5 text?",
+          "options": [
+            {"label": "A", "text": "Option A", "correct": false},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": true}
+          ]
+        },
+        {
+          "text": "Question 6 text?",
+          "options": [
+            {"label": "A", "text": "Option A", "correct": true},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": false}
+          ]
+        },
+        {
+          "text": "Question 7 text?",
+          "options": [
+            {"label": "A", "text": "Option A", "correct": false},
+            {"label": "B", "text": "Option B", "correct": true},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": false}
+          ]
+        },
+        {
+          "text": "Question 8 text?",
+          "options": [
+            {"label": "A", "text": "Option A", "correct": false},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": true},
+            {"label": "D", "text": "Option D", "correct": false}
+          ]
+        },
+        {
+          "text": "Question 9 text?",
+          "options": [
+            {"label": "A", "text": "Option A", "correct": false},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": true}
+          ]
+        },
+        {
+          "text": "Question 10 text?",
+          "options": [
+            {"label": "A", "text": "Option A", "correct": true},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": false}
+          ]
         }
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "dialogue",
@@ -249,12 +330,20 @@ serve(async (req) => {
       "instructions": "Read the dialogue and practice with a partner.",
       "dialogue": [
         {"speaker": "Person A", "text": "Hello, how are you?"},
-        {"speaker": "Person B", "text": "I'm fine, thank you. And you?"}
+        {"speaker": "Person B", "text": "I'm fine, thank you. And you?"},
+        {"speaker": "Person A", "text": "I'm doing well, thanks."},
+        {"speaker": "Person B", "text": "What brings you here today?"},
+        {"speaker": "Person A", "text": "I'm here for a business meeting."},
+        {"speaker": "Person B", "text": "That sounds important."},
+        {"speaker": "Person A", "text": "Yes, it's quite significant for our company."},
+        {"speaker": "Person B", "text": "I hope it goes well for you."},
+        {"speaker": "Person A", "text": "Thank you, I appreciate that."},
+        {"speaker": "Person B", "text": "You're welcome. Good luck!"}
       ],
       "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", 
                      "expression6", "expression7", "expression8", "expression9", "expression10"],
       "expression_instruction": "Practice using these expressions in your own dialogues.",
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "true-false",
@@ -274,47 +363,80 @@ serve(async (req) => {
         {"text": "Statement 9", "isTrue": true},
         {"text": "Statement 10", "isTrue": false}
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful Advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
+    },
+    {
+      "type": "discussion",
+      "title": "Exercise 7: Discussion Questions",
+      "icon": "fa-users",
+      "time": 8,
+      "instructions": "Discuss these questions with your teacher or partner.",
+      "questions": [
+        "Discussion question 1?",
+        "Discussion question 2?",
+        "Discussion question 3?",
+        "Discussion question 4?",
+        "Discussion question 5?",
+        "Discussion question 6?",
+        "Discussion question 7?",
+        "Discussion question 8?",
+        "Discussion question 9?",
+        "Discussion question 10?"
+      ],
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
+    },
+    {
+      "type": "error-correction",
+      "title": "Exercise 8: Error Correction",
+      "icon": "fa-exclamation-triangle",
+      "time": 6,
+      "instructions": "Find and correct the errors in these sentences.",
+      "sentences": [
+        {"text": "Sentence with a error to correct.", "answer": "Sentence with an error to correct."},
+        {"text": "This are wrong grammar.", "answer": "This is wrong grammar."},
+        {"text": "I don't have no money.", "answer": "I don't have any money."},
+        {"text": "She go to school yesterday.", "answer": "She went to school yesterday."},
+        {"text": "There is many people here.", "answer": "There are many people here."},
+        {"text": "I am study English.", "answer": "I am studying English."},
+        {"text": "He don't like coffee.", "answer": "He doesn't like coffee."},
+        {"text": "We was at home.", "answer": "We were at home."},
+        {"text": "I have see that movie.", "answer": "I have seen that movie."},
+        {"text": "She can speaks English well.", "answer": "She can speak English well."}
+      ],
+      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
     }
   ],
   "vocabulary_sheet": [
     {"term": "Term 1", "meaning": "Definition 1"},
-    {"term": "Term 2", "meaning": "Definition 2"}
+    {"term": "Term 2", "meaning": "Definition 2"},
+    {"term": "Term 3", "meaning": "Definition 3"},
+    {"term": "Term 4", "meaning": "Definition 4"},
+    {"term": "Term 5", "meaning": "Definition 5"},
+    {"term": "Term 6", "meaning": "Definition 6"},
+    {"term": "Term 7", "meaning": "Definition 7"},
+    {"term": "Term 8", "meaning": "Definition 8"},
+    {"term": "Term 9", "meaning": "Definition 9"},
+    {"term": "Term 10", "meaning": "Definition 10"},
+    {"term": "Term 11", "meaning": "Definition 11"},
+    {"term": "Term 12", "meaning": "Definition 12"},
+    {"term": "Term 13", "meaning": "Definition 13"},
+    {"term": "Term 14", "meaning": "Definition 14"},
+    {"term": "Term 15", "meaning": "Definition 15"}
   ]
 }
 
-IMPORTANT QUALITY CHECK BEFORE GENERATING:
-1.  Grammar, spelling, formatting – near-flawless (1–2 minor typos allowed). Difficulty level consistent and appropriate.
-2. Confirm that Exercise 1 content is between 280 and 320 words and that the Word count comment is correct.
-3. For "reading" exercises:
-   - The content MUST be BETWEEN 280-320 WORDS. Count words carefully.
-   - ALWAYS include EXACTLY 5 comprehension questions.
-4. For "matching" exercises:
-   - Include EXACTLY 10 items to match.
-5. For "fill-in-blanks" exercises:
-   - Include EXACTLY 10 sentences and 10 words in the word bank.
-6. For "multiple-choice" exercises:
-   - Include EXACTLY 10 questions with 4 options each.
-7. For "dialogue" exercises:
-   - Include AT LEAST 10 dialogue exchanges.
-   - Include EXACTLY 10 expressions to practice.
-8. For "true-false" exercises:
-   - Include EXACTLY 10 statements with clear true/false answers.
-9. For "discussion" exercises:
-   - Include EXACTLY 10 discussion questions.
-10. For "error-correction" exercises:
-   - Include EXACTLY 10 sentences with errors to correct.
-11. For "word-formation" exercises:
-   - Include EXACTLY 10 sentences with gaps for word formation.
-12. For "word-order" exercises:
-   - Include EXACTLY 10 sentences with words to rearrange.
-13. For ALL other exercise types:
-   - Include EXACTLY 10 examples/items/questions unless specified otherwise.
-14. For vocabulary sheets, include EXACTLY 15 terms.
-15. Specific vocabulary related to the topic is included.
+CRITICAL REQUIREMENTS FOR EACH EXERCISE TYPE:
+1. Reading: EXACTLY 280-320 words in content + EXACTLY 5 questions
+2. Matching: EXACTLY 10 items to match
+3. Fill-in-blanks: EXACTLY 10 sentences + EXACTLY 10 words in word bank
+4. Multiple-choice: EXACTLY 10 questions with 4 options each (A,B,C,D)
+5. Dialogue: AT LEAST 10 dialogue exchanges + EXACTLY 10 expressions
+6. True-false: EXACTLY 10 statements
+7. Discussion: EXACTLY 10 discussion questions  
+8. Error-correction: EXACTLY 10 sentences with errors
+9. Vocabulary sheet: EXACTLY 15 terms with meanings
 
-RETURN ONLY VALID JSON.
-`
+RETURN ONLY VALID JSON. NO TEXT OUTSIDE JSON STRUCTURE.`
         },
         {
           role: "user",
@@ -342,64 +464,21 @@ RETURN ONLY VALID JSON.
         validateExercise(exercise);
       }
       
-      // Ensure we have the correct number of exercises
-      if (worksheetData.exercises.length !== exerciseCount) {
-        console.warn(`Expected ${exerciseCount} exercises but got ${worksheetData.exercises.length}`);
-        
-        if (worksheetData.exercises.length < exerciseCount) {
-          const additionalExercisesNeeded = exerciseCount - worksheetData.exercises.length;
-          console.log(`Generating ${additionalExercisesNeeded} additional exercises`);
-          
-          const additionalExercisesResponse = await openai.chat.completions.create({
-            model: "gpt-4o",
-            temperature: 0.7,
-            messages: [
-              {
-                role: "system",
-                content: "You are an expert at creating ESL exercises that match a specific format and quality level."
-              },
-              {
-                role: "user",
-                content: `Create ${additionalExercisesNeeded} additional ESL exercises related to this topic: "${sanitizedPrompt}". 
-                Use only these exercise types: ${getExerciseTypesForMissing(worksheetData.exercises, exerciseTypes)}.
-                Each exercise should be complete with all required fields as shown in the examples.
-                Return them in valid JSON format as an array of exercises.
-                
-                Existing exercise types: ${worksheetData.exercises.map((ex: any) => ex.type).join(', ')}
-                
-                Exercise types to use: ${getExerciseTypesForMissing(worksheetData.exercises, exerciseTypes)}
-                
-                Number the exercises sequentially starting from ${worksheetData.exercises.length + 1}.`
-              }
-            ],
-            max_tokens: 3000
-          });
-          
-          try {
-            const additionalExercisesText = additionalExercisesResponse.choices[0].message.content;
-            const jsonStartIndex = additionalExercisesText.indexOf('[');
-            const jsonEndIndex = additionalExercisesText.lastIndexOf(']') + 1;
-            
-            if (jsonStartIndex >= 0 && jsonEndIndex > jsonStartIndex) {
-              const jsonPortion = additionalExercisesText.substring(jsonStartIndex, jsonEndIndex);
-              const additionalExercises = JSON.parse(jsonPortion);
-              
-              if (Array.isArray(additionalExercises)) {
-                worksheetData.exercises = [...worksheetData.exercises, ...additionalExercises];
-                console.log(`Successfully added ${additionalExercises.length} exercises`);
-                
-                for (const exercise of additionalExercises) {
-                  validateExercise(exercise);
-                }
-              }
-            }
-          } catch (parseError) {
-            console.error('Failed to parse or add additional exercises:', parseError);
-          }
-        } else if (worksheetData.exercises.length > exerciseCount) {
-          worksheetData.exercises = worksheetData.exercises.slice(0, exerciseCount);
-          console.log(`Trimmed exercises to ${worksheetData.exercises.length}`);
+      // Always generate 8 exercises, then trim if needed for 45 min
+      if (worksheetData.exercises.length !== 8) {
+        console.warn(`Expected 8 exercises but got ${worksheetData.exercises.length}`);
+        // If we don't have exactly 8, this is an error - no additional generation
+        if (worksheetData.exercises.length < 8) {
+          throw new Error('AI did not generate the required 8 exercises');
+        } else if (worksheetData.exercises.length > 8) {
+          worksheetData.exercises = worksheetData.exercises.slice(0, 8);
         }
+      }
+      
+      // Trim to 6 exercises for 45 min lessons (remove last 2: discussion, error-correction)
+      if (shouldTrimTo6) {
+        worksheetData.exercises = worksheetData.exercises.slice(0, 6);
+        console.log('Trimmed from 8 to 6 exercises for 45 min lesson');
       }
       
       // Make sure exercise titles have correct sequential numbering
@@ -409,7 +488,7 @@ RETURN ONLY VALID JSON.
         exercise.title = `Exercise ${exerciseNumber}: ${exerciseType}`;
       });
       
-      console.log(`Final exercise count: ${worksheetData.exercises.length} (expected: ${exerciseCount})`);
+      console.log(`Final exercise count: ${worksheetData.exercises.length} (expected: ${finalExerciseCount})`);
       
       const sourceCount = Math.floor(Math.random() * (90 - 65) + 65);
       worksheetData.sourceCount = sourceCount;

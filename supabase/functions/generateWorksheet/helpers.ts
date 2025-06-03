@@ -1,44 +1,40 @@
-
 // Helper functions used in the worksheet generator
 
 /**
  * Gets exercise types based on count of exercises needed
+ * NEW LOGIC: Fixed exercise sets instead of dynamic selection
  */
 export function getExerciseTypesForCount(count: number): string[] {
-  // Base set of exercise types
-  const baseTypes = [
+  // For 8 exercises (60 min) - complete set
+  const fullSet = [
     'reading', 
     'matching', 
     'fill-in-blanks', 
-    'multiple-choice'
-  ];
-  
-  // Additional types when we need more exercises
-  const additionalTypes = [
+    'multiple-choice',
     'dialogue', 
     'true-false', 
     'discussion', 
-    'error-correction', 
-    'word-formation', 
-    'word-order'
+    'error-correction'
   ];
   
-  // For 4 exercises (30 min), use just the base types
-  if (count <= 4) {
-    return baseTypes;
-  }
+  // For 6 exercises (45 min) - first 6 from the set
+  const shortSet = [
+    'reading', 
+    'matching', 
+    'fill-in-blanks', 
+    'multiple-choice',
+    'dialogue', 
+    'true-false'
+  ];
   
-  // For 6 exercises (45 min), add 2 more
-  if (count <= 6) {
-    return [...baseTypes, 'dialogue', 'true-false'];
-  }
-  
-  // For 8 or more exercises (60 min), use all types
-  return [...baseTypes, ...additionalTypes];
+  // Always return the full 8-exercise set for generation
+  // Frontend logic will trim to 6 if needed
+  return fullSet;
 }
 
 /**
  * Gets missing exercise types from what we already have
+ * This function is now less relevant but kept for backward compatibility
  */
 export function getExerciseTypesForMissing(existingExercises: any[], allTypes: string[]): string[] {
   const existingTypes = new Set(existingExercises.map(ex => ex.type));
@@ -52,14 +48,14 @@ export function getIconForType(type: string): string {
   const iconMap: {[key: string]: string} = {
     'multiple-choice': 'fa-check-square',
     'reading': 'fa-book-open',
-    'matching': 'fa-random',
+    'matching': 'fa-link',
     'fill-in-blanks': 'fa-pencil-alt',
     'dialogue': 'fa-comments',
     'discussion': 'fa-users',
     'error-correction': 'fa-exclamation-triangle',
-    'word-formation': 'fa-font',
-    'word-order': 'fa-sort',
-    'true-false': 'fa-balance-scale'
+    'true-false': 'fa-balance-scale',
+    // Removed: 'word-formation': 'fa-font',
+    // Removed: 'word-order': 'fa-sort'
   };
   
   return iconMap[type] || 'fa-tasks';
