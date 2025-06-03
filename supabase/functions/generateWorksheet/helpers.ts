@@ -55,8 +55,6 @@ export function getIconForType(type: string): string {
     'discussion': 'fa-users',
     'error-correction': 'fa-exclamation-triangle',
     'true-false': 'fa-balance-scale',
-    // Removed: 'word-formation': 'fa-font',
-    // Removed: 'word-order': 'fa-sort'
   };
   
   return iconMap[type] || 'fa-tasks';
@@ -97,16 +95,19 @@ export function generateFakeText(wordCount: number): string {
 }
 
 /**
- * Parses and cleans JSON content from AI response with enhanced error handling
+ * Enhanced JSON parsing with comprehensive error handling and cleaning
  */
 export function parseAIResponse(jsonContent: string): any {
   if (!jsonContent || typeof jsonContent !== 'string') {
     throw new Error('Invalid JSON content: empty or not a string');
   }
   
+  console.log('Original content length:', jsonContent.length);
+  console.log('Content starts with:', jsonContent.substring(0, 200));
+  
   let cleanJsonContent = jsonContent.trim();
   
-  // Remove any markdown formatting or extra text
+  // Step 1: Remove markdown formatting
   if (cleanJsonContent.includes('```json')) {
     const startIndex = cleanJsonContent.indexOf('```json') + 7;
     const endIndex = cleanJsonContent.lastIndexOf('```');
@@ -115,7 +116,7 @@ export function parseAIResponse(jsonContent: string): any {
     }
   }
   
-  // Remove any text before first { and after last }
+  // Step 2: Extract JSON structure
   const firstBrace = cleanJsonContent.indexOf('{');
   const lastBrace = cleanJsonContent.lastIndexOf('}');
   
@@ -124,64 +125,108 @@ export function parseAIResponse(jsonContent: string): any {
   }
   
   cleanJsonContent = cleanJsonContent.substring(firstBrace, lastBrace + 1);
+  console.log('Extracted JSON length:', cleanJsonContent.length);
   
-  // Try to fix common JSON issues
+  // Step 3: Comprehensive JSON cleaning
   try {
-    // Fix trailing commas before } or ]
+    // Fix trailing commas
     cleanJsonContent = cleanJsonContent.replace(/,(\s*[}\]])/g, '$1');
     
-    // Fix missing commas between array elements (basic fix)
+    // Fix missing commas between objects and arrays
     cleanJsonContent = cleanJsonContent.replace(/}(\s*){/g, '},$1{');
     cleanJsonContent = cleanJsonContent.replace(/](\s*)\[/g, '],$1[');
     
-    // Fix unescaped quotes in strings (basic approach)
-    cleanJsonContent = cleanJsonContent.replace(/(?<!\\)"(?=[^,}\]]*[,}\]])/g, '\\"');
+    // Fix unescaped quotes in strings (more robust approach)
+    cleanJsonContent = cleanJsonContent.replace(/(?<!\\)"(?![,}\]:]*[,}\]])/g, '\\"');
     
-    console.log('Attempting to parse cleaned JSON content');
+    // Fix common escape sequence issues
+    cleanJsonContent = cleanJsonContent.replace(/\\n/g, '\\\\n');
+    cleanJsonContent = cleanJsonContent.replace(/\\t/g, '\\\\t');
+    
+    // Remove any control characters that might break JSON
+    cleanJsonContent = cleanJsonContent.replace(/[\x00-\x1F\x7F]/g, '');
+    
+    console.log('Attempting to parse cleaned JSON');
     const parsed = JSON.parse(cleanJsonContent);
     
-    // Validate basic structure
-    if (!parsed.title || !parsed.exercises || !Array.isArray(parsed.exercises)) {
-      throw new Error('Parsed JSON missing required fields (title, exercises)');
+    // Validate structure
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Parsed content is not a valid object');
     }
     
-    return parsed;
-  } catch (parseError) {
-    console.error('JSON parsing failed even after cleaning:', parseError);
-    console.error('Cleaned content length:', cleanJsonContent.length);
-    console.error('Content preview:', cleanJsonContent.substring(0, 500));
+    if (!parsed.title || !parsed.exercises || !Array.isArray(parsed.exercises)) {
+      throw new Error('Missing required fields: title, exercises array');
+    }
     
-    // Try a more aggressive approach - extract just the exercises array if possible
+    if (parsed.exercises.length === 0) {
+      throw new Error('Exercises array is empty');
+    }
+    
+    console.log('Successfully parsed JSON with', parsed.exercises.length, 'exercises');
+    return parsed;
+    
+  } catch (parseError) {
+    console.error('Initial JSON parsing failed:', parseError.message);
+    console.error('Problematic content preview:', cleanJsonContent.substring(0, 500));
+    
+    // Fallback: Try to extract and reconstruct minimal structure
     try {
+      console.log('Attempting fallback reconstruction...');
+      
+      // Extract title
+      const titleMatch = cleanJsonContent.match(/"title"\s*:\s*"([^"]+)"/);
+      const title = titleMatch ? titleMatch[1] : 'Generated Worksheet';
+      
+      // Extract subtitle
+      const subtitleMatch = cleanJsonContent.match(/"subtitle"\s*:\s*"([^"]+)"/);
+      const subtitle = subtitleMatch ? subtitleMatch[1] : 'English Language Practice';
+      
+      // Extract introduction
+      const introMatch = cleanJsonContent.match(/"introduction"\s*:\s*"([^"]+)"/);
+      const introduction = introMatch ? introMatch[1] : 'This worksheet contains exercises to improve your English skills.';
+      
+      // Try to extract exercises array
       const exercisesMatch = cleanJsonContent.match(/"exercises"\s*:\s*\[(.*?)\]/s);
+      let exercises = [];
+      
       if (exercisesMatch) {
-        console.log('Attempting to create minimal valid structure');
-        const minimalStructure = {
-          title: "Generated Worksheet",
-          subtitle: "English Language Practice",
-          introduction: "This worksheet contains various exercises to improve your English skills.",
-          exercises: [],
-          vocabulary_sheet: []
-        };
-        
-        // Try to extract just the first few exercises
+        // Try to parse individual exercises
         const exercisesText = exercisesMatch[1];
-        const firstExercise = exercisesText.substring(0, exercisesText.indexOf('},') + 1);
+        const exerciseBlocks = exercisesText.split('},{');
         
-        if (firstExercise) {
+        for (let i = 0; i < Math.min(exerciseBlocks.length, 8); i++) {
           try {
-            const exercise = JSON.parse('{' + firstExercise + '}');
-            minimalStructure.exercises = [exercise];
-            return minimalStructure;
+            let exerciseBlock = exerciseBlocks[i].trim();
+            if (!exerciseBlock.startsWith('{')) exerciseBlock = '{' + exerciseBlock;
+            if (!exerciseBlock.endsWith('}')) exerciseBlock = exerciseBlock + '}';
+            
+            const exercise = JSON.parse(exerciseBlock);
+            if (exercise.type && exercise.title) {
+              exercises.push(exercise);
+            }
           } catch (e) {
-            // Fall through to final error
+            console.warn(`Failed to parse exercise ${i}:`, e.message);
           }
         }
       }
-    } catch (e) {
-      // Final fallback failed
+      
+      // If we got at least some exercises, create minimal structure
+      if (exercises.length > 0) {
+        const fallbackStructure = {
+          title,
+          subtitle,
+          introduction,
+          exercises,
+          vocabulary_sheet: []
+        };
+        
+        console.log('Fallback reconstruction successful with', exercises.length, 'exercises');
+        return fallbackStructure;
+      }
+    } catch (fallbackError) {
+      console.error('Fallback reconstruction failed:', fallbackError.message);
     }
     
-    throw new Error(`Failed to parse AI response: ${parseError.message}`);
+    throw new Error(`Failed to parse AI response: ${parseError.message}. Content length: ${cleanJsonContent.length}`);
   }
 }

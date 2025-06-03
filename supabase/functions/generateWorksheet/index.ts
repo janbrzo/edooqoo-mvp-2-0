@@ -118,7 +118,6 @@ serve(async (req) => {
     console.log('Received validated prompt:', sanitizedPrompt.substring(0, 100) + '...');
 
     // Parse the lesson time from the prompt to determine exercise count
-    // Always generate 8 exercises, then trim to 6 if needed
     let finalExerciseCount = 8; // Always generate 8 first
     let shouldTrimTo6 = false;
     
@@ -132,39 +131,28 @@ serve(async (req) => {
     // Always use the 8-exercise set for generation
     const exerciseTypes = getExerciseTypesForCount(8);
     
-    // Generate worksheet using OpenAI with GPT-4.1 and complete structures
+    // Generate worksheet using OpenAI with optimized parameters
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4.1",
-      temperature: 0.3, // Lower temperature for more consistent output
-      max_tokens: 4000, // Ensure we have enough tokens for complete response
+      model: "gpt-4o", // Changed to more stable model for JSON generation
+      temperature: 0.1, // Very low temperature for consistent JSON structure
+      max_tokens: 6000, // Increased token limit for complete responses
       messages: [
         {
           role: "system",
-          content: `You are an expert ESL English language teacher specialized in creating a context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
-          Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.
-          Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits.
+          content: `You are an expert ESL English language teacher. Create EXACTLY ONE complete, valid JSON worksheet.
 
-          IMPORTANT RULES AND REQUIREMENTS:
-1. Create EXACTLY 8 exercises based on the prompt. No fewer, no more.
-2. Use ONLY these exercise types: ${exerciseTypes.join(', ')}. Number them in sequence starting from Exercise 1.
-3. Ensure variety and progressive difficulty.  
-4. All exercises should be closely related to the specified topic and goal
-5. Include specific vocabulary, expressions, and language structures related to the topic.
-6. Keep exercise instructions clear and concise. Students should be able to understand the tasks without any additional explanation.
-7. DO NOT USE PLACEHOLDERS. Write full, complete, and high-quality content for every field. 
-8. Use appropriate time values for each exercise (5-10 minutes).
-9. DO NOT include any text outside of the JSON structure.
-10. Exercise 1: Reading Comprehension must follow extra steps:
-    - Generate the content passage between 280 and 320 words. COUNT WORDS CAREFULLY.
-    - The passage MUST contain exactly 280-320 words. This is CRITICAL.
-11. Focus on overall flow, coherence and pedagogical value; minor typos acceptable.
+CRITICAL RULES:
+1. Generate EXACTLY 8 exercises using these types in order: ${exerciseTypes.join(', ')}
+2. Return ONLY valid JSON - no markdown, no explanations, no text outside JSON
+3. Reading exercise: EXACTLY 280-320 words in content field
+4. All arrays must have exact counts as specified below
+5. Use proper JSON escaping for quotes and special characters
 
-12. Generate a structured JSON worksheet with the following COMPLETE format:
-
+REQUIRED JSON STRUCTURE:
 {
-  "title": "Main Title of the Worksheet",
-  "subtitle": "Subtitle Related to the Topic",
-  "introduction": "Brief introduction paragraph about the worksheet topic and goals",
+  "title": "Worksheet Title Here",
+  "subtitle": "Subtitle Here", 
+  "introduction": "Introduction paragraph here",
   "exercises": [
     {
       "type": "reading",
@@ -172,35 +160,35 @@ serve(async (req) => {
       "icon": "fa-book-open",
       "time": 8,
       "instructions": "Read the following text and answer the questions below.",
-      "content": "Content text of EXACTLY 280-320 words goes here - count words carefully and ensure this requirement is met",
+      "content": "EXACTLY 280-320 WORDS OF TEXT HERE - COUNT CAREFULLY",
       "questions": [
-        {"text": "Question 1", "answer": "Answer 1"},
-        {"text": "Question 2", "answer": "Answer 2"},
-        {"text": "Question 3", "answer": "Answer 3"},
-        {"text": "Question 4", "answer": "Answer 4"},
-        {"text": "Question 5", "answer": "Answer 5"}
+        {"text": "Question 1?", "answer": "Answer 1"},
+        {"text": "Question 2?", "answer": "Answer 2"},
+        {"text": "Question 3?", "answer": "Answer 3"},
+        {"text": "Question 4?", "answer": "Answer 4"},
+        {"text": "Question 5?", "answer": "Answer 5"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Teaching tip here"
     },
     {
       "type": "matching",
       "title": "Exercise 2: Vocabulary Matching",
-      "icon": "fa-link",
+      "icon": "fa-link", 
       "time": 7,
       "instructions": "Match each term with its correct definition.",
       "items": [
-        {"term": "Term 1", "definition": "Definition 1"},
-        {"term": "Term 2", "definition": "Definition 2"},
-        {"term": "Term 3", "definition": "Definition 3"},
-        {"term": "Term 4", "definition": "Definition 4"},
-        {"term": "Term 5", "definition": "Definition 5"},
-        {"term": "Term 6", "definition": "Definition 6"},
-        {"term": "Term 7", "definition": "Definition 7"},
-        {"term": "Term 8", "definition": "Definition 8"},
-        {"term": "Term 9", "definition": "Definition 9"},
-        {"term": "Term 10", "definition": "Definition 10"}
+        {"term": "Term1", "definition": "Definition1"},
+        {"term": "Term2", "definition": "Definition2"},
+        {"term": "Term3", "definition": "Definition3"},
+        {"term": "Term4", "definition": "Definition4"},
+        {"term": "Term5", "definition": "Definition5"},
+        {"term": "Term6", "definition": "Definition6"},
+        {"term": "Term7", "definition": "Definition7"},
+        {"term": "Term8", "definition": "Definition8"},
+        {"term": "Term9", "definition": "Definition9"},
+        {"term": "Term10", "definition": "Definition10"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Teaching tip here"
     },
     {
       "type": "fill-in-blanks",
@@ -212,16 +200,16 @@ serve(async (req) => {
       "sentences": [
         {"text": "Sentence with _____ blank.", "answer": "word1"},
         {"text": "Another _____ here.", "answer": "word2"},
-        {"text": "Third sentence with a _____ to complete.", "answer": "word3"},
-        {"text": "Fourth sentence _____ blank.", "answer": "word4"},
-        {"text": "Fifth sentence needs a _____ here.", "answer": "word5"},
-        {"text": "Sixth _____ for completion.", "answer": "word6"},
-        {"text": "Seventh sentence with _____ word missing.", "answer": "word7"},
-        {"text": "Eighth sentence requires a _____.", "answer": "word8"},
-        {"text": "Ninth sentence has a _____ blank.", "answer": "word9"},
-        {"text": "Tenth sentence with a _____ to fill.", "answer": "word10"}
+        {"text": "Third _____ blank.", "answer": "word3"},
+        {"text": "Fourth _____ blank.", "answer": "word4"},
+        {"text": "Fifth _____ blank.", "answer": "word5"},
+        {"text": "Sixth _____ blank.", "answer": "word6"},
+        {"text": "Seventh _____ blank.", "answer": "word7"},
+        {"text": "Eighth _____ blank.", "answer": "word8"},
+        {"text": "Ninth _____ blank.", "answer": "word9"},
+        {"text": "Tenth _____ blank.", "answer": "word10"}
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Teaching tip here"
     },
     {
       "type": "multiple-choice",
@@ -231,7 +219,7 @@ serve(async (req) => {
       "instructions": "Choose the best option to complete each sentence.",
       "questions": [
         {
-          "text": "Question 1 text?",
+          "text": "Question 1?",
           "options": [
             {"label": "A", "text": "Option A", "correct": false},
             {"label": "B", "text": "Option B", "correct": true},
@@ -240,7 +228,7 @@ serve(async (req) => {
           ]
         },
         {
-          "text": "Question 2 text?",
+          "text": "Question 2?",
           "options": [
             {"label": "A", "text": "Option A", "correct": true},
             {"label": "B", "text": "Option B", "correct": false},
@@ -249,7 +237,7 @@ serve(async (req) => {
           ]
         },
         {
-          "text": "Question 3 text?",
+          "text": "Question 3?",
           "options": [
             {"label": "A", "text": "Option A", "correct": false},
             {"label": "B", "text": "Option B", "correct": false},
@@ -258,7 +246,7 @@ serve(async (req) => {
           ]
         },
         {
-          "text": "Question 4 text?",
+          "text": "Question 4?",
           "options": [
             {"label": "A", "text": "Option A", "correct": false},
             {"label": "B", "text": "Option B", "correct": true},
@@ -267,7 +255,7 @@ serve(async (req) => {
           ]
         },
         {
-          "text": "Question 5 text?",
+          "text": "Question 5?",
           "options": [
             {"label": "A", "text": "Option A", "correct": false},
             {"label": "B", "text": "Option B", "correct": false},
@@ -276,7 +264,7 @@ serve(async (req) => {
           ]
         },
         {
-          "text": "Question 6 text?",
+          "text": "Question 6?",
           "options": [
             {"label": "A", "text": "Option A", "correct": true},
             {"label": "B", "text": "Option B", "correct": false},
@@ -285,7 +273,7 @@ serve(async (req) => {
           ]
         },
         {
-          "text": "Question 7 text?",
+          "text": "Question 7?",
           "options": [
             {"label": "A", "text": "Option A", "correct": false},
             {"label": "B", "text": "Option B", "correct": true},
@@ -294,7 +282,7 @@ serve(async (req) => {
           ]
         },
         {
-          "text": "Question 8 text?",
+          "text": "Question 8?",
           "options": [
             {"label": "A", "text": "Option A", "correct": false},
             {"label": "B", "text": "Option B", "correct": false},
@@ -303,7 +291,7 @@ serve(async (req) => {
           ]
         },
         {
-          "text": "Question 9 text?",
+          "text": "Question 9?",
           "options": [
             {"label": "A", "text": "Option A", "correct": false},
             {"label": "B", "text": "Option B", "correct": false},
@@ -312,7 +300,7 @@ serve(async (req) => {
           ]
         },
         {
-          "text": "Question 10 text?",
+          "text": "Question 10?",
           "options": [
             {"label": "A", "text": "Option A", "correct": true},
             {"label": "B", "text": "Option B", "correct": false},
@@ -321,7 +309,7 @@ serve(async (req) => {
           ]
         }
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Teaching tip here"
     },
     {
       "type": "dialogue",
@@ -336,15 +324,14 @@ serve(async (req) => {
         {"speaker": "Person B", "text": "What brings you here today?"},
         {"speaker": "Person A", "text": "I'm here for a business meeting."},
         {"speaker": "Person B", "text": "That sounds important."},
-        {"speaker": "Person A", "text": "Yes, it's quite significant for our company."},
-        {"speaker": "Person B", "text": "I hope it goes well for you."},
+        {"speaker": "Person A", "text": "Yes, it's quite significant."},
+        {"speaker": "Person B", "text": "I hope it goes well."},
         {"speaker": "Person A", "text": "Thank you, I appreciate that."},
         {"speaker": "Person B", "text": "You're welcome. Good luck!"}
       ],
-      "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", 
-                     "expression6", "expression7", "expression8", "expression9", "expression10"],
-      "expression_instruction": "Practice using these expressions in your own dialogues.",
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
+      "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", "expression6", "expression7", "expression8", "expression9", "expression10"],
+      "expression_instruction": "Practice using these expressions.",
+      "teacher_tip": "Teaching tip here"
     },
     {
       "type": "true-false",
@@ -364,7 +351,7 @@ serve(async (req) => {
         {"text": "Statement 9", "isTrue": true},
         {"text": "Statement 10", "isTrue": false}
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Teaching tip here"
     },
     {
       "type": "discussion",
@@ -373,18 +360,18 @@ serve(async (req) => {
       "time": 8,
       "instructions": "Discuss these questions with your teacher or partner.",
       "questions": [
-        "Discussion question 1?",
-        "Discussion question 2?",
-        "Discussion question 3?",
-        "Discussion question 4?",
-        "Discussion question 5?",
-        "Discussion question 6?",
-        "Discussion question 7?",
-        "Discussion question 8?",
-        "Discussion question 9?",
-        "Discussion question 10?"
+        "Question 1?",
+        "Question 2?",
+        "Question 3?",
+        "Question 4?",
+        "Question 5?",
+        "Question 6?",
+        "Question 7?",
+        "Question 8?",
+        "Question 9?",
+        "Question 10?"
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Teaching tip here"
     },
     {
       "type": "error-correction",
@@ -393,55 +380,42 @@ serve(async (req) => {
       "time": 6,
       "instructions": "Find and correct the errors in these sentences.",
       "sentences": [
-        {"text": "Sentence with a error to correct.", "answer": "Sentence with an error to correct."},
-        {"text": "This are wrong grammar.", "answer": "This is wrong grammar."},
+        {"text": "Sentence with a error.", "answer": "Sentence with an error."},
+        {"text": "This are wrong.", "answer": "This is wrong."},
         {"text": "I don't have no money.", "answer": "I don't have any money."},
-        {"text": "She go to school yesterday.", "answer": "She went to school yesterday."},
-        {"text": "There is many people here.", "answer": "There are many people here."},
-        {"text": "I am study English.", "answer": "I am studying English."},
-        {"text": "He don't like coffee.", "answer": "He doesn't like coffee."},
-        {"text": "We was at home.", "answer": "We were at home."},
-        {"text": "I have see that movie.", "answer": "I have seen that movie."},
-        {"text": "She can speaks English well.", "answer": "She can speak English well."}
+        {"text": "She go yesterday.", "answer": "She went yesterday."},
+        {"text": "There is many people.", "answer": "There are many people."},
+        {"text": "I am study.", "answer": "I am studying."},
+        {"text": "He don't like.", "answer": "He doesn't like."},
+        {"text": "We was there.", "answer": "We were there."},
+        {"text": "I have see it.", "answer": "I have seen it."},
+        {"text": "She can speaks.", "answer": "She can speak."}
       ],
-      "teacher_tip": "Tip for teachers on this exercise. Practical and helpful advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Teaching tip here"
     }
   ],
   "vocabulary_sheet": [
-    {"term": "Term 1", "meaning": "Definition 1"},
-    {"term": "Term 2", "meaning": "Definition 2"},
-    {"term": "Term 3", "meaning": "Definition 3"},
-    {"term": "Term 4", "meaning": "Definition 4"},
-    {"term": "Term 5", "meaning": "Definition 5"},
-    {"term": "Term 6", "meaning": "Definition 6"},
-    {"term": "Term 7", "meaning": "Definition 7"},
-    {"term": "Term 8", "meaning": "Definition 8"},
-    {"term": "Term 9", "meaning": "Definition 9"},
-    {"term": "Term 10", "meaning": "Definition 10"},
-    {"term": "Term 11", "meaning": "Definition 11"},
-    {"term": "Term 12", "meaning": "Definition 12"},
-    {"term": "Term 13", "meaning": "Definition 13"},
-    {"term": "Term 14", "meaning": "Definition 14"},
-    {"term": "Term 15", "meaning": "Definition 15"}
+    {"term": "Term1", "meaning": "Meaning1"},
+    {"term": "Term2", "meaning": "Meaning2"},
+    {"term": "Term3", "meaning": "Meaning3"},
+    {"term": "Term4", "meaning": "Meaning4"},
+    {"term": "Term5", "meaning": "Meaning5"},
+    {"term": "Term6", "meaning": "Meaning6"},
+    {"term": "Term7", "meaning": "Meaning7"},
+    {"term": "Term8", "meaning": "Meaning8"},
+    {"term": "Term9", "meaning": "Meaning9"},
+    {"term": "Term10", "meaning": "Meaning10"},
+    {"term": "Term11", "meaning": "Meaning11"},
+    {"term": "Term12", "meaning": "Meaning12"},
+    {"term": "Term13", "meaning": "Meaning13"},
+    {"term": "Term14", "meaning": "Meaning14"},
+    {"term": "Term15", "meaning": "Meaning15"}
   ]
 }
 
-CRITICAL REQUIREMENTS FOR EACH EXERCISE TYPE:
-1. Reading: EXACTLY 280-320 words in content + EXACTLY 5 questions
-2. Matching: EXACTLY 10 items to match
-3. Fill-in-blanks: EXACTLY 10 sentences + EXACTLY 10 words in word bank
-4. Multiple-choice: EXACTLY 10 questions with 4 options each (A,B,C,D)
-5. Dialogue: AT LEAST 10 dialogue exchanges + EXACTLY 10 expressions
-6. True-false: EXACTLY 10 statements
-7. Discussion: EXACTLY 10 discussion questions  
-8. Error-correction: EXACTLY 10 sentences with errors
-9. Vocabulary sheet: EXACTLY 15 terms with meanings
+GENERATE CONTENT BASED ON THIS TOPIC: ${sanitizedPrompt}
 
-RETURN ONLY VALID JSON. NO TEXT OUTSIDE JSON STRUCTURE.`
-        },
-        {
-          role: "user",
-          content: sanitizedPrompt
+RETURN ONLY THE JSON OBJECT - NO OTHER TEXT.`
         }
       ]
     });
@@ -449,7 +423,8 @@ RETURN ONLY VALID JSON. NO TEXT OUTSIDE JSON STRUCTURE.`
     const jsonContent = aiResponse.choices[0].message.content;
     
     console.log('AI response received, processing...');
-    console.log('Response length:', jsonContent?.length || 0);
+    console.log('Raw response length:', jsonContent?.length || 0);
+    console.log('Response starts with:', jsonContent?.substring(0, 100));
     
     // Parse the JSON response with enhanced error handling
     let worksheetData;
@@ -501,7 +476,7 @@ RETURN ONLY VALID JSON. NO TEXT OUTSIDE JSON STRUCTURE.`
       
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
-      console.error('Response content preview:', jsonContent?.substring(0, 1000));
+      console.error('Response content preview (first 1000 chars):', jsonContent?.substring(0, 1000));
       return new Response(
         JSON.stringify({ error: 'Failed to generate a valid worksheet structure. Please try again.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
