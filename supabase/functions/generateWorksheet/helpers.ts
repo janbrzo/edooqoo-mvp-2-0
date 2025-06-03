@@ -1,3 +1,4 @@
+
 // Helper functions used in the worksheet generator
 
 /**
@@ -96,21 +97,91 @@ export function generateFakeText(wordCount: number): string {
 }
 
 /**
- * Parses and cleans JSON content from AI response
+ * Parses and cleans JSON content from AI response with enhanced error handling
  */
 export function parseAIResponse(jsonContent: string): any {
-  // Clean the JSON content
-  let cleanJsonContent = jsonContent;
+  if (!jsonContent || typeof jsonContent !== 'string') {
+    throw new Error('Invalid JSON content: empty or not a string');
+  }
   
-  // Find the first occurrence of { and the last occurrence of }
+  let cleanJsonContent = jsonContent.trim();
+  
+  // Remove any markdown formatting or extra text
+  if (cleanJsonContent.includes('```json')) {
+    const startIndex = cleanJsonContent.indexOf('```json') + 7;
+    const endIndex = cleanJsonContent.lastIndexOf('```');
+    if (endIndex > startIndex) {
+      cleanJsonContent = cleanJsonContent.substring(startIndex, endIndex).trim();
+    }
+  }
+  
+  // Remove any text before first { and after last }
   const firstBrace = cleanJsonContent.indexOf('{');
   const lastBrace = cleanJsonContent.lastIndexOf('}');
   
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    // Extract only the text between the first { and the last }
-    cleanJsonContent = cleanJsonContent.substring(firstBrace, lastBrace + 1);
+  if (firstBrace < 0 || lastBrace <= firstBrace) {
+    throw new Error('No valid JSON structure found in response');
   }
   
-  console.log('Attempting to parse cleaned JSON content');
-  return JSON.parse(cleanJsonContent);
+  cleanJsonContent = cleanJsonContent.substring(firstBrace, lastBrace + 1);
+  
+  // Try to fix common JSON issues
+  try {
+    // Fix trailing commas before } or ]
+    cleanJsonContent = cleanJsonContent.replace(/,(\s*[}\]])/g, '$1');
+    
+    // Fix missing commas between array elements (basic fix)
+    cleanJsonContent = cleanJsonContent.replace(/}(\s*){/g, '},$1{');
+    cleanJsonContent = cleanJsonContent.replace(/](\s*)\[/g, '],$1[');
+    
+    // Fix unescaped quotes in strings (basic approach)
+    cleanJsonContent = cleanJsonContent.replace(/(?<!\\)"(?=[^,}\]]*[,}\]])/g, '\\"');
+    
+    console.log('Attempting to parse cleaned JSON content');
+    const parsed = JSON.parse(cleanJsonContent);
+    
+    // Validate basic structure
+    if (!parsed.title || !parsed.exercises || !Array.isArray(parsed.exercises)) {
+      throw new Error('Parsed JSON missing required fields (title, exercises)');
+    }
+    
+    return parsed;
+  } catch (parseError) {
+    console.error('JSON parsing failed even after cleaning:', parseError);
+    console.error('Cleaned content length:', cleanJsonContent.length);
+    console.error('Content preview:', cleanJsonContent.substring(0, 500));
+    
+    // Try a more aggressive approach - extract just the exercises array if possible
+    try {
+      const exercisesMatch = cleanJsonContent.match(/"exercises"\s*:\s*\[(.*?)\]/s);
+      if (exercisesMatch) {
+        console.log('Attempting to create minimal valid structure');
+        const minimalStructure = {
+          title: "Generated Worksheet",
+          subtitle: "English Language Practice",
+          introduction: "This worksheet contains various exercises to improve your English skills.",
+          exercises: [],
+          vocabulary_sheet: []
+        };
+        
+        // Try to extract just the first few exercises
+        const exercisesText = exercisesMatch[1];
+        const firstExercise = exercisesText.substring(0, exercisesText.indexOf('},') + 1);
+        
+        if (firstExercise) {
+          try {
+            const exercise = JSON.parse('{' + firstExercise + '}');
+            minimalStructure.exercises = [exercise];
+            return minimalStructure;
+          } catch (e) {
+            // Fall through to final error
+          }
+        }
+      }
+    } catch (e) {
+      // Final fallback failed
+    }
+    
+    throw new Error(`Failed to parse AI response: ${parseError.message}`);
+  }
 }

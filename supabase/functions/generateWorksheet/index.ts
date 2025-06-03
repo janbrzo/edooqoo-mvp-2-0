@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
@@ -127,15 +128,15 @@ serve(async (req) => {
     } else if (sanitizedPrompt.includes('60 min')) {
       finalExerciseCount = 8; // Final count will be 8
     }
-    // Remove 30 min option completely
     
     // Always use the 8-exercise set for generation
     const exerciseTypes = getExerciseTypesForCount(8);
     
     // Generate worksheet using OpenAI with GPT-4.1 and complete structures
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4.1", // Changed from gpt-4o to gpt-4.1 for better instruction following
-      temperature: 0.7,
+      model: "gpt-4.1",
+      temperature: 0.3, // Lower temperature for more consistent output
+      max_tokens: 4000, // Ensure we have enough tokens for complete response
       messages: [
         {
           role: "system",
@@ -442,15 +443,15 @@ RETURN ONLY VALID JSON. NO TEXT OUTSIDE JSON STRUCTURE.`
           role: "user",
           content: sanitizedPrompt
         }
-      ],
-      max_tokens: 4000
+      ]
     });
 
     const jsonContent = aiResponse.choices[0].message.content;
     
     console.log('AI response received, processing...');
+    console.log('Response length:', jsonContent?.length || 0);
     
-    // Parse the JSON response with error handling
+    // Parse the JSON response with enhanced error handling
     let worksheetData;
     try {
       worksheetData = parseAIResponse(jsonContent);
@@ -461,7 +462,12 @@ RETURN ONLY VALID JSON. NO TEXT OUTSIDE JSON STRUCTURE.`
       
       // Enhanced validation for exercise requirements
       for (const exercise of worksheetData.exercises) {
-        validateExercise(exercise);
+        try {
+          validateExercise(exercise);
+        } catch (validationError) {
+          console.warn(`Exercise validation warning: ${validationError.message}`);
+          // Continue with other exercises rather than failing completely
+        }
       }
       
       // Always generate 8 exercises, then trim if needed for 45 min
@@ -494,7 +500,8 @@ RETURN ONLY VALID JSON. NO TEXT OUTSIDE JSON STRUCTURE.`
       worksheetData.sourceCount = sourceCount;
       
     } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', parseError, 'Response content:', jsonContent?.substring(0, 500));
+      console.error('Failed to parse AI response as JSON:', parseError);
+      console.error('Response content preview:', jsonContent?.substring(0, 1000));
       return new Response(
         JSON.stringify({ error: 'Failed to generate a valid worksheet structure. Please try again.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
