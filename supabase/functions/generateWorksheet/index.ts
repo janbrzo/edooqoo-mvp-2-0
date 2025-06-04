@@ -132,8 +132,8 @@ serve(async (req) => {
     
     // Generate worksheet using OpenAI with complete prompt structure
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4.1", // Changed to GPT-4.1 for better instruction following
-      temperature: 0.0, // Set to 0 for maximum consistency
+      model: "gpt-4o", // Changed back to GPT-4o
+      temperature: 0.7, // Back to 0.7
       messages: [
         {
           role: "system",
