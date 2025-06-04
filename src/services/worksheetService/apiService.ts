@@ -88,8 +88,8 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: st
     }
     
     const getExpectedExerciseCount = (lessonTime: string): number => {
-      // Removed 30 min option
-      if (lessonTime === "45 min") return 6;
+      if (lessonTime === "30 min") return 4;
+      else if (lessonTime === "45 min") return 6;
       else return 8;
     };
     

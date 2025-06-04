@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { generateWorksheet } from "@/services/worksheetService";
@@ -7,8 +8,9 @@ import mockWorksheetData from '@/mockWorksheetData';
 
 // Utility functions
 const getExpectedExerciseCount = (lessonTime: string): number => {
-  if (lessonTime === "45 min") return 6;
-  else return 8; // 60 min
+  if (lessonTime === "30 min") return 4;
+  else if (lessonTime === "45 min") return 6;
+  else return 8;
 };
 
 const shuffleArray = (array: any[]) => {
