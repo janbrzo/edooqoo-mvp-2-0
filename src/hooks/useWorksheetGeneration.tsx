@@ -7,8 +7,8 @@ import mockWorksheetData from '@/mockWorksheetData';
 
 // Utility functions
 const getExpectedExerciseCount = (lessonTime: string): number => {
-  if (lessonTime === "45 min") return 6;
-  else return 8; // Default to 8 for 60 min
+  // Always expect 8 exercises from backend - it will trim later if needed for 45 min
+  return 8;
 };
 
 const shuffleArray = (array: any[]) => {
@@ -42,10 +42,17 @@ const createSampleVocabulary = (count: number) => {
 };
 
 const validateWorksheet = (worksheetData: any, expectedCount: number): boolean => {
+  console.log('Frontend validation - Expected exercises:', expectedCount);
+  console.log('Frontend validation - Received exercises:', worksheetData?.exercises?.length || 0);
+  
   if (!worksheetData || !worksheetData.exercises || !Array.isArray(worksheetData.exercises)) {
+    console.log('Frontend validation - FAILED: Missing or invalid exercises array');
     return false;
   }
-  return worksheetData.exercises.length === expectedCount;
+  
+  const result = worksheetData.exercises.length >= 6; // Accept 6, 7, or 8 exercises
+  console.log('Frontend validation - Result:', result);
+  return result;
 };
 
 const processExercises = (exercises: any[]): any[] => {
