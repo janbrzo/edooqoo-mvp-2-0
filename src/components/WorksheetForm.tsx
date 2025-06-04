@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
-type LessonTime = "30 min" | "45 min" | "60 min";
+type LessonTime = "45 min" | "60 min";
 type Tile = {
   id: string;
   title: string;
@@ -323,9 +323,6 @@ export default function WorksheetForm({
           <div className="mb-6 flex justify-between items-center">
             <h1 className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-3xl">Create Your Worksheet</h1>
             <div className="flex gap-2">
-              <Button variant={lessonTime === "30 min" ? "default" : "outline"} onClick={() => setLessonTime("30 min")} className={lessonTime === "30 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}>
-                30 min
-              </Button>
               <Button variant={lessonTime === "45 min" ? "default" : "outline"} onClick={() => setLessonTime("45 min")} className={lessonTime === "45 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}>
                 45 min
               </Button>
