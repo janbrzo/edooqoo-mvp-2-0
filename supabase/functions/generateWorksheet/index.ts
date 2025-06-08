@@ -132,7 +132,7 @@ serve(async (req) => {
     
     // Generate worksheet using OpenAI with complete prompt structure
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4.1", // Changed back to GPT-4o
+      model: "gpt-4o", // Changed back to GPT-4o
       temperature: 0.2, // Back to 0.7
       messages: [
         {
@@ -438,7 +438,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`
           content: sanitizedPrompt
         }
       ],
-      max_tokens: 10000
+      max_tokens: 4000
     });
 
     const jsonContent = aiResponse.choices[0].message.content;
