@@ -424,7 +424,7 @@ CRITICAL REQUIREMENTS VERIFICATION:
 1. Exercise 1 (reading): Content MUST be 280-320 words. Count words carefully.
 2. Exercise 2 (matching): EXACTLY 10 items to match.
 3. Exercise 3 (fill-in-blanks): EXACTLY 10 sentences and 10 words in word bank.
-4. Exercise 4 (multiple-choice): EXACTLY 10 questions with 4 options each.
+4. Exercise 4 (multiple-choice): EXACTLY 10 questions with 4 options each. All 4 options must be semantically and textually different from each other – no duplicates or near-duplicates allowed. Only one option per question is correct.
 5. Exercise 5 (dialogue): AT LEAST 10 dialogue exchanges and EXACTLY 10 expressions.
 6. Exercise 6 (true-false): EXACTLY 10 statements.
 7. Exercise 7 (discussion): EXACTLY 10 discussion questions.
@@ -438,7 +438,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`
           content: sanitizedPrompt
         }
       ],
-      max_tokens: 4000
+      max_tokens: 5000
     });
 
     const jsonContent = aiResponse.choices[0].message.content;
