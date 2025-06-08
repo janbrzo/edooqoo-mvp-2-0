@@ -65,8 +65,33 @@ const validateWorksheet = (worksheetData: any, expectedCount: number): boolean =
 const processExercises = (exercises: any[]): any[] => {
   console.log('🔧 Processing exercises - Starting with:', exercises.length, 'exercises');
   
+  // Helper function to fix nested {text} objects
+  const fixTextObjects = (obj: any): any => {
+    if (typeof obj === 'object' && obj !== null) {
+      // If object has only 'text' property, return the text value
+      if (Object.keys(obj).length === 1 && 'text' in obj) {
+        console.log('🔧 Fixed {text} object:', obj, '→', obj.text);
+        return obj.text;
+      }
+      // Recursively fix nested objects
+      if (Array.isArray(obj)) {
+        return obj.map(fixTextObjects);
+      } else {
+        const fixed: any = {};
+        for (const [key, value] of Object.entries(obj)) {
+          fixed[key] = fixTextObjects(value);
+        }
+        return fixed;
+      }
+    }
+    return obj;
+  };
+  
   const processedExercises = exercises.map((exercise: any, index: number) => {
     console.log(`🔧 Processing exercise ${index + 1}: ${exercise.type}`);
+    
+    // Fix any {text} objects in the entire exercise
+    exercise = fixTextObjects(exercise);
     
     const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
     exercise.title = `Exercise ${index + 1}: ${exerciseType}`;
