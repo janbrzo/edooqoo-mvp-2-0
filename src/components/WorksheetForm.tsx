@@ -267,6 +267,8 @@ export interface FormData {
   englishLevel?: EnglishLevel;
   studentProfile?: string;
   studentStruggles?: string;
+  fullPrompt?: string; // Add this optional property
+  formDataForStorage?: any; // Add this optional property
 }
 
 interface WorksheetFormProps {
