@@ -62,36 +62,49 @@ const validateWorksheet = (worksheetData: any, expectedCount: number): boolean =
   return result;
 };
 
+// Enhanced deep fix for {text} objects
+const deepFixTextObjects = (obj: any, path: string = 'root'): any => {
+  console.log(`🔧 Checking path: ${path}, type: ${typeof obj}`);
+  
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  // If it's a primitive, return as-is
+  if (typeof obj !== 'object') {
+    return obj;
+  }
+  
+  // Special case: {text: "something"} object
+  if (typeof obj === 'object' && obj.hasOwnProperty('text') && Object.keys(obj).length === 1) {
+    console.log(`🔧 FIXED {text} object at ${path}:`, obj, '→', obj.text);
+    return obj.text;
+  }
+  
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map((item, index) => deepFixTextObjects(item, `${path}[${index}]`));
+  }
+  
+  // Handle regular objects
+  const fixed: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    fixed[key] = deepFixTextObjects(value, `${path}.${key}`);
+  }
+  
+  return fixed;
+};
+
 const processExercises = (exercises: any[]): any[] => {
   console.log('🔧 Processing exercises - Starting with:', exercises.length, 'exercises');
-  
-  // Helper function to fix nested {text} objects
-  const fixTextObjects = (obj: any): any => {
-    if (typeof obj === 'object' && obj !== null) {
-      // If object has only 'text' property, return the text value
-      if (Object.keys(obj).length === 1 && 'text' in obj) {
-        console.log('🔧 Fixed {text} object:', obj, '→', obj.text);
-        return obj.text;
-      }
-      // Recursively fix nested objects
-      if (Array.isArray(obj)) {
-        return obj.map(fixTextObjects);
-      } else {
-        const fixed: any = {};
-        for (const [key, value] of Object.entries(obj)) {
-          fixed[key] = fixTextObjects(value);
-        }
-        return fixed;
-      }
-    }
-    return obj;
-  };
   
   const processedExercises = exercises.map((exercise: any, index: number) => {
     console.log(`🔧 Processing exercise ${index + 1}: ${exercise.type}`);
     
-    // Fix any {text} objects in the entire exercise
-    exercise = fixTextObjects(exercise);
+    // Deep fix any {text} objects in the entire exercise
+    console.log(`🔧 Deep fixing exercise ${index + 1} before processing`);
+    exercise = deepFixTextObjects(exercise, `exercise[${index}]`);
+    console.log(`🔧 Exercise ${index + 1} after deep fix:`, exercise);
     
     const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
     exercise.title = `Exercise ${index + 1}: ${exerciseType}`;
@@ -195,16 +208,22 @@ export const useWorksheetGeneration = (
       if (validateWorksheet(worksheetData, expectedExerciseCount)) {
         console.log('✅ Worksheet validation passed, processing exercises...');
         
-        worksheetData.exercises = processExercises(worksheetData.exercises);
-        worksheetData.id = newWorksheetId;
+        // CRITICAL: Deep fix the entire worksheet before processing
+        console.log('🔧 DEEP FIXING entire worksheet before processing...');
+        const deepFixedWorksheet = deepFixTextObjects(worksheetData, 'worksheet');
+        console.log('🔧 Worksheet after deep fix:', deepFixedWorksheet);
         
-        if (!worksheetData.vocabulary_sheet || worksheetData.vocabulary_sheet.length === 0) {
+        deepFixedWorksheet.exercises = processExercises(deepFixedWorksheet.exercises);
+        deepFixedWorksheet.id = newWorksheetId;
+        
+        if (!deepFixedWorksheet.vocabulary_sheet || deepFixedWorksheet.vocabulary_sheet.length === 0) {
           console.log('📝 Creating sample vocabulary sheet...');
-          worksheetData.vocabulary_sheet = createSampleVocabulary(15);
+          deepFixedWorksheet.vocabulary_sheet = createSampleVocabulary(15);
         }
         
         console.log('💾 Setting generated worksheet in state...');
-        worksheetState.setGeneratedWorksheet(worksheetData);
+        console.log('💾 Final worksheet before setState:', deepFixedWorksheet);
+        worksheetState.setGeneratedWorksheet(deepFixedWorksheet);
         
         console.log('🎉 Worksheet generation completed successfully!');
         toast({
