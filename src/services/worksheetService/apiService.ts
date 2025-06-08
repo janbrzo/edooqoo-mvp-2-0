@@ -9,20 +9,21 @@ const GENERATE_WORKSHEET_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functio
 /**
  * Generates a worksheet using the Edge Function
  */
-export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: string) {
+export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPrompt?: string, formDataForStorage?: any }, userId: string) {
   try {
     console.log('Generating worksheet with prompt:', prompt);
     
-    // Create a formatted prompt string
-    const formattedPrompt = `${prompt.lessonTopic} - ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.studentProfile ? `. Student profile: ${prompt.studentProfile}` : ''}${prompt.studentStruggles ? `. Student struggles: ${prompt.studentStruggles}` : ''}. Lesson duration: ${prompt.lessonTime}.`;
+    // Use the full prompt if provided, otherwise create legacy format
+    const formattedPrompt = prompt.fullPrompt || `${prompt.lessonTopic} - ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.studentProfile ? `. Student profile: ${prompt.studentProfile}` : ''}${prompt.studentStruggles ? `. Student struggles: ${prompt.studentStruggles}` : ''}${prompt.englishLevel ? `. English level: ${prompt.englishLevel}` : ''}. Lesson duration: ${prompt.lessonTime}.`;
     
-    // Prepare form data for storage
-    const formData = {
+    // Prepare form data for storage - use provided formDataForStorage or create from prompt
+    const formData = prompt.formDataForStorage || {
       lessonTopic: prompt.lessonTopic,
       lessonGoal: prompt.lessonGoal,
       teachingPreferences: prompt.teachingPreferences,
       studentProfile: prompt.studentProfile || null,
       studentStruggles: prompt.studentStruggles || null,
+      englishLevel: prompt.englishLevel || null,
       lessonTime: prompt.lessonTime
     };
     
@@ -34,7 +35,7 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData, userId: st
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: formattedPrompt,
+        prompt: formattedPrompt,  // This will be saved as the full prompt in database
         formData: formData,
         userId
       })

@@ -2,9 +2,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
 type LessonTime = "45 min" | "60 min";
+type EnglishLevel = "A1/A2" | "B1/B2" | "C1/C2";
+
 type Tile = {
   id: string;
   title: string;
@@ -261,6 +264,7 @@ export interface FormData {
   lessonTopic: string;
   lessonGoal: string;
   teachingPreferences: string;
+  englishLevel?: EnglishLevel;
   studentProfile?: string;
   studentStruggles?: string;
 }
@@ -276,6 +280,7 @@ export default function WorksheetForm({
   const [lessonTopic, setLessonTopic] = useState("");
   const [lessonGoal, setLessonGoal] = useState("");
   const [teachingPreferences, setTeachingPreferences] = useState("");
+  const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
   const [studentProfile, setStudentProfile] = useState("");
   const [studentStruggles, setStudentStruggles] = useState("");
   const [randomTopics, setRandomTopics] = useState(getRandomTiles(LESSON_TOPICS));
@@ -304,6 +309,7 @@ export default function WorksheetForm({
       lessonTopic,
       lessonGoal,
       teachingPreferences,
+      englishLevel,
       studentProfile,
       studentStruggles
     });
@@ -317,16 +323,25 @@ export default function WorksheetForm({
     setRandomStruggles(getRandomTiles(STUDENT_STRUGGLES));
   };
 
-  return <div className="w-full py-[24px]">
+  return (
+    <div className="w-full py-[24px]">
       <Card className="bg-white shadow-sm">
         <CardContent className="p-8">
           <div className="mb-6 flex justify-between items-center">
             <h1 className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-3xl">Create Your Worksheet</h1>
             <div className="flex gap-2">
-              <Button variant={lessonTime === "45 min" ? "default" : "outline"} onClick={() => setLessonTime("45 min")} className={lessonTime === "45 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}>
+              <Button 
+                variant={lessonTime === "45 min" ? "default" : "outline"} 
+                onClick={() => setLessonTime("45 min")} 
+                className={lessonTime === "45 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+              >
                 45 min
               </Button>
-              <Button variant={lessonTime === "60 min" ? "default" : "outline"} onClick={() => setLessonTime("60 min")} className={lessonTime === "60 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}>
+              <Button 
+                variant={lessonTime === "60 min" ? "default" : "outline"} 
+                onClick={() => setLessonTime("60 min")} 
+                className={lessonTime === "60 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+              >
                 60 min
               </Button>
             </div>
@@ -336,32 +351,94 @@ export default function WorksheetForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-2">Lesson topic: What is the main subject of the lesson?</label>
-                <Input type="text" placeholder="E.g. IT: debugging code" value={lessonTopic} onChange={e => setLessonTopic(e.target.value)} className="mb-3" />
+                <Input 
+                  type="text" 
+                  placeholder="E.g. IT: debugging code" 
+                  value={lessonTopic} 
+                  onChange={e => setLessonTopic(e.target.value)} 
+                  className="mb-3" 
+                />
                 <div className="flex flex-wrap gap-2">
-                  {randomTopics.map(topic => <Button key={topic.id} type="button" variant="outline" size="sm" onClick={() => setLessonTopic(topic.title)} className="font-light text-sm">
+                  {randomTopics.map(topic => (
+                    <Button 
+                      key={topic.id} 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setLessonTopic(topic.title)} 
+                      className="font-light text-sm"
+                    >
                       {topic.title}
-                    </Button>)}
+                    </Button>
+                  ))}
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2">Lesson goal: What would you like to focus on during this lesson?</label>
-                <Input type="text" placeholder="E.g. Preparing for a work presentation on AI" value={lessonGoal} onChange={e => setLessonGoal(e.target.value)} className="mb-3" />
+                <Input 
+                  type="text" 
+                  placeholder="E.g. Preparing for a work presentation on AI" 
+                  value={lessonGoal} 
+                  onChange={e => setLessonGoal(e.target.value)} 
+                  className="mb-3" 
+                />
                 <div className="flex flex-wrap gap-2">
-                  {randomGoals.map(goal => <Button key={goal.id} type="button" variant="outline" size="sm" onClick={() => setLessonGoal(goal.title)} className="font-light text-sm">
+                  {randomGoals.map(goal => (
+                    <Button 
+                      key={goal.id} 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setLessonGoal(goal.title)} 
+                      className="font-light text-sm"
+                    >
                       {goal.title}
-                    </Button>)}
+                    </Button>
+                  ))}
                 </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Teaching preferences: What stimulates your student best?</label>
-              <Input type="text" placeholder="E.g. Writing exercises, dialogues" value={teachingPreferences} onChange={e => setTeachingPreferences(e.target.value)} className="mb-3" />
-              <div className="flex flex-wrap gap-2">
-                {randomPreferences.map(preference => <Button key={preference.id} type="button" variant="outline" size="sm" onClick={() => setTeachingPreferences(preference.title)} className="font-light text-sm">
-                    {preference.title}
-                  </Button>)}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-2">Teaching preferences: What stimulates your student best?</label>
+                <Input 
+                  type="text" 
+                  placeholder="E.g. Writing exercises, dialogues" 
+                  value={teachingPreferences} 
+                  onChange={e => setTeachingPreferences(e.target.value)} 
+                  className="mb-3" 
+                />
+                <div className="flex flex-wrap gap-2">
+                  {randomPreferences.map(preference => (
+                    <Button 
+                      key={preference.id} 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setTeachingPreferences(preference.title)} 
+                      className="font-light text-sm"
+                    >
+                      {preference.title}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">English Level (CEFR Scale)</label>
+                <Select value={englishLevel} onValueChange={(value: EnglishLevel) => setEnglishLevel(value)}>
+                  <SelectTrigger className="mb-3">
+                    <SelectValue placeholder="Select English level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A1/A2">A1/A2 - Beginner/Elementary</SelectItem>
+                    <SelectItem value="B1/B2">B1/B2 - Intermediate/Upper-Intermediate</SelectItem>
+                    <SelectItem value="C1/C2">C1/C2 - Advanced/Proficiency</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Vocabulary and grammar will be adapted to this level</p>
               </div>
             </div>
 
@@ -370,35 +447,74 @@ export default function WorksheetForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-2">Student Profile</label>
-                <Input type="text" placeholder="E.g. Goal: IT career advancement..." value={studentProfile} onChange={e => setStudentProfile(e.target.value)} className="mb-3" />
+                <Input 
+                  type="text" 
+                  placeholder="E.g. Goal: IT career advancement..." 
+                  value={studentProfile} 
+                  onChange={e => setStudentProfile(e.target.value)} 
+                  className="mb-3" 
+                />
                 <div className="flex flex-wrap gap-2">
-                  {randomProfiles.map(profile => <Button key={profile.id} type="button" variant="outline" size="sm" onClick={() => setStudentProfile(profile.title)} className="font-light text-sm">
+                  {randomProfiles.map(profile => (
+                    <Button 
+                      key={profile.id} 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setStudentProfile(profile.title)} 
+                      className="font-light text-sm"
+                    >
                       {profile.title.substring(0, 50)}...
-                    </Button>)}
+                    </Button>
+                  ))}
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2">Main Struggles: What does your student struggle with during lessons?</label>
-                <Input type="text" placeholder="E.g. Student struggles with 'r' pronunciation" value={studentStruggles} onChange={e => setStudentStruggles(e.target.value)} className="mb-3" />
+                <Input 
+                  type="text" 
+                  placeholder="E.g. Student struggles with 'r' pronunciation" 
+                  value={studentStruggles} 
+                  onChange={e => setStudentStruggles(e.target.value)} 
+                  className="mb-3" 
+                />
                 <div className="flex flex-wrap gap-2">
-                  {randomStruggles.map(struggle => <Button key={struggle.id} type="button" variant="outline" size="sm" onClick={() => setStudentStruggles(struggle.title)} className="font-light text-sm">
+                  {randomStruggles.map(struggle => (
+                    <Button 
+                      key={struggle.id} 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setStudentStruggles(struggle.title)} 
+                      className="font-light text-sm"
+                    >
                       {struggle.title}
-                    </Button>)}
+                    </Button>
+                  ))}
                 </div>
               </div>
             </div>
 
             <div className="flex justify-between pt-4">
-              <Button type="button" variant="outline" onClick={refreshTiles} className="border-worksheet-purple text-worksheet-purple hover:bg-worksheet-purpleLight">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={refreshTiles} 
+                className="border-worksheet-purple text-worksheet-purple hover:bg-worksheet-purpleLight"
+              >
                 Refresh Suggestions
               </Button>
-              <Button type="submit" className="bg-worksheet-purple hover:bg-worksheet-purpleDark">
+              <Button 
+                type="submit" 
+                className="bg-worksheet-purple hover:bg-worksheet-purpleDark"
+              >
                 Generate Custom Worksheet
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
-    </div>;
+    </div>
+  );
 }
