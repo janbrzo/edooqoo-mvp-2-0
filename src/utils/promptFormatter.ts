@@ -2,25 +2,29 @@
 import { FormData } from "@/components/WorksheetForm";
 
 export const formatPromptForAI = (data: FormData): string => {
-  console.log('📝 Formatting prompt for AI with data:', data);
+  console.log('📝 Formatting enhanced prompt for AI with data:', data);
   
-  let prompt = `${data.lessonTopic} - ${data.lessonGoal}. Teaching preferences: ${data.teachingPreferences}`;
+  // Enhanced prompt formatting with more detailed context
+  let prompt = `TOPIC: ${data.lessonTopic}\nGOAL: ${data.lessonGoal}\nTEACHING STYLE: ${data.teachingPreferences}`;
+  
+  if (data.englishLevel) {
+    prompt += `\nENGLISH LEVEL: ${data.englishLevel} (CEFR) - Vocabulary and grammar complexity must strictly adhere to this level`;
+  }
   
   if (data.studentProfile) {
-    prompt += `. Student profile: ${data.studentProfile}`;
+    prompt += `\nSTUDENT PROFILE: ${data.studentProfile} - Adapt exercise content and scenarios to match this profile`;
   }
   
   if (data.studentStruggles) {
-    prompt += `. Student struggles: ${data.studentStruggles}`;
+    prompt += `\nSTUDENT CHALLENGES: ${data.studentStruggles} - Design exercises that specifically address these difficulties`;
   }
   
-  if (data.englishLevel) {
-    prompt += `. English level: ${data.englishLevel} (according to CEFR scale - vocabulary and grammar should not exceed this level)`;
-  }
+  prompt += `\nLESSON DURATION: ${data.lessonTime}`;
   
-  prompt += `. Lesson duration: ${data.lessonTime}.`;
+  // Add specific instructions for teachingPreferences integration
+  prompt += `\n\nSPECIAL INSTRUCTIONS: The teaching preferences "${data.teachingPreferences}" must be prominently reflected in exercises 5 (dialogue) and 7 (discussion). Create scenarios, topics, and questions that directly incorporate these preferences.`;
   
-  console.log('📝 Formatted prompt:', prompt);
+  console.log('📝 Enhanced formatted prompt:', prompt);
   return prompt;
 };
 
