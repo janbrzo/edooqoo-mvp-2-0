@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
@@ -130,14 +131,8 @@ serve(async (req) => {
     
     console.log(`Generating 8 exercises, will trim to ${finalExerciseCount} if needed`);
     
-    // Generate worksheet using OpenAI with complete prompt structure
-    const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4o", // Changed back to GPT-4o
-      temperature: 0.2, // 
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert ESL English language teacher specialized in creating context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
+    // CREATE SYSTEM MESSAGE - This is the LONG SYSTEM PROMPT
+    const systemMessage = `You are an expert ESL English language teacher specialized in creating context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
           Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.
           Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits.
 
@@ -152,8 +147,9 @@ serve(async (req) => {
 8. DO NOT include any text outside of the JSON structure.
 9. Exercise 1 (Reading Comprehension) MUST have content between 280 and 320 words exactly.
 10. Focus on overall flow, coherence and pedagogical value.
+11. ADAPT TO USER'S INPUT: Carefully analyze all information from the USER MESSAGE. The 'lessonTopic' and 'lessonGoal' must define the theme of all exercises. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale. Critically, you MUST incorporate the 'teachingPreferences' into the design of relevant exercises. For 'studentProfile' and 'studentStruggles', adapt exercises to address these specific needs.
 
-11. Generate a structured JSON worksheet with this EXACT format:
+12. Generate a structured JSON worksheet with this EXACT format:
 
 {
   "title": "Main Title of the Worksheet",
@@ -424,14 +420,23 @@ CRITICAL REQUIREMENTS VERIFICATION:
 1. Exercise 1 (reading): Content MUST be 280-320 words. Count words carefully.
 2. Exercise 2 (matching): EXACTLY 10 items to match.
 3. Exercise 3 (fill-in-blanks): EXACTLY 10 sentences and 10 words in word bank.
-4. Exercise 4 (multiple-choice): EXACTLY 10 questions with 4 options each. All 4 options must be semantically and textually different from each other – no duplicates or near-duplicates allowed. Only one option per question is correct.
+4. Exercise 4 (multiple-choice): EXACTLY 10 questions with 4 options each. All 4 options must be completely different from each other – no duplicates or similar variations allowed. Only one option per question is correct.
 5. Exercise 5 (dialogue): AT LEAST 10 dialogue exchanges and EXACTLY 10 expressions.
 6. Exercise 6 (true-false): EXACTLY 10 statements.
 7. Exercise 7 (discussion): EXACTLY 10 discussion questions.
 8. Exercise 8 (error-correction): EXACTLY 10 sentences with errors.
 9. Vocabulary sheet: EXACTLY 15 terms with definitions.
 
-RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`
+RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
+
+    // Generate worksheet using OpenAI with complete prompt structure
+    const aiResponse = await openai.chat.completions.create({
+      model: "gpt-4o", // Changed back to GPT-4o
+      temperature: 0.2, // 
+      messages: [
+        {
+          role: "system",
+          content: systemMessage
         },
         {
           role: "user",
@@ -491,15 +496,18 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`
       );
     }
 
-    // Save worksheet to database with correct parameters
+    // Save worksheet to database with FULL PROMPT (SYSTEM + USER)
     try {
+      // CREATE FULL PROMPT - this is what should be saved to database
+      const fullPrompt = `SYSTEM MESSAGE:\n${systemMessage}\n\nUSER MESSAGE:\n${sanitizedPrompt}`;
+      
       // Sanitize form data
       const sanitizedFormData = formData ? JSON.parse(JSON.stringify(formData)) : {};
       
       const { data: worksheet, error: worksheetError } = await supabase.rpc(
         'insert_worksheet_bypass_limit',
         {
-          p_prompt: sanitizedPrompt,
+          p_prompt: fullPrompt, // NOW SAVING FULL PROMPT (SYSTEM + USER)
           p_form_data: sanitizedFormData,
           p_ai_response: jsonContent?.substring(0, 50000) || '', // Limit response size
           p_html_content: JSON.stringify(worksheetData),
