@@ -4,24 +4,29 @@ import { FormData } from "@/components/WorksheetForm";
 export const formatPromptForAI = (data: FormData): string => {
   console.log('📝 Formatting prompt for AI with data:', data);
   
-  let prompt = `${data.lessonTopic} - ${data.lessonGoal}. Teaching preferences: ${data.teachingPreferences}`;
-  
+  // Build array of prompt lines for easy filtering of empty values
+  const promptLines = [];
+
+  // Add required fields
+  promptLines.push(`lessonTopic: ${data.lessonTopic}`);
+  promptLines.push(`lessonGoal: ${data.lessonGoal}`);
+  promptLines.push(`englishLevel: ${data.englishLevel}`);
+  promptLines.push(`teachingPreferences: ${data.teachingPreferences}`);
+
+  // Add optional fields only if they exist
   if (data.studentProfile) {
-    prompt += `. Student profile: ${data.studentProfile}`;
+    promptLines.push(`studentProfile: ${data.studentProfile}`);
   }
   
   if (data.studentStruggles) {
-    prompt += `. Student struggles: ${data.studentStruggles}`;
+    promptLines.push(`studentStruggles: ${data.studentStruggles}`);
   }
+
+  // Join lines with newlines for clean key-value format
+  const formattedPrompt = promptLines.join('\n');
   
-  if (data.englishLevel) {
-    prompt += `. English level: ${data.englishLevel} (according to CEFR scale - vocabulary and grammar should not exceed this level)`;
-  }
-  
-  prompt += `. Lesson duration: ${data.lessonTime}.`;
-  
-  console.log('📝 Formatted prompt:', prompt);
-  return prompt;
+  console.log('📝 Formatted prompt (key-value format):', formattedPrompt);
+  return formattedPrompt;
 };
 
 export const createFormDataForStorage = (prompt: FormData) => {
