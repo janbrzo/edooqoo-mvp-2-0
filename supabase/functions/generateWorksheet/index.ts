@@ -131,7 +131,7 @@ serve(async (req) => {
     
     console.log(`Generating 8 exercises, will trim to ${finalExerciseCount} if needed`);
     
-    // CREATE SYSTEM MESSAGE - This is the ENHANCED SYSTEM PROMPT with Golden Example
+    // CREATE SYSTEM MESSAGE - This is the LONG SYSTEM PROMPT
     const systemMessage = `You are an expert ESL English language teacher specialized in creating context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
           Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.
           Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits.
@@ -145,290 +145,276 @@ serve(async (req) => {
 6. DO NOT USE PLACEHOLDERS. Write full, complete, high-quality content for every field.
 7. Use appropriate time values for each exercise (5-10 minutes).
 8. DO NOT include any text outside of the JSON structure.
-9. Exercise 1 (Reading Comprehension) MUST have content between 280 and 320 words.
+9. Exercise 1 (Reading Comprehension) MUST have content between 280 and 320 words exactly.
 10. Focus on overall flow, coherence and pedagogical value.
 11. ADAPT TO USER'S INPUT: Carefully analyze all information from the USER MESSAGE. The 'lessonTopic' and 'lessonGoal' must define the theme of all exercises. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale. Critically, you MUST incorporate the 'teachingPreferences' into the design of relevant exercises. For 'studentProfile' and 'studentStruggles', adapt exercises to address these specific needs.
 
-12. GOLDEN EXAMPLE - Study this PERFECT worksheet example to understand the expected quality, creativity, and structure. Your output should match or exceed this standard:
+12. Generate a structured JSON worksheet with this EXACT format:
 
 {
-  "title": "Travel Adventures: Booking Your Perfect Hotel Stay",
-  "subtitle": "Essential Skills for International Business Travelers",
-  "introduction": "This comprehensive worksheet will equip you with the language skills needed to confidently book hotel accommodations during business trips. You'll practice essential vocabulary, real-world scenarios, and professional communication techniques that will make your travel experiences smoother and more successful.",
+  "title": "Main Title of the Worksheet",
+  "subtitle": "Subtitle Related to the Topic",
+  "introduction": "Brief introduction paragraph about the worksheet topic and goals",
   "exercises": [
     {
       "type": "reading",
       "title": "Exercise 1: Reading Comprehension",
       "icon": "fa-book-open",
       "time": 8,
-      "instructions": "Read the following text about hotel booking strategies and answer the questions below.",
-      "content": "When booking a hotel for business travel, successful professionals follow several key strategies to ensure their stay meets both personal comfort and professional requirements. The first consideration is location proximity to meeting venues, as this can significantly impact punctuality and transportation costs. Many experienced travelers recommend booking accommodations within walking distance or a short taxi ride from their primary business destination. The second crucial factor involves understanding cancellation policies, particularly for business trips where schedules frequently change. Flexible booking options, though sometimes more expensive, often prove invaluable when meetings are rescheduled or extended unexpectedly. Additionally, business travelers should prioritize hotels with reliable internet connectivity, 24-hour room service, and business centers equipped with printing and conference facilities. The booking process itself has evolved dramatically with online platforms offering real-time availability, customer reviews, and competitive pricing. However, calling hotels directly can sometimes yield better rates or room upgrades, especially for corporate accounts or loyalty program members. Smart travelers also consider seasonal pricing fluctuations, local events that might affect availability, and the hotel's reputation for accommodating business needs such as early check-in or late checkout options.",
+      "instructions": "Read the following text and answer the questions below.",
+      "content": "Content text of exactly 280-320 words goes here",
       "questions": [
-        {"text": "What is the first consideration when booking a hotel for business travel?", "answer": "Location proximity to meeting venues"},
-        {"text": "Why do experienced travelers recommend flexible booking options?", "answer": "Because business trip schedules frequently change"},
-        {"text": "What hotel amenities are particularly important for business travelers?", "answer": "Reliable internet, 24-hour room service, and business centers"},
-        {"text": "What advantage might calling hotels directly provide?", "answer": "Better rates or room upgrades"},
-        {"text": "What factors affect hotel pricing that travelers should consider?", "answer": "Seasonal pricing fluctuations and local events"}
+        {"text": "Question 1", "answer": "Answer 1"},
+        {"text": "Question 2", "answer": "Answer 2"},
+        {"text": "Question 3", "answer": "Answer 3"},
+        {"text": "Question 4", "answer": "Answer 4"},
+        {"text": "Question 5", "answer": "Answer 5"}
       ],
-      "teacher_tip": "Encourage students to share their own hotel booking experiences and discuss cultural differences in hospitality expectations across different countries."
+      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "matching",
-      "title": "Exercise 2: Hotel Vocabulary Matching",
+      "title": "Exercise 2: Vocabulary Matching",
       "icon": "fa-link",
       "time": 7,
-      "instructions": "Match each hotel-related term with its correct definition.",
+      "instructions": "Match each term with its correct definition.",
       "items": [
-        {"term": "Concierge", "definition": "Hotel staff member who assists guests with various services and local recommendations"},
-        {"term": "Suite", "definition": "Large hotel room with separate living and sleeping areas"},
-        {"term": "Amenities", "definition": "Additional services or features provided by the hotel for guest comfort"},
-        {"term": "Reservation", "definition": "Advance booking or arrangement to secure a hotel room"},
-        {"term": "Check-in", "definition": "Process of registering arrival and receiving room keys at a hotel"},
-        {"term": "Folio", "definition": "Detailed bill showing all charges during a hotel stay"},
-        {"term": "Upgrade", "definition": "Moving to a better room category, often at no additional cost"},
-        {"term": "Occupancy", "definition": "The number of guests staying in a room or hotel"},
-        {"term": "Incidentals", "definition": "Extra charges for services like minibar, phone calls, or room service"},
-        {"term": "Complimentary", "definition": "Services or items provided free of charge by the hotel"}
+        {"term": "Term 1", "definition": "Definition 1"},
+        {"term": "Term 2", "definition": "Definition 2"},
+        {"term": "Term 3", "definition": "Definition 3"},
+        {"term": "Term 4", "definition": "Definition 4"},
+        {"term": "Term 5", "definition": "Definition 5"},
+        {"term": "Term 6", "definition": "Definition 6"},
+        {"term": "Term 7", "definition": "Definition 7"},
+        {"term": "Term 8", "definition": "Definition 8"},
+        {"term": "Term 9", "definition": "Definition 9"},
+        {"term": "Term 10", "definition": "Definition 10"}
       ],
-      "teacher_tip": "Practice pronunciation of these terms and have students create sentences using each vocabulary word in context."
+      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "fill-in-blanks",
-      "title": "Exercise 3: Hotel Booking Conversation",
+      "title": "Exercise 3: Fill in the Blanks",
       "icon": "fa-pencil-alt",
       "time": 8,
-      "instructions": "Complete the hotel booking conversation with the correct words from the box.",
-      "word_bank": ["reservation", "available", "confirmed", "amenities", "rate", "checkout", "deposit", "preferences", "upgrade", "policy"],
+      "instructions": "Complete each sentence with the correct word from the box.",
+      "word_bank": ["word1", "word2", "word3", "word4", "word5", "word6", "word7", "word8", "word9", "word10"],
       "sentences": [
-        {"text": "I'd like to make a _____ for next Tuesday night, please.", "answer": "reservation"},
-        {"text": "Let me check what rooms are _____ for those dates.", "answer": "available"},
-        {"text": "What's your nightly _____ for a standard double room?", "answer": "rate"},
-        {"text": "Do you have any special _____ such as a gym or pool?", "answer": "amenities"},
-        {"text": "I'll need a credit card to secure your booking and take a _____.", "answer": "deposit"},
-        {"text": "Your reservation has been _____ for March 15th to 17th.", "answer": "confirmed"},
-        {"text": "What time is _____ on the final day of my stay?", "answer": "checkout"},
-        {"text": "Do you have any room _____ such as smoking or non-smoking?", "answer": "preferences"},
-        {"text": "Is there a possibility of an _____ to a suite if available?", "answer": "upgrade"},
-        {"text": "What's your cancellation _____ if my plans change?", "answer": "policy"}
+        {"text": "Sentence with _____ blank.", "answer": "word1"},
+        {"text": "Another _____ here.", "answer": "word2"},
+        {"text": "Third sentence with a _____ to complete.", "answer": "word3"},
+        {"text": "Fourth sentence _____ blank.", "answer": "word4"},
+        {"text": "Fifth sentence needs a _____ here.", "answer": "word5"},
+        {"text": "Sixth _____ for completion.", "answer": "word6"},
+        {"text": "Seventh sentence with _____ word missing.", "answer": "word7"},
+        {"text": "Eighth sentence requires a _____.", "answer": "word8"},
+        {"text": "Ninth sentence has a _____ blank.", "answer": "word9"},
+        {"text": "Tenth sentence with a _____ to fill.", "answer": "word10"}
       ],
-      "teacher_tip": "Role-play this conversation with students taking turns as hotel staff and guests, focusing on polite and professional language."
+      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "multiple-choice",
-      "title": "Exercise 4: Hotel Booking Scenarios",
+      "title": "Exercise 4: Multiple Choice",
       "icon": "fa-check-square",
       "time": 6,
-      "instructions": "Choose the best response for each hotel booking situation.",
+      "instructions": "Choose the best option to complete each sentence.",
       "questions": [
         {
-          "text": "A guest asks about early check-in. What's the most professional response?",
+          "text": "Question 1 text?",
           "options": [
-            {"label": "A", "text": "That's impossible, come back at 3 PM", "correct": false},
-            {"label": "B", "text": "Let me check our availability and see what we can arrange", "correct": true},
-            {"label": "C", "text": "You'll have to pay extra for that", "correct": false},
-            {"label": "D", "text": "Why didn't you mention this when booking?", "correct": false}
+            {"label": "A", "text": "Option A", "correct": false},
+            {"label": "B", "text": "Option B", "correct": true},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": false}
           ]
         },
         {
-          "text": "How should you respond when a guest complains about room temperature?",
+          "text": "Question 2 text?",
           "options": [
-            {"label": "A", "text": "I'll send maintenance to check the thermostat immediately", "correct": true},
-            {"label": "B", "text": "The air conditioning works fine in other rooms", "correct": false},
-            {"label": "C", "text": "You probably don't know how to use it properly", "correct": false},
-            {"label": "D", "text": "It's the same temperature as every other room", "correct": false}
+            {"label": "A", "text": "Option A", "correct": true},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": false}
           ]
         },
         {
-          "text": "What's the best way to handle a booking modification request?",
+          "text": "Question 3 text?",
           "options": [
-            {"label": "A", "text": "Cancel everything and start over", "correct": false},
-            {"label": "B", "text": "Check availability and explain any policy implications clearly", "correct": true},
-            {"label": "C", "text": "Refuse because the booking is already confirmed", "correct": false},
-            {"label": "D", "text": "Charge a modification fee immediately", "correct": false}
+            {"label": "A", "text": "Option A", "correct": false},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": true},
+            {"label": "D", "text": "Option D", "correct": false}
           ]
         },
         {
-          "text": "When explaining hotel amenities, you should:",
+          "text": "Question 4 text?",
           "options": [
-            {"label": "A", "text": "Only mention the basic facilities", "correct": false},
-            {"label": "B", "text": "Highlight features that match the guest's interests", "correct": true},
-            {"label": "C", "text": "List every single amenity available", "correct": false},
-            {"label": "D", "text": "Wait for guests to ask specific questions", "correct": false}
+            {"label": "A", "text": "Option A", "correct": false},
+            {"label": "B", "text": "Option B", "correct": true},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": false}
           ]
         },
         {
-          "text": "If a guest's credit card is declined, what should you do?",
+          "text": "Question 5 text?",
           "options": [
-            {"label": "A", "text": "Announce it loudly so others can hear", "correct": false},
-            {"label": "B", "text": "Discreetly suggest trying another payment method", "correct": true},
-            {"label": "C", "text": "Immediately cancel their reservation", "correct": false},
-            {"label": "D", "text": "Ask them why their card doesn't work", "correct": false}
+            {"label": "A", "text": "Option A", "correct": false},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": true}
           ]
         },
         {
-          "text": "The most important factor in providing excellent hotel service is:",
+          "text": "Question 6 text?",
           "options": [
-            {"label": "A", "text": "Following company policies exactly", "correct": false},
-            {"label": "B", "text": "Anticipating and meeting guest needs proactively", "correct": true},
-            {"label": "C", "text": "Upselling additional services", "correct": false},
-            {"label": "D", "text": "Processing transactions quickly", "correct": false}
+            {"label": "A", "text": "Option A", "correct": true},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": false}
           ]
         },
         {
-          "text": "When a guest asks for restaurant recommendations, you should:",
+          "text": "Question 7 text?",
           "options": [
-            {"label": "A", "text": "Only suggest the hotel's own restaurant", "correct": false},
-            {"label": "B", "text": "Provide options based on their preferences and budget", "correct": true},
-            {"label": "C", "text": "Give them a general guidebook", "correct": false},
-            {"label": "D", "text": "Tell them to search online", "correct": false}
+            {"label": "A", "text": "Option A", "correct": false},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": true},
+            {"label": "D", "text": "Option D", "correct": false}
           ]
         },
         {
-          "text": "How should you handle a group booking inquiry?",
+          "text": "Question 8 text?",
           "options": [
-            {"label": "A", "text": "Treat it the same as individual bookings", "correct": false},
-            {"label": "B", "text": "Offer group rates and discuss special requirements", "correct": true},
-            {"label": "C", "text": "Refer them to corporate sales immediately", "correct": false},
-            {"label": "D", "text": "Require full payment upfront", "correct": false}
+            {"label": "A", "text": "Option A", "correct": false},
+            {"label": "B", "text": "Option B", "correct": true},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": false}
           ]
         },
         {
-          "text": "What's the best approach for handling special requests?",
+          "text": "Question 9 text?",
           "options": [
-            {"label": "A", "text": "Promise everything is possible", "correct": false},
-            {"label": "B", "text": "Document requests and communicate realistic expectations", "correct": true},
-            {"label": "C", "text": "Ignore requests that seem difficult", "correct": false},
-            {"label": "D", "text": "Charge extra fees for any special request", "correct": false}
+            {"label": "A", "text": "Option A", "correct": false},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": true}
           ]
         },
         {
-          "text": "When explaining hotel policies to guests, you should:",
+          "text": "Question 10 text?",
           "options": [
-            {"label": "A", "text": "Focus on why policies exist and their benefits", "correct": true},
-            {"label": "B", "text": "Simply state the rules without explanation", "correct": false},
-            {"label": "C", "text": "Apologize for having policies", "correct": false},
-            {"label": "D", "text": "Offer exceptions to make guests happy", "correct": false}
+            {"label": "A", "text": "Option A", "correct": true},
+            {"label": "B", "text": "Option B", "correct": false},
+            {"label": "C", "text": "Option C", "correct": false},
+            {"label": "D", "text": "Option D", "correct": false}
           ]
         }
       ],
-      "teacher_tip": "Discuss each scenario and explore alternative responses, emphasizing cultural sensitivity and professional communication standards."
+      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "dialogue",
-      "title": "Exercise 5: Hotel Booking Phone Conversation",
+      "title": "Exercise 5: Dialogue Practice",
       "icon": "fa-comments",
       "time": 7,
-      "instructions": "Practice this hotel booking dialogue, focusing on professional tone and clear communication.",
+      "instructions": "Read the dialogue and practice with a partner.",
       "dialogue": [
-        {"speaker": "Hotel Staff", "text": "Good afternoon, Grand Plaza Hotel. This is Sarah speaking. How may I assist you today?"},
-        {"speaker": "Guest", "text": "Hello, I'd like to make a reservation for a business trip next month."},
-        {"speaker": "Hotel Staff", "text": "I'd be happy to help you with that. What are your preferred dates?"},
-        {"speaker": "Guest", "text": "I need accommodation from March 15th to 18th, checking out on the 18th."},
-        {"speaker": "Hotel Staff", "text": "Excellent. For how many guests will this reservation be?"},
-        {"speaker": "Guest", "text": "Just for myself, so a single occupancy room would be perfect."},
-        {"speaker": "Hotel Staff", "text": "Let me check our availability for those dates. Do you have any specific room preferences?"},
-        {"speaker": "Guest", "text": "I'd prefer a quiet room with good Wi-Fi, as I'll be working during my stay."},
-        {"speaker": "Hotel Staff", "text": "I can offer you a business room on our executive floor with complimentary high-speed internet."},
-        {"speaker": "Guest", "text": "That sounds perfect. What's the rate for that room?"},
-        {"speaker": "Hotel Staff", "text": "The rate is $180 per night, including breakfast and access to our business center."},
-        {"speaker": "Guest", "text": "Excellent. Please go ahead and make the reservation under the name Johnson."}
+        {"speaker": "Person A", "text": "Hello, how are you?"},
+        {"speaker": "Person B", "text": "I'm fine, thank you. And you?"},
+        {"speaker": "Person A", "text": "I'm doing well, thanks for asking."},
+        {"speaker": "Person B", "text": "What brings you here today?"},
+        {"speaker": "Person A", "text": "I'm here for the meeting."},
+        {"speaker": "Person B", "text": "Oh great, I'll be attending that too."},
+        {"speaker": "Person A", "text": "Wonderful, we can walk together."},
+        {"speaker": "Person B", "text": "That sounds like a good idea."},
+        {"speaker": "Person A", "text": "Shall we head over now?"},
+        {"speaker": "Person B", "text": "Yes, let's go."}
       ],
-      "expressions": [
-        "I'd be happy to help you with that",
-        "Let me check our availability",
-        "Do you have any specific preferences?",
-        "I can offer you",
-        "That sounds perfect",
-        "Please go ahead and",
-        "How may I assist you?",
-        "Just to confirm",
-        "Is there anything else I can help you with?",
-        "Thank you for choosing our hotel"
-      ],
-      "expression_instruction": "Use these professional expressions when practicing hotel booking conversations with different scenarios.",
-      "teacher_tip": "Have students reverse roles and practice handling difficult situations like overbooking or special requests, emphasizing problem-solving language."
+      "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", 
+                     "expression6", "expression7", "expression8", "expression9", "expression10"],
+      "expression_instruction": "Practice using these expressions in your own dialogues.",
+      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "true-false",
-      "title": "Exercise 6: Hotel Booking Best Practices",
+      "title": "Exercise 6: True or False",
       "icon": "fa-balance-scale",
       "time": 5,
-      "instructions": "Decide whether each statement about hotel booking is true or false.",
+      "instructions": "Read each statement and decide if it is true or false.",
       "statements": [
-        {"text": "It's always cheaper to book hotels online than to call directly", "isTrue": false},
-        {"text": "Business travelers should prioritize location over amenities", "isTrue": true},
-        {"text": "Cancellation policies are the same for all hotel booking platforms", "isTrue": false},
-        {"text": "Loyalty program members often receive room upgrades", "isTrue": true},
-        {"text": "Hotel rates are fixed and never negotiable", "isTrue": false},
-        {"text": "Reading guest reviews can help you make better booking decisions", "isTrue": true},
-        {"text": "All hotels charge the same fees for Wi-Fi access", "isTrue": false},
-        {"text": "Booking during peak season typically costs more", "isTrue": true},
-        {"text": "Hotel star ratings are standardized worldwide", "isTrue": false},
-        {"text": "Corporate rates are usually higher than standard rates", "isTrue": false}
+        {"text": "Statement 1", "isTrue": true},
+        {"text": "Statement 2", "isTrue": false},
+        {"text": "Statement 3", "isTrue": true},
+        {"text": "Statement 4", "isTrue": false},
+        {"text": "Statement 5", "isTrue": true},
+        {"text": "Statement 6", "isTrue": false},
+        {"text": "Statement 7", "isTrue": true},
+        {"text": "Statement 8", "isTrue": false},
+        {"text": "Statement 9", "isTrue": true},
+        {"text": "Statement 10", "isTrue": false}
       ],
-      "teacher_tip": "Discuss why each statement is true or false, and encourage students to share experiences that support or contradict these statements."
+      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "discussion",
-      "title": "Exercise 7: Hotel Experience Discussion",
+      "title": "Exercise 7: Discussion Questions",
       "icon": "fa-users",
       "time": 10,
-      "instructions": "Discuss these questions about hotel experiences and preferences with your teacher.",
+      "instructions": "Discuss these questions with your teacher or partner.",
       "questions": [
-        {"text": "What factors do you consider most important when choosing a hotel for business travel?"},
-        {"text": "Describe a memorable positive or negative hotel experience you've had. What made it special?"},
-        {"text": "How do hotel booking apps and websites compare to traditional travel agents?"},
-        {"text": "What amenities do you think are essential versus nice-to-have in a business hotel?"},
-        {"text": "How has the hotel industry changed since the COVID-19 pandemic?"},
-        {"text": "What cultural differences have you noticed in hotel service standards across different countries?"},
-        {"text": "Do you prefer chain hotels or independent boutique hotels? Why?"},
-        {"text": "How important are sustainability and eco-friendly practices when choosing accommodation?"},
-        {"text": "What role do online reviews play in your hotel selection process?"},
-        {"text": "How do you handle situations when your hotel reservation doesn't meet your expectations?"}
+        {"text": "Discussion question 1"},
+        {"text": "Discussion question 2"},
+        {"text": "Discussion question 3"},
+        {"text": "Discussion question 4"},
+        {"text": "Discussion question 5"},
+        {"text": "Discussion question 6"},
+        {"text": "Discussion question 7"},
+        {"text": "Discussion question 8"},
+        {"text": "Discussion question 9"},
+        {"text": "Discussion question 10"}
       ],
-      "teacher_tip": "Encourage students to use the vocabulary and expressions from previous exercises while sharing personal experiences and opinions."
+      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
     },
     {
       "type": "error-correction",
-      "title": "Exercise 8: Hotel Communication Errors",
+      "title": "Exercise 8: Error Correction",
       "icon": "fa-exclamation-triangle",
       "time": 8,
-      "instructions": "Find and correct the errors in these hotel-related communications.",
+      "instructions": "Find and correct the errors in these sentences.",
       "sentences": [
-        {"text": "I want to booking a room for tomorrow night please.", "correction": "I would like to book a room for tomorrow night, please."},
-        {"text": "How much costs the presidential suite for one week?", "correction": "How much does the presidential suite cost for one week?"},
-        {"text": "Can you telling me what time is the check-in?", "correction": "Can you tell me what time check-in is?"},
-        {"text": "I have made a reservation but I not received confirmation.", "correction": "I have made a reservation but I have not received confirmation."},
-        {"text": "The room service is working 24 hours per day?", "correction": "Is room service available 24 hours a day?"},
-        {"text": "I would like cancel my reservation for next week.", "correction": "I would like to cancel my reservation for next week."},
-        {"text": "Do you have any room available for the weekend?", "correction": "Do you have any rooms available for the weekend?"},
-        {"text": "The hotel is located near to the airport?", "correction": "Is the hotel located near the airport?"},
-        {"text": "I need a room which have a good view of the city.", "correction": "I need a room that has a good view of the city."},
-        {"text": "What time does the breakfast serving until?", "correction": "What time is breakfast served until?"}
+        {"text": "Sentence with error 1", "correction": "Corrected sentence 1"},
+        {"text": "Sentence with error 2", "correction": "Corrected sentence 2"},
+        {"text": "Sentence with error 3", "correction": "Corrected sentence 3"},
+        {"text": "Sentence with error 4", "correction": "Corrected sentence 4"},
+        {"text": "Sentence with error 5", "correction": "Corrected sentence 5"},
+        {"text": "Sentence with error 6", "correction": "Corrected sentence 6"},
+        {"text": "Sentence with error 7", "correction": "Corrected sentence 7"},
+        {"text": "Sentence with error 8", "correction": "Corrected sentence 8"},
+        {"text": "Sentence with error 9", "correction": "Corrected sentence 9"},
+        {"text": "Sentence with error 10", "correction": "Corrected sentence 10"}
       ],
-      "teacher_tip": "Focus on common grammatical errors in hotel communications and practice correct question formation and polite requests."
+      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
     }
   ],
   "vocabulary_sheet": [
-    {"term": "Accommodation", "meaning": "A place to stay, such as a hotel, motel, or guesthouse"},
-    {"term": "Check-in/Check-out", "meaning": "The process of registering arrival/departure at a hotel"},
-    {"term": "Concierge", "meaning": "Hotel staff who assists guests with services and recommendations"},
-    {"term": "Corporate rate", "meaning": "Special discounted pricing for business travelers"},
-    {"term": "Double occupancy", "meaning": "Room rate based on two people sharing"},
-    {"term": "Folio", "meaning": "Detailed bill showing all hotel charges"},
-    {"term": "Guest services", "meaning": "Department handling guest requests and assistance"},
-    {"term": "Hospitality", "meaning": "The business of providing accommodation and services to travelers"},
-    {"term": "Incidentals", "meaning": "Additional charges beyond the room rate"},
-    {"term": "Loyalty program", "meaning": "Rewards system for frequent hotel guests"},
-    {"term": "No-show", "meaning": "Guest who fails to arrive for their reservation"},
-    {"term": "Overbooking", "meaning": "Accepting more reservations than available rooms"},
-    {"term": "Peak season", "meaning": "Period of highest demand and rates"},
-    {"term": "Room service", "meaning": "Food and beverage delivery to guest rooms"},
-    {"term": "Walk-in", "meaning": "Guest seeking accommodation without prior reservation"}
+    {"term": "Term 1", "meaning": "Definition 1"},
+    {"term": "Term 2", "meaning": "Definition 2"},
+    {"term": "Term 3", "meaning": "Definition 3"},
+    {"term": "Term 4", "meaning": "Definition 4"},
+    {"term": "Term 5", "meaning": "Definition 5"},
+    {"term": "Term 6", "meaning": "Definition 6"},
+    {"term": "Term 7", "meaning": "Definition 7"},
+    {"term": "Term 8", "meaning": "Definition 8"},
+    {"term": "Term 9", "meaning": "Definition 9"},
+    {"term": "Term 10", "meaning": "Definition 10"},
+    {"term": "Term 11", "meaning": "Definition 11"},
+    {"term": "Term 12", "meaning": "Definition 12"},
+    {"term": "Term 13", "meaning": "Definition 13"},
+    {"term": "Term 14", "meaning": "Definition 14"},
+    {"term": "Term 15", "meaning": "Definition 15"}
   ]
 }
-
-13. Generate a structured JSON worksheet following the EXACT format shown in the Golden Example above. Your output must match this quality, creativity, and attention to detail. The Golden Example demonstrates perfect exercise design, meaningful content, practical vocabulary, realistic scenarios, and valuable teacher tips.
 
 CRITICAL REQUIREMENTS VERIFICATION:
 1. Exercise 1 (reading): Content MUST be 280-320 words. Count words carefully.
