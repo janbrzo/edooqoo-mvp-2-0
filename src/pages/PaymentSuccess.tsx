@@ -48,13 +48,13 @@ const PaymentSuccess = () => {
         
         toast({
           title: "Payment successful!",
-          description: "Your downloads are now unlocked. Redirecting back to your worksheet...",
+          description: "Downloads unlocked! Redirecting to your worksheet...",
           className: "bg-green-50 border-green-200"
         });
 
         setTimeout(() => {
           navigate('/', { replace: true });
-        }, 3000);
+        }, 1000);
       }
     } catch (error) {
       console.error('Payment verification error:', error);
@@ -112,13 +112,9 @@ const PaymentSuccess = () => {
                 <span className="font-medium">Downloads Unlocked</span>
               </div>
               <p className="text-sm text-green-600 mt-1">
-                You can now download HTML versions of your worksheet.
+                You can now download both Student and Teacher HTML versions unlimited times.
               </p>
             </div>
-            
-            <p className="text-sm text-gray-500 mb-4">
-              Redirecting back to your worksheet in a few seconds...
-            </p>
           </>
         ) : (
           <p className="text-gray-600 mb-6">

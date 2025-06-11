@@ -1,3 +1,4 @@
+
 import React, { useMemo } from "react";
 
 interface ExerciseMultipleChoiceProps {
@@ -11,50 +12,99 @@ interface ExerciseMultipleChoiceProps {
 const ExerciseMultipleChoice: React.FC<ExerciseMultipleChoiceProps> = ({
   questions, isEditing, viewMode, onQuestionTextChange, onOptionTextChange
 }) => {
-  // Shuffle correct answers randomly for display, but keep original for editing
-  const questionsWithShuffledAnswers = useMemo(() => {
+  // Create stable shuffled version only once when component mounts
+  const processedQuestions = useMemo(() => {
     if (isEditing) return questions;
     
-    return questions.map(question => {
+    return questions.map((question, qIndex) => {
       if (!question.options || question.options.length !== 4) return question;
+      
+      // Create stable seed based on question index and text
+      const seed = qIndex + (question.text ? question.text.length : 0);
       
       // Find the correct answer
       const correctOption = question.options.find((opt: any) => opt.correct);
       if (!correctOption) return question;
       
-      // Create new shuffled options
-      const shuffledOptions = [...question.options];
+      // Create unique options set to avoid duplicates
+      const uniqueOptions = new Set();
+      const newOptions = [];
       
-      // Remove correct flag from all options first
-      shuffledOptions.forEach(opt => opt.correct = false);
+      // Add correct answer first
+      uniqueOptions.add(correctOption.text.toLowerCase().trim());
+      newOptions.push({
+        text: correctOption.text,
+        correct: false, // Will be set later
+        label: 'A'
+      });
       
-      // Randomly assign correct flag to one of the options
-      const randomIndex = Math.floor(Math.random() * 4);
-      shuffledOptions[randomIndex].correct = true;
-      shuffledOptions[randomIndex].text = correctOption.text;
+      // Add unique incorrect options
+      const incorrectOptions = question.options.filter((opt: any) => 
+        !opt.correct && 
+        opt.text && 
+        !uniqueOptions.has(opt.text.toLowerCase().trim())
+      );
       
-      // Fill other options with incorrect answers, making sure we don't duplicate the correct answer
-      const incorrectOptions = question.options.filter((opt: any) => !opt.correct);
-      let incorrectIndex = 0;
+      for (const opt of incorrectOptions) {
+        if (newOptions.length >= 4) break;
+        uniqueOptions.add(opt.text.toLowerCase().trim());
+        newOptions.push({
+          text: opt.text,
+          correct: false,
+          label: String.fromCharCode(65 + newOptions.length)
+        });
+      }
       
-      for (let i = 0; i < 4; i++) {
-        if (i !== randomIndex && incorrectIndex < incorrectOptions.length) {
-          shuffledOptions[i].text = incorrectOptions[incorrectIndex].text;
-          shuffledOptions[i].correct = false;
-          incorrectIndex++;
+      // Fill remaining slots if needed
+      const fallbackOptions = ['None of the above', 'Other option', 'Not applicable'];
+      for (const fallback of fallbackOptions) {
+        if (newOptions.length >= 4) break;
+        if (!uniqueOptions.has(fallback.toLowerCase())) {
+          newOptions.push({
+            text: fallback,
+            correct: false,
+            label: String.fromCharCode(65 + newOptions.length)
+          });
         }
       }
       
+      // Ensure we have exactly 4 options
+      while (newOptions.length < 4) {
+        const generic = `Option ${newOptions.length + 1}`;
+        newOptions.push({
+          text: generic,
+          correct: false,
+          label: String.fromCharCode(65 + newOptions.length)
+        });
+      }
+      
+      // Shuffle using deterministic approach based on seed
+      const shuffled = [...newOptions];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = (seed * (i + 1)) % (i + 1);
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      
+      // Set one random option as correct
+      const correctIndex = seed % 4;
+      shuffled.forEach((opt, idx) => {
+        opt.correct = idx === correctIndex;
+        opt.label = String.fromCharCode(65 + idx);
+        if (idx === correctIndex) {
+          opt.text = correctOption.text;
+        }
+      });
+      
       return {
         ...question,
-        options: shuffledOptions
+        options: shuffled
       };
     });
   }, [questions, isEditing]);
 
   return (
     <div className="space-y-2">
-      {questionsWithShuffledAnswers.map((question, qIndex) => (
+      {processedQuestions.map((question, qIndex) => (
         <div key={qIndex} className="border-b pb-2 multiple-choice-question">
           <p className="font-medium mb-1 leading-snug">
             {isEditing ? (
