@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Info, Clock, Database, Star, User, UserCog, Edit } from "lucide-react";
+import { Info, Clock, Database, Star, User, UserCog, Edit, GraduationCap } from "lucide-react";
 
 interface InputParamsCardProps {
   inputParams: any;
@@ -53,6 +53,17 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
             <p className="font-medium text-sm">{inputParams.teachingPreferences}</p>
           </div>
         </div>
+        {inputParams.englishLevel && (
+          <div className="flex items-center gap-3">
+            <div className="bg-worksheet-purpleLight rounded-full p-2">
+              <GraduationCap className="h-4 w-4 text-worksheet-purple" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">English Level</p>
+              <p className="font-medium text-sm">{inputParams.englishLevel}</p>
+            </div>
+          </div>
+        )}
         {inputParams.studentProfile && (
           <div className="flex items-center gap-3">
             <div className="bg-worksheet-purpleLight rounded-full p-2">

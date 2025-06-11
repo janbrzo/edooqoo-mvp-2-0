@@ -150,15 +150,17 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
               {isProcessing ? "Redirecting to Payment..." : "Pay $1 with Stripe"}
             </Button>
 
-            {/* Temporary skip button for testing */}
-            <Button 
-              onClick={handleSkipPayment}
-              variant="outline"
-              className="w-full border-yellow-300 text-yellow-700 hover:bg-yellow-50"
-              disabled={isProcessing}
-            >
-              Skip Payment (Test Mode)
-            </Button>
+            {/* Skip payment button - hidden but kept in code */}
+            {false && (
+              <Button 
+                onClick={handleSkipPayment}
+                variant="outline"
+                className="w-full border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+                disabled={isProcessing}
+              >
+                Skip Payment (Test Mode)
+              </Button>
+            )}
 
             <Button 
               onClick={onClose}
