@@ -62,10 +62,23 @@ export const downloadSessionService = {
   // Increment download count
   async incrementDownloadCount(sessionToken: string): Promise<boolean> {
     try {
+      // First get current count
+      const { data: session, error: fetchError } = await supabase
+        .from('download_sessions')
+        .select('downloads_count')
+        .eq('session_token', sessionToken)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching current download count:', fetchError);
+        return false;
+      }
+
+      // Then update with incremented value
       const { error } = await supabase
         .from('download_sessions')
         .update({ 
-          downloads_count: supabase.raw('downloads_count + 1')
+          downloads_count: (session?.downloads_count || 0) + 1
         })
         .eq('session_token', sessionToken);
 
