@@ -121,15 +121,12 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
         <div className="space-y-4">
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
             <p className="text-sm text-amber-800 mb-2">
-              <strong>One-time payment of $1 USD</strong> unlocks unlimited downloads of both Student and Teacher versions during your current session.
+              <strong>One-time payment of $1 USD</strong> unlocks downloads for HTML version during your current session.
             </p>
-            <div className="flex items-center gap-2 text-sm text-amber-700 mb-2">
+            <div className="flex items-center gap-2 text-sm text-amber-700">
               <Download className="h-4 w-4" />
-              <span>Both Student & Teacher HTML versions included</span>
+              <span>HTML download included</span>
             </div>
-            <p className="text-xs text-amber-600">
-              ⚠️ Downloads expire when you refresh the page or close your browser session.
-            </p>
           </div>
 
           {isProcessing && (
@@ -149,10 +146,6 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
               <CreditCard className="mr-2 h-4 w-4" />
               {isProcessing ? "Redirecting to Payment..." : "Pay $1 with Stripe"}
             </Button>
-            
-            <p className="text-xs text-gray-500 text-center">
-              After clicking Pay, you'll be redirected to Stripe payment page. Once payment is complete, you'll return here with downloads unlocked.
-            </p>
 
             {/* Temporary skip button for testing */}
             <Button 
@@ -173,6 +166,10 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
               Cancel
             </Button>
           </div>
+
+          <p className="text-xs text-gray-500 text-center">
+            Secure payment processed by Stripe. Downloads expire when you close your browser session.
+          </p>
         </div>
       </DialogContent>
     </Dialog>
