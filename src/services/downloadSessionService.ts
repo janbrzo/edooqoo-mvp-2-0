@@ -31,6 +31,7 @@ export const downloadSessionService = {
         return null;
       }
 
+      console.log('Download session created successfully:', data);
       return data;
     } catch (error) {
       console.error('Error creating download session:', error);
@@ -59,13 +60,15 @@ export const downloadSessionService = {
     }
   },
 
-  // Increment download count
+  // Increment download count with better error handling and logging
   async incrementDownloadCount(sessionToken: string): Promise<boolean> {
     try {
-      // First get current count
+      console.log('Attempting to increment download count for token:', sessionToken);
+      
+      // First get current session data
       const { data: session, error: fetchError } = await supabase
         .from('download_sessions')
-        .select('downloads_count')
+        .select('downloads_count, id')
         .eq('session_token', sessionToken)
         .single();
 
@@ -74,19 +77,31 @@ export const downloadSessionService = {
         return false;
       }
 
-      // Then update with incremented value
-      const { error } = await supabase
-        .from('download_sessions')
-        .update({ 
-          downloads_count: (session?.downloads_count || 0) + 1
-        })
-        .eq('session_token', sessionToken);
-
-      if (error) {
-        console.error('Error incrementing download count:', error);
+      if (!session) {
+        console.error('No session found for token:', sessionToken);
         return false;
       }
 
+      console.log('Current downloads_count:', session.downloads_count);
+      const newCount = (session.downloads_count || 0) + 1;
+      console.log('New downloads_count will be:', newCount);
+
+      // Then update with incremented value
+      const { data: updateData, error: updateError } = await supabase
+        .from('download_sessions')
+        .update({ 
+          downloads_count: newCount
+        })
+        .eq('session_token', sessionToken)
+        .select('downloads_count')
+        .single();
+
+      if (updateError) {
+        console.error('Error updating download count:', updateError);
+        return false;
+      }
+
+      console.log('Download count updated successfully to:', updateData?.downloads_count);
       return true;
     } catch (error) {
       console.error('Error incrementing download count:', error);
@@ -132,6 +147,7 @@ export const downloadSessionService = {
         return null;
       }
 
+      console.log('Session stats fetched:', data);
       return data;
     } catch (error) {
       console.error('Error fetching session stats:', error);

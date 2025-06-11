@@ -28,6 +28,8 @@ export function useDownloadStatus() {
     const token = sessionStorage.getItem('downloadToken');
     const expiry = sessionStorage.getItem('downloadTokenExpiry');
     
+    console.log('Checking download status with token:', token);
+    
     if (token && expiry) {
       const expiryTime = parseInt(expiry);
       if (Date.now() < expiryTime) {
@@ -38,6 +40,7 @@ export function useDownloadStatus() {
           // Get download stats
           const stats = await downloadSessionService.getSessionStats(token);
           setDownloadStats(stats);
+          console.log('Download unlocked with stats:', stats);
         } else {
           // Session expired in database, clean up
           sessionStorage.removeItem('downloadToken');
@@ -53,28 +56,39 @@ export function useDownloadStatus() {
   };
 
   const handleDownloadUnlock = async (token: string) => {
+    console.log('Unlocking downloads with token:', token);
     setIsDownloadUnlocked(true);
     
     // Create session in database if it doesn't exist
     const existingSession = await downloadSessionService.getSessionByToken(token);
     if (!existingSession) {
+      console.log('Creating new download session...');
       await downloadSessionService.createSession(token);
     }
     
     // Get updated stats
     const stats = await downloadSessionService.getSessionStats(token);
     setDownloadStats(stats);
+    console.log('Download unlock completed with stats:', stats);
   };
 
   const trackDownload = async () => {
     const token = sessionStorage.getItem('downloadToken');
+    console.log('Tracking download with token:', token);
+    
     if (token) {
       const success = await downloadSessionService.incrementDownloadCount(token);
       if (success) {
+        console.log('Download tracked successfully');
         // Update local stats
         const stats = await downloadSessionService.getSessionStats(token);
         setDownloadStats(stats);
+        console.log('Updated stats after download:', stats);
+      } else {
+        console.error('Failed to track download');
       }
+    } else {
+      console.error('No download token found for tracking');
     }
   };
 
