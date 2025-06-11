@@ -1,9 +1,9 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Edit, Lightbulb, User, Download, Lock } from "lucide-react";
 import PaymentPopup from "@/components/PaymentPopup";
 import { exportAsHTML } from "@/utils/htmlExport";
+import { trackWorksheetEvent } from "@/services/worksheetService";
 
 interface WorksheetToolbarProps {
   viewMode: "student" | "teacher";
@@ -46,8 +46,21 @@ const WorksheetToolbar = ({
     const filename = `${timestamp}-${viewModeText}-${sanitizedTitle}.html`;
     
     const success = await exportAsHTML('worksheet-content', filename, downloadViewMode, title);
-    if (success && onTrackDownload) {
-      onTrackDownload(); // Track the download in database
+    if (success) {
+      // Track download in download_sessions table
+      if (onTrackDownload) {
+        onTrackDownload();
+      }
+      
+      // Track download in worksheets table
+      if (worksheetId) {
+        try {
+          await trackWorksheetEvent('download', worksheetId, 'anonymous');
+          console.log('Download tracked in worksheets table');
+        } catch (error) {
+          console.error('Failed to track download in worksheets table:', error);
+        }
+      }
     }
     if (!success) {
       console.error('Failed to export HTML');

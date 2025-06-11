@@ -15,72 +15,53 @@ export const processExercises = (exercises: any[]): any[] => {
       console.log(`🔧 Processed matching exercise with ${exercise.items.length} items`);
     }
     
-    // FIX: Prevent duplicate answers in multiple choice questions
+    // SIMPLIFIED: Fix multiple choice questions to avoid duplicates
     if (exercise.type === "multiple-choice" && exercise.questions) {
       exercise.questions = exercise.questions.map((question: any) => {
-        if (question.options && question.options.length === 4) {
-          console.log('🔧 Fixing multiple choice question options');
+        if (question.options && question.options.length >= 2) {
+          console.log('🔧 Processing multiple choice question options');
           
-          // Find correct answer
-          const correctOption = question.options.find((opt: any) => opt.correct);
-          if (correctOption) {
-            // Create array of unique options
-            const uniqueOptions = new Set();
-            const newOptions = [];
-            
-            // Always add the correct answer first
-            uniqueOptions.add(correctOption.text);
-            newOptions.push({
-              text: correctOption.text,
-              correct: true,
-              label: 'A'
-            });
-            
-            // Add other unique incorrect options
-            const incorrectOptions = question.options.filter((opt: any) => !opt.correct && opt.text !== correctOption.text);
-            
-            for (const opt of incorrectOptions) {
-              if (!uniqueOptions.has(opt.text) && newOptions.length < 4) {
-                uniqueOptions.add(opt.text);
-                newOptions.push({
-                  text: opt.text,
-                  correct: false,
-                  label: String.fromCharCode(65 + newOptions.length) // B, C, D
-                });
-              }
+          // Get all unique option texts
+          const uniqueTexts = new Set();
+          const uniqueOptions = [];
+          
+          // First, collect all unique options
+          question.options.forEach((opt: any) => {
+            if (!uniqueTexts.has(opt.text)) {
+              uniqueTexts.add(opt.text);
+              uniqueOptions.push({
+                text: opt.text,
+                correct: opt.correct || false
+              });
             }
-            
-            // If we don't have enough unique options, create some generic ones
-            while (newOptions.length < 4) {
-              const genericOption = `Option ${newOptions.length + 1}`;
-              if (!uniqueOptions.has(genericOption)) {
-                newOptions.push({
-                  text: genericOption,
-                  correct: false,
-                  label: String.fromCharCode(65 + newOptions.length)
-                });
-              }
-            }
-            
-            // Shuffle options but keep track of correct answer
-            const correctIndex = Math.floor(Math.random() * 4);
-            const shuffledOptions = [...newOptions];
-            
-            // Reset all correct flags
-            shuffledOptions.forEach(opt => opt.correct = false);
-            
-            // Set one random option as correct with the correct text
-            shuffledOptions[correctIndex].correct = true;
-            shuffledOptions[correctIndex].text = correctOption.text;
-            
-            // Update labels
-            shuffledOptions.forEach((opt, idx) => {
-              opt.label = String.fromCharCode(65 + idx);
-            });
-            
-            question.options = shuffledOptions;
-            console.log('🔧 Fixed multiple choice options:', question.options.map(o => o.text));
+          });
+          
+          // Ensure we have at least one correct answer
+          const hasCorrectAnswer = uniqueOptions.some(opt => opt.correct);
+          if (!hasCorrectAnswer && uniqueOptions.length > 0) {
+            uniqueOptions[0].correct = true;
           }
+          
+          // Add generic options if we don't have enough unique ones
+          while (uniqueOptions.length < 4) {
+            const genericText = `Option ${uniqueOptions.length + 1}`;
+            if (!uniqueTexts.has(genericText)) {
+              uniqueOptions.push({
+                text: genericText,
+                correct: false
+              });
+            }
+          }
+          
+          // Take only first 4 options and assign labels
+          const finalOptions = uniqueOptions.slice(0, 4).map((opt, idx) => ({
+            text: opt.text,
+            correct: opt.correct,
+            label: String.fromCharCode(65 + idx) // A, B, C, D
+          }));
+          
+          question.options = finalOptions;
+          console.log('🔧 Fixed multiple choice options:', question.options.map(o => `${o.label}: ${o.text} (${o.correct ? 'correct' : 'incorrect'})`));
         }
         return question;
       });

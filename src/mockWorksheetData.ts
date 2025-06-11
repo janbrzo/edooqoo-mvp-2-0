@@ -4,7 +4,7 @@ export const mockWorksheetData = {
   introduction: "This worksheet focuses on sophisticated business expressions and communication techniques commonly used in professional environments. Students will practice using advanced vocabulary and expressions to communicate effectively in workplace situations.",
   exercises: [
     {
-      type: "multiple_choice",
+      type: "multiple-choice",
       title: "Multiple Choice",
       icon: "CheckCircle",
       time: 6,
@@ -24,8 +24,8 @@ export const mockWorksheetData = {
           options: [
             { label: "A", text: "if I'm honest", correct: true },
             { label: "B", text: "to be frank", correct: false },
-            { label: "C", text: "if I'm working", correct: false },
-            { label: "D", text: "frankly speaking", correct: false }
+            { label: "C", text: "frankly speaking", correct: false },
+            { label: "D", text: "in my opinion", correct: false }
           ]
         },
         {
@@ -33,8 +33,8 @@ export const mockWorksheetData = {
           options: [
             { label: "A", text: "I see", correct: true },
             { label: "B", text: "I understand", correct: false },
-            { label: "C", text: "I get", correct: false },
-            { label: "D", text: "I want", correct: false }
+            { label: "C", text: "I realize", correct: false },
+            { label: "D", text: "I acknowledge", correct: false }
           ]
         },
         {
@@ -43,7 +43,7 @@ export const mockWorksheetData = {
             { label: "A", text: "What about the risks", correct: true },
             { label: "B", text: "I love your idea", correct: false },
             { label: "C", text: "Have you considered alternatives", correct: false },
-            { label: "D", text: "You're completely wrong", correct: false }
+            { label: "D", text: "This seems perfect", correct: false }
           ]
         },
         {
