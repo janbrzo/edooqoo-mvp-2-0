@@ -15,6 +15,7 @@ interface WorksheetToolbarProps {
   userIp?: string | null;
   isDownloadUnlocked?: boolean;
   onDownloadUnlock?: (token: string) => void;
+  onTrackDownload?: () => void;
   showPdfButton?: boolean;
 }
 
@@ -28,6 +29,7 @@ const WorksheetToolbar = ({
   userIp,
   isDownloadUnlocked = false,
   onDownloadUnlock,
+  onTrackDownload,
   showPdfButton = false,
 }: WorksheetToolbarProps) => {
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
@@ -44,6 +46,9 @@ const WorksheetToolbar = ({
     const filename = `${timestamp}-${viewModeText}-${sanitizedTitle}.html`;
     
     const success = await exportAsHTML('worksheet-content', filename, downloadViewMode, title);
+    if (success && onTrackDownload) {
+      onTrackDownload(); // Track the download in database
+    }
     if (!success) {
       console.error('Failed to export HTML');
     }

@@ -72,11 +72,18 @@ export const useWorksheetState = (authLoading: boolean) => {
     sessionStorage.removeItem('currentWorksheetId');
   };
 
+  const clearPaymentStorage = () => {
+    sessionStorage.removeItem('downloadToken');
+    sessionStorage.removeItem('downloadTokenExpiry');
+    console.log('Payment tokens cleared from sessionStorage');
+  };
+
   const resetWorksheetState = () => {
     setGeneratedWorksheet(null);
     setInputParams(null);
     setWorksheetId(null);
     clearWorksheetStorage();
+    clearPaymentStorage(); // Clear payment tokens when creating new worksheet
   };
 
   return {

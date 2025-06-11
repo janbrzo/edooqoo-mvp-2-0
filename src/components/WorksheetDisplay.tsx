@@ -159,6 +159,7 @@ export default function WorksheetDisplay({
           userIp={userIp}
           isDownloadUnlocked={isDownloadUnlocked}
           onDownloadUnlock={handleDownloadUnlock}
+          onTrackDownload={trackDownload}
           showPdfButton={false}
         />
 

@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+
+import React from "react";
 
 interface ExerciseMultipleChoiceProps {
   questions: any[];
@@ -11,50 +12,9 @@ interface ExerciseMultipleChoiceProps {
 const ExerciseMultipleChoice: React.FC<ExerciseMultipleChoiceProps> = ({
   questions, isEditing, viewMode, onQuestionTextChange, onOptionTextChange
 }) => {
-  // Shuffle correct answers randomly for display, but keep original for editing
-  const questionsWithShuffledAnswers = useMemo(() => {
-    if (isEditing) return questions;
-    
-    return questions.map(question => {
-      if (!question.options || question.options.length !== 4) return question;
-      
-      // Find the correct answer
-      const correctOption = question.options.find((opt: any) => opt.correct);
-      if (!correctOption) return question;
-      
-      // Create new shuffled options
-      const shuffledOptions = [...question.options];
-      
-      // Remove correct flag from all options first
-      shuffledOptions.forEach(opt => opt.correct = false);
-      
-      // Randomly assign correct flag to one of the options
-      const randomIndex = Math.floor(Math.random() * 4);
-      shuffledOptions[randomIndex].correct = true;
-      shuffledOptions[randomIndex].text = correctOption.text;
-      
-      // Fill other options with incorrect answers, making sure we don't duplicate the correct answer
-      const incorrectOptions = question.options.filter((opt: any) => !opt.correct);
-      let incorrectIndex = 0;
-      
-      for (let i = 0; i < 4; i++) {
-        if (i !== randomIndex && incorrectIndex < incorrectOptions.length) {
-          shuffledOptions[i].text = incorrectOptions[incorrectIndex].text;
-          shuffledOptions[i].correct = false;
-          incorrectIndex++;
-        }
-      }
-      
-      return {
-        ...question,
-        options: shuffledOptions
-      };
-    });
-  }, [questions, isEditing]);
-
   return (
     <div className="space-y-2">
-      {questionsWithShuffledAnswers.map((question, qIndex) => (
+      {questions.map((question, qIndex) => (
         <div key={qIndex} className="border-b pb-2 multiple-choice-question">
           <p className="font-medium mb-1 leading-snug">
             {isEditing ? (
@@ -69,7 +29,7 @@ const ExerciseMultipleChoice: React.FC<ExerciseMultipleChoiceProps> = ({
             )}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-            {question.options.map((option: any, oIndex: number) => (
+            {question.options?.map((option: any, oIndex: number) => (
               <div
                 key={oIndex}
                 className={`
