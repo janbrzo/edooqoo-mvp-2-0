@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
@@ -63,7 +62,7 @@ export default function WorksheetDisplay({
   const [isEditing, setIsEditing] = useState(false);
   const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(worksheet);
   const { toast } = useToast();
-  const { isDownloadUnlocked, userIp, handleDownloadUnlock } = useDownloadStatus();
+  const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload } = useDownloadStatus();
   
   useEffect(() => {
     validateWorksheetStructure();
@@ -127,10 +126,17 @@ export default function WorksheetDisplay({
     });
   };
 
+  const handleDownloadWithTracking = () => {
+    trackDownload();
+    if (onDownload) {
+      onDownload();
+    }
+  };
+
   return (
     <WorksheetContainer
       worksheetId={worksheetId}
-      onDownload={onDownload}
+      onDownload={handleDownloadWithTracking}
       isDownloadUnlocked={isDownloadUnlocked}
       viewMode={viewMode}
       editableWorksheet={editableWorksheet}

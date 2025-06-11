@@ -1,9 +1,11 @@
 
 import { useState, useEffect } from "react";
+import { downloadSessionService } from "@/services/downloadSessionService";
 
 export function useDownloadStatus() {
   const [isDownloadUnlocked, setIsDownloadUnlocked] = useState(false);
   const [userIp, setUserIp] = useState<string | null>(null);
+  const [downloadStats, setDownloadStats] = useState<{ downloads_count: number; expires_at: string } | null>(null);
 
   useEffect(() => {
     const fetchUserIp = async () => {
@@ -22,14 +24,26 @@ export function useDownloadStatus() {
     checkDownloadStatus();
   }, []);
 
-  const checkDownloadStatus = () => {
+  const checkDownloadStatus = async () => {
     const token = sessionStorage.getItem('downloadToken');
     const expiry = sessionStorage.getItem('downloadTokenExpiry');
     
     if (token && expiry) {
       const expiryTime = parseInt(expiry);
       if (Date.now() < expiryTime) {
-        setIsDownloadUnlocked(true);
+        // Check with database as well
+        const isValid = await downloadSessionService.isSessionValid(token);
+        if (isValid) {
+          setIsDownloadUnlocked(true);
+          // Get download stats
+          const stats = await downloadSessionService.getSessionStats(token);
+          setDownloadStats(stats);
+        } else {
+          // Session expired in database, clean up
+          sessionStorage.removeItem('downloadToken');
+          sessionStorage.removeItem('downloadTokenExpiry');
+          setIsDownloadUnlocked(false);
+        }
       } else {
         sessionStorage.removeItem('downloadToken');
         sessionStorage.removeItem('downloadTokenExpiry');
@@ -38,13 +52,37 @@ export function useDownloadStatus() {
     }
   };
 
-  const handleDownloadUnlock = (token: string) => {
+  const handleDownloadUnlock = async (token: string) => {
     setIsDownloadUnlocked(true);
+    
+    // Create session in database if it doesn't exist
+    const existingSession = await downloadSessionService.getSessionByToken(token);
+    if (!existingSession) {
+      await downloadSessionService.createSession(token);
+    }
+    
+    // Get updated stats
+    const stats = await downloadSessionService.getSessionStats(token);
+    setDownloadStats(stats);
+  };
+
+  const trackDownload = async () => {
+    const token = sessionStorage.getItem('downloadToken');
+    if (token) {
+      const success = await downloadSessionService.incrementDownloadCount(token);
+      if (success) {
+        // Update local stats
+        const stats = await downloadSessionService.getSessionStats(token);
+        setDownloadStats(stats);
+      }
+    }
   };
 
   return {
     isDownloadUnlocked,
     userIp,
-    handleDownloadUnlock
+    downloadStats,
+    handleDownloadUnlock,
+    trackDownload
   };
 }

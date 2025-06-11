@@ -31,28 +31,30 @@ const WorksheetToolbar = ({
   showPdfButton = false,
 }: WorksheetToolbarProps) => {
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'html' | 'pdf' | null>(null);
+  const [pendingAction, setPendingAction] = useState<'html-student' | 'html-teacher' | 'pdf' | null>(null);
 
-  const handleDownloadHTML = async () => {
+  const handleDownloadHTML = async (downloadViewMode: "student" | "teacher") => {
     // Get the actual worksheet title from the page
     const titleElement = document.querySelector('.worksheet-content h1');
     const title = titleElement?.textContent || 'English Worksheet';
     
     const timestamp = new Date().toISOString().split('T')[0];
-    const viewModeText = viewMode === 'teacher' ? 'Teacher' : 'Student';
+    const viewModeText = downloadViewMode === 'teacher' ? 'Teacher' : 'Student';
     const sanitizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     const filename = `${timestamp}-${viewModeText}-${sanitizedTitle}.html`;
     
-    const success = await exportAsHTML('worksheet-content', filename, viewMode, title);
+    const success = await exportAsHTML('worksheet-content', filename, downloadViewMode, title);
     if (!success) {
       console.error('Failed to export HTML');
     }
   };
 
-  const handleDownloadClick = (type: 'html' | 'pdf') => {
+  const handleDownloadClick = (type: 'html-student' | 'html-teacher' | 'pdf') => {
     if (isDownloadUnlocked) {
-      if (type === 'html') {
-        handleDownloadHTML();
+      if (type === 'html-student') {
+        handleDownloadHTML('student');
+      } else if (type === 'html-teacher') {
+        handleDownloadHTML('teacher');
       }
     } else {
       setPendingAction(type);
@@ -65,8 +67,10 @@ const WorksheetToolbar = ({
       onDownloadUnlock(token);
     }
     
-    if (pendingAction === 'html') {
-      handleDownloadHTML();
+    if (pendingAction === 'html-student') {
+      handleDownloadHTML('student');
+    } else if (pendingAction === 'html-teacher') {
+      handleDownloadHTML('teacher');
     }
     
     setPendingAction(null);
@@ -122,7 +126,7 @@ const WorksheetToolbar = ({
               </Button>
             )}
             <Button
-              onClick={() => handleDownloadClick('html')}
+              onClick={() => handleDownloadClick('html-student')}
               className={`mr-2 ${isDownloadUnlocked 
                 ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
                 : 'bg-gray-400 hover:bg-gray-500'}`}
@@ -133,7 +137,21 @@ const WorksheetToolbar = ({
               ) : (
                 <Lock className="mr-2 h-4 w-4" />
               )}
-              Download HTML
+              Download HTML v.Student
+            </Button>
+            <Button
+              onClick={() => handleDownloadClick('html-teacher')}
+              className={`mr-2 ${isDownloadUnlocked 
+                ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
+                : 'bg-gray-400 hover:bg-gray-500'}`}
+              size="sm"
+            >
+              {isDownloadUnlocked ? (
+                <Download className="mr-2 h-4 w-4" />
+              ) : (
+                <Lock className="mr-2 h-4 w-4" />
+              )}
+              Download HTML v.Teacher
             </Button>
           </div>
         </div>
