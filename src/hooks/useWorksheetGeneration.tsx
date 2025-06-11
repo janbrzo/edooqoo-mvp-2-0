@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { generateWorksheet } from "@/services/worksheetService";
 import { FormData } from "@/components/WorksheetForm";
 import { v4 as uuidv4 } from 'uuid';
-import mockWorksheetData from '@/mockWorksheetData';
+import { mockWorksheetData } from '@/mockWorksheetData';
 import { formatPromptForAI, createFormDataForStorage } from "@/utils/promptFormatter";
 import { processExercises } from "@/utils/exerciseProcessor";
 import { getExpectedExerciseCount, validateWorksheet, createSampleVocabulary } from "@/utils/worksheetUtils";
