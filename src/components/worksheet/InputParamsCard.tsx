@@ -26,6 +26,17 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
             <p className="font-medium text-sm">{inputParams.lessonTime}</p>
           </div>
         </div>
+        {inputParams.englishLevel && (
+          <div className="flex items-center gap-3">
+            <div className="bg-worksheet-purpleLight rounded-full p-2">
+              <GraduationCap className="h-4 w-4 text-worksheet-purple" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">English Level</p>
+              <p className="font-medium text-sm">{inputParams.englishLevel}</p>
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-3">
           <div className="bg-worksheet-purpleLight rounded-full p-2">
             <Database className="h-4 w-4 text-worksheet-purple" />
@@ -53,14 +64,16 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
             <p className="font-medium text-sm">{inputParams.teachingPreferences}</p>
           </div>
         </div>
-        {inputParams.englishLevel && (
+        {inputParams.studentStruggles && (
           <div className="flex items-center gap-3">
             <div className="bg-worksheet-purpleLight rounded-full p-2">
-              <GraduationCap className="h-4 w-4 text-worksheet-purple" />
+              <Edit className="h-4 w-4 text-worksheet-purple" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">English Level</p>
-              <p className="font-medium text-sm">{inputParams.englishLevel}</p>
+              <p className="text-sm text-gray-500">Main Struggles</p>
+              <p className="font-medium text-sm">
+                {inputParams.studentStruggles}
+              </p>
             </div>
           </div>
         )}
@@ -73,19 +86,6 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
               <p className="text-sm text-gray-500">Student Profile</p>
               <p className="font-medium text-sm">
                 {inputParams.studentProfile}
-              </p>
-            </div>
-          </div>
-        )}
-        {inputParams.studentStruggles && (
-          <div className="flex items-center gap-3">
-            <div className="bg-worksheet-purpleLight rounded-full p-2">
-              <Edit className="h-4 w-4 text-worksheet-purple" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Main Struggles</p>
-              <p className="font-medium text-sm">
-                {inputParams.studentStruggles}
               </p>
             </div>
           </div>
