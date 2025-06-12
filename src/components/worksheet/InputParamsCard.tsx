@@ -16,27 +16,24 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
       </CardTitle>
     </CardHeader>
     <CardContent>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        {/* Combined Lesson Duration and English Level */}
         <div className="flex items-center gap-3">
           <div className="bg-worksheet-purpleLight rounded-full p-2">
             <Clock className="h-4 w-4 text-worksheet-purple" />
           </div>
-          <div>
+          <div className="flex-1">
             <p className="text-sm text-gray-500">Lesson Duration</p>
             <p className="font-medium text-sm">{inputParams.lessonTime}</p>
+            {inputParams.englishLevel && (
+              <>
+                <p className="text-sm text-gray-500 mt-1">English Level</p>
+                <p className="font-medium text-sm">{inputParams.englishLevel}</p>
+              </>
+            )}
           </div>
         </div>
-        {inputParams.englishLevel && (
-          <div className="flex items-center gap-3">
-            <div className="bg-worksheet-purpleLight rounded-full p-2">
-              <GraduationCap className="h-4 w-4 text-worksheet-purple" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">English Level</p>
-              <p className="font-medium text-sm">{inputParams.englishLevel}</p>
-            </div>
-          </div>
-        )}
+        
         <div className="flex items-center gap-3">
           <div className="bg-worksheet-purpleLight rounded-full p-2">
             <Database className="h-4 w-4 text-worksheet-purple" />
@@ -46,6 +43,7 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
             <p className="font-medium text-sm">{inputParams.lessonTopic}</p>
           </div>
         </div>
+        
         <div className="flex items-center gap-3">
           <div className="bg-worksheet-purpleLight rounded-full p-2">
             <Star className="h-4 w-4 text-worksheet-purple" />
@@ -55,6 +53,7 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
             <p className="font-medium text-sm">{inputParams.lessonGoal}</p>
           </div>
         </div>
+        
         <div className="flex items-center gap-3">
           <div className="bg-worksheet-purpleLight rounded-full p-2">
             <User className="h-4 w-4 text-worksheet-purple" />
@@ -64,6 +63,9 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
             <p className="font-medium text-sm">{inputParams.teachingPreferences}</p>
           </div>
         </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {inputParams.studentStruggles && (
           <div className="flex items-center gap-3">
             <div className="bg-worksheet-purpleLight rounded-full p-2">
@@ -77,6 +79,7 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
             </div>
           </div>
         )}
+        
         {inputParams.studentProfile && (
           <div className="flex items-center gap-3">
             <div className="bg-worksheet-purpleLight rounded-full p-2">

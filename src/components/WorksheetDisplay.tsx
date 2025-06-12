@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
@@ -6,6 +7,7 @@ import WorksheetToolbar from "./worksheet/WorksheetToolbar";
 import WorksheetContainer from "./worksheet/WorksheetContainer";
 import WorksheetContent from "./worksheet/WorksheetContent";
 import { useDownloadStatus } from "@/hooks/useDownloadStatus";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Exercise {
   type: string;
@@ -63,6 +65,7 @@ export default function WorksheetDisplay({
   const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(worksheet);
   const { toast } = useToast();
   const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload } = useDownloadStatus();
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     validateWorksheetStructure();
@@ -84,6 +87,39 @@ export default function WorksheetDisplay({
         
         .page-number::before {
           content: "Page " counter(page) " of " counter(pages);
+        }
+      }
+      
+      /* Mobile responsive styles */
+      @media (max-width: 767px) {
+        .container {
+          padding: 10px !important;
+        }
+        
+        .worksheet-content {
+          padding: 15px !important;
+        }
+        
+        .grid.grid-cols-1.md\\:grid-cols-4 {
+          grid-template-columns: 1fr !important;
+        }
+        
+        .grid.grid-cols-1.md\\:grid-cols-3 {
+          grid-template-columns: 1fr !important;
+        }
+        
+        .text-3xl {
+          font-size: 1.5rem !important;
+          line-height: 2rem !important;
+        }
+        
+        .text-xl {
+          font-size: 1.125rem !important;
+          line-height: 1.5rem !important;
+        }
+        
+        .p-6 {
+          padding: 1rem !important;
         }
       }
     `;
@@ -141,7 +177,7 @@ export default function WorksheetDisplay({
       viewMode={viewMode}
       editableWorksheet={editableWorksheet}
     >
-      <div className="mb-6">
+      <div className={`mb-6 ${isMobile ? 'px-2' : ''}`}>
         <WorksheetHeader
           onBack={onBack}
           generationTime={generationTime}

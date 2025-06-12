@@ -213,10 +213,6 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
           padding: 0 !important;
         }
         
-        body {
-          counter-reset: page;
-        }
-        
         * {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;

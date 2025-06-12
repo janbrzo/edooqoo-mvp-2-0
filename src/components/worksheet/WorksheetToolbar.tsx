@@ -1,9 +1,11 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Edit, Lightbulb, User, Download, Lock } from "lucide-react";
 import PaymentPopup from "@/components/PaymentPopup";
 import { exportAsHTML } from "@/utils/htmlExport";
 import { trackWorksheetEvent } from "@/services/worksheetService";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface WorksheetToolbarProps {
   viewMode: "student" | "teacher";
@@ -34,6 +36,7 @@ const WorksheetToolbar = ({
 }: WorksheetToolbarProps) => {
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [pendingAction, setPendingAction] = useState<'html-student' | 'html-teacher' | 'pdf' | null>(null);
+  const isMobile = useIsMobile();
 
   const handleDownloadHTML = async (downloadViewMode: "student" | "teacher") => {
     // Get the actual worksheet title from the page
@@ -52,14 +55,18 @@ const WorksheetToolbar = ({
         onTrackDownload();
       }
       
-      // Track download in worksheets table
+      // Track download in worksheets table - with better error handling
       if (worksheetId) {
         try {
-          await trackWorksheetEvent('download', worksheetId, 'anonymous');
-          console.log('Download tracked in worksheets table');
+          console.log(`Attempting to track download for worksheet: ${worksheetId}`);
+          await trackWorksheetEvent('download', worksheetId, userIp || 'anonymous');
+          console.log('Download tracked successfully in worksheets table');
         } catch (error) {
           console.error('Failed to track download in worksheets table:', error);
+          // Don't throw error - continue with download even if tracking fails
         }
+      } else {
+        console.log('No worksheetId provided, skipping worksheet table tracking');
       }
     }
     if (!success) {
@@ -102,8 +109,8 @@ const WorksheetToolbar = ({
   return (
     <>
       <div className="sticky top-0 z-10 bg-white border-b mb-6 py-3 px-4">
-        <div className="flex justify-between items-center max-w-[98%] mx-auto">
-          <div className="flex space-x-2">
+        <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between items-center'} max-w-[98%] mx-auto`}>
+          <div className={`flex ${isMobile ? 'justify-center' : ''} space-x-2`}>
             <Button
               variant={viewMode === 'student' ? 'default' : 'outline'}
               onClick={() => setViewMode('student')}
@@ -123,12 +130,12 @@ const WorksheetToolbar = ({
               Teacher View
             </Button>
           </div>
-          <div className="flex items-center">
+          <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center'}`}>
             {!isEditing && (
               <Button
                 variant="outline"
                 onClick={handleEdit}
-                className="border-worksheet-purple text-worksheet-purple mr-2"
+                className={`border-worksheet-purple text-worksheet-purple ${isMobile ? '' : 'mr-2'}`}
                 size="sm"
               >
                 <Edit className="mr-2 h-4 w-4" /> Edit Worksheet
@@ -137,40 +144,42 @@ const WorksheetToolbar = ({
             {isEditing && (
               <Button
                 onClick={handleSave}
-                className="bg-green-600 hover:bg-green-700 mr-2"
+                className={`bg-green-600 hover:bg-green-700 ${isMobile ? '' : 'mr-2'}`}
                 size="sm"
               >
                 Save Changes
               </Button>
             )}
-            <Button
-              onClick={() => handleDownloadClick('html-student')}
-              className={`mr-2 ${isDownloadUnlocked 
-                ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
-                : 'bg-gray-400 hover:bg-gray-500'}`}
-              size="sm"
-            >
-              {isDownloadUnlocked ? (
-                <Download className="mr-2 h-4 w-4" />
-              ) : (
-                <Lock className="mr-2 h-4 w-4" />
-              )}
-              Download HTML v.Student
-            </Button>
-            <Button
-              onClick={() => handleDownloadClick('html-teacher')}
-              className={`mr-2 ${isDownloadUnlocked 
-                ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
-                : 'bg-gray-400 hover:bg-gray-500'}`}
-              size="sm"
-            >
-              {isDownloadUnlocked ? (
-                <Download className="mr-2 h-4 w-4" />
-              ) : (
-                <Lock className="mr-2 h-4 w-4" />
-              )}
-              Download HTML v.Teacher
-            </Button>
+            <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'}`}>
+              <Button
+                onClick={() => handleDownloadClick('html-student')}
+                className={`${isDownloadUnlocked 
+                  ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
+                  : 'bg-gray-400 hover:bg-gray-500'} ${isMobile ? 'w-full' : ''}`}
+                size="sm"
+              >
+                {isDownloadUnlocked ? (
+                  <Download className="mr-2 h-4 w-4" />
+                ) : (
+                  <Lock className="mr-2 h-4 w-4" />
+                )}
+                {isMobile ? 'HTML Student' : 'Download HTML v.Student'}
+              </Button>
+              <Button
+                onClick={() => handleDownloadClick('html-teacher')}
+                className={`${isDownloadUnlocked 
+                  ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
+                  : 'bg-gray-400 hover:bg-gray-500'} ${isMobile ? 'w-full' : ''}`}
+                size="sm"
+              >
+                {isDownloadUnlocked ? (
+                  <Download className="mr-2 h-4 w-4" />
+                ) : (
+                  <Lock className="mr-2 h-4 w-4" />
+                )}
+                {isMobile ? 'HTML Teacher' : 'Download HTML v.Teacher'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
