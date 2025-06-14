@@ -12,7 +12,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 // Export FormData type so other files can import it
 export type { FormData };
 
-const getRandomTiles = (tiles: Tile[], count = 5): Tile[] => {
+const getRandomTiles = (tiles: Tile[], count = 4): Tile[] => {
   const shuffled = [...tiles].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);
 };
