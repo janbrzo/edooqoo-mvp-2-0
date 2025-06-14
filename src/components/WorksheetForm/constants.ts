@@ -115,7 +115,7 @@ export const GRAMMAR_FOCUS: Tile[] = [{
   title: "Past Simple Tense"
 }, {
   id: "Future-Forms",
-  title: "Future Forms: "Will" vs. "Going to""
+  title: "Future Forms: \"Will\" vs. \"Going to\""
 }, {
   id: "nouns",
   title: "Countable and Uncountable Nouns"
