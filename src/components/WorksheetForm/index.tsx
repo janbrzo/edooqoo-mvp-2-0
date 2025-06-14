@@ -128,7 +128,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-2 gap-6 mb-6">
                 <FormField 
                   label="Lesson topic: What is the main subject of the lesson?"
                   placeholder="E.g. IT: debugging code"
@@ -146,7 +146,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-2 gap-6 mb-6">
                 <FormField 
                   label="Teaching preferences: What stimulates your student best?"
                   placeholder="E.g. Writing exercises, dialogues"
