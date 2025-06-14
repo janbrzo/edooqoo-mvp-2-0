@@ -11,7 +11,6 @@ interface EnglishLevelSelectorProps {
 export default function EnglishLevelSelector({ englishLevel, setEnglishLevel }: EnglishLevelSelectorProps) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-2">English Level (CEFR Scale)</label>
       <div className="flex gap-2 mb-3">
         <Button 
           type="button"
@@ -41,8 +40,7 @@ export default function EnglishLevelSelector({ englishLevel, setEnglishLevel }: 
           C1/C2
         </Button>
       </div>
-      <p className="text-sm text-gray-600 mb-2">{ENGLISH_LEVEL_DESCRIPTIONS[englishLevel]}</p>
-      <p className="text-xs text-muted-foreground">Vocabulary and grammar will be adapted to this level</p>
+      <p className="text-sm text-gray-600 mb-2">CEFR Scale: {ENGLISH_LEVEL_DESCRIPTIONS[englishLevel]}</p>
     </div>
   );
 }

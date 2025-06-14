@@ -58,24 +58,21 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
           <div className="mb-6 flex justify-between items-start">
             <h1 className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-3xl">Create Your Worksheet</h1>
             <div className="flex gap-6">
-              <div className="flex flex-col gap-2">
-                <label className="block text-sm font-medium">Lesson Duration</label>
-                <div className="flex gap-2">
-                  <Button 
-                    variant={lessonTime === "45 min" ? "default" : "outline"} 
-                    onClick={() => setLessonTime("45 min")} 
-                    className={lessonTime === "45 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
-                  >
-                    45 min
-                  </Button>
-                  <Button 
-                    variant={lessonTime === "60 min" ? "default" : "outline"} 
-                    onClick={() => setLessonTime("60 min")} 
-                    className={lessonTime === "60 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
-                  >
-                    60 min
-                  </Button>
-                </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant={lessonTime === "45 min" ? "default" : "outline"} 
+                  onClick={() => setLessonTime("45 min")} 
+                  className={lessonTime === "45 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                >
+                  45 min
+                </Button>
+                <Button 
+                  variant={lessonTime === "60 min" ? "default" : "outline"} 
+                  onClick={() => setLessonTime("60 min")} 
+                  className={lessonTime === "60 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                >
+                  60 min
+                </Button>
               </div>
               <EnglishLevelSelector 
                 englishLevel={englishLevel}
