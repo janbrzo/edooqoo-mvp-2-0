@@ -18,6 +18,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const [lessonTopic, setLessonTopic] = useState("");
   const [lessonGoal, setLessonGoal] = useState("");
   const [teachingPreferences, setTeachingPreferences] = useState("");
+  const [additionalInformation, setAdditionalInformation] = useState("");
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
   const [randomTopics, setRandomTopics] = useState(getRandomTiles(LESSON_TOPICS));
   const [randomGoals, setRandomGoals] = useState(getRandomTiles(LESSON_GOALS));
@@ -41,6 +42,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
       lessonTopic,
       lessonGoal,
       teachingPreferences,
+      additionalInformation,
       englishLevel
     });
   };
@@ -135,13 +137,20 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                 />
               </div>
 
-              <div className="grid grid-cols-1 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <FormField 
                   label="Teaching preferences: What stimulates your student best?"
                   placeholder="E.g. Writing exercises, dialogues"
                   value={teachingPreferences}
                   onChange={setTeachingPreferences}
                   suggestions={randomPreferences}
+                />
+                <FormField 
+                  label="Additional Information (optional)"
+                  placeholder="E.g. The student is a visual learner, focus on speaking."
+                  value={additionalInformation}
+                  onChange={setAdditionalInformation}
+                  suggestions={[]}
                 />
               </div>
 

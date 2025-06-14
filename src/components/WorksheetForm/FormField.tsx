@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tile } from './types';
 
 interface FormFieldProps {
@@ -15,8 +15,7 @@ export default function FormField({ label, placeholder, value, onChange, suggest
   return (
     <div>
       <label className="block text-sm font-medium mb-2">{label}</label>
-      <Input 
-        type="text" 
+      <Textarea
         placeholder={placeholder}
         value={value} 
         onChange={e => onChange(e.target.value)} 

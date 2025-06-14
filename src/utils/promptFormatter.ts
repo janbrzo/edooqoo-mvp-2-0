@@ -13,6 +13,10 @@ export const formatPromptForAI = (data: FormData): string => {
   promptLines.push(`englishLevel: ${data.englishLevel}`);
   promptLines.push(`teachingPreferences: ${data.teachingPreferences}`);
 
+  if (data.additionalInformation) {
+    promptLines.push(`additionalInformation: ${data.additionalInformation}`);
+  }
+
   // Join lines with newlines for clean key-value format
   const formattedPrompt = promptLines.join('\n');
   
@@ -25,6 +29,7 @@ export const createFormDataForStorage = (prompt: FormData) => {
     lessonTopic: prompt.lessonTopic,
     lessonGoal: prompt.lessonGoal,
     teachingPreferences: prompt.teachingPreferences,
+    additionalInformation: prompt.additionalInformation || null,
     englishLevel: prompt.englishLevel || null,
     lessonTime: prompt.lessonTime
   };
