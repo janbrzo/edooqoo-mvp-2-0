@@ -60,7 +60,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
               <div className="flex justify-between items-start mb-6">
                 <h1 className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-3xl">Create Your Worksheet</h1>
                 
-                <div className="flex gap-20">
+                <div className="flex gap-14">
                   <div className="flex gap-2 w-32">
                     <Button 
                       type="button"
