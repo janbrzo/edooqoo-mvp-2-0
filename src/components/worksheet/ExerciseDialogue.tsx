@@ -67,7 +67,7 @@ const ExerciseDialogue: React.FC<ExerciseDialogueProps> = ({
               />
             ) : expression_instruction}
           </p>
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
             {expressions.map((expr, eIndex) => (
               <div key={eIndex} className="p-2 border rounded-md bg-white">
                 <span className="text-worksheet-purple font-medium mr-2">{eIndex + 1}.</span>
@@ -89,3 +89,4 @@ const ExerciseDialogue: React.FC<ExerciseDialogueProps> = ({
 };
 
 export default ExerciseDialogue;
+
