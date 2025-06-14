@@ -96,6 +96,41 @@
   }
 }
 
+/* Mobile scaling - scale down desktop view instead of responsive design */
+@media (max-width: 768px) {
+  .worksheet-form-container {
+    transform: scale(0.7);
+    transform-origin: top left;
+    width: 142.86%; /* 100% / 0.7 to maintain full width after scaling */
+  }
+  
+  .main-container {
+    transform: scale(0.7);
+    transform-origin: top left;
+    width: 142.86%;
+    height: 142.86%;
+  }
+  
+  body {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .worksheet-form-container {
+    transform: scale(0.5);
+    transform-origin: top left;
+    width: 200%; /* 100% / 0.5 to maintain full width after scaling */
+  }
+  
+  .main-container {
+    transform: scale(0.5);
+    transform-origin: top left;
+    width: 200%;
+    height: 200%;
+  }
+}
+
 .worksheet-content {
   overflow-wrap: break-word;
   word-wrap: break-word;
