@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tile } from './types';
+import { cn } from "@/lib/utils";
 
 interface FormFieldProps {
   label: string;
@@ -9,12 +10,13 @@ interface FormFieldProps {
   value: string;
   onChange: (value: string) => void;
   suggestions: Tile[];
+  isOptional?: boolean;
 }
 
-export default function FormField({ label, placeholder, value, onChange, suggestions }: FormFieldProps) {
+export default function FormField({ label, placeholder, value, onChange, suggestions, isOptional }: FormFieldProps) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-2">{label}</label>
+      <label className={cn("block text-sm font-medium mb-2", isOptional && "text-muted-foreground")}>{label}</label>
       <Input
         type="text"
         placeholder={placeholder}

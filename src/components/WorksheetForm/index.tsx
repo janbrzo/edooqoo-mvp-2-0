@@ -151,6 +151,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                   value={additionalInformation}
                   onChange={setAdditionalInformation}
                   suggestions={[]}
+                  isOptional
                 />
               </div>
 
