@@ -16,8 +16,9 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
       </CardTitle>
     </CardHeader>
     <CardContent>
+      {/* First row: Lesson Duration + English Level (half width each), Lesson Topic, Lesson Goal */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-        {/* Combined Lesson Duration and English Level */}
+        {/* Lesson Duration and English Level combined in half width */}
         <div className="flex items-center gap-3">
           <div className="bg-worksheet-purpleLight rounded-full p-2">
             <Clock className="h-4 w-4 text-worksheet-purple" />
@@ -65,6 +66,7 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
         </div>
       </div>
       
+      {/* Second row: Main Struggles, Student Profile */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {inputParams.studentStruggles && (
           <div className="flex items-center gap-3">
