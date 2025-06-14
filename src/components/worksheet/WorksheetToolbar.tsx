@@ -48,7 +48,7 @@ const WorksheetToolbar = ({
     const sanitizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     const filename = `${timestamp}-${viewModeText}-${sanitizedTitle}.html`;
     
-    const success = await exportAsHTML('worksheet-content', filename, downloadViewMode, title, worksheetId || undefined);
+    const success = await exportAsHTML('worksheet-content', filename, downloadViewMode, title);
     if (success) {
       // Track download in download_sessions table
       if (onTrackDownload) {

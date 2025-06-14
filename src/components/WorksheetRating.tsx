@@ -15,10 +15,11 @@ interface WorksheetRatingProps {
 }
 
 /**
- * A consolidated worksheet rating component with thumbs up/down rating and feedback modal.
- * Should not display on PDF exports.
+ * A modern-looking worksheet rating section with thumbs up/down rating and feedback modal.
+ * Should not display on PDF.
  */
 const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, worksheetId }) => {
+  const [hovered, setHovered] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -35,12 +36,16 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
     try {
       setSubmitting(true);
       
+      // Submit rating immediately when button is clicked
       if (userId) {
-        const actualWorksheetId = getWorksheetId();
-        
+        const actualWorksheetId = worksheetId || 
+          new URL(window.location.href).searchParams.get('worksheet_id') || 
+          null;
+            
         if (actualWorksheetId) {
           const result = await submitFeedback(actualWorksheetId, value, '', userId);
           
+          // Store the feedback ID for future updates
           if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
             setCurrentFeedbackId(result[0].id);
           }
@@ -50,6 +55,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
             description: "Thanks for your feedback. Add a comment for more details."
           });
           
+          // Call the callback if provided
           if (onSubmitRating) {
             onSubmitRating(value, '');
           }
@@ -57,27 +63,10 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
       }
     } catch (error) {
       console.error("Error submitting rating:", error);
+      // Don't show error toast here, as the dialog is already open
     } finally {
       setSubmitting(false);
     }
-  };
-  
-  const getWorksheetId = (): string | null => {
-    // Try props first
-    if (worksheetId) return worksheetId;
-    
-    // Try URL parameter
-    if (window.location.href.includes('worksheet_id=')) {
-      return new URL(window.location.href).searchParams.get('worksheet_id');
-    }
-    
-    // Try DOM attribute
-    const worksheetElements = document.querySelectorAll('[data-worksheet-id]');
-    if (worksheetElements.length > 0) {
-      return worksheetElements[0].getAttribute('data-worksheet-id');
-    }
-    
-    return null;
   };
   
   const handleSubmit = async () => {
@@ -86,18 +75,34 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
     try {
       setSubmitting(true);
       
-      const actualWorksheetId = getWorksheetId();
+      // Try to get worksheet ID from props, URL or DOM
+      let actualWorksheetId = worksheetId || null;
+      
+      if (!actualWorksheetId && window.location.href.includes('worksheet_id=')) {
+        actualWorksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
+      }
+      
+      // If no worksheet ID in URL, check for other elements
+      if (!actualWorksheetId) {
+        const worksheetElements = document.querySelectorAll('[data-worksheet-id]');
+        if (worksheetElements.length > 0) {
+          actualWorksheetId = worksheetElements[0].getAttribute('data-worksheet-id');
+        }
+      }
       
       if (currentFeedbackId) {
+        // Update existing feedback with comment
         await updateFeedback(currentFeedbackId, feedback, userId);
       } else if (actualWorksheetId) {
+        // Submit new feedback with rating and comment
         const result = await submitFeedback(actualWorksheetId, selected, feedback, userId);
         
+        // Store the feedback ID
         if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
           setCurrentFeedbackId(result[0].id);
         }
       } else {
-        // Fallback for unknown worksheets
+        // Create a placeholder for unknown worksheets
         const placeholderResult = await submitFeedback('unknown', selected, feedback, userId);
         if (placeholderResult && Array.isArray(placeholderResult) && placeholderResult.length > 0) {
           setCurrentFeedbackId(placeholderResult[0].id);
@@ -113,6 +118,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
         description: "Your rating and comments help us improve our service."
       });
       
+      // Call the callback with rating and feedback
       if (onSubmitRating) {
         onSubmitRating(selected, feedback);
       }
@@ -147,7 +153,9 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
           >
             <ThumbsUp 
               size={32} 
-              className={selected === 5 ? 'text-blue-500' : 'text-gray-300'}
+              className={`${selected === 5 ? 'text-blue-500' : 'text-gray-300'} ${hovered === 5 ? 'text-blue-300' : ''}`} 
+              onMouseEnter={() => setHovered(5)} 
+              onMouseLeave={() => setHovered(null)}
             />
           </Toggle>
           
@@ -162,7 +170,9 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
           >
             <ThumbsDown 
               size={32} 
-              className={selected === 1 ? 'text-blue-500' : 'text-gray-300'}
+              className={`${selected === 1 ? 'text-blue-500' : 'text-gray-300'} ${hovered === 1 ? 'text-blue-300' : ''}`} 
+              onMouseEnter={() => setHovered(1)} 
+              onMouseLeave={() => setHovered(null)}
             />
           </Toggle>
         </div>
@@ -181,7 +191,6 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
               Your feedback is important!
             </DialogTitle>
           </DialogHeader>
-          
           <div className="flex justify-center mt-3 mb-4">
             {selected === 5 ? (
               <ThumbsUp size={38} className="text-blue-500" />
@@ -189,19 +198,10 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
               <ThumbsDown size={38} className="text-blue-500" />
             )}
           </div>
-          
           <label className="block text-base font-semibold mb-1 mt-2" htmlFor="feedbackTextarea">
             What did you think about this worksheet? (optional)
           </label>
-          <Textarea 
-            id="feedbackTextarea" 
-            value={feedback} 
-            onChange={e => setFeedback(e.target.value)} 
-            placeholder="Your feedback helps us improve our worksheet generator" 
-            rows={4} 
-            className="mb-3" 
-          />
-          
+          <Textarea id="feedbackTextarea" value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="Your feedback helps us improve our worksheet generator" rows={4} className="mb-3" />
           <div className="flex justify-end space-x-2 mt-2">
             <DialogClose asChild>
               <Button size="sm" variant="outline" disabled={submitting}>Cancel</Button>

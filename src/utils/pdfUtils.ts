@@ -1,8 +1,6 @@
-
 import html2pdf from 'html2pdf.js';
-import { incrementDownloadCount } from '@/services/worksheetService';
 
-export const generatePDF = async (elementId: string, filename: string, isTeacherView = false, title = 'English Worksheet', worksheetId?: string) => {
+export const generatePDF = async (elementId: string, filename: string, isTeacherView = false, title = 'English Worksheet') => {
   try {
     const element = document.getElementById(elementId);
     if (!element) {
@@ -153,12 +151,6 @@ export const generatePDF = async (elementId: string, filename: string, isTeacher
     // Generate the PDF
     const result = await html2pdf().set(options).from(container.innerHTML).save();
     console.log('PDF generated successfully:', filename);
-    
-    // Increment download count if worksheetId is provided
-    if (worksheetId) {
-      await incrementDownloadCount(worksheetId);
-    }
-    
     return true;
   } catch (error) {
     console.error('Error generating PDF:', error);
