@@ -27,28 +27,7 @@ export async function trackWorksheetEventAPI(type: string, worksheetId: string, 
           
           if (error) {
             console.error(`RPC function error: ${error.message}`);
-            // Fallback: try direct update
-            const { error: updateError } = await supabase
-              .from('worksheets')
-              .update({ 
-                download_count: supabase.raw('download_count + 1'),
-                last_modified_at: new Date().toISOString()
-              })
-              .eq('id', worksheetId);
-            
-            if (updateError) {
-              console.error(`Direct update error: ${updateError.message}`);
-            } else {
-              console.log(`Download count incremented via direct update for worksheet: ${worksheetId}`);
-            }
-          } else {
-            console.log(`Download count incremented via RPC for worksheet: ${worksheetId}`, data);
-          }
-        } catch (countError) {
-          console.error(`Failed to increment download count: ${countError}`);
-          
-          // Final fallback: try simple increment
-          try {
+            // Fallback: try simple increment by fetching current value and updating
             const { data: currentData, error: fetchError } = await supabase
               .from('worksheets')
               .select('download_count')
@@ -57,7 +36,7 @@ export async function trackWorksheetEventAPI(type: string, worksheetId: string, 
             
             if (!fetchError && currentData) {
               const newCount = (currentData.download_count || 0) + 1;
-              const { error: finalUpdateError } = await supabase
+              const { error: updateError } = await supabase
                 .from('worksheets')
                 .update({ 
                   download_count: newCount,
@@ -65,15 +44,17 @@ export async function trackWorksheetEventAPI(type: string, worksheetId: string, 
                 })
                 .eq('id', worksheetId);
               
-              if (!finalUpdateError) {
+              if (!updateError) {
                 console.log(`Download count updated to ${newCount} for worksheet: ${worksheetId}`);
               } else {
-                console.error(`Final update error: ${finalUpdateError.message}`);
+                console.error(`Update error: ${updateError.message}`);
               }
             }
-          } catch (finalError) {
-            console.error(`Final fallback failed: ${finalError}`);
+          } else {
+            console.log(`Download count incremented via RPC for worksheet: ${worksheetId}`, data);
           }
+        } catch (countError) {
+          console.error(`Failed to increment download count: ${countError}`);
         }
       }
       
