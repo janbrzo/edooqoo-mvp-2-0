@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,10 +55,10 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
       <Card className="bg-white shadow-sm">
         <CardContent className="p-8">
           <div className="mb-6">
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-2">
               <h1 className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-3xl">Create Your Worksheet</h1>
               
-              <div className="flex gap-12">
+              <div className="flex gap-20">
                 <div className="flex gap-2">
                   <Button 
                     variant={lessonTime === "45 min" ? "default" : "outline"} 
@@ -77,44 +76,41 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                   </Button>
                 </div>
                 
-                <div className="flex gap-2">
-                  <Button 
-                    type="button"
-                    variant={englishLevel === "A1/A2" ? "default" : "outline"} 
-                    onClick={() => setEnglishLevel("A1/A2")} 
-                    className={englishLevel === "A1/A2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
-                    size="sm"
-                  >
-                    A1/A2
-                  </Button>
-                  <Button 
-                    type="button"
-                    variant={englishLevel === "B1/B2" ? "default" : "outline"} 
-                    onClick={() => setEnglishLevel("B1/B2")} 
-                    className={englishLevel === "B1/B2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
-                    size="sm"
-                  >
-                    B1/B2
-                  </Button>
-                  <Button 
-                    type="button"
-                    variant={englishLevel === "C1/C2" ? "default" : "outline"} 
-                    onClick={() => setEnglishLevel("C1/C2")} 
-                    className={englishLevel === "C1/C2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
-                    size="sm"
-                  >
-                    C1/C2
-                  </Button>
+                <div className="flex flex-col items-end">
+                  <div className="flex gap-2 mb-1">
+                    <Button 
+                      type="button"
+                      variant={englishLevel === "A1/A2" ? "default" : "outline"} 
+                      onClick={() => setEnglishLevel("A1/A2")} 
+                      className={englishLevel === "A1/A2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                      size="sm"
+                    >
+                      A1/A2
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant={englishLevel === "B1/B2" ? "default" : "outline"} 
+                      onClick={() => setEnglishLevel("B1/B2")} 
+                      className={englishLevel === "B1/B2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                      size="sm"
+                    >
+                      B1/B2
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant={englishLevel === "C1/C2" ? "default" : "outline"} 
+                      onClick={() => setEnglishLevel("C1/C2")} 
+                      className={englishLevel === "C1/C2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                      size="sm"
+                    >
+                      C1/C2
+                    </Button>
+                  </div>
+                  <p className="text-sm text-gray-600">CEFR Scale: {englishLevel === "A1/A2" ? "Beginner/Elementary" : englishLevel === "B1/B2" ? "Intermediate/Upper-Intermediate" : "Advanced/Proficiency"}</p>
                 </div>
               </div>
             </div>
             
-            <div className="flex justify-end">
-              <p className="text-sm text-gray-600">CEFR Scale: {englishLevel === "A1/A2" ? "Beginner/Elementary" : englishLevel === "B1/B2" ? "Intermediate/Upper-Intermediate" : "Advanced/Proficiency"}</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField 
                 label="Lesson topic: What is the main subject of the lesson?"
