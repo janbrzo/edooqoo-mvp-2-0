@@ -1,9 +1,10 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { LessonTime, EnglishLevel, FormData, WorksheetFormProps, Tile } from './types';
-import { LESSON_TOPICS, LESSON_GOALS, TEACHING_PREFERENCES } from './constants';
+import { LESSON_TOPICS, LESSON_GOALS, GRAMMAR_FOCUS } from './constants';
 import EnglishLevelSelector from './EnglishLevelSelector';
 import FormField from './FormField';
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -25,7 +26,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
   const [randomTopics, setRandomTopics] = useState(getRandomTiles(LESSON_TOPICS));
   const [randomGoals, setRandomGoals] = useState(getRandomTiles(LESSON_GOALS));
-  const [randomPreferences, setRandomPreferences] = useState(getRandomTiles(TEACHING_PREFERENCES));
+  const [randomGrammarFocus, setRandomGrammarFocus] = useState(getRandomTiles(GRAMMAR_FOCUS));
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -36,7 +37,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
     if (!lessonTopic || !lessonGoal || !teachingPreferences) {
       toast({
         title: "Missing information",
-        description: "Please fill in all required fields (Topic, Goal, Teaching Preferences)",
+        description: "Please fill in all required fields (Topic, Goal, Grammar Focus)",
         variant: "destructive"
       });
       return;
@@ -54,7 +55,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const refreshTiles = () => {
     setRandomTopics(getRandomTiles(LESSON_TOPICS));
     setRandomGoals(getRandomTiles(LESSON_GOALS));
-    setRandomPreferences(getRandomTiles(TEACHING_PREFERENCES));
+    setRandomGrammarFocus(getRandomTiles(GRAMMAR_FOCUS));
   };
 
   return (
@@ -147,11 +148,11 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
 
               <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
                 <FormField 
-                  label="Teaching preferences: What stimulates your student best?"
-                  placeholder="E.g. Writing exercises, dialogues"
+                  label="Grammar focus on:"
+                  placeholder="E.g. Present Simple Tense, Conditionals"
                   value={teachingPreferences}
                   onChange={setTeachingPreferences}
-                  suggestions={randomPreferences}
+                  suggestions={randomGrammarFocus}
                 />
                 <FormField 
                   label="Additional Information (optional)"
