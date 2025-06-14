@@ -162,7 +162,7 @@ serve(async (req) => {
     
     console.log(`Generating 8 exercises, will trim to ${finalExerciseCount} if needed`);
     
-    // CREATE SYSTEM MESSAGE with Grammar Rules section
+    // CREATE SYSTEM MESSAGE with Golden Prompt content
     const systemMessage = `You are an expert ESL English language teacher specialized in creating context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
           Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.
           Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits.
@@ -193,27 +193,27 @@ ${hasGrammarFocus ? `
 13. Generate a structured JSON worksheet with this EXACT format:
 
 {
-  "title": "Main Title of the Worksheet",
-  "subtitle": "Subtitle Related to the Topic",
-  "introduction": "Brief introduction paragraph about the worksheet topic and goals",
+  "title": "Compelling worksheet title that matches the lesson topic",
+  "subtitle": "Engaging subtitle that describes the specific focus and grammar practice",
+  "introduction": "Brief, professional introduction paragraph about the worksheet topic, goals, and what students will practice. Keep it engaging and clear.",
   ${hasGrammarFocus ? `"grammar_rules": {
     "title": "Grammar Focus: ${grammarFocus}",
-    "introduction": "Detailed description of the usage of the grammatical topic in the style of well-known and recognized grammatical coursebooks.",
+    "introduction": "Comprehensive explanation of the grammar topic in the style of well-known grammatical coursebooks. Explain the concept clearly, when it's used, and provide context for learning. This should be detailed enough for students to understand the rules and for teachers to use as reference material.",
     "rules": [
       {
-        "title": "Rule 1 Title",
-        "explanation": "Detailed explanation of the first grammar rule",
-        "examples": ["Example 1", "Example 2", "Example 3"]
+        "title": "First Grammar Rule Title",
+        "explanation": "Detailed explanation of the first grammar rule with clear context and usage information",
+        "examples": ["Example 1 showing the rule in context", "Example 2 demonstrating proper usage", "Example 3 with practical application"]
       },
       {
-        "title": "Rule 2 Title", 
-        "explanation": "Detailed explanation of the second grammar rule",
-        "examples": ["Example 1", "Example 2", "Example 3"]
+        "title": "Second Grammar Rule Title", 
+        "explanation": "Detailed explanation of the second grammar rule with clear context and usage information",
+        "examples": ["Example 1 showing the rule in context", "Example 2 demonstrating proper usage", "Example 3 with practical application"]
       },
       {
-        "title": "Rule 3 Title",
-        "explanation": "Detailed explanation of the third grammar rule",
-        "examples": ["Example 1", "Example 2", "Example 3"]
+        "title": "Third Grammar Rule Title",
+        "explanation": "Detailed explanation of the third grammar rule with clear context and usage information",
+        "examples": ["Example 1 showing the rule in context", "Example 2 demonstrating proper usage", "Example 3 with practical application"]
       }
     ]
   },` : ''}
@@ -224,15 +224,15 @@ ${hasGrammarFocus ? `
       "icon": "fa-book-open",
       "time": 8,
       "instructions": "Read the following text and answer the questions below.",
-      "content": "Content text of exactly 280-320 words goes here${hasGrammarFocus ? ` (MUST include multiple examples of ${grammarFocus})` : ''}",
+      "content": "Write a compelling, contextual text of exactly 280-320 words that relates directly to the lesson topic and goal. If grammar focus is specified, include multiple examples of that grammar point naturally integrated into the text. The text should be engaging, informative, and appropriate for the specified English level. Include realistic scenarios, practical vocabulary, and cultural context where relevant.",
       "questions": [
-        {"text": "Question 1", "answer": "Answer 1"},
-        {"text": "Question 2", "answer": "Answer 2"},
-        {"text": "Question 3", "answer": "Answer 3"},
-        {"text": "Question 4", "answer": "Answer 4"},
-        {"text": "Question 5", "answer": "Answer 5"}
+        {"text": "Thoughtful comprehension question 1 about the text content", "answer": "Complete, accurate answer based on the text"},
+        {"text": "Thoughtful comprehension question 2 about the text content", "answer": "Complete, accurate answer based on the text"},
+        {"text": "Thoughtful comprehension question 3 about the text content", "answer": "Complete, accurate answer based on the text"},
+        {"text": "Thoughtful comprehension question 4 about the text content", "answer": "Complete, accurate answer based on the text"},
+        {"text": "Thoughtful comprehension question 5 about the text content", "answer": "Complete, accurate answer based on the text"}
       ],
-      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Practical, actionable advice for teachers on how to use this exercise effectively in a 1-on-1 lesson. Include suggestions for extension activities, common student difficulties, or ways to personalize the content."
     },
     {
       "type": "matching",
@@ -241,18 +241,18 @@ ${hasGrammarFocus ? `
       "time": 7,
       "instructions": "Match each term with its correct definition.",
       "items": [
-        {"term": "Term 1", "definition": "Definition 1"},
-        {"term": "Term 2", "definition": "Definition 2"},
-        {"term": "Term 3", "definition": "Definition 3"},
-        {"term": "Term 4", "definition": "Definition 4"},
-        {"term": "Term 5", "definition": "Definition 5"},
-        {"term": "Term 6", "definition": "Definition 6"},
-        {"term": "Term 7", "definition": "Definition 7"},
-        {"term": "Term 8", "definition": "Definition 8"},
-        {"term": "Term 9", "definition": "Definition 9"},
-        {"term": "Term 10", "definition": "Definition 10"}
+        {"term": "Relevant vocabulary term 1", "definition": "Clear, accurate definition that students can understand"},
+        {"term": "Relevant vocabulary term 2", "definition": "Clear, accurate definition that students can understand"},
+        {"term": "Relevant vocabulary term 3", "definition": "Clear, accurate definition that students can understand"},
+        {"term": "Relevant vocabulary term 4", "definition": "Clear, accurate definition that students can understand"},
+        {"term": "Relevant vocabulary term 5", "definition": "Clear, accurate definition that students can understand"},
+        {"term": "Relevant vocabulary term 6", "definition": "Clear, accurate definition that students can understand"},
+        {"term": "Relevant vocabulary term 7", "definition": "Clear, accurate definition that students can understand"},
+        {"term": "Relevant vocabulary term 8", "definition": "Clear, accurate definition that students can understand"},
+        {"term": "Relevant vocabulary term 9", "definition": "Clear, accurate definition that students can understand"},
+        {"term": "Relevant vocabulary term 10", "definition": "Clear, accurate definition that students can understand"}
       ],
-      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Practical, actionable advice for teachers on how to use this exercise effectively. Include pronunciation tips, ways to check understanding, or follow-up activities."
     },
     {
       "type": "fill-in-blanks",
@@ -262,18 +262,18 @@ ${hasGrammarFocus ? `
       "instructions": "Complete each sentence with the correct word from the box.",
       "word_bank": ["word1", "word2", "word3", "word4", "word5", "word6", "word7", "word8", "word9", "word10"],
       "sentences": [
-        {"text": "Sentence with _____ blank.", "answer": "word1"},
-        {"text": "Another _____ here.", "answer": "word2"},
-        {"text": "Third sentence with a _____ to complete.", "answer": "word3"},
-        {"text": "Fourth sentence _____ blank.", "answer": "word4"},
-        {"text": "Fifth sentence needs a _____ here.", "answer": "word5"},
-        {"text": "Sixth _____ for completion.", "answer": "word6"},
-        {"text": "Seventh sentence with _____ word missing.", "answer": "word7"},
-        {"text": "Eighth sentence requires a _____.", "answer": "word8"},
-        {"text": "Ninth sentence has a _____ blank.", "answer": "word9"},
-        {"text": "Tenth sentence with a _____ to fill.", "answer": "word10"}
+        {"text": "Contextual sentence with meaningful _____ blank that reinforces the lesson topic.", "answer": "word1"},
+        {"text": "Another contextual sentence with _____ that practices key vocabulary.", "answer": "word2"},
+        {"text": "Third meaningful sentence with a _____ that connects to the grammar focus if applicable.", "answer": "word3"},
+        {"text": "Fourth sentence with _____ that provides realistic language practice.", "answer": "word4"},
+        {"text": "Fifth sentence that needs a _____ and relates to the lesson goal.", "answer": "word5"},
+        {"text": "Sixth contextual sentence with _____ for comprehensive practice.", "answer": "word6"},
+        {"text": "Seventh sentence with _____ word that reinforces learning objectives.", "answer": "word7"},
+        {"text": "Eighth sentence that requires a _____ and maintains topic coherence.", "answer": "word8"},
+        {"text": "Ninth sentence with a _____ blank that provides varied practice.", "answer": "word9"},
+        {"text": "Tenth sentence with a _____ that completes the exercise comprehensively.", "answer": "word10"}
       ],
-      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Practical guidance for teachers on using this exercise effectively. Suggest ways to extend the activity or check student understanding."
     },
     {
       "type": "multiple-choice",
@@ -283,97 +283,97 @@ ${hasGrammarFocus ? `
       "instructions": "Choose the best option to complete each sentence.",
       "questions": [
         {
-          "text": "Question 1 text?",
+          "text": "Contextual question that tests understanding of key concepts or grammar?",
           "options": [
-            {"label": "A", "text": "Option A", "correct": false},
-            {"label": "B", "text": "Option B", "correct": true},
-            {"label": "C", "text": "Option C", "correct": false},
-            {"label": "D", "text": "Option D", "correct": false}
+            {"label": "A", "text": "Plausible but incorrect option A", "correct": false},
+            {"label": "B", "text": "Correct answer that demonstrates proper usage", "correct": true},
+            {"label": "C", "text": "Plausible but incorrect option C", "correct": false},
+            {"label": "D", "text": "Plausible but incorrect option D", "correct": false}
           ]
         },
         {
-          "text": "Question 2 text?",
+          "text": "Second question that builds on the lesson topic?",
           "options": [
-            {"label": "A", "text": "Option A", "correct": true},
-            {"label": "B", "text": "Option B", "correct": false},
-            {"label": "C", "text": "Option C", "correct": false},
-            {"label": "D", "text": "Option D", "correct": false}
+            {"label": "A", "text": "Correct answer demonstrating mastery", "correct": true},
+            {"label": "B", "text": "Common mistake or distractor B", "correct": false},
+            {"label": "C", "text": "Common mistake or distractor C", "correct": false},
+            {"label": "D", "text": "Common mistake or distractor D", "correct": false}
           ]
         },
         {
-          "text": "Question 3 text?",
+          "text": "Third question focusing on practical application?",
           "options": [
-            {"label": "A", "text": "Option A", "correct": false},
-            {"label": "B", "text": "Option B", "correct": false},
-            {"label": "C", "text": "Option C", "correct": true},
-            {"label": "D", "text": "Option D", "correct": false}
+            {"label": "A", "text": "Incorrect but tempting option A", "correct": false},
+            {"label": "B", "text": "Incorrect but tempting option B", "correct": false},
+            {"label": "C", "text": "Correct answer showing proper understanding", "correct": true},
+            {"label": "D", "text": "Incorrect but tempting option D", "correct": false}
           ]
         },
         {
-          "text": "Question 4 text?",
+          "text": "Fourth question testing grammar or vocabulary mastery?",
           "options": [
-            {"label": "A", "text": "Option A", "correct": false},
-            {"label": "B", "text": "Option B", "correct": true},
-            {"label": "C", "text": "Option C", "correct": false},
-            {"label": "D", "text": "Option D", "correct": false}
+            {"label": "A", "text": "Distractor option A", "correct": false},
+            {"label": "B", "text": "Correct answer demonstrating competence", "correct": true},
+            {"label": "C", "text": "Distractor option C", "correct": false},
+            {"label": "D", "text": "Distractor option D", "correct": false}
           ]
         },
         {
-          "text": "Question 5 text?",
+          "text": "Fifth question reinforcing key learning objectives?",
           "options": [
-            {"label": "A", "text": "Option A", "correct": false},
-            {"label": "B", "text": "Option B", "correct": false},
-            {"label": "C", "text": "Option C", "correct": false},
-            {"label": "D", "text": "Option D", "correct": true}
+            {"label": "A", "text": "Incorrect but logical option A", "correct": false},
+            {"label": "B", "text": "Incorrect but logical option B", "correct": false},
+            {"label": "C", "text": "Incorrect but logical option C", "correct": false},
+            {"label": "D", "text": "Correct answer showing mastery", "correct": true}
           ]
         },
         {
-          "text": "Question 6 text?",
+          "text": "Sixth question testing contextual understanding?",
           "options": [
-            {"label": "A", "text": "Option A", "correct": true},
-            {"label": "B", "text": "Option B", "correct": false},
-            {"label": "C", "text": "Option C", "correct": false},
-            {"label": "D", "text": "Option D", "correct": false}
+            {"label": "A", "text": "Correct answer in proper context", "correct": true},
+            {"label": "B", "text": "Plausible but incorrect option B", "correct": false},
+            {"label": "C", "text": "Plausible but incorrect option C", "correct": false},
+            {"label": "D", "text": "Plausible but incorrect option D", "correct": false}
           ]
         },
         {
-          "text": "Question 7 text?",
+          "text": "Seventh question building on previous learning?",
           "options": [
-            {"label": "A", "text": "Option A", "correct": false},
-            {"label": "B", "text": "Option B", "correct": false},
-            {"label": "C", "text": "Option C", "correct": true},
-            {"label": "D", "text": "Option D", "correct": false}
+            {"label": "A", "text": "Common error or misconception A", "correct": false},
+            {"label": "B", "text": "Common error or misconception B", "correct": false},
+            {"label": "C", "text": "Correct answer showing progress", "correct": true},
+            {"label": "D", "text": "Common error or misconception D", "correct": false}
           ]
         },
         {
-          "text": "Question 8 text?",
+          "text": "Eighth question testing practical application?",
           "options": [
-            {"label": "A", "text": "Option A", "correct": false},
-            {"label": "B", "text": "Option B", "correct": true},
-            {"label": "C", "text": "Option C", "correct": false},
-            {"label": "D", "text": "Option D", "correct": false}
+            {"label": "A", "text": "Tempting but wrong option A", "correct": false},
+            {"label": "B", "text": "Correct answer in realistic context", "correct": true},
+            {"label": "C", "text": "Tempting but wrong option C", "correct": false},
+            {"label": "D", "text": "Tempting but wrong option D", "correct": false}
           ]
         },
         {
-          "text": "Question 9 text?",
+          "text": "Ninth question reinforcing understanding?",
           "options": [
-            {"label": "A", "text": "Option A", "correct": false},
-            {"label": "B", "text": "Option B", "correct": false},
-            {"label": "C", "text": "Option C", "correct": false},
-            {"label": "D", "text": "Option D", "correct": true}
+            {"label": "A", "text": "Logical but incorrect option A", "correct": false},
+            {"label": "B", "text": "Logical but incorrect option B", "correct": false},
+            {"label": "C", "text": "Logical but incorrect option C", "correct": false},
+            {"label": "D", "text": "Correct answer demonstrating competence", "correct": true}
           ]
         },
         {
-          "text": "Question 10 text?",
+          "text": "Tenth question testing comprehensive understanding?",
           "options": [
-            {"label": "A", "text": "Option A", "correct": true},
-            {"label": "B", "text": "Option B", "correct": false},
-            {"label": "C", "text": "Option C", "correct": false},
-            {"label": "D", "text": "Option D", "correct": false}
+            {"label": "A", "text": "Correct answer showing mastery of concepts", "correct": true},
+            {"label": "B", "text": "Advanced distractor option B", "correct": false},
+            {"label": "C", "text": "Advanced distractor option C", "correct": false},
+            {"label": "D", "text": "Advanced distractor option D", "correct": false}
           ]
         }
       ],
-      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Practical advice for teachers on using this exercise effectively. Suggest ways to explain common errors or extend the learning."
     },
     {
       "type": "dialogue",
@@ -382,21 +382,21 @@ ${hasGrammarFocus ? `
       "time": 7,
       "instructions": "Read the dialogue and practice with a partner.",
       "dialogue": [
-        {"speaker": "Person A", "text": "Hello, how are you?"},
-        {"speaker": "Person B", "text": "I'm fine, thank you. And you?"},
-        {"speaker": "Person A", "text": "I'm doing well, thanks for asking."},
-        {"speaker": "Person B", "text": "What brings you here today?"},
-        {"speaker": "Person A", "text": "I'm here for the meeting."},
-        {"speaker": "Person B", "text": "Oh great, I'll be attending that too."},
-        {"speaker": "Person A", "text": "Wonderful, we can walk together."},
-        {"speaker": "Person B", "text": "That sounds like a good idea."},
-        {"speaker": "Person A", "text": "Shall we head over now?"},
-        {"speaker": "Person B", "text": "Yes, let's go."}
+        {"speaker": "Person A", "text": "Realistic opening line that sets the context for the lesson topic"},
+        {"speaker": "Person B", "text": "Natural response that continues the conversation meaningfully"},
+        {"speaker": "Person A", "text": "Follow-up that incorporates key vocabulary or grammar points"},
+        {"speaker": "Person B", "text": "Response that shows natural language use in context"},
+        {"speaker": "Person A", "text": "Continuation that builds on the lesson objectives"},
+        {"speaker": "Person B", "text": "Reply that demonstrates practical language application"},
+        {"speaker": "Person A", "text": "Further development of the conversation topic"},
+        {"speaker": "Person B", "text": "Response that incorporates lesson-specific language"},
+        {"speaker": "Person A", "text": "Penultimate line that moves toward resolution"},
+        {"speaker": "Person B", "text": "Natural closing that completes the dialogue effectively"}
       ],
-      "expressions": ["expression1", "expression2", "expression3", "expression4", "expression5", 
-                     "expression6", "expression7", "expression8", "expression9", "expression10"],
-      "expression_instruction": "Practice using these expressions in your own dialogues.",
-      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
+      "expressions": ["Useful expression 1 from the dialogue", "Practical phrase 2 for real situations", "Common expression 3 for this context", "Helpful phrase 4 students can use", "Relevant expression 5 for the topic", 
+                     "Practical phrase 6 for communication", "Useful expression 7 for fluency", "Common phrase 8 for this situation", "Helpful expression 9 for conversation", "Relevant phrase 10 for practice"],
+      "expression_instruction": "Practice using these expressions in your own dialogues and real-life situations.",
+      "teacher_tip": "Practical guidance for teachers on how to use this dialogue effectively. Include role-play suggestions and ways to personalize the content for individual students."
     },
     {
       "type": "true-false",
@@ -405,18 +405,18 @@ ${hasGrammarFocus ? `
       "time": 5,
       "instructions": "Read each statement and decide if it is true or false.",
       "statements": [
-        {"text": "Statement 1", "isTrue": true},
-        {"text": "Statement 2", "isTrue": false},
-        {"text": "Statement 3", "isTrue": true},
-        {"text": "Statement 4", "isTrue": false},
-        {"text": "Statement 5", "isTrue": true},
-        {"text": "Statement 6", "isTrue": false},
-        {"text": "Statement 7", "isTrue": true},
-        {"text": "Statement 8", "isTrue": false},
-        {"text": "Statement 9", "isTrue": true},
-        {"text": "Statement 10", "isTrue": false}
+        {"text": "Factual statement 1 that tests understanding of the lesson content", "isTrue": true},
+        {"text": "Statement 2 that requires careful consideration of the topic", "isTrue": false},
+        {"text": "Statement 3 that checks comprehension of key concepts", "isTrue": true},
+        {"text": "Statement 4 that tests attention to detail from the lesson", "isTrue": false},
+        {"text": "Statement 5 that verifies understanding of important points", "isTrue": true},
+        {"text": "Statement 6 that checks knowledge of specific information", "isTrue": false},
+        {"text": "Statement 7 that tests grasp of lesson objectives", "isTrue": true},
+        {"text": "Statement 8 that requires critical thinking about the content", "isTrue": false},
+        {"text": "Statement 9 that checks understanding of practical applications", "isTrue": true},
+        {"text": "Statement 10 that tests comprehensive knowledge of the topic", "isTrue": false}
       ],
-      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Practical advice for teachers on using this exercise to check understanding and reinforce key concepts from the lesson."
     },
     {
       "type": "discussion",
@@ -425,18 +425,18 @@ ${hasGrammarFocus ? `
       "time": 10,
       "instructions": "Discuss these questions with your teacher or partner.",
       "questions": [
-        {"text": "Discussion question 1"},
-        {"text": "Discussion question 2"},
-        {"text": "Discussion question 3"},
-        {"text": "Discussion question 4"},
-        {"text": "Discussion question 5"},
-        {"text": "Discussion question 6"},
-        {"text": "Discussion question 7"},
-        {"text": "Discussion question 8"},
-        {"text": "Discussion question 9"},
-        {"text": "Discussion question 10"}
+        {"text": "Thought-provoking question 1 that encourages personal reflection on the topic"},
+        {"text": "Open-ended question 2 that allows students to express opinions and experiences"},
+        {"text": "Comparative question 3 that uses the lesson's grammar focus in natural context"},
+        {"text": "Practical question 4 that helps students apply new vocabulary in real situations"},
+        {"text": "Analytical question 5 that encourages deeper thinking about the subject matter"},
+        {"text": "Personal experience question 6 that connects the lesson to students' lives"},
+        {"text": "Hypothetical question 7 that challenges students to use new language creatively"},
+        {"text": "Cultural comparison question 8 that broadens perspective and encourages discussion"},
+        {"text": "Problem-solving question 9 that requires students to think critically and communicate solutions"},
+        {"text": "Future-oriented question 10 that helps students practice expressing plans and predictions"}
       ],
-      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Encourage students to elaborate on their answers and ask follow-up questions. Focus on fluency and communication rather than perfect grammar during this speaking practice."
     },
     {
       "type": "error-correction",
@@ -445,36 +445,36 @@ ${hasGrammarFocus ? `
       "time": 8,
       "instructions": "Find and correct the errors in these sentences.",
       "sentences": [
-        {"text": "Sentence with error 1", "correction": "Corrected sentence 1"},
-        {"text": "Sentence with error 2", "correction": "Corrected sentence 2"},
-        {"text": "Sentence with error 3", "correction": "Corrected sentence 3"},
-        {"text": "Sentence with error 4", "correction": "Corrected sentence 4"},
-        {"text": "Sentence with error 5", "correction": "Corrected sentence 5"},
-        {"text": "Sentence with error 6", "correction": "Corrected sentence 6"},
-        {"text": "Sentence with error 7", "correction": "Corrected sentence 7"},
-        {"text": "Sentence with error 8", "correction": "Corrected sentence 8"},
-        {"text": "Sentence with error 9", "correction": "Corrected sentence 9"},
-        {"text": "Sentence with error 10", "correction": "Corrected sentence 10"}
+        {"text": "Sentence 1 with common error related to the lesson's grammar focus", "correction": "Corrected version 1 with proper grammar and usage"},
+        {"text": "Sentence 2 with typical mistake students make with this topic", "correction": "Corrected version 2 showing proper form and structure"},
+        {"text": "Sentence 3 with vocabulary or grammar error from the lesson", "correction": "Corrected version 3 demonstrating accurate language use"},
+        {"text": "Sentence 4 with mistake that reinforces learning objectives", "correction": "Corrected version 4 with proper grammar and vocabulary"},
+        {"text": "Sentence 5 with error that tests understanding of key concepts", "correction": "Corrected version 5 showing mastery of the material"},
+        {"text": "Sentence 6 with common mistake in this context", "correction": "Corrected version 6 with appropriate language for the situation"},
+        {"text": "Sentence 7 with error that checks attention to lesson details", "correction": "Corrected version 7 demonstrating proper usage and form"},
+        {"text": "Sentence 8 with mistake related to practical application", "correction": "Corrected version 8 showing real-world appropriate language"},
+        {"text": "Sentence 9 with error that tests comprehensive understanding", "correction": "Corrected version 9 with accurate grammar and meaning"},
+        {"text": "Sentence 10 with final error that reinforces all learning objectives", "correction": "Corrected version 10 showing complete mastery of the concepts"}
       ],
-      "teacher_tip": "Practical advice for teachers on how to use this exercise effectively."
+      "teacher_tip": "Have students explain why each sentence was incorrect and what rule applies to the correction. This reinforces understanding and helps prevent future errors."
     }
   ],
   "vocabulary_sheet": [
-    {"term": "Term 1", "meaning": "Definition 1"},
-    {"term": "Term 2", "meaning": "Definition 2"},
-    {"term": "Term 3", "meaning": "Definition 3"},
-    {"term": "Term 4", "meaning": "Definition 4"},
-    {"term": "Term 5", "meaning": "Definition 5"},
-    {"term": "Term 6", "meaning": "Definition 6"},
-    {"term": "Term 7", "meaning": "Definition 7"},
-    {"term": "Term 8", "meaning": "Definition 8"},
-    {"term": "Term 9", "meaning": "Definition 9"},
-    {"term": "Term 10", "meaning": "Definition 10"},
-    {"term": "Term 11", "meaning": "Definition 11"},
-    {"term": "Term 12", "meaning": "Definition 12"},
-    {"term": "Term 13", "meaning": "Definition 13"},
-    {"term": "Term 14", "meaning": "Definition 14"},
-    {"term": "Term 15", "meaning": "Definition 15"}
+    {"term": "Key vocabulary term 1", "meaning": "Clear, practical definition that students can understand and use"},
+    {"term": "Important term 2", "meaning": "Accurate definition with context for proper usage"},
+    {"term": "Essential vocabulary 3", "meaning": "Student-friendly explanation with practical application"},
+    {"term": "Relevant term 4", "meaning": "Clear definition that connects to the lesson objectives"},
+    {"term": "Useful vocabulary 5", "meaning": "Practical definition for real-world communication"},
+    {"term": "Key term 6", "meaning": "Comprehensive explanation with usage context"},
+    {"term": "Important vocabulary 7", "meaning": "Clear definition that aids understanding"},
+    {"term": "Essential term 8", "meaning": "Practical explanation for effective communication"},
+    {"term": "Relevant vocabulary 9", "meaning": "Accurate definition with learning context"},
+    {"term": "Useful term 10", "meaning": "Clear explanation that supports lesson goals"},
+    {"term": "Additional vocabulary 11", "meaning": "Comprehensive definition for extended learning"},
+    {"term": "Supplementary term 12", "meaning": "Detailed explanation for deeper understanding"},
+    {"term": "Extra vocabulary 13", "meaning": "Practical definition for comprehensive knowledge"},
+    {"term": "Bonus term 14", "meaning": "Clear explanation that enriches the lesson"},
+    {"term": "Final vocabulary 15", "meaning": "Comprehensive definition that completes the vocabulary set"}
   ]
 }
 
@@ -488,7 +488,7 @@ CRITICAL REQUIREMENTS VERIFICATION:
 7. Exercise 7 (discussion): EXACTLY 10 discussion questions.
 8. Exercise 8 (error-correction): EXACTLY 10 sentences with errors.
 9. Vocabulary sheet: EXACTLY 15 terms with definitions.
-${hasGrammarFocus ? `10. Grammar Rules: Must include exactly 3 grammar rules with title, explanation, and 3 examples each.` : ''}
+${hasGrammarFocus ? `10. Grammar Rules: Must include exactly 7 grammar rules with title, explanation, and 3 examples each.` : ''}
 
 RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
 
