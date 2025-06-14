@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
@@ -147,7 +146,7 @@ serve(async (req) => {
 8. DO NOT include any text outside of the JSON structure.
 9. Exercise 1 (Reading Comprehension) MUST have content between 280 and 320 words exactly.
 10. Focus on overall flow, coherence and pedagogical value.
-11. ADAPT TO USER'S INPUT: Carefully analyze all information from the USER MESSAGE. The 'lessonTopic' and 'lessonGoal' must define the theme of all exercises. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale. Critically, you MUST incorporate the 'teachingPreferences' into the design of relevant exercises. For 'studentProfile' and 'studentStruggles', adapt exercises to address these specific needs.
+11. ADAPT TO USER'S INPUT: Carefully analyze all information from the USER MESSAGE. The 'lessonTopic' and 'lessonGoal' must define the theme of all exercises. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale. Critically, you MUST incorporate the 'teachingPreferences' into the design of relevant exercises.
 
 12. Generate a structured JSON worksheet with this EXACT format:
 

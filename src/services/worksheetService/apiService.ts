@@ -14,15 +14,13 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPro
     console.log('Generating worksheet with prompt:', prompt);
     
     // Use the full prompt if provided, otherwise create legacy format
-    const formattedPrompt = prompt.fullPrompt || `${prompt.lessonTopic} - ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.studentProfile ? `. Student profile: ${prompt.studentProfile}` : ''}${prompt.studentStruggles ? `. Student struggles: ${prompt.studentStruggles}` : ''}${prompt.englishLevel ? `. English level: ${prompt.englishLevel}` : ''}. Lesson duration: ${prompt.lessonTime}.`;
+    const formattedPrompt = prompt.fullPrompt || `${prompt.lessonTopic} - ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.englishLevel ? `. English level: ${prompt.englishLevel}` : ''}. Lesson duration: ${prompt.lessonTime}.`;
     
     // Prepare form data for storage - use provided formDataForStorage or create from prompt
     const formData = prompt.formDataForStorage || {
       lessonTopic: prompt.lessonTopic,
       lessonGoal: prompt.lessonGoal,
       teachingPreferences: prompt.teachingPreferences,
-      studentProfile: prompt.studentProfile || null,
-      studentStruggles: prompt.studentStruggles || null,
       englishLevel: prompt.englishLevel || null,
       lessonTime: prompt.lessonTime
     };

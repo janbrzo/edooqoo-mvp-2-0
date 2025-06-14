@@ -13,8 +13,6 @@ export interface FormData {
   lessonGoal: string;
   teachingPreferences: string;
   englishLevel?: EnglishLevel;
-  studentProfile?: string;
-  studentStruggles?: string;
   fullPrompt?: string;
   formDataForStorage?: any;
 }
