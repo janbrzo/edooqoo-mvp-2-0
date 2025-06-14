@@ -57,10 +57,10 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
         <CardContent className="p-8">
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
-              <div className="flex justify-between items-start mb-2">
+              <div className="flex justify-between items-start mb-6">
                 <h1 className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-3xl">Create Your Worksheet</h1>
                 
-                <div className="flex gap-32">
+                <div className="flex gap-20">
                   <div className="flex gap-2">
                     <Button 
                       type="button"
@@ -110,12 +110,12 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                         C1/C2
                       </Button>
                     </div>
-                    <p className="text-sm text-gray-600 -mt-1">CEFR Scale: {englishLevel === "A1/A2" ? "Beginner/Elementary" : englishLevel === "B1/B2" ? "Intermediate/Upper-Intermediate" : "Advanced/Proficiency"}</p>
+                    <p className="text-sm text-gray-600">CEFR Scale: {englishLevel === "A1/A2" ? "Beginner/Elementary" : englishLevel === "B1/B2" ? "Intermediate/Upper-Intermediate" : "Advanced/Proficiency"}</p>
                   </div>
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <FormField 
                   label="Lesson topic: What is the main subject of the lesson?"
                   placeholder="E.g. IT: debugging code"
@@ -133,7 +133,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                 />
               </div>
 
-              <div className="grid grid-cols-1">
+              <div className="grid grid-cols-1 mb-6">
                 <FormField 
                   label="Teaching preferences: What stimulates your student best?"
                   placeholder="E.g. Writing exercises, dialogues"
