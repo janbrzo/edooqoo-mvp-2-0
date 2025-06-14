@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
 import InputParamsCard from "./worksheet/InputParamsCard";
 import WorksheetToolbar from "./worksheet/WorksheetToolbar";
-import WorksheetContainer from "./worksheet/WorksheetContainer";
+import { WorksheetContainer } from "./worksheet/WorksheetContainer";
 import WorksheetContent from "./worksheet/WorksheetContent";
 import { useDownloadStatus } from "@/hooks/useDownloadStatus";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -171,11 +170,9 @@ export default function WorksheetDisplay({
 
   return (
     <WorksheetContainer
+      worksheetData={editableWorksheet}
       worksheetId={worksheetId}
-      onDownload={handleDownloadWithTracking}
-      isDownloadUnlocked={isDownloadUnlocked}
-      viewMode={viewMode}
-      editableWorksheet={editableWorksheet}
+      onSubmitRating={onFeedbackSubmit}
     >
       <div className={`mb-6 ${isMobile ? 'px-2' : ''}`}>
         <WorksheetHeader
