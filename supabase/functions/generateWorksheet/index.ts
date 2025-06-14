@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
@@ -52,19 +51,60 @@ function validatePrompt(prompt: string): { isValid: boolean; error?: string } {
   return { isValid: true };
 }
 
-// Geolocation utility
+// Improved geolocation utility with HTTPS and fallback
 async function getGeolocation(ip: string): Promise<{ country?: string; city?: string }> {
   try {
-    // Use a simple IP geolocation service
-    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,city`);
-    const data = await response.json();
+    console.log(`Attempting to get geolocation for IP: ${ip}`);
     
-    if (data.status === 'success') {
-      return {
-        country: data.country || null,
-        city: data.city || null
-      };
+    // Try ipapi.co first (HTTPS, no API key required)
+    try {
+      const response = await fetch(`https://ipapi.co/${ip}/json/`, {
+        headers: {
+          'User-Agent': 'Supabase-Edge-Function/1.0'
+        },
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Geolocation data from ipapi.co:', data);
+        
+        if (data.country_name && data.city) {
+          return {
+            country: data.country_name,
+            city: data.city
+          };
+        }
+      }
+    } catch (error) {
+      console.warn('ipapi.co failed:', error);
     }
+    
+    // Fallback to ipinfo.io (HTTPS, no API key required for basic usage)
+    try {
+      const response = await fetch(`https://ipinfo.io/${ip}/json`, {
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Geolocation data from ipinfo.io:', data);
+        
+        if (data.country && data.city) {
+          return {
+            country: data.country,
+            city: data.city
+          };
+        }
+      }
+    } catch (error) {
+      console.warn('ipinfo.io failed:', error);
+    }
+    
+    console.warn('All geolocation services failed, returning empty data');
   } catch (error) {
     console.warn('Failed to get geolocation:', error);
   }
@@ -108,6 +148,8 @@ serve(async (req) => {
     const { prompt, formData, userId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || 'unknown';
     
+    console.log(`Processing request from IP: ${ip}`);
+    
     // Input validation
     const promptValidation = validatePrompt(prompt);
     if (!promptValidation.isValid) {
@@ -137,6 +179,7 @@ serve(async (req) => {
 
     // Get geolocation data
     const geoData = await getGeolocation(ip);
+    console.log(`Geolocation result: country=${geoData.country || 'unknown'}, city=${geoData.city || 'unknown'}`);
 
     // Sanitize inputs
     const sanitizedPrompt = sanitizeInput(prompt, 5000);
@@ -563,6 +606,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
     // Calculate generation time
     const generationEndTime = Date.now();
     const generationTimeSeconds = Math.round((generationEndTime - generationStartTime) / 1000);
+    console.log(`Generation completed in ${generationTimeSeconds} seconds`);
 
     // Save worksheet to database with FULL PROMPT (SYSTEM + USER)
     try {
