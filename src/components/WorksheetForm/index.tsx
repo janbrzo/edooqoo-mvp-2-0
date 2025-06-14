@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +6,7 @@ import { LessonTime, EnglishLevel, FormData, WorksheetFormProps, Tile } from './
 import { LESSON_TOPICS, LESSON_GOALS, TEACHING_PREFERENCES } from './constants';
 import EnglishLevelSelector from './EnglishLevelSelector';
 import FormField from './FormField';
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const getRandomTiles = (tiles: Tile[], count = 5): Tile[] => {
   const shuffled = [...tiles].sort(() => 0.5 - Math.random());
@@ -25,6 +25,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const [randomPreferences, setRandomPreferences] = useState(getRandomTiles(TEACHING_PREFERENCES));
 
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,14 +57,16 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   return (
     <div className="w-full py-[24px]">
       <Card className="bg-white shadow-sm">
-        <CardContent className="p-8">
+        <CardContent className={`${isMobile ? 'p-4' : 'p-8'}`}>
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
-              <div className="flex justify-between items-start mb-6">
-                <h1 className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-3xl">Create Your Worksheet</h1>
+              <div className={`flex ${isMobile ? 'flex-col gap-4' : 'justify-between items-start'} mb-6`}>
+                <h1 className={`font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 ${isMobile ? 'text-2xl text-center' : 'text-3xl'}`}>
+                  Create Your Worksheet
+                </h1>
                 
-                <div className="flex gap-14">
-                  <div className="flex gap-2 w-32">
+                <div className={`flex ${isMobile ? 'flex-col gap-4' : 'gap-14'}`}>
+                  <div className={`flex gap-2 ${isMobile ? 'justify-center' : 'w-32'}`}>
                     <Button 
                       type="button"
                       variant={lessonTime === "45 min" ? "default" : "outline"} 
@@ -84,7 +87,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                     </Button>
                   </div>
                   
-                  <div className="flex flex-col items-end w-80">
+                  <div className={`flex flex-col ${isMobile ? 'items-center' : 'items-end w-80'}`}>
                     <div className="flex gap-2 mb-1">
                       <Button 
                         type="button"
@@ -114,12 +117,14 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                         C1/C2
                       </Button>
                     </div>
-                    <p className="text-sm text-gray-600">CEFR Scale: {englishLevel === "A1/A2" ? "Beginner/Elementary" : englishLevel === "B1/B2" ? "Intermediate/Upper-Intermediate" : "Advanced/Proficiency"}</p>
+                    <p className={`text-sm text-gray-600 ${isMobile ? 'text-center' : ''}`}>
+                      CEFR Scale: {englishLevel === "A1/A2" ? "Beginner/Elementary" : englishLevel === "B1/B2" ? "Intermediate/Upper-Intermediate" : "Advanced/Proficiency"}
+                    </p>
                   </div>
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
                 <FormField 
                   label="Lesson topic: What is the main subject of the lesson?"
                   placeholder="E.g. IT: debugging code"
@@ -137,7 +142,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
                 <FormField 
                   label="Teaching preferences: What stimulates your student best?"
                   placeholder="E.g. Writing exercises, dialogues"
@@ -155,18 +160,18 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                 />
               </div>
 
-              <div className="flex justify-between pt-4">
+              <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between'} pt-4`}>
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={refreshTiles} 
-                  className="border-worksheet-purple text-worksheet-purple hover:bg-worksheet-purpleLight"
+                  className={`border-worksheet-purple text-worksheet-purple hover:bg-worksheet-purpleLight ${isMobile ? 'w-full' : ''}`}
                 >
                   Refresh Suggestions
                 </Button>
                 <Button 
                   type="submit" 
-                  className="bg-worksheet-purple hover:bg-worksheet-purpleDark"
+                  className={`bg-worksheet-purple hover:bg-worksheet-purpleDark ${isMobile ? 'w-full' : ''}`}
                 >
                   Generate Custom Worksheet
                 </Button>
