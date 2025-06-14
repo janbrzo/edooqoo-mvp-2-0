@@ -59,7 +59,7 @@ export default function WorksheetContainer({
         const viewModeText = viewMode === 'teacher' ? 'Teacher' : 'Student';
         const filename = `${formattedDate}-${viewModeText}-${editableWorksheet.title.replace(/\s+/g, '-').toLowerCase()}.pdf`;
         
-        const result = await generatePDF('worksheet-content', filename, viewMode === 'teacher', editableWorksheet.title);
+        const result = await generatePDF('worksheet-content', filename, viewMode === 'teacher', editableWorksheet.title, worksheetId || undefined);
         if (result) {
           toast({
             title: "PDF Downloaded",

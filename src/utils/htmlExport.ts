@@ -1,4 +1,6 @@
 
+import { incrementDownloadCount } from '@/services/worksheetService';
+
 /**
  * Fetches CSS content from a URL
  */
@@ -17,7 +19,7 @@ async function fetchCSSContent(url: string): Promise<string> {
 /**
  * Exports the current view as a standalone HTML file with all styles inlined
  */
-export async function exportAsHTML(elementId: string, filename: string, viewMode: 'student' | 'teacher' = 'student', title: string = 'English Worksheet'): Promise<boolean> {
+export async function exportAsHTML(elementId: string, filename: string, viewMode: 'student' | 'teacher' = 'student', title: string = 'English Worksheet', worksheetId?: string): Promise<boolean> {
   try {
     const element = document.getElementById(elementId);
     if (!element) {
@@ -362,6 +364,11 @@ ${finalCSS}
     
     // Clean up
     URL.revokeObjectURL(url);
+    
+    // Increment download count if worksheetId is provided
+    if (worksheetId) {
+      await incrementDownloadCount(worksheetId);
+    }
     
     console.log('HTML export completed successfully');
     return true;
