@@ -1,10 +1,17 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Info, Clock, Database, Star, User, UserCog, Edit, GraduationCap } from "lucide-react";
+import { Info, Clock, Database, Star, Edit, GraduationCap, BookOpen } from "lucide-react";
 
 interface InputParamsCardProps {
-  inputParams: any;
+  inputParams: {
+    lessonTime: string;
+    englishLevel: string;
+    lessonTopic: string;
+    lessonGoal: string;
+    teachingPreferences?: string;
+    additionalInformation?: string;
+  };
 }
 
 const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
@@ -16,8 +23,8 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
       </CardTitle>
     </CardHeader>
     <CardContent>
-      {/* First row: Lesson Duration, English Level, Lesson Topic */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Lesson Duration */}
         <div className="flex items-center gap-3">
           <div className="bg-worksheet-purpleLight rounded-full p-2">
             <Clock className="h-4 w-4 text-worksheet-purple" />
@@ -28,6 +35,7 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
           </div>
         </div>
         
+        {/* English Level */}
         <div className="flex items-center gap-3">
           <div className="bg-worksheet-purpleLight rounded-full p-2">
             <GraduationCap className="h-4 w-4 text-worksheet-purple" />
@@ -38,6 +46,7 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
           </div>
         </div>
         
+        {/* Lesson Topic */}
         <div className="flex items-center gap-3">
           <div className="bg-worksheet-purpleLight rounded-full p-2">
             <Database className="h-4 w-4 text-worksheet-purple" />
@@ -47,10 +56,8 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
             <p className="font-medium text-sm">{inputParams.lessonTopic}</p>
           </div>
         </div>
-      </div>
       
-      {/* Second row: Lesson Goal, Teaching Preferences */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Lesson Goal */}
         <div className="flex items-center gap-3">
           <div className="bg-worksheet-purpleLight rounded-full p-2">
             <Star className="h-4 w-4 text-worksheet-purple" />
@@ -61,15 +68,31 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
-          <div className="bg-worksheet-purpleLight rounded-full p-2">
-            <User className="h-4 w-4 text-worksheet-purple" />
+        {/* Grammar focus (conditionally rendered) */}
+        {inputParams.teachingPreferences && (
+          <div className="flex items-center gap-3">
+            <div className="bg-worksheet-purpleLight rounded-full p-2">
+              <BookOpen className="h-4 w-4 text-worksheet-purple" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Grammar focus</p>
+              <p className="font-medium text-sm">{inputParams.teachingPreferences}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Teaching Preferences</p>
-            <p className="font-medium text-sm">{inputParams.teachingPreferences}</p>
+        )}
+
+        {/* Additional Information (conditionally rendered) */}
+        {inputParams.additionalInformation && (
+          <div className="flex items-center gap-3">
+            <div className="bg-worksheet-purpleLight rounded-full p-2">
+              <Edit className="h-4 w-4 text-worksheet-purple" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Additional Information</p>
+              <p className="font-medium text-sm">{inputParams.additionalInformation}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </CardContent>
   </Card>
