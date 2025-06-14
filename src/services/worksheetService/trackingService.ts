@@ -15,19 +15,65 @@ export async function trackWorksheetEventAPI(type: string, worksheetId: string, 
     console.log(`Tracking event: ${type} for worksheet: ${worksheetId}`);
     
     try {
-      // Log event in console
-      console.log(`Event tracked: ${type} for worksheet ${worksheetId} by user ${userId}`, metadata);
-      
       // For download events, increment the download counter
       if (type === 'download') {
         try {
+          console.log(`Attempting to increment download count for worksheet: ${worksheetId}`);
+          
           // Use the dedicated function for incrementing download count
-          await supabase.rpc('increment_worksheet_download_count', {
+          const { data, error } = await supabase.rpc('increment_worksheet_download_count', {
             p_worksheet_id: worksheetId
           });
-          console.log(`Download count incremented for worksheet: ${worksheetId}`);
+          
+          if (error) {
+            console.error(`RPC function error: ${error.message}`);
+            // Fallback: try direct update
+            const { error: updateError } = await supabase
+              .from('worksheets')
+              .update({ 
+                download_count: supabase.raw('download_count + 1'),
+                last_modified_at: new Date().toISOString()
+              })
+              .eq('id', worksheetId);
+            
+            if (updateError) {
+              console.error(`Direct update error: ${updateError.message}`);
+            } else {
+              console.log(`Download count incremented via direct update for worksheet: ${worksheetId}`);
+            }
+          } else {
+            console.log(`Download count incremented via RPC for worksheet: ${worksheetId}`, data);
+          }
         } catch (countError) {
           console.error(`Failed to increment download count: ${countError}`);
+          
+          // Final fallback: try simple increment
+          try {
+            const { data: currentData, error: fetchError } = await supabase
+              .from('worksheets')
+              .select('download_count')
+              .eq('id', worksheetId)
+              .single();
+            
+            if (!fetchError && currentData) {
+              const newCount = (currentData.download_count || 0) + 1;
+              const { error: finalUpdateError } = await supabase
+                .from('worksheets')
+                .update({ 
+                  download_count: newCount,
+                  last_modified_at: new Date().toISOString()
+                })
+                .eq('id', worksheetId);
+              
+              if (!finalUpdateError) {
+                console.log(`Download count updated to ${newCount} for worksheet: ${worksheetId}`);
+              } else {
+                console.error(`Final update error: ${finalUpdateError.message}`);
+              }
+            }
+          } catch (finalError) {
+            console.error(`Final fallback failed: ${finalError}`);
+          }
         }
       }
       
