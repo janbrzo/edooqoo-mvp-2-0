@@ -67,6 +67,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                       variant={lessonTime === "45 min" ? "default" : "outline"} 
                       onClick={() => setLessonTime("45 min")} 
                       className={lessonTime === "45 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                      size="sm"
                     >
                       45 min
                     </Button>
@@ -75,6 +76,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                       variant={lessonTime === "60 min" ? "default" : "outline"} 
                       onClick={() => setLessonTime("60 min")} 
                       className={lessonTime === "60 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                      size="sm"
                     >
                       60 min
                     </Button>
