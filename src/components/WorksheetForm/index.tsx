@@ -56,10 +56,10 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
       <Card className="bg-white shadow-sm">
         <CardContent className="p-8">
           <div className="mb-6">
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-start mb-4">
               <h1 className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-3xl">Create Your Worksheet</h1>
               
-              <div className="flex gap-6">
+              <div className="flex gap-12">
                 <div className="flex gap-2">
                   <Button 
                     variant={lessonTime === "45 min" ? "default" : "outline"} 
