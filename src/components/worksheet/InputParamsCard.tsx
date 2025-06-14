@@ -23,14 +23,18 @@ const InputParamsCard = ({ inputParams }: InputParamsCardProps) => (
             <Clock className="h-4 w-4 text-worksheet-purple" />
           </div>
           <div className="flex-1">
-            <p className="text-sm text-gray-500">Lesson Duration</p>
-            <p className="font-medium text-sm">{inputParams.lessonTime}</p>
-            {inputParams.englishLevel && (
-              <>
-                <p className="text-sm text-gray-500 mt-1">English Level</p>
-                <p className="font-medium text-sm">{inputParams.englishLevel}</p>
-              </>
-            )}
+            <div className="flex items-center gap-4">
+              <div>
+                <p className="text-sm text-gray-500">Lesson Duration</p>
+                <p className="font-medium text-sm">{inputParams.lessonTime}</p>
+              </div>
+              {inputParams.englishLevel && (
+                <div>
+                  <p className="text-sm text-gray-500">English Level</p>
+                  <p className="font-medium text-sm">{inputParams.englishLevel}</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
