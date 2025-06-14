@@ -193,27 +193,47 @@ ${hasGrammarFocus ? `
 13. Generate a structured JSON worksheet with this EXACT format:
 
 {
-  "title": "Compelling worksheet title that matches the lesson topic",
-  "subtitle": "Engaging subtitle that describes the specific focus and grammar practice",
-  "introduction": "Brief, professional introduction paragraph about the worksheet topic, goals, and what students will practice. Keep it engaging and clear.",
+  "title": "In a restaurant",
+  "subtitle": "Making a complaint about your dish in a restaurant: adjectives practice",
+  "introduction": "In this lesson, you’ll practice a restaurant role-play, learn how to order food, and make a complaint about an incorrect order. You’ll also review grammar related to adjectives in their comparative and superlative forms.",
   ${hasGrammarFocus ? `"grammar_rules": {
     "title": "Grammar Focus: ${grammarFocus}",
-    "introduction": "Comprehensive explanation of the grammar topic in the style of well-known grammatical coursebooks. Explain the concept clearly, when it's used, and provide context for learning. This should be detailed enough for students to understand the rules and for teachers to use as reference material.",
+    "introduction": "Adjectives are words that describe or modify nouns, providing information about qualities such as size, color, shape, age, and many others. When we want to compare people, objects, or ideas, we use adjectives in their comparative or superlative forms.\\n\\nComparatives are used to compare two things or people, showing that one has a higher or lower degree of a particular quality than the other. For example, when saying \\"John is taller than Mike,\\" the adjective \\"taller\\" is in the comparative form, indicating a comparison between two individuals. Comparatives are often followed by the word \\"than\\" to introduce the second element of comparison.\\n\\nSuperlatives, on the other hand, are used to describe the extreme or highest degree of a quality among three or more things or people. For example, \\"Anna is the tallest in her class\\" uses the superlative form \\"tallest\\" to indicate that Anna has the greatest height compared to all others in the group. Superlatives are usually preceded by the definite article \\"the\\".\\n\\nThe formation of comparatives and superlatives depends largely on the length and ending of the adjective. One-syllable adjectives usually form comparatives and superlatives by adding the suffixes \\"-er\\" and \\"-est\\". For adjectives with two syllables or more, especially those with three or more syllables, the words \\"more\\" and \\"most\\" are used before the adjective instead of adding suffixes.\\n\\nSome adjectives have irregular comparative and superlative forms that must be memorized as they do not follow standard patterns. For instance, \\"good\\" becomes \\"better\\" (comparative) and \\"best\\" (superlative).\\n\\nIn addition to indicating comparisons of difference, adjectives can also be used to express equality, using the structure \\"as + adjective + as\\" to show that two things share the same degree of a quality.\\n\\nUnderstanding and correctly using comparatives and superlatives is essential for effective communication, enabling speakers and writers to accurately compare qualities and express degrees of difference or similarity.",
     "rules": [
       {
-        "title": "First Grammar Rule Title",
-        "explanation": "Detailed explanation of the first grammar rule with clear context and usage information",
-        "examples": ["Example 1 showing the rule in context", "Example 2 demonstrating proper usage", "Example 3 with practical application"]
+        "title": "Forming Comparatives for One-Syllable Adjectives",
+        "explanation": "Most one-syllable adjectives form their comparative by adding the suffix \\"-er\\" to the base adjective. If the adjective ends with a single consonant preceded by a single vowel, double the consonant before adding \\"-er\\". When the adjective ends with \\"-e\\", just add \\"-r\\".",
+        "examples": ["tall → taller", "big → bigger", "nice → nicer"]
       },
       {
-        "title": "Second Grammar Rule Title", 
-        "explanation": "Detailed explanation of the second grammar rule with clear context and usage information",
-        "examples": ["Example 1 showing the rule in context", "Example 2 demonstrating proper usage", "Example 3 with practical application"]
+        "title": "Forming Superlatives for One-Syllable Adjectives",
+        "explanation": "One-syllable adjectives form the superlative by adding the suffix \\"-est\\" to the base adjective. Similar spelling rules apply as with comparatives.",
+        "examples": ["tall → tallest", "big → biggest", "nice → nicest"]
       },
       {
-        "title": "Third Grammar Rule Title",
-        "explanation": "Detailed explanation of the third grammar rule with clear context and usage information",
-        "examples": ["Example 1 showing the rule in context", "Example 2 demonstrating proper usage", "Example 3 with practical application"]
+        "title": "Forming Comparatives and Superlatives for Adjectives with Two or More Syllables",
+        "explanation": "Adjectives with two or more syllables generally form comparatives and superlatives by using \\"more\\" before the adjective for comparatives, and \\"most\\" before the adjective for superlatives. Some two-syllable adjectives can also take \\"-er\\" and \\"-est\\" if they end with \\"-y\\" or certain other endings.",
+        "examples": ["beautiful → more beautiful → most beautiful", "careful → more careful → most careful", "happy → happier → happiest"]
+      },
+      {
+        "title": "Irregular Comparatives and Superlatives",
+        "explanation": "Some adjectives have irregular forms that do not follow the usual patterns and must be memorized. These are common and important adjectives.",
+        "examples": ["good → better → best", "bad → worse → worst", "far → farther/further → farthest/furthest"]
+      },
+      {
+        "title": "Using \\"than\\" in Comparatives",
+        "explanation": "Comparative adjectives are usually followed by \\"than\\" to introduce the second element being compared.",
+        "examples": ["She is taller than her brother.", "This book is more interesting than the last one."]
+      },
+      {
+        "title": "Using \\"the\\" with Superlatives",
+        "explanation": "Superlative adjectives are usually preceded by the definite article \\"the\\" to show that one thing is the highest or lowest in a group.",
+        "examples": ["He is the fastest runner in the team.", "This is the most expensive restaurant in town."]
+      },
+      {
+        "title": "Comparing Equality with \\"as...as\\"",
+        "explanation": "To show that two things are equal in some quality, use the structure \\"as + adjective + as\\".",
+        "examples": ["She is as tall as her sister.", "This test is as difficult as the last one."]
       }
     ]
   },` : ''}
@@ -224,15 +244,15 @@ ${hasGrammarFocus ? `
       "icon": "fa-book-open",
       "time": 8,
       "instructions": "Read the following text and answer the questions below.",
-      "content": "Write a compelling, contextual text of exactly 280-320 words that relates directly to the lesson topic and goal. If grammar focus is specified, include multiple examples of that grammar point naturally integrated into the text. The text should be engaging, informative, and appropriate for the specified English level. Include realistic scenarios, practical vocabulary, and cultural context where relevant.",
+      "content": "New York City is famous for its restaurants. People from all over the world live there, so the city offers many different types of food. You can find Italian, Chinese, Mexican, Japanese, Greek, Thai, Indian, and many more international cuisines. American-style diners and fast food restaurants are also very popular.\\nMost restaurants in New York have menus that include appetizers, main dishes, and desserts. Appetizers are small dishes that people eat before the main meal, such as soups, salads, or garlic bread. Main dishes are usually bigger and include meat, fish, or vegetarian options, often served with rice, potatoes, or pasta. Desserts like cheesecake, brownies, or ice cream are very common.\\nSome of the most popular types of food in New York include pizza, burgers, sushi, and pasta. People also enjoy trying food from food trucks, especially for lunch. One of the most famous dishes in the United States, and especially in New York, is the New York-style pizza. It’s a thin, wide slice of pizza, usually eaten with your hands.\\nOf course, not every restaurant visit is perfect. Some common complaints that people make in New York restaurants include:\\n“The food is cold.”\\n“This is not what I ordered.”\\n“The portion is too small.”\\n“I waited too long for my food.”\\n“The bill is incorrect.”\\nLearning how to order food and make polite complaints in English is very useful if you ever visit New York or work in customer service.",
       "questions": [
-        {"text": "Thoughtful comprehension question 1 about the text content", "answer": "Complete, accurate answer based on the text"},
-        {"text": "Thoughtful comprehension question 2 about the text content", "answer": "Complete, accurate answer based on the text"},
-        {"text": "Thoughtful comprehension question 3 about the text content", "answer": "Complete, accurate answer based on the text"},
-        {"text": "Thoughtful comprehension question 4 about the text content", "answer": "Complete, accurate answer based on the text"},
-        {"text": "Thoughtful comprehension question 5 about the text content", "answer": "Complete, accurate answer based on the text"}
+        {"text": "Why is there such a wide variety of food in New York City restaurants?", "answer": "Because people from all over the world live in New York, so the city offers many different types of international cuisine."},
+        {"text": "What are some typical examples of appetizers, main dishes, and desserts mentioned in the text?", "answer": "Appetizers: soups, salads, garlic bread; Main dishes: meat, fish, or vegetarian options with rice, potatoes, or pasta; Desserts: cheesecake, brownies, ice cream."},
+        {"text": "What is special about New York-style pizza?", "answer": "It is a thin, wide slice of pizza, usually eaten with your hands."},
+        {"text": "What are some of the most popular international cuisines in New York?", "answer": "Italian, Chinese, Mexican, Japanese, Greek, Thai, and Indian cuisines."},
+        {"text": "What are some common complaints that customers make in New York restaurants?", "answer": "The food is cold, This is not what I ordered, The portion is too small, I waited too long for my food, and The bill is incorrect."}
       ],
-      "teacher_tip": "Practical, actionable advice for teachers on how to use this exercise effectively in a 1-on-1 lesson. Include suggestions for extension activities, common student difficulties, or ways to personalize the content."
+      "teacher_tip": "Use the comprehension questions as a starting point to ask more personal questions related to your student’s life and experiences. Encourage them to share their opinions on the topics and situations mentioned in the text."
     },
     {
       "type": "matching",
@@ -241,18 +261,18 @@ ${hasGrammarFocus ? `
       "time": 7,
       "instructions": "Match each term with its correct definition.",
       "items": [
-        {"term": "Relevant vocabulary term 1", "definition": "Clear, accurate definition that students can understand"},
-        {"term": "Relevant vocabulary term 2", "definition": "Clear, accurate definition that students can understand"},
-        {"term": "Relevant vocabulary term 3", "definition": "Clear, accurate definition that students can understand"},
-        {"term": "Relevant vocabulary term 4", "definition": "Clear, accurate definition that students can understand"},
-        {"term": "Relevant vocabulary term 5", "definition": "Clear, accurate definition that students can understand"},
-        {"term": "Relevant vocabulary term 6", "definition": "Clear, accurate definition that students can understand"},
-        {"term": "Relevant vocabulary term 7", "definition": "Clear, accurate definition that students can understand"},
-        {"term": "Relevant vocabulary term 8", "definition": "Clear, accurate definition that students can understand"},
-        {"term": "Relevant vocabulary term 9", "definition": "Clear, accurate definition that students can understand"},
-        {"term": "Relevant vocabulary term 10", "definition": "Clear, accurate definition that students can understand"}
+        {"term": "Appetizer", "definition": "A small dish served before the main course to stimulate the appetite."},
+        {"term": "Cuisine", "definition": "A style or method of cooking, especially as characteristic of a particular country or region."},
+        {"term": "Portion", "definition": "The amount of food served to one person at a meal."},
+        {"term": "Incorrect", "definition": "Not accurate or wrong; used especially in the context of errors with orders or bills."},
+        {"term": "Complaint", "definition": "A statement that something is wrong or not satisfactory, especially in service or quality."},
+        {"term": "Fine dining", "definition": "A high-end, expensive restaurant experience offering exceptional food, service, and atmosphere."},
+        {"term": "Reservation", "definition": "An arrangement made in advance to secure a table at a restaurant."},
+        {"term": "Signature dish", "definition": "A unique or famous meal that represents a restaurant or chef’s style."},
+        {"term": "Undercooked", "definition": "Food that has not been cooked long enough and may be unsafe or unpleasant to eat."},
+        {"term": "Customer service", "definition": "The assistance and advice provided by a restaurant or business to people who use its services."}
       ],
-      "teacher_tip": "Practical, actionable advice for teachers on how to use this exercise effectively. Include pronunciation tips, ways to check understanding, or follow-up activities."
+      "teacher_tip": "Before the matching activity, introduce and pronounce each term to ensure students feel confident recognizing and understanding them. If needed, translate the most difficult or abstract vocabulary terms into the student’s native language. After the exercise, assign students a follow-up task to write 10 original sentences using the new vocabulary."
     },
     {
       "type": "fill-in-blanks",
@@ -260,20 +280,20 @@ ${hasGrammarFocus ? `
       "icon": "fa-pencil-alt",
       "time": 8,
       "instructions": "Complete each sentence with the correct word from the box.",
-      "word_bank": ["word1", "word2", "word3", "word4", "word5", "word6", "word7", "word8", "word9", "word10"],
+      "word_bank": ["famous", "international", "incorrect", "small", "popular", "cold", "different", "thin", "expensive", "common"],
       "sentences": [
-        {"text": "Contextual sentence with meaningful _____ blank that reinforces the lesson topic.", "answer": "word1"},
-        {"text": "Another contextual sentence with _____ that practices key vocabulary.", "answer": "word2"},
-        {"text": "Third meaningful sentence with a _____ that connects to the grammar focus if applicable.", "answer": "word3"},
-        {"text": "Fourth sentence with _____ that provides realistic language practice.", "answer": "word4"},
-        {"text": "Fifth sentence that needs a _____ and relates to the lesson goal.", "answer": "word5"},
-        {"text": "Sixth contextual sentence with _____ for comprehensive practice.", "answer": "word6"},
-        {"text": "Seventh sentence with _____ word that reinforces learning objectives.", "answer": "word7"},
-        {"text": "Eighth sentence that requires a _____ and maintains topic coherence.", "answer": "word8"},
-        {"text": "Ninth sentence with a _____ blank that provides varied practice.", "answer": "word9"},
-        {"text": "Tenth sentence with a _____ that completes the exercise comprehensively.", "answer": "word10"}
+        {"text": "New York is _____ for its wide variety of restaurants and street food.", "answer": "famous"},
+        {"text": "The city offers many _____ cuisines, like Thai, Italian, and Indian.", "answer": "international"},
+        {"text": "Customers often complain when their bill is _____.", "answer": "incorrect"},
+        {"text": "Appetizers are usually _____ dishes served before the main course.", "answer": "small"},
+        {"text": "Pizza is one of the most _____ foods in New York.", "answer": "popular"},
+        {"text": "One common complaint is that the food arrives _____.", "answer": "cold"},
+        {"text": "You can try food from many _____ cultures in New York.", "answer": "different"},
+        {"text": "New York-style pizza is known for its wide and _____ crust.", "answer": "thin"},
+        {"text": "Some restaurants are very _____, but they offer high-quality service.", "answer": "expensive"},
+        {"text": "It is _____ to leave a tip in American restaurants.", "answer": "common"}
       ],
-      "teacher_tip": "Practical guidance for teachers on using this exercise effectively. Suggest ways to extend the activity or check student understanding."
+      "teacher_tip": "You can use this exercise in the next class as a sentence translation activity—provide the sentences in the student’s native language and ask them to translate them into English to practice the new vocabulary."
     },
     {
       "type": "multiple-choice",
@@ -283,97 +303,97 @@ ${hasGrammarFocus ? `
       "instructions": "Choose the best option to complete each sentence.",
       "questions": [
         {
-          "text": "Contextual question that tests understanding of key concepts or grammar?",
+          "text": "This restaurant is ______ than the one we went to last week.",
           "options": [
-            {"label": "A", "text": "Plausible but incorrect option A", "correct": false},
-            {"label": "B", "text": "Correct answer that demonstrates proper usage", "correct": true},
-            {"label": "C", "text": "Plausible but incorrect option C", "correct": false},
-            {"label": "D", "text": "Plausible but incorrect option D", "correct": false}
+            {"label": "A", "text": "good", "correct": false},
+            {"label": "B", "text": "better", "correct": true},
+            {"label": "C", "text": "best", "correct": false},
+            {"label": "D", "text": "the better", "correct": false}
           ]
         },
         {
-          "text": "Second question that builds on the lesson topic?",
+          "text": "That was the ______ meal I’ve ever had!",
           "options": [
-            {"label": "A", "text": "Correct answer demonstrating mastery", "correct": true},
-            {"label": "B", "text": "Common mistake or distractor B", "correct": false},
-            {"label": "C", "text": "Common mistake or distractor C", "correct": false},
-            {"label": "D", "text": "Common mistake or distractor D", "correct": false}
+            {"label": "A", "text": "most delicious", "correct": true},
+            {"label": "B", "text": "more delicious", "correct": false},
+            {"label": "C", "text": "deliciouser", "correct": false},
+            {"label": "D", "text": "deliciousest", "correct": false}
           ]
         },
         {
-          "text": "Third question focusing on practical application?",
+          "text": "Chinese food is usually ______ than British food.",
           "options": [
-            {"label": "A", "text": "Incorrect but tempting option A", "correct": false},
-            {"label": "B", "text": "Incorrect but tempting option B", "correct": false},
-            {"label": "C", "text": "Correct answer showing proper understanding", "correct": true},
-            {"label": "D", "text": "Incorrect but tempting option D", "correct": false}
+            {"label": "A", "text": "spicy", "correct": false},
+            {"label": "B", "text": "the spiciest", "correct": false},
+            {"label": "C", "text": "spicier", "correct": true},
+            {"label": "D", "text": "most spicy", "correct": false}
           ]
         },
         {
-          "text": "Fourth question testing grammar or vocabulary mastery?",
+          "text": "That’s the ______ restaurant in our neighborhood.",
           "options": [
-            {"label": "A", "text": "Distractor option A", "correct": false},
-            {"label": "B", "text": "Correct answer demonstrating competence", "correct": true},
-            {"label": "C", "text": "Distractor option C", "correct": false},
-            {"label": "D", "text": "Distractor option D", "correct": false}
+            {"label": "A", "text": "expensiver", "correct": false},
+            {"label": "B", "text": "most expensive", "correct": true},
+            {"label": "C", "text": "more expensive", "correct": false},
+            {"label": "D", "text": "expensivest", "correct": false}
           ]
         },
         {
-          "text": "Fifth question reinforcing key learning objectives?",
+          "text": "John eats ______ than his brother.",
           "options": [
-            {"label": "A", "text": "Incorrect but logical option A", "correct": false},
-            {"label": "B", "text": "Incorrect but logical option B", "correct": false},
-            {"label": "C", "text": "Incorrect but logical option C", "correct": false},
-            {"label": "D", "text": "Correct answer showing mastery", "correct": true}
+            {"label": "A", "text": "most slowly", "correct": false},
+            {"label": "B", "text": "the slowest", "correct": false},
+            {"label": "C", "text": "slow", "correct": false},
+            {"label": "D", "text": "more slowly", "correct": true}
           ]
         },
         {
-          "text": "Sixth question testing contextual understanding?",
+          "text": "This soup is ______ than the one I made yesterday.",
           "options": [
-            {"label": "A", "text": "Correct answer in proper context", "correct": true},
-            {"label": "B", "text": "Plausible but incorrect option B", "correct": false},
-            {"label": "C", "text": "Plausible but incorrect option C", "correct": false},
-            {"label": "D", "text": "Plausible but incorrect option D", "correct": false}
+            {"label": "A", "text": "tastier", "correct": true},
+            {"label": "B", "text": "the tastiest", "correct": false},
+            {"label": "C", "text": "tasty", "correct": false},
+            {"label": "D", "text": "more tastiest", "correct": false}
           ]
         },
         {
-          "text": "Seventh question building on previous learning?",
+          "text": "Of all the dishes on the menu, the lasagna is the ______.",
           "options": [
-            {"label": "A", "text": "Common error or misconception A", "correct": false},
-            {"label": "B", "text": "Common error or misconception B", "correct": false},
-            {"label": "C", "text": "Correct answer showing progress", "correct": true},
-            {"label": "D", "text": "Common error or misconception D", "correct": false}
+            {"label": "A", "text": "good", "correct": false},
+            {"label": "B", "text": "better", "correct": false},
+            {"label": "C", "text": "best", "correct": true},
+            {"label": "D", "text": "more better", "correct": false}
           ]
         },
         {
-          "text": "Eighth question testing practical application?",
+          "text": "Pizza is ______ than soup for a quick lunch.",
           "options": [
-            {"label": "A", "text": "Tempting but wrong option A", "correct": false},
-            {"label": "B", "text": "Correct answer in realistic context", "correct": true},
-            {"label": "C", "text": "Tempting but wrong option C", "correct": false},
-            {"label": "D", "text": "Tempting but wrong option D", "correct": false}
+            {"label": "A", "text": "the convenient", "correct": false},
+            {"label": "B", "text": "more convenient", "correct": true},
+            {"label": "C", "text": "convenientest", "correct": false},
+            {"label": "D", "text": "most convenient", "correct": false}
           ]
         },
         {
-          "text": "Ninth question reinforcing understanding?",
+          "text": "This is the ______ café in town. Everyone loves it!",
           "options": [
-            {"label": "A", "text": "Logical but incorrect option A", "correct": false},
-            {"label": "B", "text": "Logical but incorrect option B", "correct": false},
-            {"label": "C", "text": "Logical but incorrect option C", "correct": false},
-            {"label": "D", "text": "Correct answer demonstrating competence", "correct": true}
+            {"label": "A", "text": "more popular", "correct": false},
+            {"label": "B", "text": "popular", "correct": false},
+            {"label": "C", "text": "popularest", "correct": false},
+            {"label": "D", "text": "most popular", "correct": true}
           ]
         },
         {
-          "text": "Tenth question testing comprehensive understanding?",
+          "text": "The weather today is much ______ than it was yesterday.",
           "options": [
-            {"label": "A", "text": "Correct answer showing mastery of concepts", "correct": true},
-            {"label": "B", "text": "Advanced distractor option B", "correct": false},
-            {"label": "C", "text": "Advanced distractor option C", "correct": false},
-            {"label": "D", "text": "Advanced distractor option D", "correct": false}
+            {"label": "A", "text": "warmer", "correct": true},
+            {"label": "B", "text": "the warmest", "correct": false},
+            {"label": "C", "text": "warm", "correct": false},
+            {"label": "D", "text": "most warm", "correct": false}
           ]
         }
       ],
-      "teacher_tip": "Practical advice for teachers on using this exercise effectively. Suggest ways to explain common errors or extend the learning."
+      "teacher_tip": "After choosing an answer, ask students to explain why they picked it. This encourages deeper thinking and grammar awareness. Show tricky or commonly confused forms (more better, the most nicest) and explain why they are incorrect."
     },
     {
       "type": "dialogue",
@@ -382,21 +402,33 @@ ${hasGrammarFocus ? `
       "time": 7,
       "instructions": "Read the dialogue and practice with a partner.",
       "dialogue": [
-        {"speaker": "Person A", "text": "Realistic opening line that sets the context for the lesson topic"},
-        {"speaker": "Person B", "text": "Natural response that continues the conversation meaningfully"},
-        {"speaker": "Person A", "text": "Follow-up that incorporates key vocabulary or grammar points"},
-        {"speaker": "Person B", "text": "Response that shows natural language use in context"},
-        {"speaker": "Person A", "text": "Continuation that builds on the lesson objectives"},
-        {"speaker": "Person B", "text": "Reply that demonstrates practical language application"},
-        {"speaker": "Person A", "text": "Further development of the conversation topic"},
-        {"speaker": "Person B", "text": "Response that incorporates lesson-specific language"},
-        {"speaker": "Person A", "text": "Penultimate line that moves toward resolution"},
-        {"speaker": "Person B", "text": "Natural closing that completes the dialogue effectively"}
+        {"speaker": "Waiter", "text": "Good evening! Can I take your order?"},
+        {"speaker": "Customer", "text": "Yes, I’d like the grilled salmon with vegetables, please."},
+        {"speaker": "Waiter", "text": "Of course. Would you like anything to drink?"},
+        {"speaker": "Customer", "text": "A glass of sparkling water, please."},
+        {"speaker": "Waiter", "text": "Great. Your order will be ready shortly."},
+        {"speaker": "Waiter", "text": "Here is your grilled salmon. Enjoy your meal!"},
+        {"speaker": "Customer", "text": "Thank you."},
+        {"speaker": "Customer", "text": "Excuse me, I'm sorry but this isn’t what I ordered. I asked for grilled salmon, but this is fried."},
+        {"speaker": "Waiter", "text": "Oh, I’m really sorry about that. Let me fix it right away."},
+        {"speaker": "Customer", "text": "Thank you, I’d appreciate that."},
+        {"speaker": "Waiter", "text": "Please accept our apologies. I’ll bring the correct dish in just a few minutes."},
+        {"speaker": "Customer", "text": "No problem. Thank you for your help."}
       ],
-      "expressions": ["Useful expression 1 from the dialogue", "Practical phrase 2 for real situations", "Common expression 3 for this context", "Helpful phrase 4 students can use", "Relevant expression 5 for the topic", 
-                     "Practical phrase 6 for communication", "Useful expression 7 for fluency", "Common phrase 8 for this situation", "Helpful expression 9 for conversation", "Relevant phrase 10 for practice"],
+      "expressions": [
+        "I’d like to order the ……, please.",
+        "Can I see the menu, please?",
+        "Could you recommend something vegetarian?",
+        "I think there’s a mistake with my order.",
+        "Excuse me, but this isn’t what I asked for.",
+        "Could I get the bill, please?",
+        "Can I have this to go?",
+        "The food was delicious, thank you!",
+        "I’m afraid my dish is cold.",
+        "Can you bring us some more water, please?"
+      ],
       "expression_instruction": "Practice using these expressions in your own dialogues and real-life situations.",
-      "teacher_tip": "Practical guidance for teachers on how to use this dialogue effectively. Include role-play suggestions and ways to personalize the content for individual students."
+      "teacher_tip": "Include unexpected issues (e.g., the order is cold, the waiter forgets the drink) to keep the role-play dynamic and spontaneous. Assign students to write a restaurant review or a list of useful expressions they used or learned."
     },
     {
       "type": "true-false",
@@ -405,18 +437,18 @@ ${hasGrammarFocus ? `
       "time": 5,
       "instructions": "Read each statement and decide if it is true or false.",
       "statements": [
-        {"text": "Factual statement 1 that tests understanding of the lesson content", "isTrue": true},
-        {"text": "Statement 2 that requires careful consideration of the topic", "isTrue": false},
-        {"text": "Statement 3 that checks comprehension of key concepts", "isTrue": true},
-        {"text": "Statement 4 that tests attention to detail from the lesson", "isTrue": false},
-        {"text": "Statement 5 that verifies understanding of important points", "isTrue": true},
-        {"text": "Statement 6 that checks knowledge of specific information", "isTrue": false},
-        {"text": "Statement 7 that tests grasp of lesson objectives", "isTrue": true},
-        {"text": "Statement 8 that requires critical thinking about the content", "isTrue": false},
-        {"text": "Statement 9 that checks understanding of practical applications", "isTrue": true},
-        {"text": "Statement 10 that tests comprehensive knowledge of the topic", "isTrue": false}
+        {"text": "Comparative adjectives are used to compare two things.", "isTrue": true},
+        {"text": "We always add 'more' to make a comparative adjective, even for short words like 'big'.", "isTrue": false},
+        {"text": "Superlative adjectives are used to compare more than two things.", "isTrue": true},
+        {"text": "The superlative form of 'good' is 'goodest'.", "isTrue": false},
+        {"text": "Adjectives with three or more syllables usually take 'more' or 'most'.", "isTrue": true},
+        {"text": "We use 'than' with superlatives.", "isTrue": false},
+        {"text": "The comparative form of 'happy' is 'happier'.", "isTrue": true},
+        {"text": "To form comparatives, we never change the spelling of the adjective.", "isTrue": false},
+        {"text": "The superlative form of 'bad' is 'the worst'.", "isTrue": true},
+        {"text": "We add 'er' and 'est' to all adjectives to form comparatives and superlatives.", "isTrue": false}
       ],
-      "teacher_tip": "Practical advice for teachers on using this exercise to check understanding and reinforce key concepts from the lesson."
+      "teacher_tip": "You can use this exercise to check whether the student has understood the grammar topic."
     },
     {
       "type": "discussion",
@@ -425,18 +457,18 @@ ${hasGrammarFocus ? `
       "time": 10,
       "instructions": "Discuss these questions with your teacher or partner.",
       "questions": [
-        {"text": "Thought-provoking question 1 that encourages personal reflection on the topic"},
-        {"text": "Open-ended question 2 that allows students to express opinions and experiences"},
-        {"text": "Comparative question 3 that uses the lesson's grammar focus in natural context"},
-        {"text": "Practical question 4 that helps students apply new vocabulary in real situations"},
-        {"text": "Analytical question 5 that encourages deeper thinking about the subject matter"},
-        {"text": "Personal experience question 6 that connects the lesson to students' lives"},
-        {"text": "Hypothetical question 7 that challenges students to use new language creatively"},
-        {"text": "Cultural comparison question 8 that broadens perspective and encourages discussion"},
-        {"text": "Problem-solving question 9 that requires students to think critically and communicate solutions"},
-        {"text": "Future-oriented question 10 that helps students practice expressing plans and predictions"}
+        {"text": "What is your favorite type of restaurant and why?"},
+        {"text": "Have you ever had a bad experience in a restaurant? What happened?"},
+        {"text": "Do you prefer eating at home or dining out? Give reasons using comparatives."},
+        {"text": "What dish would you recommend to someone visiting your country for the first time?"},
+        {"text": "Which restaurant in your city is the most popular? Why do you think it’s the best?"},
+        {"text": "How do you usually react if your order is wrong or the food isn’t good?"},
+        {"text": "What is more important to you: good food or good service? Why?"},
+        {"text": "Can you describe the most expensive meal you've ever had? Was it worth it?"},
+        {"text": "What makes a restaurant better than others in your opinion?"},
+        {"text": "Have you ever tried a dish that was better than you expected? What was it?"}
       ],
-      "teacher_tip": "Encourage students to elaborate on their answers and ask follow-up questions. Focus on fluency and communication rather than perfect grammar during this speaking practice."
+      "teacher_tip": "Encourage deeper thinking by asking students to explain, justify, or give examples for their answers.Focus on major errors or repeated mistakes after the discussion, not during."
     },
     {
       "type": "error-correction",
@@ -445,36 +477,36 @@ ${hasGrammarFocus ? `
       "time": 8,
       "instructions": "Find and correct the errors in these sentences.",
       "sentences": [
-        {"text": "Sentence 1 with common error related to the lesson's grammar focus", "correction": "Corrected version 1 with proper grammar and usage"},
-        {"text": "Sentence 2 with typical mistake students make with this topic", "correction": "Corrected version 2 showing proper form and structure"},
-        {"text": "Sentence 3 with vocabulary or grammar error from the lesson", "correction": "Corrected version 3 demonstrating accurate language use"},
-        {"text": "Sentence 4 with mistake that reinforces learning objectives", "correction": "Corrected version 4 with proper grammar and vocabulary"},
-        {"text": "Sentence 5 with error that tests understanding of key concepts", "correction": "Corrected version 5 showing mastery of the material"},
-        {"text": "Sentence 6 with common mistake in this context", "correction": "Corrected version 6 with appropriate language for the situation"},
-        {"text": "Sentence 7 with error that checks attention to lesson details", "correction": "Corrected version 7 demonstrating proper usage and form"},
-        {"text": "Sentence 8 with mistake related to practical application", "correction": "Corrected version 8 showing real-world appropriate language"},
-        {"text": "Sentence 9 with error that tests comprehensive understanding", "correction": "Corrected version 9 with accurate grammar and meaning"},
-        {"text": "Sentence 10 with final error that reinforces all learning objectives", "correction": "Corrected version 10 showing complete mastery of the concepts"}
+        {"text": "This pizza is more better than the one I had yesterday.", "correction": "This pizza is better than the one I had yesterday."},
+        {"text": "She is the most tallest girl in the class.", "correction": "She is the tallest girl in the class."},
+        {"text": "My house is more big than yours.", "correction": "My house is bigger than yours."},
+        {"text": "Today is the most hottest day of the year.", "correction": "Today is the hottest day of the year."},
+        {"text": "This restaurant is more expensiveer than the other one.", "correction": "This restaurant is more expensive than the other one."},
+        {"text": "He is smarter than his brother.", "correction": "He is smarter than his brother."},
+        {"text": "That movie was the most funniest I have ever seen.", "correction": "That movie was the funniest I have ever seen."},
+        {"text": "My car is more faster now after the repair.", "correction": "My car is faster now after the repair."},
+        {"text": "Winter is colder than summer.", "correction": "Winter is colder than summer."},
+        {"text": "She is the more talented singer in our group.", "correction": "She is the most talented singer in our group."}
       ],
-      "teacher_tip": "Have students explain why each sentence was incorrect and what rule applies to the correction. This reinforces understanding and helps prevent future errors."
+      "teacher_tip": "Highlight frequent errors with comparatives and superlatives, like double comparatives (e.g., more better) or incorrect superlative forms.Ask students to explain why a sentence is incorrect to deepen comprehension."
     }
   ],
   "vocabulary_sheet": [
-    {"term": "Key vocabulary term 1", "meaning": "Clear, practical definition that students can understand and use"},
-    {"term": "Important term 2", "meaning": "Accurate definition with context for proper usage"},
-    {"term": "Essential vocabulary 3", "meaning": "Student-friendly explanation with practical application"},
-    {"term": "Relevant term 4", "meaning": "Clear definition that connects to the lesson objectives"},
-    {"term": "Useful vocabulary 5", "meaning": "Practical definition for real-world communication"},
-    {"term": "Key term 6", "meaning": "Comprehensive explanation with usage context"},
-    {"term": "Important vocabulary 7", "meaning": "Clear definition that aids understanding"},
-    {"term": "Essential term 8", "meaning": "Practical explanation for effective communication"},
-    {"term": "Relevant vocabulary 9", "meaning": "Accurate definition with learning context"},
-    {"term": "Useful term 10", "meaning": "Clear explanation that supports lesson goals"},
-    {"term": "Additional vocabulary 11", "meaning": "Comprehensive definition for extended learning"},
-    {"term": "Supplementary term 12", "meaning": "Detailed explanation for deeper understanding"},
-    {"term": "Extra vocabulary 13", "meaning": "Practical definition for comprehensive knowledge"},
-    {"term": "Bonus term 14", "meaning": "Clear explanation that enriches the lesson"},
-    {"term": "Final vocabulary 15", "meaning": "Comprehensive definition that completes the vocabulary set"}
+    {"term": "Appetizer", "meaning": "A small dish served before the main meal to stimulate the appetite."},
+    {"term": "Main course", "meaning": "The primary or largest dish in a meal."},
+    {"term": "Dessert", "meaning": "A sweet course served at the end of a meal."},
+    {"term": "Beverage", "meaning": "A drink, especially one other than water."},
+    {"term": "Reservation", "meaning": "An arrangement to have a table kept for you at a restaurant."},
+    {"term": "Waiter / Waitress", "meaning": "A person who serves customers in a restaurant."},
+    {"term": "Menu", "meaning": "A list of dishes available at a restaurant."},
+    {"term": "Order", "meaning": "A request for food or drink in a restaurant."},
+    {"term": "Complaint", "meaning": "An expression of dissatisfaction about food or service."},
+    {"term": "Wrong order", "meaning": "When the dish served is not what the customer requested."},
+    {"term": "Overcooked", "meaning": "Food that has been cooked for too long and is ruined."},
+    {"term": "Undercooked", "meaning": "Food that has not been cooked enough."},
+    {"term": "Allergy", "meaning": "A harmful reaction to certain foods or ingredients."},
+    {"term": "Bill / Check", "meaning": "A statement of the money owed for the meal."},
+    {"term": "Tip", "meaning": "An extra amount of money given to the waiter as a thank you for good service."}
   ]
 }
 
