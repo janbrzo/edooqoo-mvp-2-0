@@ -171,7 +171,7 @@ ${hasGrammarFocus ? `
   "introduction": "Brief introduction paragraph about the worksheet topic and goals",
   ${hasGrammarFocus ? `"grammar_rules": {
     "title": "Grammar Focus: ${grammarFocus}",
-    "introduction": "Clear introduction explaining why this grammar is important for the lesson topic",
+    "introduction": "Detailed description of the usage of the grammatical topic in the style of well-known and recognized grammatical coursebooks.",
     "rules": [
       {
         "title": "Rule 1 Title",
