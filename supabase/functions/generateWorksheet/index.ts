@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
@@ -51,6 +52,26 @@ function validatePrompt(prompt: string): { isValid: boolean; error?: string } {
   return { isValid: true };
 }
 
+// Geolocation utility
+async function getGeolocation(ip: string): Promise<{ country?: string; city?: string }> {
+  try {
+    // Use a simple IP geolocation service
+    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,city`);
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      return {
+        country: data.country || null,
+        city: data.city || null
+      };
+    }
+  } catch (error) {
+    console.warn('Failed to get geolocation:', error);
+  }
+  
+  return {};
+}
+
 // Rate limiting
 class RateLimiter {
   private requests: Map<string, number[]> = new Map();
@@ -80,9 +101,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Start generation time measurement
+  const generationStartTime = Date.now();
+
   try {
     const { prompt, formData, userId } = await req.json();
-    const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || 'unknown';
     
     // Input validation
     const promptValidation = validatePrompt(prompt);
@@ -110,6 +134,9 @@ serve(async (req) => {
         { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Get geolocation data
+    const geoData = await getGeolocation(ip);
 
     // Sanitize inputs
     const sanitizedPrompt = sanitizeInput(prompt, 5000);
@@ -533,6 +560,10 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
       );
     }
 
+    // Calculate generation time
+    const generationEndTime = Date.now();
+    const generationTimeSeconds = Math.round((generationEndTime - generationStartTime) / 1000);
+
     // Save worksheet to database with FULL PROMPT (SYSTEM + USER)
     try {
       // CREATE FULL PROMPT - this is what should be saved to database
@@ -552,7 +583,9 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
           p_ip_address: ip,
           p_status: 'created',
           p_title: worksheetData.title?.substring(0, 255) || 'Generated Worksheet', // Limit title length
-          p_generation_time_seconds: null
+          p_generation_time_seconds: generationTimeSeconds,
+          p_country: geoData.country || null,
+          p_city: geoData.city || null
         }
       );
 
@@ -565,6 +598,8 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
         const worksheetId = worksheet[0].id;
         worksheetData.id = worksheetId;
         console.log('Worksheet generated and saved successfully with ID:', worksheetId);
+        console.log(`Generation time: ${generationTimeSeconds} seconds`);
+        console.log(`Geo data: ${geoData.country || 'unknown'}, ${geoData.city || 'unknown'}`);
       }
     } catch (dbError) {
       console.error('Database operation failed:', dbError);

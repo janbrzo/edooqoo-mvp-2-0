@@ -197,17 +197,31 @@ export type Database = {
         Returns: undefined
       }
       insert_worksheet_bypass_limit: {
-        Args: {
-          p_prompt: string
-          p_form_data: Json
-          p_ai_response: string
-          p_html_content: string
-          p_user_id: string
-          p_ip_address: string
-          p_status: string
-          p_title: string
-          p_generation_time_seconds: number
-        }
+        Args:
+          | {
+              p_prompt: string
+              p_form_data: Json
+              p_ai_response: string
+              p_html_content: string
+              p_user_id: string
+              p_ip_address: string
+              p_status: string
+              p_title: string
+              p_generation_time_seconds: number
+            }
+          | {
+              p_prompt: string
+              p_form_data: Json
+              p_ai_response: string
+              p_html_content: string
+              p_user_id: string
+              p_ip_address: string
+              p_status: string
+              p_title: string
+              p_generation_time_seconds: number
+              p_country?: string
+              p_city?: string
+            }
         Returns: {
           id: string
           created_at: string
