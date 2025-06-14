@@ -1,4 +1,3 @@
-
 import React from "react";
 import { WorksheetContainer } from "./worksheet/WorksheetContainer";
 import WorksheetHeaderSection from "./worksheet/WorksheetHeaderSection";
@@ -8,7 +7,7 @@ import { useDownloadStatus } from "@/hooks/useDownloadStatus";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useWorksheetValidation } from "@/hooks/useWorksheetValidation";
 import { useWorksheetStyles } from "@/hooks/useWorksheetStyles";
-import { useWorksheetState } from "@/hooks/useWorksheetState";
+import { useWorksheetEditState } from "@/hooks/useWorksheetEditState";
 
 interface Exercise {
   type: string;
@@ -68,7 +67,7 @@ export default function WorksheetDisplay({
     setEditableWorksheet,
     handleEdit,
     handleSave
-  } = useWorksheetState(worksheet);
+  } = useWorksheetEditState(worksheet);
   
   const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload } = useDownloadStatus();
   const isMobile = useIsMobile();

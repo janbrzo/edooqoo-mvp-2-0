@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Worksheet } from "@/components/WorksheetDisplay";
 
-export const useWorksheetState = (initialWorksheet: Worksheet) => {
+export const useWorksheetEditState = (initialWorksheet: Worksheet) => {
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
   const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(initialWorksheet);
