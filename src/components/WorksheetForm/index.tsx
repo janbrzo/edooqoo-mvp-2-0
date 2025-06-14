@@ -61,7 +61,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                 <h1 className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-3xl">Create Your Worksheet</h1>
                 
                 <div className="flex gap-20">
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 w-32">
                     <Button 
                       type="button"
                       variant={lessonTime === "45 min" ? "default" : "outline"} 
@@ -82,7 +82,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                     </Button>
                   </div>
                   
-                  <div className="flex flex-col items-end">
+                  <div className="flex flex-col items-end w-80">
                     <div className="flex gap-2 mb-1">
                       <Button 
                         type="button"
