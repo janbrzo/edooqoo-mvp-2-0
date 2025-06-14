@@ -28,7 +28,7 @@ const ExerciseMultipleChoice: React.FC<ExerciseMultipleChoiceProps> = ({
               <>{qIndex + 1}. {question.text}</>
             )}
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+          <div className="grid grid-cols-2 gap-1">
             {question.options?.map((option: any, oIndex: number) => (
               <div
                 key={oIndex}

@@ -26,8 +26,8 @@ const ExerciseMatching: React.FC<ExerciseMatchingProps> = ({
   const shuffledDefinitions = shuffleArray([...items]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 vocabulary-matching-container">
-      <div className="md:col-span-5 space-y-2">
+    <div className="grid grid-cols-12 gap-4 vocabulary-matching-container">
+      <div className="col-span-5 space-y-2">
         <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Terms</h4>
         {items.map((item, iIndex) => (
           <div key={iIndex} className="p-2 border rounded-md bg-white">
@@ -49,7 +49,7 @@ const ExerciseMatching: React.FC<ExerciseMatchingProps> = ({
         ))}
       </div>
 
-      <div className="md:col-span-7 space-y-2">
+      <div className="col-span-7 space-y-2">
         <h4 className="font-semibold bg-worksheet-purpleLight p-2 rounded-md">Definitions</h4>
         {shuffledDefinitions.map((item, iIndex) => (
           <div key={iIndex} className="p-2 border rounded-md bg-white">
