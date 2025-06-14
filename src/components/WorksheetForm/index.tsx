@@ -155,7 +155,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                 />
                 <FormField 
                   label="Additional Information (optional)"
-                  placeholder="E.g. The student is a visual learner, focus on speaking."
+                  placeholder="Describe your idea or specific need for the lesson topic"
                   value={additionalInformation}
                   onChange={setAdditionalInformation}
                   suggestions={[]}
