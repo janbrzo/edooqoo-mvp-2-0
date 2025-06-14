@@ -430,16 +430,35 @@ export default function WorksheetForm({
 
               <div>
                 <label className="block text-sm font-medium mb-2">English Level (CEFR Scale)</label>
-                <Select value={englishLevel} onValueChange={(value: EnglishLevel) => setEnglishLevel(value)}>
-                  <SelectTrigger className="mb-3">
-                    <SelectValue placeholder="Select English level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="A1/A2">A1/A2 - Beginner/Elementary</SelectItem>
-                    <SelectItem value="B1/B2">B1/B2 - Intermediate/Upper-Intermediate</SelectItem>
-                    <SelectItem value="C1/C2">C1/C2 - Advanced/Proficiency</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2 mb-3">
+                  <Button 
+                    type="button"
+                    variant={englishLevel === "A1/A2" ? "default" : "outline"} 
+                    onClick={() => setEnglishLevel("A1/A2")} 
+                    className={englishLevel === "A1/A2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                    size="sm"
+                  >
+                    A1/A2
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant={englishLevel === "B1/B2" ? "default" : "outline"} 
+                    onClick={() => setEnglishLevel("B1/B2")} 
+                    className={englishLevel === "B1/B2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                    size="sm"
+                  >
+                    B1/B2
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant={englishLevel === "C1/C2" ? "default" : "outline"} 
+                    onClick={() => setEnglishLevel("C1/C2")} 
+                    className={englishLevel === "C1/C2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                    size="sm"
+                  >
+                    C1/C2
+                  </Button>
+                </div>
                 <p className="text-xs text-muted-foreground">Vocabulary and grammar will be adapted to this level</p>
               </div>
             </div>
