@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,10 +33,10 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!lessonTopic || !lessonGoal || !teachingPreferences) {
+    if (!lessonTopic || !lessonGoal) {
       toast({
         title: "Missing information",
-        description: "Please fill in all required fields (Topic, Goal, Grammar Focus)",
+        description: "Please fill in all required fields (Topic, Goal)",
         variant: "destructive"
       });
       return;
@@ -148,11 +147,12 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
 
               <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
                 <FormField 
-                  label="Grammar focus on:"
+                  label="Grammar focus (optional):"
                   placeholder="E.g. Present Simple Tense, Conditionals"
                   value={teachingPreferences}
                   onChange={setTeachingPreferences}
                   suggestions={randomGrammarFocus}
+                  isOptional
                 />
                 <FormField 
                   label="Additional Information (optional)"

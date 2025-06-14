@@ -116,6 +116,11 @@ serve(async (req) => {
     
     console.log('Received validated prompt:', sanitizedPrompt.substring(0, 100) + '...');
 
+    // Check if grammarFocus is provided in the prompt
+    const hasGrammarFocus = sanitizedPrompt.includes('grammarFocus:');
+    const grammarFocusMatch = sanitizedPrompt.match(/grammarFocus:\s*(.+?)(?:\n|$)/);
+    const grammarFocus = grammarFocusMatch ? grammarFocusMatch[1].trim() : null;
+
     // Determine exercise count - always generate 8, then trim if needed
     let finalExerciseCount = 8; // Always generate 8 exercises
     if (sanitizedPrompt.includes('45 min')) {
@@ -130,7 +135,7 @@ serve(async (req) => {
     
     console.log(`Generating 8 exercises, will trim to ${finalExerciseCount} if needed`);
     
-    // CREATE SYSTEM MESSAGE - This is the LONG SYSTEM PROMPT
+    // CREATE SYSTEM MESSAGE with Grammar Rules section
     const systemMessage = `You are an expert ESL English language teacher specialized in creating context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
           Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.
           Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits.
@@ -146,14 +151,45 @@ serve(async (req) => {
 8. DO NOT include any text outside of the JSON structure.
 9. Exercise 1 (Reading Comprehension) MUST have content between 280 and 320 words exactly.
 10. Focus on overall flow, coherence and pedagogical value.
-11. ADAPT TO USER'S INPUT: Carefully analyze all information from the USER MESSAGE. The 'lessonTopic' and 'lessonGoal' must define the theme of all exercises. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale. Critically, you MUST incorporate the 'teachingPreferences' into the design of relevant exercises.
+11. ADAPT TO USER'S INPUT: Carefully analyze all information from the USER MESSAGE. The 'lessonTopic' and 'lessonGoal' must define the theme of all exercises. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale.
 
-12. Generate a structured JSON worksheet with this EXACT format:
+${hasGrammarFocus ? `
+12. GRAMMAR FOCUS REQUIREMENT: The user has specified a grammar focus: "${grammarFocus}". You MUST:
+    - Include a "grammar_rules" section in the JSON with detailed explanation of this grammar topic
+    - Design ALL exercises to practice and reinforce this specific grammar point
+    - Ensure the reading text, vocabulary, and all exercises incorporate examples of this grammar
+    - Make this grammar topic the central pedagogical focus of the entire worksheet
+` : `
+12. NO GRAMMAR FOCUS: The user has not specified a grammar focus, so create a general worksheet focused on the topic and goal without emphasizing any particular grammar point.
+`}
+
+13. Generate a structured JSON worksheet with this EXACT format:
 
 {
   "title": "Main Title of the Worksheet",
   "subtitle": "Subtitle Related to the Topic",
   "introduction": "Brief introduction paragraph about the worksheet topic and goals",
+  ${hasGrammarFocus ? `"grammar_rules": {
+    "title": "Grammar Focus: ${grammarFocus}",
+    "introduction": "Clear introduction explaining why this grammar is important for the lesson topic",
+    "rules": [
+      {
+        "title": "Rule 1 Title",
+        "explanation": "Detailed explanation of the first grammar rule",
+        "examples": ["Example 1", "Example 2", "Example 3"]
+      },
+      {
+        "title": "Rule 2 Title", 
+        "explanation": "Detailed explanation of the second grammar rule",
+        "examples": ["Example 1", "Example 2", "Example 3"]
+      },
+      {
+        "title": "Rule 3 Title",
+        "explanation": "Detailed explanation of the third grammar rule",
+        "examples": ["Example 1", "Example 2", "Example 3"]
+      }
+    ]
+  },` : ''}
   "exercises": [
     {
       "type": "reading",
@@ -161,7 +197,7 @@ serve(async (req) => {
       "icon": "fa-book-open",
       "time": 8,
       "instructions": "Read the following text and answer the questions below.",
-      "content": "Content text of exactly 280-320 words goes here",
+      "content": "Content text of exactly 280-320 words goes here${hasGrammarFocus ? ` (MUST include multiple examples of ${grammarFocus})` : ''}",
       "questions": [
         {"text": "Question 1", "answer": "Answer 1"},
         {"text": "Question 2", "answer": "Answer 2"},
@@ -425,6 +461,7 @@ CRITICAL REQUIREMENTS VERIFICATION:
 7. Exercise 7 (discussion): EXACTLY 10 discussion questions.
 8. Exercise 8 (error-correction): EXACTLY 10 sentences with errors.
 9. Vocabulary sheet: EXACTLY 15 terms with definitions.
+${hasGrammarFocus ? `10. Grammar Rules: Must include exactly 3 grammar rules with title, explanation, and 3 examples each.` : ''}
 
 RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
 
@@ -483,6 +520,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
       });
       
       console.log(`Final exercise count: ${worksheetData.exercises.length} (target: ${finalExerciseCount})`);
+      console.log(`Grammar Rules included: ${!!worksheetData.grammar_rules}`);
       
       const sourceCount = Math.floor(Math.random() * (90 - 65) + 65);
       worksheetData.sourceCount = sourceCount;

@@ -11,7 +11,11 @@ export const formatPromptForAI = (data: FormData): string => {
   promptLines.push(`lessonTopic: ${data.lessonTopic}`);
   promptLines.push(`lessonGoal: ${data.lessonGoal}`);
   promptLines.push(`englishLevel: ${data.englishLevel}`);
-  promptLines.push(`teachingPreferences: ${data.teachingPreferences}`);
+
+  // Add optional grammar focus only if provided
+  if (data.teachingPreferences) {
+    promptLines.push(`grammarFocus: ${data.teachingPreferences}`);
+  }
 
   if (data.additionalInformation) {
     promptLines.push(`additionalInformation: ${data.additionalInformation}`);
@@ -28,7 +32,7 @@ export const createFormDataForStorage = (prompt: FormData) => {
   return {
     lessonTopic: prompt.lessonTopic,
     lessonGoal: prompt.lessonGoal,
-    teachingPreferences: prompt.teachingPreferences,
+    teachingPreferences: prompt.teachingPreferences || null,
     additionalInformation: prompt.additionalInformation || null,
     englishLevel: prompt.englishLevel || null,
     lessonTime: prompt.lessonTime

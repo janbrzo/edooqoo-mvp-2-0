@@ -4,6 +4,7 @@ import ExerciseSection from "./ExerciseSection";
 import VocabularySheet from "./VocabularySheet";
 import WorksheetRating from "@/components/WorksheetRating";
 import TeacherNotes from "./TeacherNotes";
+import GrammarRules from "./GrammarRules";
 
 interface WorksheetContentProps {
   editableWorksheet: any;
@@ -70,6 +71,15 @@ export default function WorksheetContent({
           )}
         </div>
       </div>
+
+      {editableWorksheet.grammar_rules && (
+        <GrammarRules
+          grammarRules={editableWorksheet.grammar_rules}
+          isEditing={isEditing}
+          editableWorksheet={editableWorksheet}
+          setEditableWorksheet={setEditableWorksheet}
+        />
+      )}
 
       {editableWorksheet.exercises.map((exercise: any, index: number) => (
         <ExerciseSection
