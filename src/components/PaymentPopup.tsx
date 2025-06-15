@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -128,7 +127,7 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
               <span>Both HTML versions included</span>
             </div>
             <p className="text-xs text-amber-600">
-              ⚠️ Note: Refreshing the page will end your session and require a new payment.
+              ⚠️ Note: Closing the page will end your session and require a new payment.
             </p>
           </div>
 

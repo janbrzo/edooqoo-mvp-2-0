@@ -9,7 +9,7 @@ interface TeacherTipBoxProps {
 const TeacherTipBox = ({ tip }: TeacherTipBoxProps) => {
   return (
     <div
-      className="flex items-start rounded-md px-3 py-1 my-2"
+      className="flex items-start rounded-md px-3 py-1 my-2 teacher-tip"
       style={{
         background: "linear-gradient(90deg, #FEF7CD 85%, #FAF5E3 100%)",
         border: "1.5px solid #ffeab9",
