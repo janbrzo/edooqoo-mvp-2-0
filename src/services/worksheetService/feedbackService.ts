@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -9,79 +10,71 @@ const SUBMIT_FEEDBACK_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/
  */
 export async function submitFeedbackAPI(worksheetId: string, rating: number, comment: string, userId: string) {
   try {
-    console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
+    console.log('=== FEEDBACK SERVICE START ===');
+    console.log('Submitting feedback with params:', { worksheetId, rating, comment, userId });
     
     if (!worksheetId || !userId) {
-      console.error('Missing required parameters for feedback:', { worksheetId, userId });
+      console.error('Missing required parameters:', { worksheetId, userId });
       throw new Error('Missing worksheet ID or user ID');
     }
     
-    // Try using the edge function first
-    try {
-      const response = await fetch(SUBMIT_FEEDBACK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          worksheetId,
-          rating,
-          comment,
-          userId,
-          status: 'submitted'
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Feedback submission successful via API:', result);
-        toast.success('Thank you for your feedback!');
-        return result.data;
-      }
-      
-      const errorText = await response.text();
-      // Only log as an error if the status is 500 or something critical.
-      // A 404 for worksheet not found is an expected failure case.
-      if (response.status >= 500) {
-        console.error('Error submitting feedback via API:', errorText);
-      } else {
-        console.warn('API submission failed (likely worksheet not found):', errorText);
-      }
-    } catch (apiError) {
-      console.error('API feedback submission error:', apiError);
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(worksheetId)) {
+      console.error('Invalid worksheetId format:', worksheetId);
+      throw new Error('Invalid worksheet ID format');
     }
     
-    // If edge function fails, try direct database submission (but never create worksheet)
-    console.log('Edge function failed, falling back to direct DB insert.');
-    const { data, error } = await supabase
-      .from('feedbacks')
-      .insert([
-        { 
-          worksheet_id: worksheetId, 
-          user_id: userId, 
-          rating, 
-          comment,
-          status: 'submitted'
-        }
-      ])
-      .select();
-      
-    if (error) {
-      console.error('Direct feedback submission error:', error);
-      
-      // If worksheet doesn't exist, return a meaningful error - DO NOT CREATE WORKSHEET
-      if (error.message.includes('violates foreign key constraint')) {
-        throw new Error('Cannot submit feedback: worksheet not found or invalid');
-      }
-      
-      throw new Error(`Failed to submit feedback: ${error.message}`);
+    if (!uuidRegex.test(userId)) {
+      console.error('Invalid userId format:', userId);
+      throw new Error('Invalid user ID format');
     }
+
+    console.log('UUID validation passed, calling Edge Function...');
+    
+    // Call the edge function
+    const response = await fetch(SUBMIT_FEEDBACK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        worksheetId,
+        rating,
+        comment,
+        userId,
+        status: 'submitted'
+      })
+    });
+
+    console.log('Edge Function response status:', response.status);
+    console.log('Edge Function response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('Edge Function success:', result);
+      toast.success('Thank you for your feedback!');
+      return result.data;
+    }
+    
+    const errorData = await response.text();
+    console.error('Edge Function error response:', errorData);
+    
+    // Parse error if it's JSON
+    let errorMessage = 'Failed to submit feedback';
+    try {
+      const parsedError = JSON.parse(errorData);
+      errorMessage = parsedError.error || errorMessage;
+    } catch (e) {
+      errorMessage = errorData || errorMessage;
+    }
+    
+    throw new Error(errorMessage);
       
-    toast.success('Thank you for your feedback!');
-    return data;
   } catch (error) {
-    console.error('Error submitting feedback:', error);
-    toast.error(`We couldn't submit your rating: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('Error in submitFeedbackAPI:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    toast.error(`We couldn't submit your rating: ${errorMessage}`);
     throw error;
   }
 }

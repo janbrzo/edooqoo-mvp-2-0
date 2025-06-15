@@ -31,64 +31,71 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
   const { userId } = useAnonymousAuth();
   
   const handleRatingClick = async (value: number) => {
+    console.log('=== RATING CLICK START ===');
+    console.log('Rating clicked:', value);
+    console.log('WorksheetId:', worksheetId);
+    console.log('UserId:', userId);
+    
     setSelected(value);
     setIsDialogOpen(true);
     
-    // Only submit if we have a valid worksheet ID that exists in database
-    if (!worksheetId || worksheetId === 'unknown') {
-      console.log('No valid worksheet ID, feedback will be submitted when dialog is completed');
+    // Only submit if we have valid IDs
+    if (!worksheetId || worksheetId === 'unknown' || !userId) {
+      console.log('Missing required IDs, will submit when dialog completes');
       return;
     }
     
     try {
       setSubmitting(true);
+      console.log('Submitting rating via submitFeedback service...');
       
-      if (userId) {
-        // CRITICAL: Only submit feedback to existing worksheet - never create worksheet
-        const result = await submitFeedback(worksheetId, value, '', userId);
-        
-        // Store the feedback ID for future updates
-        if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
-          setCurrentFeedbackId(result[0].id);
-        }
-        
-        toast({
-          title: "Rating submitted!",
-          description: "Thanks for your feedback. Add a comment for more details."
-        });
-        
-        // Call the callback if provided
-        if (onSubmitRating) {
-          onSubmitRating(value, '');
-        }
+      const result = await submitFeedback(worksheetId, value, '', userId);
+      
+      // Store the feedback ID for future updates
+      if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
+        setCurrentFeedbackId(result[0].id);
+        console.log('Feedback ID stored:', result[0].id);
       }
+      
+      toast({
+        title: "Rating submitted!",
+        description: "Thanks for your feedback. Add a comment for more details."
+      });
+      
+      // Call the callback if provided
+      if (onSubmitRating) {
+        onSubmitRating(value, '');
+      }
+      
     } catch (error) {
       console.error("Error submitting rating:", error);
-      // Don't show error toast here, as the dialog is already open
+      // Don't show error toast here since submitFeedback already handles it
     } finally {
       setSubmitting(false);
     }
   };
   
   const handleSubmit = async () => {
-    if (!selected || !userId) return;
+    if (!selected || !userId) {
+      console.log('Missing selected rating or userId');
+      return;
+    }
     
     try {
       setSubmitting(true);
+      console.log('Submitting feedback with comment...');
       
       if (currentFeedbackId) {
-        // Update existing feedback with comment
+        console.log('Updating existing feedback:', currentFeedbackId);
         await updateFeedback(currentFeedbackId, feedback, userId);
       } else if (worksheetId && worksheetId !== 'unknown') {
-        // Submit new feedback with rating and comment - ONLY TO EXISTING WORKSHEET
+        console.log('Creating new feedback with comment');
         const result = await submitFeedback(worksheetId, selected, feedback, userId);
         
-        // Store the feedback ID
         if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
           setCurrentFeedbackId(result[0].id);
         }
       } else {
-        // No valid worksheet ID - just show success without submitting
         console.log('No valid worksheet ID, feedback not submitted to database');
       }
       
