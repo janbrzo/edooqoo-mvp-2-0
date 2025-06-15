@@ -1,3 +1,4 @@
+
 /**
  * Fetches CSS content from a URL
  */
@@ -185,6 +186,24 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
         visibility: ${exportViewMode === 'teacher' ? 'visible' : 'hidden'} !important;
       }
       
+      /* CRITICAL: Show/hide answers based on export view mode */
+      .text-green-600.italic {
+        display: ${exportViewMode === 'teacher' ? 'inline' : 'none'} !important;
+        visibility: ${exportViewMode === 'teacher' ? 'visible' : 'hidden'} !important;
+      }
+      
+      /* Show/hide correct answers in multiple choice */
+      .bg-green-50.border-green-200 {
+        background-color: ${exportViewMode === 'teacher' ? '#f0fdf4' : 'white'} !important;
+        border-color: ${exportViewMode === 'teacher' ? '#bbf7d0' : '#d1d5db'} !important;
+      }
+      
+      .bg-green-500.border-green-500.text-white {
+        background-color: ${exportViewMode === 'teacher' ? '#22c55e' : 'transparent'} !important;
+        border-color: ${exportViewMode === 'teacher' ? '#22c55e' : '#d1d5db'} !important;
+        color: ${exportViewMode === 'teacher' ? 'white' : 'transparent'} !important;
+      }
+      
       /* Print styles */
       @media print {
         @page {
@@ -266,7 +285,6 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
     const initialTeacherTips = clonedElement.querySelectorAll('[data-teacher-tip="true"], .teacher-tip');
     console.log(`[HTML EXPORT] Found ${initialTeacherTips.length} teacher-tip elements in the cloned DOM initially.`);
 
-
     // CRITICAL: Handle teacher tips and data-no-pdf elements based on EXPORT view mode
     console.log(`[HTML EXPORT] Processing elements for ${exportViewMode} export`);
     
@@ -298,6 +316,31 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
       });
       
       console.log(`[HTML EXPORT] Teacher version: processed and kept ${totalTeacherTips} teacher tips visible`);
+      
+      // CRITICAL: Show all answers for teacher version
+      const answerElements = clonedElement.querySelectorAll('.text-green-600.italic');
+      console.log(`[HTML EXPORT] Teacher version: found ${answerElements.length} answer elements to show`);
+      answerElements.forEach(answer => {
+        (answer as HTMLElement).style.display = 'inline';
+        (answer as HTMLElement).style.visibility = 'visible';
+      });
+      
+      // Show correct answers in multiple choice
+      const correctOptions = clonedElement.querySelectorAll('.bg-green-50.border-green-200');
+      console.log(`[HTML EXPORT] Teacher version: found ${correctOptions.length} correct multiple choice options to highlight`);
+      correctOptions.forEach(option => {
+        (option as HTMLElement).style.backgroundColor = '#f0fdf4';
+        (option as HTMLElement).style.borderColor = '#bbf7d0';
+      });
+      
+      const correctIcons = clonedElement.querySelectorAll('.bg-green-500.border-green-500.text-white');
+      console.log(`[HTML EXPORT] Teacher version: found ${correctIcons.length} correct answer icons to show`);
+      correctIcons.forEach(icon => {
+        (icon as HTMLElement).style.backgroundColor = '#22c55e';
+        (icon as HTMLElement).style.borderColor = '#22c55e';
+        (icon as HTMLElement).style.color = 'white';
+      });
+      
     } else {
       // For student version: Remove ALL elements with data-no-pdf including teacher tips
       const allNoPublishElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
@@ -322,6 +365,32 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
       });
       
       console.log(`[HTML EXPORT] Student version: explicitly removed ${removedTeacherTips} teacher tips`);
+      
+      // CRITICAL: Hide all answers for student version
+      const answerElements = clonedElement.querySelectorAll('.text-green-600.italic');
+      console.log(`[HTML EXPORT] Student version: found ${answerElements.length} answer elements to hide`);
+      answerElements.forEach(answer => {
+        (answer as HTMLElement).style.display = 'none';
+        (answer as HTMLElement).style.visibility = 'hidden';
+      });
+      
+      // Hide correct answers in multiple choice - reset to neutral styling
+      const correctOptions = clonedElement.querySelectorAll('.bg-green-50.border-green-200');
+      console.log(`[HTML EXPORT] Student version: found ${correctOptions.length} correct multiple choice options to neutralize`);
+      correctOptions.forEach(option => {
+        (option as HTMLElement).style.backgroundColor = 'white';
+        (option as HTMLElement).style.borderColor = '#d1d5db';
+      });
+      
+      const correctIcons = clonedElement.querySelectorAll('.bg-green-500.border-green-500.text-white');
+      console.log(`[HTML EXPORT] Student version: found ${correctIcons.length} correct answer icons to hide`);
+      correctIcons.forEach(icon => {
+        (icon as HTMLElement).style.backgroundColor = 'transparent';
+        (icon as HTMLElement).style.borderColor = '#d1d5db';
+        (icon as HTMLElement).style.color = 'transparent';
+        // Also hide the checkmark content
+        (icon as HTMLElement).innerHTML = '';
+      });
     }
 
     // Create header with actual worksheet title
