@@ -1,3 +1,4 @@
+
 import { shuffleArray, createSampleVocabulary } from "./worksheetUtils";
 
 export const processExercises = (exercises: any[]): any[] => {
@@ -15,31 +16,34 @@ export const processExercises = (exercises: any[]): any[] => {
       console.log(`🔧 Processed matching exercise with ${exercise.items.length} items`);
     }
     
-    // SIMPLIFIED: Fix multiple choice questions to avoid duplicates
+    // FIXED: Multiple choice questions processing to preserve correct answers
     if (exercise.type === "multiple-choice" && exercise.questions) {
       exercise.questions = exercise.questions.map((question: any) => {
         if (question.options && question.options.length >= 2) {
           console.log('🔧 Processing multiple choice question options');
           
-          // Get all unique option texts
+          // Get all unique option texts while preserving their correct status
           const uniqueTexts = new Set();
           const uniqueOptions = [];
           
-          // First, collect all unique options
+          // First, collect all unique options with their original correct status
           question.options.forEach((opt: any) => {
             if (!uniqueTexts.has(opt.text)) {
               uniqueTexts.add(opt.text);
               uniqueOptions.push({
                 text: opt.text,
-                correct: opt.correct || false
+                correct: opt.correct || false // Preserve original correct status
               });
             }
           });
           
-          // Ensure we have at least one correct answer
+          // Only ensure we have at least one correct answer if none exists
           const hasCorrectAnswer = uniqueOptions.some(opt => opt.correct);
           if (!hasCorrectAnswer && uniqueOptions.length > 0) {
-            uniqueOptions[0].correct = true;
+            // Find the first option that was originally marked as correct, or default to first
+            const originallyCorrectIndex = question.options.findIndex((opt: any) => opt.correct);
+            const targetIndex = originallyCorrectIndex >= 0 ? Math.min(originallyCorrectIndex, uniqueOptions.length - 1) : 0;
+            uniqueOptions[targetIndex].correct = true;
           }
           
           // Add generic options if we don't have enough unique ones
@@ -48,15 +52,15 @@ export const processExercises = (exercises: any[]): any[] => {
             if (!uniqueTexts.has(genericText)) {
               uniqueOptions.push({
                 text: genericText,
-                correct: false
+                correct: false // Generic options are never correct
               });
             }
           }
           
-          // Take only first 4 options and assign labels
+          // Take only first 4 options and assign labels WITHOUT changing correct status
           const finalOptions = uniqueOptions.slice(0, 4).map((opt, idx) => ({
             text: opt.text,
-            correct: opt.correct,
+            correct: opt.correct, // PRESERVE the original correct status
             label: String.fromCharCode(65 + idx) // A, B, C, D
           }));
           
