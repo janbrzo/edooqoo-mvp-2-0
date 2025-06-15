@@ -1,4 +1,3 @@
-
 import React, { useMemo } from "react";
 
 interface ExerciseFillInBlanksProps {
@@ -66,19 +65,20 @@ const ExerciseFillInBlanks: React.FC<ExerciseFillInBlanksProps> = ({
                   )}
                 </p>
               </div>
-              {/* Always render answers but control visibility with CSS */}
-              <div className={`teacher-answer text-green-600 italic ml-3 text-sm ${viewMode === 'student' ? 'hidden' : ''}`}>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={sentence.answer}
-                    onChange={e => onSentenceChange(sIndex, 'answer', e.target.value)}
-                    className="border p-1 editable-content w-full"
-                  />
-                ) : (
-                  <span>({sentence.answer})</span>
-                )}
-              </div>
+              {viewMode === 'teacher' && (
+                <div className="text-green-600 italic ml-3 text-sm">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={sentence.answer}
+                      onChange={e => onSentenceChange(sIndex, 'answer', e.target.value)}
+                      className="border p-1 editable-content w-full"
+                    />
+                  ) : (
+                    <span>({sentence.answer})</span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ))}

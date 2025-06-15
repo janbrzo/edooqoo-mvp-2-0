@@ -1,4 +1,5 @@
 
+
 // This file contains utility functions for the ExerciseSection component
 
 export const handleExerciseChange = (
@@ -194,23 +195,24 @@ export const renderOtherExerciseTypes = (
                 )}
               </p>
             </div>
-            {/* Always render answers but control visibility with CSS */}
-            <div className={`teacher-answer text-green-600 italic ml-3 text-sm ${viewMode === 'student' ? 'hidden' : ''}`}>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={sentence.answer || sentence.correction}
-                  onChange={e => handleSentenceChange(
-                    sIndex, 
-                    exercise.type === 'error-correction' ? 'correction' : 'answer', 
-                    e.target.value
-                  )}
-                  className="border p-1 editable-content w-full"
-                />
-              ) : (
-                <span>({sentence.answer || sentence.correction})</span>
-              )}
-            </div>
+            {viewMode === 'teacher' && (
+              <div className="text-green-600 italic ml-3 text-sm">
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={sentence.answer || sentence.correction}
+                    onChange={e => handleSentenceChange(
+                      sIndex, 
+                      exercise.type === 'error-correction' ? 'correction' : 'answer', 
+                      e.target.value
+                    )}
+                    className="border p-1 editable-content w-full"
+                  />
+                ) : (
+                  <span>({sentence.answer || sentence.correction})</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       ))}
@@ -256,8 +258,7 @@ export const renderTrueFalseExercise = (
                   </label>
                 </div>
               ) : (
-                /* Always render answers but control visibility with CSS - for true/false this is handled differently */
-                <div className="teacher-answer text-green-600 italic ml-3 text-sm">
+                <div className="text-green-600 italic ml-3 text-sm">
                   {isEditing ? (
                     <select
                       value={statement.isTrue ? "true" : "false"}
@@ -274,14 +275,9 @@ export const renderTrueFalseExercise = (
               )}
             </div>
           </div>
-          {/* Always render hidden answer for student view to be available for export */}
-          {viewMode === 'student' && (
-            <div className="teacher-answer text-green-600 italic ml-3 text-sm hidden">
-              <span>({statement.isTrue ? "True" : "False"})</span>
-            </div>
-          )}
         </div>
       ))}
     </div>
   </div>
 );
+
