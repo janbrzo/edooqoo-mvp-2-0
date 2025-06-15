@@ -19,8 +19,7 @@ export const useWorksheetState = (authLoading: boolean) => {
         const returningFromPayment = sessionStorage.getItem('returningFromPayment');
         if (returningFromPayment) {
           sessionStorage.removeItem('returningFromPayment');
-          console.log('User returning from payment, skipping restore message');
-          return;
+          console.log('User returning from payment, skipping restore message but proceeding with restoration.');
         }
 
         const savedWorksheet = sessionStorage.getItem('currentWorksheet');
@@ -48,11 +47,14 @@ export const useWorksheetState = (authLoading: boolean) => {
           setSourceCount(savedSourceCount ? parseInt(savedSourceCount) : 0);
           setWorksheetId(savedWorksheetId);
           
-          toast({
-            title: "Worksheet restored",
-            description: "Your previous worksheet has been restored.",
-            className: "bg-green-50 border-green-200"
-          });
+          // Only show toast if NOT returning from payment
+          if (!returningFromPayment) {
+            toast({
+              title: "Worksheet restored",
+              description: "Your previous worksheet has been restored.",
+              className: "bg-green-50 border-green-200"
+            });
+          }
         }
       } catch (error) {
         console.error('Error restoring worksheet state:', error);

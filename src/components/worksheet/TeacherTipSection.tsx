@@ -15,9 +15,6 @@ const TeacherTipSection: React.FC<TeacherTipSectionProps> = ({
   onChange,
   viewMode
 }) => {
-  // Nie wyświetlaj sekcji dla studentów
-  if (viewMode === "student") return null;
-
   return (
     <div 
       style={{
@@ -26,7 +23,7 @@ const TeacherTipSection: React.FC<TeacherTipSectionProps> = ({
       }} 
       data-no-pdf="true" 
       data-teacher-tip="true"
-      className="mt-4 p-3 rounded-md teacher-tip flex items-start py-[6px] bg-amber-50"
+      className={`mt-4 p-3 rounded-md teacher-tip items-start py-[6px] bg-amber-50 ${viewMode === 'student' ? 'hidden' : 'flex'}`}
     >
       <Info className="text-amber-400 mr-2 mt-1" size={19} />
       <div className="flex-1 min-w-0">
@@ -53,3 +50,4 @@ const TeacherTipSection: React.FC<TeacherTipSectionProps> = ({
 };
 
 export default TeacherTipSection;
+

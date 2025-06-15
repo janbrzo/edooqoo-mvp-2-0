@@ -261,6 +261,11 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
       console.error('[HTML EXPORT] Cloned element not found:', elementId);
       return false;
     }
+    
+    console.log(`[HTML EXPORT] Original DOM for #${elementId} has been cloned. Preparing for ${exportViewMode} view.`);
+    const initialTeacherTips = clonedElement.querySelectorAll('[data-teacher-tip="true"], .teacher-tip');
+    console.log(`[HTML EXPORT] Found ${initialTeacherTips.length} teacher-tip elements in the cloned DOM initially.`);
+
 
     // CRITICAL: Handle teacher tips and data-no-pdf elements based on EXPORT view mode
     console.log(`[HTML EXPORT] Processing elements for ${exportViewMode} export`);
@@ -282,15 +287,17 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
       let totalTeacherTips = 0;
       teacherTipSelectors.forEach(selector => {
         const tips = clonedElement.querySelectorAll(selector);
-        totalTeacherTips += tips.length;
+        // This check avoids double counting
+        if (selector === '[data-teacher-tip="true"]') {
+          totalTeacherTips = tips.length;
+        }
         tips.forEach(tip => {
           (tip as HTMLElement).style.display = 'flex';
           (tip as HTMLElement).style.visibility = 'visible';
-          console.log(`[HTML EXPORT] Making teacher tip visible:`, tip.className);
         });
       });
       
-      console.log(`[HTML EXPORT] Teacher version: kept ${totalTeacherTips} teacher tips visible`);
+      console.log(`[HTML EXPORT] Teacher version: processed and kept ${totalTeacherTips} teacher tips visible`);
     } else {
       // For student version: Remove ALL elements with data-no-pdf including teacher tips
       const allNoPublishElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
@@ -308,11 +315,13 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
       let removedTeacherTips = 0;
       teacherTipSelectors.forEach(selector => {
         const tips = clonedElement.querySelectorAll(selector);
-        removedTeacherTips += tips.length;
+        if (selector === '[data-teacher-tip="true"]') {
+            removedTeacherTips = tips.length;
+        }
         tips.forEach(el => el.remove());
       });
       
-      console.log(`[HTML EXPORT] Student version: removed ${removedTeacherTips} teacher tips`);
+      console.log(`[HTML EXPORT] Student version: explicitly removed ${removedTeacherTips} teacher tips`);
     }
 
     // Create header with actual worksheet title
