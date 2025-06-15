@@ -187,6 +187,12 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
       }
       
       /* CRITICAL: Show/hide answers based on export view mode */
+      .teacher-answer {
+        display: ${exportViewMode === 'teacher' ? 'block' : 'none'} !important;
+        visibility: ${exportViewMode === 'teacher' ? 'visible' : 'hidden'} !important;
+      }
+      
+      /* Legacy support for old answer classes */
       .text-green-600.italic {
         display: ${exportViewMode === 'teacher' ? 'inline' : 'none'} !important;
         visibility: ${exportViewMode === 'teacher' ? 'visible' : 'hidden'} !important;
@@ -281,13 +287,9 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
       return false;
     }
     
-    console.log(`[HTML EXPORT] Original DOM for #${elementId} has been cloned. Preparing for ${exportViewMode} view.`);
-    const initialTeacherTips = clonedElement.querySelectorAll('[data-teacher-tip="true"], .teacher-tip');
-    console.log(`[HTML EXPORT] Found ${initialTeacherTips.length} teacher-tip elements in the cloned DOM initially.`);
-
-    // CRITICAL: Handle teacher tips and data-no-pdf elements based on EXPORT view mode
     console.log(`[HTML EXPORT] Processing elements for ${exportViewMode} export`);
     
+    // Handle teacher tips based on export view mode
     if (exportViewMode === 'teacher') {
       // For teacher version: Remove non-teacher-tip elements with data-no-pdf but keep teacher tips
       const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([data-teacher-tip="true"]):not([class*="teacher-tip"]):not(.bg-amber-50)');
@@ -305,7 +307,6 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
       let totalTeacherTips = 0;
       teacherTipSelectors.forEach(selector => {
         const tips = clonedElement.querySelectorAll(selector);
-        // This check avoids double counting
         if (selector === '[data-teacher-tip="true"]') {
           totalTeacherTips = tips.length;
         }
@@ -317,10 +318,20 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
       
       console.log(`[HTML EXPORT] Teacher version: processed and kept ${totalTeacherTips} teacher tips visible`);
       
-      // CRITICAL: Show all answers for teacher version
-      const answerElements = clonedElement.querySelectorAll('.text-green-600.italic');
-      console.log(`[HTML EXPORT] Teacher version: found ${answerElements.length} answer elements to show`);
-      answerElements.forEach(answer => {
+      // Show all answers for teacher version using the new class
+      const teacherAnswerElements = clonedElement.querySelectorAll('.teacher-answer');
+      console.log(`[HTML EXPORT] Teacher version: found ${teacherAnswerElements.length} teacher-answer elements to show`);
+      teacherAnswerElements.forEach(answer => {
+        (answer as HTMLElement).style.display = 'block';
+        (answer as HTMLElement).style.visibility = 'visible';
+        // Remove any hidden class
+        (answer as HTMLElement).classList.remove('hidden');
+      });
+      
+      // Legacy support for old answer elements
+      const legacyAnswerElements = clonedElement.querySelectorAll('.text-green-600.italic');
+      console.log(`[HTML EXPORT] Teacher version: found ${legacyAnswerElements.length} legacy answer elements to show`);
+      legacyAnswerElements.forEach(answer => {
         (answer as HTMLElement).style.display = 'inline';
         (answer as HTMLElement).style.visibility = 'visible';
       });
@@ -366,10 +377,18 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
       
       console.log(`[HTML EXPORT] Student version: explicitly removed ${removedTeacherTips} teacher tips`);
       
-      // CRITICAL: Hide all answers for student version
-      const answerElements = clonedElement.querySelectorAll('.text-green-600.italic');
-      console.log(`[HTML EXPORT] Student version: found ${answerElements.length} answer elements to hide`);
-      answerElements.forEach(answer => {
+      // Hide all answers for student version using the new class
+      const teacherAnswerElements = clonedElement.querySelectorAll('.teacher-answer');
+      console.log(`[HTML EXPORT] Student version: found ${teacherAnswerElements.length} teacher-answer elements to hide`);
+      teacherAnswerElements.forEach(answer => {
+        (answer as HTMLElement).style.display = 'none';
+        (answer as HTMLElement).style.visibility = 'hidden';
+      });
+      
+      // Legacy support for old answer elements
+      const legacyAnswerElements = clonedElement.querySelectorAll('.text-green-600.italic');
+      console.log(`[HTML EXPORT] Student version: found ${legacyAnswerElements.length} legacy answer elements to hide`);
+      legacyAnswerElements.forEach(answer => {
         (answer as HTMLElement).style.display = 'none';
         (answer as HTMLElement).style.visibility = 'hidden';
       });
