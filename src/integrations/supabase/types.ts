@@ -98,7 +98,6 @@ export type Database = {
           created_at: string
           id: string
           rating: number
-          status: string | null
           user_id: string | null
           worksheet_id: string
         }
@@ -107,7 +106,6 @@ export type Database = {
           created_at?: string
           id?: string
           rating: number
-          status?: string | null
           user_id?: string | null
           worksheet_id: string
         }
@@ -116,19 +114,10 @@ export type Database = {
           created_at?: string
           id?: string
           rating?: number
-          status?: string | null
           user_id?: string | null
           worksheet_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "feedbacks_worksheet_id_fkey"
-            columns: ["worksheet_id"]
-            isOneToOne: false
-            referencedRelation: "worksheets"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       worksheets: {
         Row: {
