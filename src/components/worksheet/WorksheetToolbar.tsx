@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Edit, Lightbulb, User, Download, Lock } from "lucide-react";
@@ -6,6 +5,7 @@ import PaymentPopup from "@/components/PaymentPopup";
 import { exportAsHTML } from "@/utils/htmlExport";
 import { trackWorksheetEvent } from "@/services/worksheetService";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { TrackingEvent } from "@/hooks/useEventTracking";
 import {
   Tooltip,
   TooltipContent,
@@ -26,6 +26,7 @@ interface WorksheetToolbarProps {
   onTrackDownload?: () => void;
   showPdfButton?: boolean;
   editableWorksheet: any;
+  trackEvent?: (event: TrackingEvent) => Promise<void>;
 }
 
 const WorksheetToolbar = ({
@@ -41,6 +42,7 @@ const WorksheetToolbar = ({
   onTrackDownload,
   showPdfButton = false,
   editableWorksheet,
+  trackEvent,
 }: WorksheetToolbarProps) => {
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [pendingAction, setPendingAction] = useState<'html-student' | 'html-teacher' | 'pdf' | null>(null);
