@@ -84,6 +84,10 @@ export const useWorksheetGeneration = (
         console.log('💾 Final worksheet before setState:', deepFixedWorksheet);
         worksheetState.setGeneratedWorksheet(deepFixedWorksheet);
         
+        // CRITICAL FIX: Initialize editableWorksheet immediately after generatedWorksheet
+        console.log('💾 Setting editable worksheet immediately...');
+        worksheetState.setEditableWorksheet(deepFixedWorksheet);
+        
         console.log('🎉 Worksheet generation completed successfully!');
         toast({
           title: "Worksheet generated successfully!",
@@ -104,6 +108,9 @@ export const useWorksheetGeneration = (
       fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises);
       fallbackWorksheet.id = newWorksheetId;
       worksheetState.setGeneratedWorksheet(fallbackWorksheet);
+      
+      // CRITICAL FIX: Also set editableWorksheet for fallback case
+      worksheetState.setEditableWorksheet(fallbackWorksheet);
       
       toast({
         title: "Using sample worksheet",

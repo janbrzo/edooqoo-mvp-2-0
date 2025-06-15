@@ -88,12 +88,7 @@ export const useWorksheetState = (authLoading: boolean) => {
     }
   }, [editableWorksheet]);
 
-  // Initialize editable worksheet when generated worksheet is set
-  useEffect(() => {
-    if (generatedWorksheet && !editableWorksheet) {
-      setEditableWorksheet(generatedWorksheet);
-    }
-  }, [generatedWorksheet, editableWorksheet]);
+  // REMOVED THE PROBLEMATIC useEffect that was causing re-renders (lines 83-87)
 
   const clearWorksheetStorage = () => {
     sessionStorage.removeItem('currentWorksheet');
