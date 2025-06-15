@@ -24,12 +24,9 @@ const Index = () => {
     );
   }
 
-  // CRITICAL FIX: Check both generatedWorksheet AND editableWorksheet are ready
-  const bothWorksheetsReady = worksheetState.generatedWorksheet && worksheetState.editableWorksheet;
-
   return (
     <div className="min-h-screen bg-gray-100">
-      {!bothWorksheetsReady ? (
+      {!worksheetState.generatedWorksheet ? (
         <FormView onSubmit={generateWorksheetHandler} />
       ) : (
         <GenerationView 

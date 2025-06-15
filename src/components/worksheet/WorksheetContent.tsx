@@ -23,18 +23,6 @@ export default function WorksheetContent({
   worksheetId,
   onFeedbackSubmit
 }: WorksheetContentProps) {
-  // CRITICAL FIX: Add safety check to prevent rendering with null worksheet
-  if (!editableWorksheet) {
-    console.log('WorksheetContent: editableWorksheet is null, showing loading...');
-    return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="animate-spin h-8 w-8 border-4 border-worksheet-purple border-t-transparent rounded-full"></div>
-      </div>
-    );
-  }
-
-  console.log('WorksheetContent: Rendering with editableWorksheet:', editableWorksheet);
-
   return (
     <div className="worksheet-content mb-8" id="worksheet-content">
       <div className="page-number"></div>
@@ -44,34 +32,34 @@ export default function WorksheetContent({
           {isEditing ? (
             <input 
               type="text" 
-              value={editableWorksheet.title || ''} 
+              value={editableWorksheet.title} 
               onChange={e => setEditableWorksheet({
                 ...editableWorksheet,
                 title: e.target.value
               })} 
               className="w-full border p-2 editable-content" 
             />
-          ) : (editableWorksheet.title || 'Untitled Worksheet')}
+          ) : editableWorksheet.title}
         </h1>
         
         <h2 className="text-xl text-worksheet-purple mb-3 leading-tight">
           {isEditing ? (
             <input 
               type="text" 
-              value={editableWorksheet.subtitle || ''} 
+              value={editableWorksheet.subtitle} 
               onChange={e => setEditableWorksheet({
                 ...editableWorksheet,
                 subtitle: e.target.value
               })} 
               className="w-full border p-2 editable-content" 
             />
-          ) : (editableWorksheet.subtitle || '')}
+          ) : editableWorksheet.subtitle}
         </h2>
         
         <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-md">
           {isEditing ? (
             <textarea 
-              value={editableWorksheet.introduction || ''} 
+              value={editableWorksheet.introduction} 
               onChange={e => setEditableWorksheet({
                 ...editableWorksheet,
                 introduction: e.target.value
@@ -79,7 +67,7 @@ export default function WorksheetContent({
               className="w-full h-20 border p-2 editable-content" 
             />
           ) : (
-            <p className="leading-snug">{editableWorksheet.introduction || ''}</p>
+            <p className="leading-snug">{editableWorksheet.introduction}</p>
           )}
         </div>
       </div>
@@ -93,7 +81,7 @@ export default function WorksheetContent({
         />
       )}
 
-      {editableWorksheet.exercises && editableWorksheet.exercises.map((exercise: any, index: number) => (
+      {editableWorksheet.exercises.map((exercise: any, index: number) => (
         <ExerciseSection
           key={index}
           exercise={exercise}
