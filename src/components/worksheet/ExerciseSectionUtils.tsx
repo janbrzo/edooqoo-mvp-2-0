@@ -1,3 +1,4 @@
+
 // This file contains utility functions for the ExerciseSection component
 
 export const handleExerciseChange = (
@@ -254,7 +255,7 @@ export const renderTrueFalseExercise = (
                   </label>
                 </div>
               ) : (
-                <div className={`text-green-600 italic ml-3 text-sm exercise-answer ${viewMode === 'student' ? 'hidden' : ''}`}>
+                <div className="text-green-600 italic ml-3 text-sm exercise-answer">
                   {isEditing ? (
                     <select
                       value={statement.isTrue ? "true" : "false"}
