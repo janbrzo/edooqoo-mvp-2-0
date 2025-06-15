@@ -32,11 +32,9 @@ const ExerciseMatching: React.FC<ExerciseMatchingProps> = ({
         {items.map((item, iIndex) => (
           <div key={iIndex} className="p-2 border rounded-md bg-white">
             <span className="text-worksheet-purple font-medium mr-2">{iIndex + 1}.</span>
-            {viewMode === 'teacher' ? (
-              <span className="teacher-answer">{String.fromCharCode(65 + shuffledDefinitions.findIndex(i => i.term === item.term))}</span>
-            ) : (
-              <span className="student-answer-blank"></span>
-            )}
+            <span className="exercise-answer">
+              {String.fromCharCode(65 + shuffledDefinitions.findIndex(i => i.term === item.term))}
+            </span>
             {isEditing ? (
               <input
                 type="text"

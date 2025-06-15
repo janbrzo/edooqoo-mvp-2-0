@@ -169,13 +169,19 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
         opacity: 1;
       }
       
+      /* Always show worksheet introduction */
+      .worksheet-introduction {
+        display: block !important;
+        visibility: visible !important;
+      }
+      
       /* Hide rating section in HTML export */
-      [data-no-pdf="true"]:not(.teacher-tip):not(.bg-amber-50):not([data-teacher-tip="true"]) {
+      [data-no-pdf="true"]:not(.teacher-tip):not(.bg-amber-50):not([data-teacher-tip="true"]):not(.worksheet-introduction) {
         display: none !important;
       }
       
-      /* Show/hide teacher tips based on export view mode */
-      .teacher-tip, .bg-amber-50, [data-teacher-tip="true"], [class*="teacher-tip"] {
+      /* Show/hide teacher tips based on export view mode (but not worksheet introduction) */
+      .teacher-tip, [data-teacher-tip="true"], [class*="teacher-tip"] {
         display: ${exportViewMode === 'teacher' ? 'flex' : 'none'} !important;
         background: linear-gradient(90deg, #FEF7CD 85%, #FAF5E3 100%) !important;
         border: 1.5px solid #ffeab9 !important;
@@ -272,13 +278,13 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
 
     // Handle teacher tips based on export view mode
     if (exportViewMode === 'teacher') {
-      // For teacher version: Remove non-teacher-tip elements with data-no-pdf but keep teacher tips
-      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([data-teacher-tip="true"]):not([class*="teacher-tip"]):not(.bg-amber-50)');
+      // For teacher version: Remove non-teacher-tip elements with data-no-pdf but keep teacher tips and introduction
+      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([data-teacher-tip="true"]):not([class*="teacher-tip"]):not(.worksheet-introduction)');
       console.log(`[HTML EXPORT] Teacher version: removing ${nonTeacherTipElements.length} non-teacher-tip elements`);
       nonTeacherTipElements.forEach(el => el.remove());
       
       // Ensure all teacher tips are visible
-      const teacherTips = clonedElement.querySelectorAll('[data-teacher-tip="true"], [class*="teacher-tip"], .teacher-tip, .bg-amber-50');
+      const teacherTips = clonedElement.querySelectorAll('[data-teacher-tip="true"], [class*="teacher-tip"], .teacher-tip');
       teacherTips.forEach(tip => {
         (tip as HTMLElement).style.display = 'flex';
         (tip as HTMLElement).style.visibility = 'visible';
@@ -293,14 +299,13 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
       
       console.log(`[HTML EXPORT] Teacher version: made ${teacherTips.length} teacher tips and ${exerciseAnswers.length} exercise answers visible`);
     } else {
-      // For student version: Remove ALL elements with data-no-pdf including teacher tips
-      const allNoPublishElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
-      console.log(`[HTML EXPORT] Student version: removing ${allNoPublishElements.length} data-no-pdf elements`);
-      allNoPublishElements.forEach(el => el.remove());
+      // For student version: Remove teacher tip elements but keep introduction and hide exercise answers
+      const teacherTipElements = clonedElement.querySelectorAll('[data-teacher-tip="true"], [class*="teacher-tip"], .teacher-tip');
+      teacherTipElements.forEach(el => el.remove());
       
-      // Also explicitly remove teacher tip elements and hide exercise answers
-      const teacherTips = clonedElement.querySelectorAll('[data-teacher-tip="true"], [class*="teacher-tip"], .teacher-tip, .bg-amber-50');
-      teacherTips.forEach(el => el.remove());
+      // Remove other data-no-pdf elements except introduction
+      const otherNoPublishElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not(.worksheet-introduction)');
+      otherNoPublishElements.forEach(el => el.remove());
       
       const exerciseAnswers = clonedElement.querySelectorAll('.exercise-answer');
       exerciseAnswers.forEach(answer => {
@@ -308,8 +313,15 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
         (answer as HTMLElement).style.visibility = 'hidden';
       });
       
-      console.log(`[HTML EXPORT] Student version: removed ${teacherTips.length} teacher tips and hid ${exerciseAnswers.length} exercise answers`);
+      console.log(`[HTML EXPORT] Student version: removed ${teacherTipElements.length} teacher tips and hid ${exerciseAnswers.length} exercise answers`);
     }
+
+    // Ensure worksheet introduction is always visible
+    const introductions = clonedElement.querySelectorAll('.worksheet-introduction');
+    introductions.forEach(intro => {
+      (intro as HTMLElement).style.display = 'block';
+      (intro as HTMLElement).style.visibility = 'visible';
+    });
 
     // Create header with actual worksheet title
     const versionHeader = docClone.createElement('div');

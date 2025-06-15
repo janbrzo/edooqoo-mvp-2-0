@@ -34,16 +34,16 @@ const ExerciseMultipleChoice: React.FC<ExerciseMultipleChoiceProps> = ({
                 key={oIndex}
                 className={`
                   p-2 border rounded-md flex items-center gap-2 multiple-choice-option
-                  ${viewMode === 'teacher' && option.correct ? 'bg-green-50 border-green-200' : 'bg-white'}
+                  ${option.correct ? 'exercise-answer bg-green-50 border-green-200' : 'bg-white'}
                 `}
               >
                 <div
                   className={`
                     w-5 h-5 rounded-md border flex items-center justify-center option-icon
-                    ${viewMode === 'teacher' && option.correct ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300'}
+                    ${option.correct ? 'exercise-answer bg-green-500 border-green-500 text-white' : 'border-gray-300'}
                   `}
                 >
-                  {viewMode === 'teacher' && option.correct && <span>✓</span>}
+                  {option.correct && <span className="exercise-answer">✓</span>}
                 </div>
                 <span>
                   {isEditing ? (

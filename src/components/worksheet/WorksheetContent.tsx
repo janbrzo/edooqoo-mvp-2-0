@@ -68,7 +68,7 @@ export default function WorksheetContent({
           ) : (editableWorksheet.subtitle || '')}
         </h2>
         
-        <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-md">
+        <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-md worksheet-introduction">
           {isEditing ? (
             <textarea 
               value={editableWorksheet.introduction || ''} 
