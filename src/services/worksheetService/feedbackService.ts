@@ -29,7 +29,7 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
           rating,
           comment,
           userId,
-          status: 'submitted' // Ensure status is set to 'submitted'
+          status: 'submitted'
         })
       });
 
@@ -63,57 +63,12 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
     if (error) {
       console.error('Direct feedback submission error:', error);
       
-      // If direct insert fails and we don't have a worksheet_id, try creating a placeholder
+      // If worksheet doesn't exist, return a meaningful error
       if (error.message.includes('violates foreign key constraint')) {
-        console.log('Creating placeholder worksheet for feedback');
-        
-        const { data: placeholderData, error: placeholderError } = await supabase
-          .from('worksheets')
-          .insert([
-            {
-              prompt: 'Generated worksheet',
-              form_data: JSON.stringify({ title: 'Generated Worksheet' }),
-              ai_response: 'Placeholder response',
-              html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
-              user_id: userId,
-              ip_address: 'client-side',
-              status: 'created',
-              title: 'Generated Worksheet'
-            }
-          ])
-          .select();
-          
-        if (placeholderError) {
-          console.error('Error creating placeholder worksheet:', placeholderError);
-          throw new Error('Failed to create feedback record: worksheet reference is required');
-        }
-          
-        if (placeholderData && placeholderData.length > 0) {
-          // Try feedback again with new worksheet ID
-          const { data: retryData, error: retryError } = await supabase
-            .from('feedbacks')
-            .insert([
-              { 
-                worksheet_id: placeholderData[0].id, 
-                user_id: userId, 
-                rating, 
-                comment,
-                status: 'submitted'
-              }
-            ])
-            .select();
-              
-          if (retryError) {
-            console.error('Retry feedback submission error:', retryError);
-            throw new Error(`Failed to submit feedback after retry: ${retryError.message}`);
-          }
-            
-          toast.success('Thank you for your feedback!');
-          return retryData;
-        }
-      } else {
-        throw new Error(`Failed to submit feedback: ${error.message}`);
+        throw new Error('Cannot submit feedback: worksheet not found or invalid');
       }
+      
+      throw new Error(`Failed to submit feedback: ${error.message}`);
     }
       
     toast.success('Thank you for your feedback!');

@@ -33,32 +33,31 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
     setSelected(value);
     setIsDialogOpen(true);
     
+    // Only submit if we have a valid worksheet ID
+    if (!worksheetId || worksheetId === 'unknown') {
+      console.log('No valid worksheet ID, feedback will be submitted when dialog is completed');
+      return;
+    }
+    
     try {
       setSubmitting(true);
       
-      // Submit rating immediately when button is clicked
       if (userId) {
-        const actualWorksheetId = worksheetId || 
-          new URL(window.location.href).searchParams.get('worksheet_id') || 
-          null;
-            
-        if (actualWorksheetId) {
-          const result = await submitFeedback(actualWorksheetId, value, '', userId);
-          
-          // Store the feedback ID for future updates
-          if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
-            setCurrentFeedbackId(result[0].id);
-          }
-          
-          toast({
-            title: "Rating submitted!",
-            description: "Thanks for your feedback. Add a comment for more details."
-          });
-          
-          // Call the callback if provided
-          if (onSubmitRating) {
-            onSubmitRating(value, '');
-          }
+        const result = await submitFeedback(worksheetId, value, '', userId);
+        
+        // Store the feedback ID for future updates
+        if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
+          setCurrentFeedbackId(result[0].id);
+        }
+        
+        toast({
+          title: "Rating submitted!",
+          description: "Thanks for your feedback. Add a comment for more details."
+        });
+        
+        // Call the callback if provided
+        if (onSubmitRating) {
+          onSubmitRating(value, '');
         }
       }
     } catch (error) {
@@ -75,38 +74,20 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
     try {
       setSubmitting(true);
       
-      // Try to get worksheet ID from props, URL or DOM
-      let actualWorksheetId = worksheetId || null;
-      
-      if (!actualWorksheetId && window.location.href.includes('worksheet_id=')) {
-        actualWorksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
-      }
-      
-      // If no worksheet ID in URL, check for other elements
-      if (!actualWorksheetId) {
-        const worksheetElements = document.querySelectorAll('[data-worksheet-id]');
-        if (worksheetElements.length > 0) {
-          actualWorksheetId = worksheetElements[0].getAttribute('data-worksheet-id');
-        }
-      }
-      
       if (currentFeedbackId) {
         // Update existing feedback with comment
         await updateFeedback(currentFeedbackId, feedback, userId);
-      } else if (actualWorksheetId) {
+      } else if (worksheetId && worksheetId !== 'unknown') {
         // Submit new feedback with rating and comment
-        const result = await submitFeedback(actualWorksheetId, selected, feedback, userId);
+        const result = await submitFeedback(worksheetId, selected, feedback, userId);
         
         // Store the feedback ID
         if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
           setCurrentFeedbackId(result[0].id);
         }
       } else {
-        // Create a placeholder for unknown worksheets
-        const placeholderResult = await submitFeedback('unknown', selected, feedback, userId);
-        if (placeholderResult && Array.isArray(placeholderResult) && placeholderResult.length > 0) {
-          setCurrentFeedbackId(placeholderResult[0].id);
-        }
+        // No valid worksheet ID - just show success without submitting
+        console.log('No valid worksheet ID, feedback not submitted to database');
       }
       
       setIsDialogOpen(false);
