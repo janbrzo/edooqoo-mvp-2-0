@@ -1,7 +1,17 @@
 
-import { securityMonitor } from '../../../src/utils/securityUtils.ts';
+// Enhanced rate limiting functionality with better monitoring for edge functions
 
-// Enhanced rate limiting functionality with better monitoring
+// Security monitoring for edge functions
+class EdgeSecurityMonitor {
+  logSecurityEvent(type: string, details: any): void {
+    console.warn(`Security Event [${type}]:`, {
+      ...details,
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+
+const securityMonitor = new EdgeSecurityMonitor();
 
 export class RateLimiter {
   private requests: Map<string, { 

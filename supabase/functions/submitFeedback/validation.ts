@@ -1,7 +1,5 @@
 
-import { securityMonitor } from '../../../src/utils/securityUtils.ts';
-
-// Input validation utilities with enhanced security
+// Input validation utilities with enhanced security for edge functions
 
 export interface SubmitFeedbackRequest {
   worksheetId: string;
@@ -10,6 +8,18 @@ export interface SubmitFeedbackRequest {
   userId: string;
   status?: string;
 }
+
+// Security monitoring for edge functions
+class EdgeSecurityMonitor {
+  logSecurityEvent(type: string, details: any): void {
+    console.warn(`Security Event [${type}]:`, {
+      ...details,
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+
+const securityMonitor = new EdgeSecurityMonitor();
 
 export function validateSubmitFeedbackRequest(data: any): { isValid: boolean; error?: string; validatedData?: SubmitFeedbackRequest } {
   if (!data || typeof data !== 'object') {

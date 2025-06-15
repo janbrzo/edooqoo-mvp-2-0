@@ -1,6 +1,5 @@
 
 import { isValidUUID } from './security.ts';
-import { securityMonitor } from '../../../src/utils/securityUtils.ts';
 
 export interface PaymentRequest {
   worksheetId: string;
@@ -8,6 +7,18 @@ export interface PaymentRequest {
   successUrl?: string;
   cancelUrl?: string;
 }
+
+// Security monitoring for edge functions
+class EdgeSecurityMonitor {
+  logSecurityEvent(type: string, details: any): void {
+    console.warn(`Security Event [${type}]:`, {
+      ...details,
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+
+const securityMonitor = new EdgeSecurityMonitor();
 
 export function validatePaymentRequest(request: PaymentRequest): { valid: boolean; error?: string } {
   const { worksheetId, userId, successUrl, cancelUrl } = request;
