@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { SubmitFeedbackRequest } from './validation.ts';
 
@@ -12,6 +13,7 @@ export interface FeedbackRecord {
   user_id: string;
   rating: number;
   comment: string;
+  status: string;
   created_at: string;
 }
 
@@ -20,7 +22,8 @@ export async function submitFeedbackToDatabase(feedbackData: SubmitFeedbackReque
     console.log('Submitting feedback to database:', {
       worksheet_id: feedbackData.worksheetId,
       user_id: feedbackData.userId,
-      rating: feedbackData.rating
+      rating: feedbackData.rating,
+      status: feedbackData.status
     });
 
     const { data, error } = await supabase
@@ -30,7 +33,8 @@ export async function submitFeedbackToDatabase(feedbackData: SubmitFeedbackReque
           worksheet_id: feedbackData.worksheetId,
           user_id: feedbackData.userId,
           rating: feedbackData.rating,
-          comment: feedbackData.comment
+          comment: feedbackData.comment,
+          status: feedbackData.status
         }
       ])
       .select()

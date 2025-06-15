@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateSubmitFeedbackRequest, isValidUUID } from './validation.ts';
 import { rateLimiter } from './rateLimiter.ts';
@@ -76,7 +77,8 @@ serve(async (req) => {
       console.log('Updating existing feedback');
       result = await updateExistingFeedback(existingCheck.feedback.id, {
         rating: feedbackData.rating,
-        comment: feedbackData.comment
+        comment: feedbackData.comment,
+        status: feedbackData.status
       });
     } else {
       // Create new feedback

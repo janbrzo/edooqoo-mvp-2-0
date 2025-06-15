@@ -98,6 +98,7 @@ export type Database = {
           created_at: string
           id: string
           rating: number
+          status: string | null
           user_id: string | null
           worksheet_id: string
         }
@@ -106,6 +107,7 @@ export type Database = {
           created_at?: string
           id?: string
           rating: number
+          status?: string | null
           user_id?: string | null
           worksheet_id: string
         }
@@ -114,6 +116,7 @@ export type Database = {
           created_at?: string
           id?: string
           rating?: number
+          status?: string | null
           user_id?: string | null
           worksheet_id?: string
         }

@@ -78,40 +78,34 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
       // Try to get worksheet ID from props, URL or DOM
       let actualWorksheetId = worksheetId || null;
       
-      if (!actualWorksheetId && typeof window !== 'undefined' && window.location.href.includes('worksheet_id=')) {
+      if (!actualWorksheetId && window.location.href.includes('worksheet_id=')) {
         actualWorksheetId = new URL(window.location.href).searchParams.get('worksheet_id');
       }
       
       // If no worksheet ID in URL, check for other elements
-      if (!actualWorksheetId && typeof document !== 'undefined') {
+      if (!actualWorksheetId) {
         const worksheetElements = document.querySelectorAll('[data-worksheet-id]');
         if (worksheetElements.length > 0) {
           actualWorksheetId = worksheetElements[0].getAttribute('data-worksheet-id');
         }
       }
-
-      // Guard clause to prevent submission without a valid ID
-      if (!actualWorksheetId) {
-        console.error("Could not find a worksheet ID to submit feedback for.");
-        toast({
-          title: "Feedback Submission Failed",
-          description: "Could not identify the worksheet. Please try again from a worksheet page.",
-          variant: "destructive"
-        });
-        setIsDialogOpen(false); // Close the dialog
-        return; // Stop execution
-      }
       
       if (currentFeedbackId) {
         // Update existing feedback with comment
         await updateFeedback(currentFeedbackId, feedback, userId);
-      } else {
+      } else if (actualWorksheetId) {
         // Submit new feedback with rating and comment
         const result = await submitFeedback(actualWorksheetId, selected, feedback, userId);
         
         // Store the feedback ID
         if (result && Array.isArray(result) && result.length > 0 && result[0].id) {
           setCurrentFeedbackId(result[0].id);
+        }
+      } else {
+        // Create a placeholder for unknown worksheets
+        const placeholderResult = await submitFeedback('unknown', selected, feedback, userId);
+        if (placeholderResult && Array.isArray(placeholderResult) && placeholderResult.length > 0) {
+          setCurrentFeedbackId(placeholderResult[0].id);
         }
       }
       
@@ -131,7 +125,11 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
       
     } catch (error) {
       console.error("Error submitting feedback:", error);
-      // The service layer now handles the error toast, so no need to show one here.
+      toast({
+        title: "Feedback submission failed",
+        description: "We couldn't submit your feedback. Please try again later.",
+        variant: "destructive"
+      });
     } finally {
       setSubmitting(false);
     }
