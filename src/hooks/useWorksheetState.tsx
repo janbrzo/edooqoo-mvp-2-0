@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { FormData } from "@/components/WorksheetForm";
@@ -16,6 +15,14 @@ export const useWorksheetState = (authLoading: boolean) => {
   useEffect(() => {
     const restoreWorksheetState = () => {
       try {
+        // Check if user is returning from payment - if so, don't show restore message
+        const returningFromPayment = sessionStorage.getItem('returningFromPayment');
+        if (returningFromPayment) {
+          sessionStorage.removeItem('returningFromPayment');
+          console.log('User returning from payment, skipping restore message');
+          return;
+        }
+
         const savedWorksheet = sessionStorage.getItem('currentWorksheet');
         const savedEditableWorksheet = sessionStorage.getItem('currentEditableWorksheet');
         const savedInputParams = sessionStorage.getItem('currentInputParams');

@@ -25,6 +25,7 @@ const TeacherTipSection: React.FC<TeacherTipSectionProps> = ({
         borderLeft: "4px solid #ffeab9"
       }} 
       data-no-pdf="true" 
+      data-teacher-tip="true"
       className="mt-4 p-3 rounded-md teacher-tip flex items-start py-[6px] bg-amber-50"
     >
       <Info className="text-amber-400 mr-2 mt-1" size={19} />

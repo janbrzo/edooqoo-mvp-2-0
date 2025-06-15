@@ -56,6 +56,9 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
     try {
       console.log('Creating payment session for:', { worksheetId, userIdentifier });
       
+      // Set flag to prevent "worksheet restored" message when returning from payment
+      sessionStorage.setItem('returningFromPayment', 'true');
+      
       // Call edge function to create Stripe checkout session
       const { data, error } = await supabase.functions.invoke('create-export-payment', {
         body: { 
@@ -68,6 +71,8 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
 
       if (error) {
         console.error('Supabase function error:', error);
+        // Remove flag if payment failed
+        sessionStorage.removeItem('returningFromPayment');
         throw error;
       }
 
@@ -76,10 +81,14 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
         // Redirect to Stripe checkout in the same window
         window.location.href = data.url;
       } else {
+        // Remove flag if no URL received
+        sessionStorage.removeItem('returningFromPayment');
         throw new Error('No checkout URL received from payment service');
       }
     } catch (error) {
       console.error('Payment error:', error);
+      // Remove flag if payment failed
+      sessionStorage.removeItem('returningFromPayment');
       toast({
         title: "Payment Error",
         description: error instanceof Error ? error.message : "Failed to create payment session. Please try again.",

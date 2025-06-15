@@ -9,7 +9,7 @@ interface TeacherTipBoxProps {
 const TeacherTipBox = ({ tip }: TeacherTipBoxProps) => {
   return (
     <div
-      className="flex items-start rounded-md px-3 py-1 my-2 teacher-tip"
+      className="flex items-start rounded-md px-3 py-1 my-2 teacher-tip bg-amber-50"
       style={{
         background: "linear-gradient(90deg, #FEF7CD 85%, #FAF5E3 100%)",
         border: "1.5px solid #ffeab9",
@@ -18,6 +18,7 @@ const TeacherTipBox = ({ tip }: TeacherTipBoxProps) => {
         boxShadow: "none"
       }}
       data-no-pdf="true"
+      data-teacher-tip="true"
     >
       <Info className="text-amber-400 flex-shrink-0 mr-2 mt-0.5" size={19} />
       <div>

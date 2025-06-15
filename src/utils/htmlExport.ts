@@ -1,4 +1,3 @@
-
 /**
  * Fetches CSS content from a URL
  */
@@ -19,11 +18,11 @@ async function fetchCSSContent(url: string): Promise<string> {
  */
 export async function exportAsHTML(elementId: string, filename: string, exportViewMode: 'student' | 'teacher' = 'student', title: string = 'English Worksheet'): Promise<boolean> {
   try {
-    console.log(`Starting HTML export for ${exportViewMode} view`);
+    console.log(`[HTML EXPORT] Starting HTML export for ${exportViewMode} view`);
     
     const element = document.getElementById(elementId);
     if (!element) {
-      console.error('Element not found:', elementId);
+      console.error('[HTML EXPORT] Element not found:', elementId);
       return false;
     }
 
@@ -44,7 +43,7 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
     // Fetch and inline all external CSS
     const cssPromises = externalStylesheets.map(async (link) => {
       const href = link.href;
-      console.log('Fetching CSS from:', href);
+      console.log('[HTML EXPORT] Fetching CSS from:', href);
       
       try {
         const absoluteUrl = new URL(href, window.location.origin).href;
@@ -54,7 +53,7 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
           return `/* CSS from ${href} */\n${cssContent}\n`;
         }
       } catch (error) {
-        console.warn(`Failed to process CSS from ${href}:`, error);
+        console.warn(`[HTML EXPORT] Failed to process CSS from ${href}:`, error);
       }
       return '';
     });
@@ -85,11 +84,11 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
             }
           }
         } catch (e) {
-          console.warn('Could not access stylesheet rules (likely CORS):', e);
+          console.warn('[HTML EXPORT] Could not access stylesheet rules (likely CORS):', e);
         }
       });
     } catch (error) {
-      console.warn('Error accessing document.styleSheets:', error);
+      console.warn('[HTML EXPORT] Error accessing document.styleSheets:', error);
     }
 
     // Add additional styles including scroll up button
@@ -171,19 +170,19 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
       }
       
       /* Hide rating section in HTML export */
-      [data-no-pdf="true"]:not(.teacher-tip):not(.bg-amber-50) {
+      [data-no-pdf="true"]:not(.teacher-tip):not(.bg-amber-50):not([data-teacher-tip="true"]) {
         display: none !important;
       }
       
-      /* Show teacher tips based on export view mode - NOT current view mode */
-      .teacher-tip, .bg-amber-50 {
-        display: ${exportViewMode === 'teacher' ? 'block' : 'none'} !important;
+      /* Show/hide teacher tips based on export view mode - CRITICAL LOGIC */
+      .teacher-tip, .bg-amber-50, [data-teacher-tip="true"], [class*="teacher-tip"] {
+        display: ${exportViewMode === 'teacher' ? 'flex' : 'none'} !important;
         background: linear-gradient(90deg, #FEF7CD 85%, #FAF5E3 100%) !important;
         border: 1.5px solid #ffeab9 !important;
         padding: 12px !important;
         margin: 8px 0 !important;
         border-radius: 6px !important;
-        visibility: visible !important;
+        visibility: ${exportViewMode === 'teacher' ? 'visible' : 'hidden'} !important;
       }
       
       /* Print styles */
@@ -259,29 +258,61 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
     // Find the worksheet content in the cloned document
     const clonedElement = docClone.getElementById(elementId);
     if (!clonedElement) {
-      console.error('Cloned element not found:', elementId);
+      console.error('[HTML EXPORT] Cloned element not found:', elementId);
       return false;
     }
 
-    // Handle teacher tips and data-no-pdf elements based on EXPORT view mode
-    console.log(`Processing elements for ${exportViewMode} export`);
+    // CRITICAL: Handle teacher tips and data-no-pdf elements based on EXPORT view mode
+    console.log(`[HTML EXPORT] Processing elements for ${exportViewMode} export`);
+    
     if (exportViewMode === 'teacher') {
-      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([class*="teacher-tip"]):not(.bg-amber-50)');
+      // For teacher version: Remove non-teacher-tip elements with data-no-pdf but keep teacher tips
+      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([data-teacher-tip="true"]):not([class*="teacher-tip"]):not(.bg-amber-50)');
+      console.log(`[HTML EXPORT] Teacher version: removing ${nonTeacherTipElements.length} non-teacher-tip elements`);
       nonTeacherTipElements.forEach(el => el.remove());
       
-      const teacherTips = clonedElement.querySelectorAll('[class*="teacher-tip"], .bg-amber-50');
-      teacherTips.forEach(tip => {
-        (tip as HTMLElement).style.display = 'block';
-        (tip as HTMLElement).style.visibility = 'visible';
+      // Ensure all teacher tips are visible
+      const teacherTipSelectors = [
+        '[data-teacher-tip="true"]',
+        '[class*="teacher-tip"]', 
+        '.teacher-tip',
+        '.bg-amber-50'
+      ];
+      
+      let totalTeacherTips = 0;
+      teacherTipSelectors.forEach(selector => {
+        const tips = clonedElement.querySelectorAll(selector);
+        totalTeacherTips += tips.length;
+        tips.forEach(tip => {
+          (tip as HTMLElement).style.display = 'flex';
+          (tip as HTMLElement).style.visibility = 'visible';
+          console.log(`[HTML EXPORT] Making teacher tip visible:`, tip.className);
+        });
       });
-      console.log(`Teacher version: kept ${teacherTips.length} teacher tips`);
+      
+      console.log(`[HTML EXPORT] Teacher version: kept ${totalTeacherTips} teacher tips visible`);
     } else {
+      // For student version: Remove ALL elements with data-no-pdf including teacher tips
       const allNoPublishElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
+      console.log(`[HTML EXPORT] Student version: removing ${allNoPublishElements.length} data-no-pdf elements`);
       allNoPublishElements.forEach(el => el.remove());
       
-      const teacherTipElements = clonedElement.querySelectorAll('[class*="teacher-tip"], .bg-amber-50');
-      teacherTipElements.forEach(el => el.remove());
-      console.log(`Student version: removed ${teacherTipElements.length} teacher tips`);
+      // Also explicitly remove teacher tip elements
+      const teacherTipSelectors = [
+        '[data-teacher-tip="true"]',
+        '[class*="teacher-tip"]', 
+        '.teacher-tip',
+        '.bg-amber-50'
+      ];
+      
+      let removedTeacherTips = 0;
+      teacherTipSelectors.forEach(selector => {
+        const tips = clonedElement.querySelectorAll(selector);
+        removedTeacherTips += tips.length;
+        tips.forEach(el => el.remove());
+      });
+      
+      console.log(`[HTML EXPORT] Student version: removed ${removedTeacherTips} teacher tips`);
     }
 
     // Create header with actual worksheet title
@@ -368,10 +399,10 @@ ${finalCSS}
     // Clean up
     URL.revokeObjectURL(url);
     
-    console.log(`HTML export completed successfully for ${exportViewMode} view`);
+    console.log(`[HTML EXPORT] HTML export completed successfully for ${exportViewMode} view`);
     return true;
   } catch (error) {
-    console.error('Error exporting HTML:', error);
+    console.error('[HTML EXPORT] Error exporting HTML:', error);
     return false;
   }
 }
