@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useEventTracking } from "@/hooks/useEventTracking";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
 import InputParamsCard from "./worksheet/InputParamsCard";
 import WorksheetToolbar from "./worksheet/WorksheetToolbar";
@@ -48,6 +49,7 @@ interface WorksheetDisplayProps {
   onFeedbackSubmit?: (rating: number, feedback: string) => void;
   editableWorksheet: any;
   setEditableWorksheet: (worksheet: any) => void;
+  userId?: string;
 }
 
 export default function WorksheetDisplay({
@@ -61,13 +63,60 @@ export default function WorksheetDisplay({
   worksheetId,
   onFeedbackSubmit,
   editableWorksheet,
-  setEditableWorksheet
+  setEditableWorksheet,
+  userId
 }: WorksheetDisplayProps) {
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
   const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload } = useDownloadStatus();
   const isMobile = useIsMobile();
+  const { trackEvent, startTimer, trackTimeSpent } = useEventTracking(userId);
+  
+  // Track worksheet view when component mounts
+  useEffect(() => {
+    startTimer();
+    trackEvent({
+      eventType: 'worksheet_view_time',
+      eventData: {
+        worksheetId,
+        timestamp: new Date().toISOString(),
+        inputParams: {
+          lessonTime: inputParams?.lessonTime,
+          englishLevel: inputParams?.englishLevel,
+          lessonTopic: inputParams?.lessonTopic,
+          lessonGoal: inputParams?.lessonGoal
+        }
+      }
+    });
+  }, [trackEvent, startTimer, worksheetId, inputParams]);
+
+  // Track time spent when user leaves
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      trackTimeSpent('worksheet_view_time', {
+        worksheetId,
+        action: 'page_leave'
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        trackTimeSpent('worksheet_view_time', {
+          worksheetId,
+          action: 'tab_hidden'
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [trackTimeSpent, worksheetId]);
   
   useEffect(() => {
     validateWorksheetStructure();
@@ -164,11 +213,36 @@ export default function WorksheetDisplay({
     });
   };
 
+  // Enhanced download handler with tracking
   const handleDownloadWithTracking = () => {
+    // Track download attempt
+    trackEvent({
+      eventType: 'download_attempt',
+      eventData: {
+        worksheetId,
+        isUnlocked: isDownloadUnlocked,
+        timestamp: new Date().toISOString()
+      }
+    });
+
     trackDownload();
     if (onDownload) {
       onDownload();
     }
+  };
+
+  // Enhanced payment unlock handler with tracking
+  const handleDownloadUnlockWithTracking = (token: string) => {
+    trackEvent({
+      eventType: 'payment_click',
+      eventData: {
+        worksheetId,
+        timestamp: new Date().toISOString(),
+        action: 'payment_completed'
+      }
+    });
+
+    handleDownloadUnlock(token);
   };
 
   return (
@@ -196,10 +270,11 @@ export default function WorksheetDisplay({
           worksheetId={worksheetId}
           userIp={userIp}
           isDownloadUnlocked={isDownloadUnlocked}
-          onDownloadUnlock={handleDownloadUnlock}
+          onDownloadUnlock={handleDownloadUnlockWithTracking}
           onTrackDownload={trackDownload}
           showPdfButton={false}
           editableWorksheet={editableWorksheet}
+          trackEvent={trackEvent}
         />
 
         <WorksheetContent

@@ -130,6 +130,39 @@ export type Database = {
           },
         ]
       }
+      user_events: {
+        Row: {
+          created_at: string | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_identifier: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_identifier: string
+        }
+        Update: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_identifier?: string
+        }
+        Relationships: []
+      }
       worksheets: {
         Row: {
           ai_response: string
@@ -144,9 +177,12 @@ export type Database = {
           ip_address: string | null
           last_modified_at: string
           prompt: string
+          referrer_url: string | null
           sequence_number: number
+          session_id: string | null
           status: string
           title: string | null
+          user_agent: string | null
           user_id: string | null
         }
         Insert: {
@@ -162,9 +198,12 @@ export type Database = {
           ip_address?: string | null
           last_modified_at?: string
           prompt: string
+          referrer_url?: string | null
           sequence_number?: number
+          session_id?: string | null
           status?: string
           title?: string | null
+          user_agent?: string | null
           user_id?: string | null
         }
         Update: {
@@ -180,16 +219,40 @@ export type Database = {
           ip_address?: string | null
           last_modified_at?: string
           prompt?: string
+          referrer_url?: string | null
           sequence_number?: number
+          session_id?: string | null
           status?: string
           title?: string | null
+          user_agent?: string | null
           user_id?: string | null
         }
         Relationships: []
       }
     }
     Views: {
-      [_ in never]: never
+      conversion_funnel: {
+        Row: {
+          date: string | null
+          download_attempts: number | null
+          form_abandons: number | null
+          form_starts: number | null
+          payment_clicks: number | null
+          worksheet_views: number | null
+        }
+        Relationships: []
+      }
+      popular_form_params: {
+        Row: {
+          avg_generation_time: number | null
+          english_level: string | null
+          lesson_goal: string | null
+          lesson_time: string | null
+          lesson_topic: string | null
+          usage_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       increment_worksheet_download_count: {
@@ -227,6 +290,17 @@ export type Database = {
           created_at: string
           title: string
         }[]
+      }
+      track_user_event: {
+        Args: {
+          p_user_identifier: string
+          p_event_type: string
+          p_event_data?: Json
+          p_ip_address?: string
+          p_user_agent?: string
+          p_session_id?: string
+        }
+        Returns: string
       }
     }
     Enums: {
