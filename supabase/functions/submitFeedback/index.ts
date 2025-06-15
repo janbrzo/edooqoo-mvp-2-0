@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateSubmitFeedbackRequest, isValidUUID } from './validation.ts';
 import { rateLimiter } from './rateLimiter.ts';
-import { submitFeedbackToDatabase } from './database.ts';
+import { submitFeedbackToDatabase, checkExistingFeedback, updateExistingFeedback } from './database.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,15 +11,12 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('=== SUBMIT FEEDBACK FUNCTION CALLED ===');
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   if (req.method !== 'POST') {
-    console.log('Method not allowed:', req.method);
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
       { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -29,7 +26,7 @@ serve(async (req) => {
   try {
     // Parse request body
     const requestData = await req.json();
-    console.log('Raw request data received:', JSON.stringify(requestData, null, 2));
+    console.log('Received feedback submission request');
 
     // Validate input
     const validation = validateSubmitFeedbackRequest(requestData);
@@ -42,26 +39,14 @@ serve(async (req) => {
     }
 
     const feedbackData = validation.validatedData!;
-    console.log('Validated feedback data:', JSON.stringify(feedbackData, null, 2));
 
     // Additional UUID validation
-    if (!isValidUUID(feedbackData.worksheetId)) {
-      console.error('Invalid worksheetId UUID format:', feedbackData.worksheetId);
+    if (!isValidUUID(feedbackData.worksheetId) || !isValidUUID(feedbackData.userId)) {
       return new Response(
-        JSON.stringify({ error: 'Invalid UUID format for worksheetId' }),
+        JSON.stringify({ error: 'Invalid UUID format for worksheetId or userId' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    if (!isValidUUID(feedbackData.userId)) {
-      console.error('Invalid userId UUID format:', feedbackData.userId);
-      return new Response(
-        JSON.stringify({ error: 'Invalid UUID format for userId' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('UUID validation passed for both worksheetId and userId');
 
     // Rate limiting
     const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
@@ -75,30 +60,41 @@ serve(async (req) => {
       );
     }
 
-    console.log('Rate limiting passed, proceeding to database submission');
+    // Check for existing feedback
+    const existingCheck = await checkExistingFeedback(feedbackData.worksheetId, feedbackData.userId);
+    if (existingCheck.error) {
+      console.error('Error checking existing feedback:', existingCheck.error);
+      return new Response(
+        JSON.stringify({ error: 'Failed to check existing feedback' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Submit feedback to database
-    const result = await submitFeedbackToDatabase(feedbackData);
+    let result;
+    
+    if (existingCheck.exists && existingCheck.feedback) {
+      // Update existing feedback
+      console.log('Updating existing feedback');
+      result = await updateExistingFeedback(existingCheck.feedback.id, {
+        rating: feedbackData.rating,
+        comment: feedbackData.comment,
+        status: feedbackData.status
+      });
+    } else {
+      // Create new feedback
+      console.log('Creating new feedback');
+      result = await submitFeedbackToDatabase(feedbackData);
+    }
 
     if (!result.success) {
-      console.error('Database submission failed:', result.error);
-      
-      // Handle foreign key constraint error gracefully
-      if (result.error && result.error.includes('violates foreign key constraint')) {
-        console.error('Foreign key constraint violation - worksheet not found');
-        return new Response(
-          JSON.stringify({ error: 'Cannot submit feedback: worksheet not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
+      console.error('Database operation failed:', result.error);
       return new Response(
         JSON.stringify({ error: result.error || 'Failed to process feedback' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Feedback submitted successfully:', result.data);
+    console.log('Feedback processed successfully');
     
     return new Response(
       JSON.stringify({ 

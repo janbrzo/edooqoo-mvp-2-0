@@ -6,75 +6,121 @@ import { toast } from 'sonner';
 const SUBMIT_FEEDBACK_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/v1/submitFeedback';
 
 /**
- * Submits feedback for a worksheet - ONLY creates feedback, never creates worksheet
+ * Submits feedback for a worksheet
  */
 export async function submitFeedbackAPI(worksheetId: string, rating: number, comment: string, userId: string) {
   try {
-    console.log('=== FEEDBACK SERVICE START ===');
-    console.log('Submitting feedback with params:', { worksheetId, rating, comment, userId });
+    console.log('Submitting feedback:', { worksheetId, rating, comment, userId });
     
     if (!worksheetId || !userId) {
-      console.error('Missing required parameters:', { worksheetId, userId });
+      console.error('Missing required parameters for feedback:', { worksheetId, userId });
       throw new Error('Missing worksheet ID or user ID');
     }
     
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(worksheetId)) {
-      console.error('Invalid worksheetId format:', worksheetId);
-      throw new Error('Invalid worksheet ID format');
-    }
-    
-    if (!uuidRegex.test(userId)) {
-      console.error('Invalid userId format:', userId);
-      throw new Error('Invalid user ID format');
-    }
-
-    console.log('UUID validation passed, calling Edge Function...');
-    
-    // Call the edge function
-    const response = await fetch(SUBMIT_FEEDBACK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        worksheetId,
-        rating,
-        comment,
-        userId,
-        status: 'submitted'
-      })
-    });
-
-    console.log('Edge Function response status:', response.status);
-    console.log('Edge Function response headers:', Object.fromEntries(response.headers.entries()));
-
-    if (response.ok) {
-      const result = await response.json();
-      console.log('Edge Function success:', result);
-      toast.success('Thank you for your feedback!');
-      return result.data;
-    }
-    
-    const errorData = await response.text();
-    console.error('Edge Function error response:', errorData);
-    
-    // Parse error if it's JSON
-    let errorMessage = 'Failed to submit feedback';
+    // Try using the edge function first
     try {
-      const parsedError = JSON.parse(errorData);
-      errorMessage = parsedError.error || errorMessage;
-    } catch (e) {
-      errorMessage = errorData || errorMessage;
+      const response = await fetch(SUBMIT_FEEDBACK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          worksheetId,
+          rating,
+          comment,
+          userId,
+          status: 'submitted' // Ensure status is set to 'submitted'
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Feedback submission successful via API:', result);
+        toast.success('Thank you for your feedback!');
+        return result.data;
+      }
+      
+      const errorText = await response.text();
+      console.error('Error submitting feedback via API:', errorText);
+    } catch (apiError) {
+      console.error('API feedback submission error:', apiError);
     }
     
-    throw new Error(errorMessage);
+    // If edge function fails, try direct database submission
+    const { data, error } = await supabase
+      .from('feedbacks')
+      .insert([
+        { 
+          worksheet_id: worksheetId, 
+          user_id: userId, 
+          rating, 
+          comment,
+          status: 'submitted'
+        }
+      ])
+      .select();
       
+    if (error) {
+      console.error('Direct feedback submission error:', error);
+      
+      // If direct insert fails and we don't have a worksheet_id, try creating a placeholder
+      if (error.message.includes('violates foreign key constraint')) {
+        console.log('Creating placeholder worksheet for feedback');
+        
+        const { data: placeholderData, error: placeholderError } = await supabase
+          .from('worksheets')
+          .insert([
+            {
+              prompt: 'Generated worksheet',
+              form_data: JSON.stringify({ title: 'Generated Worksheet' }),
+              ai_response: 'Placeholder response',
+              html_content: JSON.stringify({ title: 'Generated Worksheet', exercises: [] }),
+              user_id: userId,
+              ip_address: 'client-side',
+              status: 'created',
+              title: 'Generated Worksheet'
+            }
+          ])
+          .select();
+          
+        if (placeholderError) {
+          console.error('Error creating placeholder worksheet:', placeholderError);
+          throw new Error('Failed to create feedback record: worksheet reference is required');
+        }
+          
+        if (placeholderData && placeholderData.length > 0) {
+          // Try feedback again with new worksheet ID
+          const { data: retryData, error: retryError } = await supabase
+            .from('feedbacks')
+            .insert([
+              { 
+                worksheet_id: placeholderData[0].id, 
+                user_id: userId, 
+                rating, 
+                comment,
+                status: 'submitted'
+              }
+            ])
+            .select();
+              
+          if (retryError) {
+            console.error('Retry feedback submission error:', retryError);
+            throw new Error(`Failed to submit feedback after retry: ${retryError.message}`);
+          }
+            
+          toast.success('Thank you for your feedback!');
+          return retryData;
+        }
+      } else {
+        throw new Error(`Failed to submit feedback: ${error.message}`);
+      }
+    }
+      
+    toast.success('Thank you for your feedback!');
+    return data;
   } catch (error) {
-    console.error('Error in submitFeedbackAPI:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    toast.error(`We couldn't submit your rating: ${errorMessage}`);
+    console.error('Error submitting feedback:', error);
+    toast.error(`We couldn't submit your rating: ${error instanceof Error ? error.message : 'Unknown error'}`);
     throw error;
   }
 }

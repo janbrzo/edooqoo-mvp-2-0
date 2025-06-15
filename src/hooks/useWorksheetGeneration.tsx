@@ -80,12 +80,11 @@ export const useWorksheetGeneration = (
           deepFixedWorksheet.vocabulary_sheet = createSampleVocabulary(15);
         }
         
-        console.log('💾 Setting generated worksheet in state...');
+        console.log('💾 Setting both worksheets in state ATOMICALLY...');
         console.log('💾 Final worksheet before setState:', deepFixedWorksheet);
-        worksheetState.setGeneratedWorksheet(deepFixedWorksheet);
         
-        // CRITICAL FIX: Initialize editableWorksheet immediately after generatedWorksheet
-        console.log('💾 Setting editable worksheet immediately...');
+        // CRITICAL FIX: Set both states atomically in the same synchronous operation
+        worksheetState.setGeneratedWorksheet(deepFixedWorksheet);
         worksheetState.setEditableWorksheet(deepFixedWorksheet);
         
         console.log('🎉 Worksheet generation completed successfully!');
@@ -107,9 +106,9 @@ export const useWorksheetGeneration = (
       fallbackWorksheet.exercises = fallbackWorksheet.exercises.slice(0, expectedExerciseCount);
       fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises);
       fallbackWorksheet.id = newWorksheetId;
-      worksheetState.setGeneratedWorksheet(fallbackWorksheet);
       
-      // CRITICAL FIX: Also set editableWorksheet for fallback case
+      // CRITICAL FIX: Set both states atomically for fallback case too
+      worksheetState.setGeneratedWorksheet(fallbackWorksheet);
       worksheetState.setEditableWorksheet(fallbackWorksheet);
       
       toast({
