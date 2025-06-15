@@ -19,6 +19,7 @@ interface WorksheetToolbarProps {
   onDownloadUnlock?: (token: string) => void;
   onTrackDownload?: () => void;
   showPdfButton?: boolean;
+  editableWorksheet: any;
 }
 
 const WorksheetToolbar = ({
@@ -33,20 +34,22 @@ const WorksheetToolbar = ({
   onDownloadUnlock,
   onTrackDownload,
   showPdfButton = false,
+  editableWorksheet,
 }: WorksheetToolbarProps) => {
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [pendingAction, setPendingAction] = useState<'html-student' | 'html-teacher' | 'pdf' | null>(null);
   const isMobile = useIsMobile();
 
   const handleDownloadHTML = async (downloadViewMode: "student" | "teacher") => {
-    // Get the actual worksheet title from the page
-    const titleElement = document.querySelector('.worksheet-content h1');
-    const title = titleElement?.textContent || 'English Worksheet';
+    // Get the actual worksheet title from editableWorksheet
+    const title = editableWorksheet?.title || 'English Worksheet';
     
     const timestamp = new Date().toISOString().split('T')[0];
     const viewModeText = downloadViewMode === 'teacher' ? 'Teacher' : 'Student';
     const sanitizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     const filename = `${timestamp}-${viewModeText}-${sanitizedTitle}.html`;
+    
+    console.log(`Downloading HTML for ${downloadViewMode} view, regardless of current active view: ${viewMode}`);
     
     const success = await exportAsHTML('worksheet-content', filename, downloadViewMode, title);
     if (success) {

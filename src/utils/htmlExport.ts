@@ -17,8 +17,10 @@ async function fetchCSSContent(url: string): Promise<string> {
 /**
  * Exports the current view as a standalone HTML file with all styles inlined
  */
-export async function exportAsHTML(elementId: string, filename: string, viewMode: 'student' | 'teacher' = 'student', title: string = 'English Worksheet'): Promise<boolean> {
+export async function exportAsHTML(elementId: string, filename: string, exportViewMode: 'student' | 'teacher' = 'student', title: string = 'English Worksheet'): Promise<boolean> {
   try {
+    console.log(`Starting HTML export for ${exportViewMode} view`);
+    
     const element = document.getElementById(elementId);
     if (!element) {
       console.error('Element not found:', elementId);
@@ -173,9 +175,9 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
         display: none !important;
       }
       
-      /* Show teacher tips in teacher version */
+      /* Show teacher tips based on export view mode - NOT current view mode */
       .teacher-tip, .bg-amber-50 {
-        display: ${viewMode === 'teacher' ? 'block' : 'none'} !important;
+        display: ${exportViewMode === 'teacher' ? 'block' : 'none'} !important;
         background: linear-gradient(90deg, #FEF7CD 85%, #FAF5E3 100%) !important;
         border: 1.5px solid #ffeab9 !important;
         padding: 12px !important;
@@ -261,8 +263,9 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
       return false;
     }
 
-    // Handle teacher tips and data-no-pdf elements
-    if (viewMode === 'teacher') {
+    // Handle teacher tips and data-no-pdf elements based on EXPORT view mode
+    console.log(`Processing elements for ${exportViewMode} export`);
+    if (exportViewMode === 'teacher') {
       const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([class*="teacher-tip"]):not(.bg-amber-50)');
       nonTeacherTipElements.forEach(el => el.remove());
       
@@ -271,12 +274,14 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
         (tip as HTMLElement).style.display = 'block';
         (tip as HTMLElement).style.visibility = 'visible';
       });
+      console.log(`Teacher version: kept ${teacherTips.length} teacher tips`);
     } else {
       const allNoPublishElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
       allNoPublishElements.forEach(el => el.remove());
       
       const teacherTipElements = clonedElement.querySelectorAll('[class*="teacher-tip"], .bg-amber-50');
       teacherTipElements.forEach(el => el.remove());
+      console.log(`Student version: removed ${teacherTipElements.length} teacher tips`);
     }
 
     // Create header with actual worksheet title
@@ -288,7 +293,7 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
     versionHeader.style.color = '#3d348b';
     versionHeader.style.fontSize = '18px';
     versionHeader.style.fontWeight = 'bold';
-    versionHeader.innerHTML = `${title} - ${viewMode === 'teacher' ? 'Teacher' : 'Student'} Version`;
+    versionHeader.innerHTML = `${title} - ${exportViewMode === 'teacher' ? 'Teacher' : 'Student'} Version`;
 
     // Create print button
     const printButton = docClone.createElement('button');
@@ -333,7 +338,7 @@ export async function exportAsHTML(elementId: string, filename: string, viewMode
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} - ${viewMode === 'teacher' ? 'Teacher' : 'Student'} Version</title>
+    <title>${title} - ${exportViewMode === 'teacher' ? 'Teacher' : 'Student'} Version</title>
     <style>
 ${finalCSS}
     </style>
@@ -363,7 +368,7 @@ ${finalCSS}
     // Clean up
     URL.revokeObjectURL(url);
     
-    console.log('HTML export completed successfully');
+    console.log(`HTML export completed successfully for ${exportViewMode} view`);
     return true;
   } catch (error) {
     console.error('Error exporting HTML:', error);

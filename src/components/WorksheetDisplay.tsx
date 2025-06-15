@@ -47,6 +47,8 @@ interface WorksheetDisplayProps {
   onDownload?: () => void;
   worksheetId?: string | null;
   onFeedbackSubmit?: (rating: number, feedback: string) => void;
+  editableWorksheet: any;
+  setEditableWorksheet: (worksheet: any) => void;
 }
 
 export default function WorksheetDisplay({
@@ -58,11 +60,12 @@ export default function WorksheetDisplay({
   wordBankOrder,
   onDownload,
   worksheetId,
-  onFeedbackSubmit
+  onFeedbackSubmit,
+  editableWorksheet,
+  setEditableWorksheet
 }: WorksheetDisplayProps) {
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
-  const [editableWorksheet, setEditableWorksheet] = useState<Worksheet>(worksheet);
   const { toast } = useToast();
   const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload } = useDownloadStatus();
   const isMobile = useIsMobile();
@@ -197,6 +200,7 @@ export default function WorksheetDisplay({
           onDownloadUnlock={handleDownloadUnlock}
           onTrackDownload={trackDownload}
           showPdfButton={false}
+          editableWorksheet={editableWorksheet}
         />
 
         <WorksheetContent

@@ -32,6 +32,8 @@ const Index = () => {
         <GenerationView 
           worksheetId={worksheetState.worksheetId}
           generatedWorksheet={worksheetState.generatedWorksheet}
+          editableWorksheet={worksheetState.editableWorksheet}
+          setEditableWorksheet={worksheetState.setEditableWorksheet}
           inputParams={worksheetState.inputParams}
           generationTime={worksheetState.generationTime}
           sourceCount={worksheetState.sourceCount}

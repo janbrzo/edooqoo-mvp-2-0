@@ -5,6 +5,7 @@ import { FormData } from "@/components/WorksheetForm";
 
 export const useWorksheetState = (authLoading: boolean) => {
   const [generatedWorksheet, setGeneratedWorksheet] = useState<any>(null);
+  const [editableWorksheet, setEditableWorksheet] = useState<any>(null);
   const [inputParams, setInputParams] = useState<FormData | null>(null);
   const [generationTime, setGenerationTime] = useState(0);
   const [sourceCount, setSourceCount] = useState(0);
@@ -16,6 +17,7 @@ export const useWorksheetState = (authLoading: boolean) => {
     const restoreWorksheetState = () => {
       try {
         const savedWorksheet = sessionStorage.getItem('currentWorksheet');
+        const savedEditableWorksheet = sessionStorage.getItem('currentEditableWorksheet');
         const savedInputParams = sessionStorage.getItem('currentInputParams');
         const savedGenerationTime = sessionStorage.getItem('currentGenerationTime');
         const savedSourceCount = sessionStorage.getItem('currentSourceCount');
@@ -23,7 +25,17 @@ export const useWorksheetState = (authLoading: boolean) => {
 
         if (savedWorksheet && savedInputParams) {
           console.log('Restoring worksheet state from sessionStorage');
-          setGeneratedWorksheet(JSON.parse(savedWorksheet));
+          const parsedWorksheet = JSON.parse(savedWorksheet);
+          setGeneratedWorksheet(parsedWorksheet);
+          
+          // Set editable worksheet to saved version or fall back to original
+          if (savedEditableWorksheet) {
+            setEditableWorksheet(JSON.parse(savedEditableWorksheet));
+            console.log('Restored edited worksheet from sessionStorage');
+          } else {
+            setEditableWorksheet(parsedWorksheet);
+          }
+          
           setInputParams(JSON.parse(savedInputParams));
           setGenerationTime(savedGenerationTime ? parseInt(savedGenerationTime) : 0);
           setSourceCount(savedSourceCount ? parseInt(savedSourceCount) : 0);
@@ -64,8 +76,28 @@ export const useWorksheetState = (authLoading: boolean) => {
     }
   }, [generatedWorksheet, inputParams, generationTime, sourceCount, worksheetId]);
 
+  // Save editable worksheet separately whenever it changes
+  useEffect(() => {
+    if (editableWorksheet) {
+      try {
+        sessionStorage.setItem('currentEditableWorksheet', JSON.stringify(editableWorksheet));
+        console.log('Editable worksheet saved to sessionStorage');
+      } catch (error) {
+        console.error('Error saving editable worksheet state:', error);
+      }
+    }
+  }, [editableWorksheet]);
+
+  // Initialize editable worksheet when generated worksheet is set
+  useEffect(() => {
+    if (generatedWorksheet && !editableWorksheet) {
+      setEditableWorksheet(generatedWorksheet);
+    }
+  }, [generatedWorksheet, editableWorksheet]);
+
   const clearWorksheetStorage = () => {
     sessionStorage.removeItem('currentWorksheet');
+    sessionStorage.removeItem('currentEditableWorksheet');
     sessionStorage.removeItem('currentInputParams');
     sessionStorage.removeItem('currentGenerationTime');
     sessionStorage.removeItem('currentSourceCount');
@@ -80,6 +112,7 @@ export const useWorksheetState = (authLoading: boolean) => {
 
   const resetWorksheetState = () => {
     setGeneratedWorksheet(null);
+    setEditableWorksheet(null);
     setInputParams(null);
     setWorksheetId(null);
     clearWorksheetStorage();
@@ -89,6 +122,8 @@ export const useWorksheetState = (authLoading: boolean) => {
   return {
     generatedWorksheet,
     setGeneratedWorksheet,
+    editableWorksheet,
+    setEditableWorksheet,
     inputParams,
     setInputParams,
     generationTime,
