@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateSubmitFeedbackRequest, isValidUUID } from './validation.ts';
 import { rateLimiter } from './rateLimiter.ts';
-import { submitFeedbackToDatabase, checkExistingFeedback, updateExistingFeedback } from './database.ts';
+import { submitFeedbackToDatabase } from './database.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,7 +26,7 @@ serve(async (req) => {
   try {
     // Parse request body
     const requestData = await req.json();
-    console.log('Received feedback submission request');
+    console.log('Received simplified feedback submission request');
 
     // Validate input
     const validation = validateSubmitFeedbackRequest(requestData);
@@ -60,34 +60,21 @@ serve(async (req) => {
       );
     }
 
-    // Check for existing feedback
-    const existingCheck = await checkExistingFeedback(feedbackData.worksheetId, feedbackData.userId);
-    if (existingCheck.error) {
-      console.error('Error checking existing feedback:', existingCheck.error);
-      return new Response(
-        JSON.stringify({ error: 'Failed to check existing feedback' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    let result;
-    
-    if (existingCheck.exists && existingCheck.feedback) {
-      // Update existing feedback
-      console.log('Updating existing feedback');
-      result = await updateExistingFeedback(existingCheck.feedback.id, {
-        rating: feedbackData.rating,
-        comment: feedbackData.comment,
-        status: feedbackData.status
-      });
-    } else {
-      // Create new feedback
-      console.log('Creating new feedback');
-      result = await submitFeedbackToDatabase(feedbackData);
-    }
+    // Simple direct feedback submission
+    console.log('Submitting feedback directly to database');
+    const result = await submitFeedbackToDatabase(feedbackData);
 
     if (!result.success) {
       console.error('Database operation failed:', result.error);
+      
+      // Handle foreign key constraint error gracefully
+      if (result.error && result.error.includes('violates foreign key constraint')) {
+        return new Response(
+          JSON.stringify({ error: 'Cannot submit feedback: worksheet not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ error: result.error || 'Failed to process feedback' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
