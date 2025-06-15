@@ -1,4 +1,5 @@
 
+
 // This file contains utility functions for the ExerciseSection component
 
 export const handleExerciseChange = (
@@ -194,22 +195,24 @@ export const renderOtherExerciseTypes = (
                 )}
               </p>
             </div>
-            <div className={`text-green-600 italic ml-3 text-sm exercise-answer ${viewMode === 'student' ? 'hidden' : ''}`}>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={sentence.answer || sentence.correction}
-                  onChange={e => handleSentenceChange(
-                    sIndex, 
-                    exercise.type === 'error-correction' ? 'correction' : 'answer', 
-                    e.target.value
-                  )}
-                  className="border p-1 editable-content w-full"
-                />
-              ) : (
-                <span>({sentence.answer || sentence.correction})</span>
-              )}
-            </div>
+            {viewMode === 'teacher' && (
+              <div className="text-green-600 italic ml-3 text-sm">
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={sentence.answer || sentence.correction}
+                    onChange={e => handleSentenceChange(
+                      sIndex, 
+                      exercise.type === 'error-correction' ? 'correction' : 'answer', 
+                      e.target.value
+                    )}
+                    className="border p-1 editable-content w-full"
+                  />
+                ) : (
+                  <span>({sentence.answer || sentence.correction})</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       ))}
@@ -255,7 +258,7 @@ export const renderTrueFalseExercise = (
                   </label>
                 </div>
               ) : (
-                <div className="text-green-600 italic ml-3 text-sm exercise-answer">
+                <div className="text-green-600 italic ml-3 text-sm">
                   {isEditing ? (
                     <select
                       value={statement.isTrue ? "true" : "false"}
@@ -277,3 +280,4 @@ export const renderTrueFalseExercise = (
     </div>
   </div>
 );
+

@@ -29,18 +29,20 @@ const ExerciseReading: React.FC<ExerciseReadingProps> = ({
               )}
             </p>
           </div>
-          <div className={`text-green-600 italic ml-3 text-sm exercise-answer ${viewMode === 'student' ? 'hidden' : ''}`}>
-            {isEditing ? (
-              <input
-                type="text"
-                value={question.answer}
-                onChange={e => onQuestionChange(qIndex, 'answer', e.target.value)}
-                className="border p-1 editable-content w-full"
-              />
-            ) : (
-              <span>({question.answer})</span>
-            )}
-          </div>
+          {viewMode === 'teacher' && (
+            <div className="text-green-600 italic ml-3 text-sm">
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={question.answer}
+                  onChange={e => onQuestionChange(qIndex, 'answer', e.target.value)}
+                  className="border p-1 editable-content w-full"
+                />
+              ) : (
+                <span>({question.answer})</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     ))}
