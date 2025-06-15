@@ -1,4 +1,3 @@
-
 // Input validation utilities
 
 export interface SubmitFeedbackRequest {
@@ -6,7 +5,6 @@ export interface SubmitFeedbackRequest {
   rating: number;
   comment: string;
   userId: string;
-  status?: string;
 }
 
 export function validateSubmitFeedbackRequest(data: any): { isValid: boolean; error?: string; validatedData?: SubmitFeedbackRequest } {
@@ -14,7 +12,7 @@ export function validateSubmitFeedbackRequest(data: any): { isValid: boolean; er
     return { isValid: false, error: 'Request body is required' };
   }
 
-  const { worksheetId, rating, comment, userId, status } = data;
+  const { worksheetId, rating, comment, userId } = data;
 
   // Validate worksheetId
   if (!worksheetId || typeof worksheetId !== 'string' || worksheetId.trim().length === 0) {
@@ -45,8 +43,7 @@ export function validateSubmitFeedbackRequest(data: any): { isValid: boolean; er
       worksheetId: worksheetId.trim(),
       rating,
       comment: sanitizedComment,
-      userId: userId.trim(),
-      status: status || 'submitted'
+      userId: userId.trim()
     }
   };
 }

@@ -117,7 +117,15 @@ export type Database = {
           user_id?: string | null
           worksheet_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "feedbacks_worksheet_id_fkey"
+            columns: ["worksheet_id"]
+            isOneToOne: false
+            referencedRelation: "worksheets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       worksheets: {
         Row: {

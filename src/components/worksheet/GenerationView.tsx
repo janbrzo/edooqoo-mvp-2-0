@@ -1,4 +1,3 @@
-
 import React from "react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
 import { submitFeedback } from "@/services/worksheetService";
@@ -48,11 +47,8 @@ export default function GenerationView({
       });
     } catch (error) {
       console.error('Error submitting feedback:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit feedback. Please try again.",
-        variant: "destructive"
-      });
+      // The service layer now handles showing an error toast,
+      // so we don't need to show another one here.
     }
   };
 
