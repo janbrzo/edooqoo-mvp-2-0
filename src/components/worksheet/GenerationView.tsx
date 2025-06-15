@@ -1,7 +1,7 @@
 
 import React from "react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
-import { submitWorksheetFeedback } from "@/services/worksheetService";
+import { submitFeedback } from "@/services/worksheetService";
 import { useToast } from "@/hooks/use-toast";
 
 interface GenerationViewProps {
@@ -40,7 +40,7 @@ export default function GenerationView({
     }
 
     try {
-      await submitWorksheetFeedback(worksheetId, userId, rating, feedback);
+      await submitFeedback(worksheetId, rating, feedback, userId);
       toast({
         title: "Thank you!",
         description: "Your feedback has been submitted successfully.",
