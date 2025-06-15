@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
@@ -210,6 +209,7 @@ export default function WorksheetDisplay({
           setEditableWorksheet={setEditableWorksheet}
           worksheetId={worksheetId}
           onFeedbackSubmit={onFeedbackSubmit}
+          isDownloadUnlocked={isDownloadUnlocked}
         />
       </div>
     </WorksheetContainer>

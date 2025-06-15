@@ -72,6 +72,12 @@ export const useWorksheetGeneration = (
         const deepFixedWorksheet = deepFixTextObjects(worksheetData, 'worksheet');
         console.log('🔧 Worksheet after deep fix:', deepFixedWorksheet);
         
+        // Trim exercises if more than expected are returned
+        if (deepFixedWorksheet.exercises.length > expectedExerciseCount) {
+          console.log(`✂️ Trimming exercises from ${deepFixedWorksheet.exercises.length} to ${expectedExerciseCount}`);
+          deepFixedWorksheet.exercises = deepFixedWorksheet.exercises.slice(0, expectedExerciseCount);
+        }
+        
         deepFixedWorksheet.exercises = processExercises(deepFixedWorksheet.exercises);
         deepFixedWorksheet.id = newWorksheetId;
         

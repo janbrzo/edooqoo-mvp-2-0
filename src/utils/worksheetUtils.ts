@@ -1,6 +1,9 @@
 
 export const getExpectedExerciseCount = (lessonTime: string): number => {
-  // Always expect 8 exercises from backend - it will trim later if needed for 45 min
+  if (lessonTime.includes('45')) {
+    return 6;
+  }
+  // Always expect 8 exercises from backend for 60/90 min lessons
   return 8;
 };
 
