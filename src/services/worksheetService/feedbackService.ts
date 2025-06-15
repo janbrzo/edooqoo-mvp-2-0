@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 const SUBMIT_FEEDBACK_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/v1/submitFeedback';
 
 /**
- * Submits feedback for a worksheet
+ * Submits feedback for a worksheet - ONLY creates feedback, never creates worksheet
  */
 export async function submitFeedbackAPI(worksheetId: string, rating: number, comment: string, userId: string) {
   try {
@@ -15,6 +15,18 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
     if (!worksheetId || !userId) {
       console.error('Missing required parameters for feedback:', { worksheetId, userId });
       throw new Error('Missing worksheet ID or user ID');
+    }
+
+    // Validate that worksheet exists before submitting feedback
+    const { data: worksheetExists, error: checkError } = await supabase
+      .from('worksheets')
+      .select('id')
+      .eq('id', worksheetId)
+      .single();
+
+    if (checkError || !worksheetExists) {
+      console.error('Worksheet does not exist:', worksheetId);
+      throw new Error('Cannot submit feedback: worksheet not found');
     }
     
     // Try using the edge function first
@@ -46,7 +58,7 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
       console.error('API feedback submission error:', apiError);
     }
     
-    // If edge function fails, try direct database submission
+    // If edge function fails, try direct database submission (but never create worksheet)
     const { data, error } = await supabase
       .from('feedbacks')
       .insert([
@@ -63,7 +75,7 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
     if (error) {
       console.error('Direct feedback submission error:', error);
       
-      // If worksheet doesn't exist, return a meaningful error
+      // If worksheet doesn't exist, return a meaningful error - DO NOT CREATE WORKSHEET
       if (error.message.includes('violates foreign key constraint')) {
         throw new Error('Cannot submit feedback: worksheet not found or invalid');
       }

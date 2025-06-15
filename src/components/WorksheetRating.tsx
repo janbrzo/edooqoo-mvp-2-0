@@ -17,6 +17,7 @@ interface WorksheetRatingProps {
 /**
  * A modern-looking worksheet rating section with thumbs up/down rating and feedback modal.
  * Should not display on PDF.
+ * ONLY submits feedback - NEVER creates worksheets.
  */
 const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, worksheetId }) => {
   const [hovered, setHovered] = useState<number | null>(null);
@@ -33,7 +34,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
     setSelected(value);
     setIsDialogOpen(true);
     
-    // Only submit if we have a valid worksheet ID
+    // Only submit if we have a valid worksheet ID that exists in database
     if (!worksheetId || worksheetId === 'unknown') {
       console.log('No valid worksheet ID, feedback will be submitted when dialog is completed');
       return;
@@ -43,6 +44,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
       setSubmitting(true);
       
       if (userId) {
+        // CRITICAL: Only submit feedback to existing worksheet - never create worksheet
         const result = await submitFeedback(worksheetId, value, '', userId);
         
         // Store the feedback ID for future updates
@@ -78,7 +80,7 @@ const WorksheetRating: React.FC<WorksheetRatingProps> = ({ onSubmitRating, works
         // Update existing feedback with comment
         await updateFeedback(currentFeedbackId, feedback, userId);
       } else if (worksheetId && worksheetId !== 'unknown') {
-        // Submit new feedback with rating and comment
+        // Submit new feedback with rating and comment - ONLY TO EXISTING WORKSHEET
         const result = await submitFeedback(worksheetId, selected, feedback, userId);
         
         // Store the feedback ID

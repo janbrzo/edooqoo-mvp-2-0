@@ -31,6 +31,7 @@ export default function GenerationView({
 
   const handleFeedbackSubmit = async (rating: number, feedback: string) => {
     if (!worksheetId) {
+      console.error('Cannot submit feedback - worksheet ID missing');
       toast({
         title: "Error",
         description: "Cannot submit feedback - worksheet ID missing",
@@ -40,6 +41,7 @@ export default function GenerationView({
     }
 
     try {
+      // CRITICAL: Only submit feedback - never create worksheet
       await submitFeedback(worksheetId, rating, feedback, userId);
       toast({
         title: "Thank you!",
