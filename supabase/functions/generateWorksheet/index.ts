@@ -465,7 +465,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
           content: sanitizedPrompt
         }
       ],
-      max_tokens: 5500
+      max_tokens: 6500
     });
 
     const jsonContent = aiResponse.choices[0].message.content;
