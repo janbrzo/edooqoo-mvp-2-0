@@ -1,8 +1,12 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
-import { getExerciseTypesForCount, getExerciseTypesForMissing, parseAIResponse } from './helpers.ts';
+import { getExerciseTypesForCount, parseAIResponse } from './helpers.ts';
 import { validateExercise } from './validators.ts';
+import { isValidUUID, sanitizeInput, validatePrompt } from './security.ts';
+import { RateLimiter } from './rateLimiter.ts';
+import { getGeolocation } from './geolocation.ts';
 
 const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
 
@@ -15,101 +19,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// Security utilities
-function isValidUUID(uuid: string): boolean {
-  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return typeof uuid === 'string' && UUID_REGEX.test(uuid);
-}
-
-function sanitizeInput(input: string, maxLength: number = 10000): string {
-  if (typeof input !== 'string') {
-    return '';
-  }
-  
-  return input
-    .trim()
-    .slice(0, maxLength)
-    .replace(/[<>]/g, '')
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+=/gi, '');
-}
-
-function validatePrompt(prompt: string): { isValid: boolean; error?: string } {
-  if (!prompt || typeof prompt !== 'string') {
-    return { isValid: false, error: 'Prompt is required and must be a string' };
-  }
-  
-  if (prompt.length < 10) {
-    return { isValid: false, error: 'Prompt must be at least 10 characters long' };
-  }
-  
-  if (prompt.length > 5000) {
-    return { isValid: false, error: 'Prompt must be less than 5000 characters' };
-  }
-  
-  return { isValid: true };
-}
-
-// Geolocation utility
-async function getGeolocation(ip: string): Promise<{ country?: string; city?: string }> {
-  try {
-    // Use a simple IP geolocation service
-    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,city`);
-    const data = await response.json();
-    
-    if (data.status === 'success') {
-      return {
-        country: data.country || null,
-        city: data.city || null
-      };
-    }
-  } catch (error) {
-    console.warn('Failed to get geolocation:', error);
-  }
-  
-  return {};
-}
-
-// Enhanced multi-tier rate limiting
-class RateLimiter {
-  private requests: Map<string, number[]> = new Map();
-  
-  isAllowed(key: string): boolean {
-    const now = Date.now();
-    const requests = this.requests.get(key) || [];
-    
-    // Remove old requests
-    const validRequests = requests.filter(time => now - time < 3600000); // Keep last hour
-    
-    // Check 3 requests per 5 minutes (300 seconds)
-    const recentRequests5min = validRequests.filter(time => now - time < 300000);
-    if (recentRequests5min.length >= 3) {
-      console.warn(`Rate limit exceeded (3/5min) for key: ${key}`);
-      return false;
-    }
-    
-    // Check 5 requests per 15 minutes (900 seconds)
-    const recentRequests15min = validRequests.filter(time => now - time < 900000);
-    if (recentRequests15min.length >= 5) {
-      console.warn(`Rate limit exceeded (5/15min) for key: ${key}`);
-      return false;
-    }
-    
-    // Check 10 requests per 60 minutes (3600 seconds)
-    const recentRequests60min = validRequests.filter(time => now - time < 3600000);
-    if (recentRequests60min.length >= 10) {
-      console.warn(`Rate limit exceeded (10/60min) for key: ${key}`);
-      return false;
-    }
-    
-    // Add current request
-    validRequests.push(now);
-    this.requests.set(key, validRequests);
-    
-    return true;
-  }
-}
 
 const rateLimiter = new RateLimiter();
 
