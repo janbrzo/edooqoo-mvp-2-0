@@ -18,7 +18,7 @@ async function fetchCSSContent(url: string): Promise<string> {
  */
 export async function exportAsHTML(elementId: string, filename: string, exportViewMode: 'student' | 'teacher' = 'student', title: string = 'English Worksheet'): Promise<boolean> {
   try {
-    console.log(`[HTML EXPORT] Starting HTML export for ${exportViewMode} view`);
+    console.log(`[HTML EXPORT] Starting HTML export of current view for "${filename}"`);
     
     const element = document.getElementById(elementId);
     if (!element) {
@@ -169,20 +169,9 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
         opacity: 1;
       }
       
-      /* Hide rating section in HTML export */
-      [data-no-pdf="true"]:not(.teacher-tip):not(.bg-amber-50):not([data-teacher-tip="true"]) {
+      /* Hide elements not meant for export, like the rating section */
+      [data-no-pdf="true"]:not([data-teacher-tip="true"]) {
         display: none !important;
-      }
-      
-      /* Show/hide teacher tips based on export view mode - CRITICAL LOGIC */
-      .teacher-tip, .bg-amber-50, [data-teacher-tip="true"], [class*="teacher-tip"] {
-        display: ${exportViewMode === 'teacher' ? 'flex' : 'none'} !important;
-        background: linear-gradient(90deg, #FEF7CD 85%, #FAF5E3 100%) !important;
-        border: 1.5px solid #ffeab9 !important;
-        padding: 12px !important;
-        margin: 8px 0 !important;
-        border-radius: 6px !important;
-        visibility: ${exportViewMode === 'teacher' ? 'visible' : 'hidden'} !important;
       }
       
       /* Print styles */
@@ -262,67 +251,13 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
       return false;
     }
     
-    console.log(`[HTML EXPORT] Original DOM for #${elementId} has been cloned. Preparing for ${exportViewMode} view.`);
-    const initialTeacherTips = clonedElement.querySelectorAll('[data-teacher-tip="true"], .teacher-tip');
-    console.log(`[HTML EXPORT] Found ${initialTeacherTips.length} teacher-tip elements in the cloned DOM initially.`);
+    console.log(`[HTML EXPORT] Original DOM for #${elementId} has been cloned. Cleaning up for export.`);
 
-
-    // CRITICAL: Handle teacher tips and data-no-pdf elements based on EXPORT view mode
-    console.log(`[HTML EXPORT] Processing elements for ${exportViewMode} export`);
-    
-    if (exportViewMode === 'teacher') {
-      // For teacher version: Remove non-teacher-tip elements with data-no-pdf but keep teacher tips
-      const nonTeacherTipElements = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([data-teacher-tip="true"]):not([class*="teacher-tip"]):not(.bg-amber-50)');
-      console.log(`[HTML EXPORT] Teacher version: removing ${nonTeacherTipElements.length} non-teacher-tip elements`);
-      nonTeacherTipElements.forEach(el => el.remove());
-      
-      // Ensure all teacher tips are visible
-      const teacherTipSelectors = [
-        '[data-teacher-tip="true"]',
-        '[class*="teacher-tip"]', 
-        '.teacher-tip',
-        '.bg-amber-50'
-      ];
-      
-      let totalTeacherTips = 0;
-      teacherTipSelectors.forEach(selector => {
-        const tips = clonedElement.querySelectorAll(selector);
-        // This check avoids double counting
-        if (selector === '[data-teacher-tip="true"]') {
-          totalTeacherTips = tips.length;
-        }
-        tips.forEach(tip => {
-          (tip as HTMLElement).style.display = 'flex';
-          (tip as HTMLElement).style.visibility = 'visible';
-        });
-      });
-      
-      console.log(`[HTML EXPORT] Teacher version: processed and kept ${totalTeacherTips} teacher tips visible`);
-    } else {
-      // For student version: Remove ALL elements with data-no-pdf including teacher tips
-      const allNoPublishElements = clonedElement.querySelectorAll('[data-no-pdf="true"]');
-      console.log(`[HTML EXPORT] Student version: removing ${allNoPublishElements.length} data-no-pdf elements`);
-      allNoPublishElements.forEach(el => el.remove());
-      
-      // Also explicitly remove teacher tip elements
-      const teacherTipSelectors = [
-        '[data-teacher-tip="true"]',
-        '[class*="teacher-tip"]', 
-        '.teacher-tip',
-        '.bg-amber-50'
-      ];
-      
-      let removedTeacherTips = 0;
-      teacherTipSelectors.forEach(selector => {
-        const tips = clonedElement.querySelectorAll(selector);
-        if (selector === '[data-teacher-tip="true"]') {
-            removedTeacherTips = tips.length;
-        }
-        tips.forEach(el => el.remove());
-      });
-      
-      console.log(`[HTML EXPORT] Student version: explicitly removed ${removedTeacherTips} teacher tips`);
-    }
+    // Remove elements that should not be in the export, like feedback forms.
+    // Teacher tips are handled correctly because the view is already set before calling this function.
+    const elementsToRemove = clonedElement.querySelectorAll('[data-no-pdf="true"]:not([data-teacher-tip="true"])');
+    console.log(`[HTML EXPORT] Removing ${elementsToRemove.length} non-exportable elements (e.g., rating section).`);
+    elementsToRemove.forEach(el => el.remove());
 
     // Create header with actual worksheet title
     const versionHeader = docClone.createElement('div');
@@ -408,7 +343,7 @@ ${finalCSS}
     // Clean up
     URL.revokeObjectURL(url);
     
-    console.log(`[HTML EXPORT] HTML export completed successfully for ${exportViewMode} view`);
+    console.log(`[HTML EXPORT] HTML export completed successfully.`);
     return true;
   } catch (error) {
     console.error('[HTML EXPORT] Error exporting HTML:', error);
