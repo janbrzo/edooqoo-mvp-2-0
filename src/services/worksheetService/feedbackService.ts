@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -15,18 +14,6 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
     if (!worksheetId || !userId) {
       console.error('Missing required parameters for feedback:', { worksheetId, userId });
       throw new Error('Missing worksheet ID or user ID');
-    }
-
-    // Validate that worksheet exists before submitting feedback
-    const { data: worksheetExists, error: checkError } = await supabase
-      .from('worksheets')
-      .select('id')
-      .eq('id', worksheetId)
-      .single();
-
-    if (checkError || !worksheetExists) {
-      console.error('Worksheet does not exist:', worksheetId);
-      throw new Error('Cannot submit feedback: worksheet not found');
     }
     
     // Try using the edge function first
@@ -53,12 +40,19 @@ export async function submitFeedbackAPI(worksheetId: string, rating: number, com
       }
       
       const errorText = await response.text();
-      console.error('Error submitting feedback via API:', errorText);
+      // Only log as an error if the status is 500 or something critical.
+      // A 404 for worksheet not found is an expected failure case.
+      if (response.status >= 500) {
+        console.error('Error submitting feedback via API:', errorText);
+      } else {
+        console.warn('API submission failed (likely worksheet not found):', errorText);
+      }
     } catch (apiError) {
       console.error('API feedback submission error:', apiError);
     }
     
     // If edge function fails, try direct database submission (but never create worksheet)
+    console.log('Edge function failed, falling back to direct DB insert.');
     const { data, error } = await supabase
       .from('feedbacks')
       .insert([
