@@ -176,7 +176,7 @@ serve(async (req) => {
 6. DO NOT USE PLACEHOLDERS. Write full, complete, high-quality content for every field.
 7. Use appropriate time values for each exercise (5-10 minutes).
 8. DO NOT include any text outside of the JSON structure.
-9. Exercise 1 (Reading Comprehension) MUST have content between 280 and 320 words exactly.
+9. Exercise 1 (Reading Comprehension) MUST have content more than 280 words.
 10. Focus on overall flow, coherence and pedagogical value.
 11. ADAPT TO USER'S INPUT: Carefully analyze all information from the USER MESSAGE. The 'lessonTopic' and 'lessonGoal' must define the theme of all exercises. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale.
 
@@ -242,7 +242,7 @@ ${hasGrammarFocus ? `
       "type": "reading",
       "title": "Exercise 1: Reading Comprehension",
       "icon": "fa-book-open",
-      "time": 8,
+      "time": 9,
       "instructions": "Read the following text and answer the questions below.",
       "content": "New York City is famous for its restaurants. People from all over the world live there, so the city offers many different types of food. You can find Italian, Chinese, Mexican, Japanese, Greek, Thai, Indian, and many more international cuisines. American-style diners and fast food restaurants are also very popular.\\nMost restaurants in New York have menus that include appetizers, main dishes, and desserts. Appetizers are small dishes that people eat before the main meal, such as soups, salads, or garlic bread. Main dishes are usually bigger and include meat, fish, or vegetarian options, often served with rice, potatoes, or pasta. Desserts like cheesecake, brownies, or ice cream are very common.\\nSome of the most popular types of food in New York include pizza, burgers, sushi, and pasta. People also enjoy trying food from food trucks, especially for lunch. One of the most famous dishes in the United States, and especially in New York, is the New York-style pizza. It’s a thin, wide slice of pizza, usually eaten with your hands.\\nOf course, not every restaurant visit is perfect. Some common complaints that people make in New York restaurants include:\\n“The food is cold.”\\n“This is not what I ordered.”\\n“The portion is too small.”\\n“I waited too long for my food.”\\n“The bill is incorrect.”\\nLearning how to order food and make polite complaints in English is very useful if you ever visit New York or work in customer service.",
       "questions": [
@@ -299,7 +299,7 @@ ${hasGrammarFocus ? `
       "type": "multiple-choice",
       "title": "Exercise 4: Multiple Choice",
       "icon": "fa-check-square",
-      "time": 6,
+      "time": 8,
       "instructions": "Choose the best option to complete each sentence.",
       "questions": [
         {
@@ -399,7 +399,7 @@ ${hasGrammarFocus ? `
       "type": "dialogue",
       "title": "Exercise 5: Dialogue Practice",
       "icon": "fa-comments",
-      "time": 7,
+      "time": 8,
       "instructions": "Read the dialogue and practice with a partner.",
       "dialogue": [
         {"speaker": "Waiter", "text": "Good evening! Can I take your order?"},
@@ -454,7 +454,7 @@ ${hasGrammarFocus ? `
       "type": "discussion",
       "title": "Exercise 7: Discussion Questions",
       "icon": "fa-users",
-      "time": 10,
+      "time": 8,
       "instructions": "Discuss these questions with your teacher or partner.",
       "questions": [
         {"text": "What is your favorite type of restaurant and why?"},
@@ -474,7 +474,7 @@ ${hasGrammarFocus ? `
       "type": "error-correction",
       "title": "Exercise 8: Error Correction",
       "icon": "fa-exclamation-triangle",
-      "time": 8,
+      "time": 7,
       "instructions": "Find and correct the errors in these sentences.",
       "sentences": [
         {"text": "This pizza is more better than the one I had yesterday.", "correction": "This pizza is better than the one I had yesterday."},
@@ -538,7 +538,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
           content: sanitizedPrompt
         }
       ],
-      max_tokens: 5000
+      max_tokens: 5500
     });
 
     const jsonContent = aiResponse.choices[0].message.content;
