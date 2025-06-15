@@ -1,4 +1,3 @@
-
 import React from "react";
 import ExerciseSection from "./ExerciseSection";
 import VocabularySheet from "./VocabularySheet";
@@ -72,13 +71,6 @@ export default function WorksheetContent({
           ) : (editableWorksheet.subtitle || '')}
         </h2>
 
-        {!isDownloadUnlocked && (
-          <div className="my-4 p-3 bg-red-50 border-l-4 border-red-400 rounded-md text-red-700" data-demo-notice="true">
-            <p className="font-bold">This is a DEMO version.</p>
-            <p>Payment is required to download the full, watermark-free worksheet.</p>
-          </div>
-        )}
-        
         <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-md">
           {isEditing ? (
             <textarea 
