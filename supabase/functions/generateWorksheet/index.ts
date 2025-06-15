@@ -186,6 +186,7 @@ ${hasGrammarFocus ? `
     - Design ALL exercises to practice and reinforce this specific grammar point
     - Ensure the reading text, vocabulary, and all exercises incorporate examples of this grammar
     - Make this grammar topic the central pedagogical focus of the entire worksheet
+    -provide a detailed and comprehensive explanation about the grammatical topic, including a thorough introduction explaining its usage, importance, and general overview, written in the style of well-known grammar reference books (such as My Grammar Lab, Cambridge Grammar, or Virginia Evans).
 ` : `
 12. NO GRAMMAR FOCUS: The user has not specified a grammar focus, so create a general worksheet focused on the topic and goal without emphasizing any particular grammar point.
 `}
