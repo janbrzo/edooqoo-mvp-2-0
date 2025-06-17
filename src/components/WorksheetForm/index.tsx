@@ -17,6 +17,10 @@ const getRandomTiles = (tiles: Tile[], count = 4): Tile[] => {
   return shuffled.slice(0, count);
 };
 
+const getRandomPlaceholderIndex = (): number => {
+  return Math.floor(Math.random() * SYNCHRONIZED_PLACEHOLDERS.length);
+};
+
 export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const [lessonTime, setLessonTime] = useState<LessonTime>("60 min");
   const [lessonTopic, setLessonTopic] = useState("");
@@ -27,7 +31,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const [randomTopics, setRandomTopics] = useState(getRandomTiles(LESSON_TOPICS));
   const [randomGoals, setRandomGoals] = useState(getRandomTiles(LESSON_GOALS));
   const [randomGrammarFocus, setRandomGrammarFocus] = useState(getRandomTiles(GRAMMAR_FOCUS));
-  const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(0);
+  const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(getRandomPlaceholderIndex());
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -59,8 +63,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
     setRandomGrammarFocus(getRandomTiles(GRAMMAR_FOCUS));
     
     // Change to random placeholder set
-    const newIndex = Math.floor(Math.random() * SYNCHRONIZED_PLACEHOLDERS.length);
-    setCurrentPlaceholderIndex(newIndex);
+    setCurrentPlaceholderIndex(getRandomPlaceholderIndex());
   };
 
   // Get current synchronized placeholders
@@ -73,9 +76,14 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
               <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between items-start'} mb-6`}>
-                <h1 className={`font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 ${isMobile ? 'text-xl text-center' : 'text-3xl'}`}>
-                  Create Your Worksheet
-                </h1>
+                <div className={`${isMobile ? 'text-center' : ''}`}>
+                  <h1 className={`font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 ${isMobile ? 'text-xl' : 'text-3xl'}`}>
+                    Create A Worksheet
+                  </h1>
+                  <p className={`${isMobile ? 'text-sm' : 'text-base'} text-gray-600 mt-2`}>
+                    Tailored to your students. In seconds.
+                  </p>
+                </div>
                 
                 <div className={`flex ${isMobile ? 'flex-col gap-3' : 'gap-14'}`}>
                   <div className={`flex gap-2 ${isMobile ? 'justify-center' : 'w-32'}`}>
@@ -173,6 +181,12 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                   isOptional
                   currentPlaceholderIndex={currentPlaceholderIndex}
                 />
+              </div>
+
+              <div className={`${isMobile ? 'text-center' : ''} mb-6`}>
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                  GENERAL HINT: To create a truly personalized, student‑focused worksheet, please provide as detailed a description as possible in each field.
+                </p>
               </div>
 
               <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between'} pt-4`}>
