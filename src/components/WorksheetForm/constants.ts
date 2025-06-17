@@ -214,7 +214,6 @@ export const WORKSHEET_SETS = [
       { id: "info-10-2", title: "Feeling shy but wants to be social and friendly" }
     ]
   },
-  // ... continue with remaining sets 11-30
   {
     id: 11,
     lessonTopic: "Booking an Airbnb for a family vacation",
@@ -543,7 +542,7 @@ export const WORKSHEET_SETS = [
     lessonTopic: "Talking about future hopes and dreams",
     lessonFocus: "Describing plans and expectations",
     additionalInfo: "Lucas [22] wants to practice expressing his goals during coaching sessions.",
-    grammar Focus: "Future Forms",
+    grammarFocus: "Future Forms",
     topicTiles: [
       { id: "topic-28-1", title: "Talking about future hopes and dreams" },
       { id: "topic-28-2", title: "Career coaching and personal development" }
