@@ -1,3 +1,4 @@
+
 import { Tile } from './types';
 
 export const LESSON_TOPICS: Tile[] = [
@@ -34,7 +35,13 @@ export const GRAMMAR_FOCUS: Tile[] = [
   { id: "grammar-5", title: "Polite complaints: using passive voice and indirect language" }
 ];
 
-// Synchronized placeholders that work together
+export const ENGLISH_LEVEL_DESCRIPTIONS = {
+  "A1/A2": "Beginner/Elementary",
+  "B1/B2": "Intermediate/Upper-Intermediate", 
+  "C1/C2": "Advanced/Proficiency"
+};
+
+// New synchronized placeholders with 5 sets
 export const SYNCHRONIZED_PLACEHOLDERS = [
   {
     lessonTopic: "Preparing for a job interview at Amazon for a logistics specialist role",
