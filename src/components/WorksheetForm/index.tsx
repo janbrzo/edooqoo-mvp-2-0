@@ -6,10 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LessonTime, EnglishLevel, FormData, WorksheetFormProps, Tile } from './types';
 import { 
   GRAMMAR_FOCUS, 
-  SYNCHRONIZED_PLACEHOLDERS,
-  LESSON_TOPIC_TILES,
-  LESSON_FOCUS_TILES,
-  ADDITIONAL_INFO_TILES
+  WORKSHEET_SETS
 } from './constants';
 import FormField from './FormField';
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -17,33 +14,15 @@ import { useIsMobile } from "@/hooks/use-mobile";
 // Export FormData type so other files can import it
 export type { FormData };
 
-// Funkcja do losowego wyboru 3 kategorii z 8 dostępnych (A-H)
-const getRandomCategories = (categoryKeys: string[], count = 3): string[] => {
-  const shuffled = [...categoryKeys].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
+// Funkcja do losowego wyboru zestawu 1-30
+const getRandomSetIndex = (): number => {
+  return Math.floor(Math.random() * WORKSHEET_SETS.length);
 };
 
-// Funkcja do losowego wyboru jednego kafelka z każdej wybranej kategorii
-const getRandomTilesFromCategories = (tilesObject: Record<string, Tile[]>, selectedCategories: string[]): Tile[] => {
-  const selectedTiles: Tile[] = [];
-  selectedCategories.forEach(category => {
-    const categoryTiles = tilesObject[category];
-    if (categoryTiles && categoryTiles.length > 0) {
-      const randomIndex = Math.floor(Math.random() * categoryTiles.length);
-      selectedTiles.push(categoryTiles[randomIndex]);
-    }
-  });
-  return selectedTiles;
-};
-
-// Funkcja do losowego wyboru kafelków Grammar Focus (pozostaje jak była - 3 kafelki)
-const getRandomTiles = (tiles: Tile[], count = 3): Tile[] => {
+// Funkcja do losowego wyboru 2 kafelków Grammar Focus
+const getRandomTiles = (tiles: Tile[], count = 2): Tile[] => {
   const shuffled = [...tiles].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);
-};
-
-const getRandomPlaceholderIndex = (): number => {
-  return Math.floor(Math.random() * SYNCHRONIZED_PLACEHOLDERS.length);
 };
 
 export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
@@ -54,31 +33,9 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const [teachingPreferences, setTeachingPreferences] = useState("");
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
   
-  // Stany dla nowego systemu kategorii
-  const [topicCategories, setTopicCategories] = useState(() => 
-    getRandomCategories(Object.keys(LESSON_TOPIC_TILES))
-  );
-  const [focusCategories, setFocusCategories] = useState(() => 
-    getRandomCategories(Object.keys(LESSON_FOCUS_TILES))
-  );
-  const [infoCategories, setInfoCategories] = useState(() => 
-    getRandomCategories(Object.keys(ADDITIONAL_INFO_TILES))
-  );
-  
-  // Kafelki na podstawie wybranych kategorii
-  const [randomTopics, setRandomTopics] = useState(() => 
-    getRandomTilesFromCategories(LESSON_TOPIC_TILES, topicCategories)
-  );
-  const [randomGoals, setRandomGoals] = useState(() => 
-    getRandomTilesFromCategories(LESSON_FOCUS_TILES, focusCategories)
-  );
-  const [randomInfoTiles, setRandomInfoTiles] = useState(() => 
-    getRandomTilesFromCategories(ADDITIONAL_INFO_TILES, infoCategories)
-  );
-  
-  // Grammar Focus pozostaje jak było
+  // Stany dla nowego systemu zestawów
+  const [currentSetIndex, setCurrentSetIndex] = useState(() => getRandomSetIndex());
   const [randomGrammarFocus, setRandomGrammarFocus] = useState(getRandomTiles(GRAMMAR_FOCUS));
-  const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(getRandomPlaceholderIndex());
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -105,30 +62,16 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   };
 
   const refreshTiles = () => {
-    // Losuj nowe kategorie dla każdego pola
-    const newTopicCategories = getRandomCategories(Object.keys(LESSON_TOPIC_TILES));
-    const newFocusCategories = getRandomCategories(Object.keys(LESSON_FOCUS_TILES));
-    const newInfoCategories = getRandomCategories(Object.keys(ADDITIONAL_INFO_TILES));
-    
-    // Ustaw nowe kategorie
-    setTopicCategories(newTopicCategories);
-    setFocusCategories(newFocusCategories);
-    setInfoCategories(newInfoCategories);
-    
-    // Wygeneruj nowe kafelki na podstawie nowych kategorii
-    setRandomTopics(getRandomTilesFromCategories(LESSON_TOPIC_TILES, newTopicCategories));
-    setRandomGoals(getRandomTilesFromCategories(LESSON_FOCUS_TILES, newFocusCategories));
-    setRandomInfoTiles(getRandomTilesFromCategories(ADDITIONAL_INFO_TILES, newInfoCategories));
+    // Losuj nowy zestaw
+    const newSetIndex = getRandomSetIndex();
+    setCurrentSetIndex(newSetIndex);
     
     // Grammar Focus pozostaje jak było
     setRandomGrammarFocus(getRandomTiles(GRAMMAR_FOCUS));
-    
-    // Zmień placeholder na nowy losowy zestaw
-    setCurrentPlaceholderIndex(getRandomPlaceholderIndex());
   };
 
-  // Get current synchronized placeholders
-  const currentPlaceholders = SYNCHRONIZED_PLACEHOLDERS[currentPlaceholderIndex];
+  // Get current set data
+  const currentSet = WORKSHEET_SETS[currentSetIndex];
 
   return (
     <div className={`w-full ${isMobile ? 'py-2' : 'py-[24px]'}`}>
@@ -208,39 +151,36 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
               <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
                 <FormField 
                   label="Lesson topic: General theme or real‑life scenario"
-                  placeholder={currentPlaceholders.lessonTopic}
+                  placeholder={currentSet.lessonTopic}
                   value={lessonTopic}
                   onChange={setLessonTopic}
-                  suggestions={randomTopics}
-                  currentPlaceholderIndex={currentPlaceholderIndex}
+                  suggestions={currentSet.topicTiles}
                 />
 
                 <FormField 
                   label="Lesson focus: What should your student achieve by the end of the lesson?"
-                  placeholder={currentPlaceholders.lessonFocus}
+                  placeholder={currentSet.lessonFocus}
                   value={lessonGoal}
                   onChange={setLessonGoal}
-                  suggestions={randomGoals}
-                  currentPlaceholderIndex={currentPlaceholderIndex}
+                  suggestions={currentSet.focusTiles}
                 />
               </div>
 
               <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
                 <FormField 
                   label="Additional Information: Extra context & personal or situational details"
-                  placeholder={currentPlaceholders.additionalInfo}
+                  placeholder={currentSet.additionalInfo}
                   value={additionalInformation}
                   onChange={setAdditionalInformation}
-                  suggestions={randomInfoTiles}
+                  suggestions={currentSet.infoTiles}
                 />
                 <FormField 
                   label="Grammar focus (optional):"
-                  placeholder={currentPlaceholders.grammarFocus}
+                  placeholder={currentSet.grammarFocus}
                   value={teachingPreferences}
                   onChange={setTeachingPreferences}
                   suggestions={randomGrammarFocus}
                   isOptional
-                  currentPlaceholderIndex={currentPlaceholderIndex}
                 />
               </div>
 
