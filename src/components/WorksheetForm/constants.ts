@@ -1,6 +1,229 @@
 
 import { Tile } from './types';
 
+// Stare kafelki Grammar Focus przywrócone
+export const GRAMMAR_FOCUS: Tile[] = [
+  { id: "Present-Simple", title: "Present Simple Tense" },
+  { id: "Present-Continuous", title: "Present Continuous Tense" },
+  { id: "Past-Simple", title: "Past Simple Tense" },
+  { id: "Future-Forms", title: "Future Forms: \"Will\" vs. \"Going to\"" },
+  { id: "nouns", title: "Countable and Uncountable Nouns" },
+  { id: "Modals", title: "Modals of Advice and Obligation" },
+  { id: "Adverbs", title: "Adverbs of Frequency" },
+  { id: "Conditionals01", title: "Conditionals (0 and 1st)" },
+  { id: "Conditionals2", title: "Conditionals (2nd)" },
+  { id: "Passive-Voice", title: "Passive Voice (present and past)" },
+  { id: "Relative-Clauses", title: "Relative Clauses: who, which, that" },
+  { id: "Gerunds-Infinitives", title: "Gerunds and Infinitives" },
+  { id: "Reported-Speech", title: "Reported Speech" },
+  { id: "Conditional3", title: "Conditional Sentences – 3rd Conditional" },
+  { id: "Past-Habits", title: "Used to / Be used to / Get used to" },
+  { id: "Causative-Form", title: "Causative Form: Have/Get something done" },
+  { id: "Future-Continuous", title: "Future Continuous" },
+  { id: "Adverbs-so/such", title: "Adverbs: So / Such" }
+];
+
+// Nowy system kafelków podzielony na kategorie dla Lesson Topic
+export const LESSON_TOPIC_TILES: Record<string, Tile[]> = {
+  // A. Specific Scenario (8)
+  specificScenario: [
+    { id: "topic-a1", title: "Preparing for a job interview at Amazon for a logistics specialist role" },
+    { id: "topic-a2", title: "Travelling to Boston with a toddler for the first time" },
+    { id: "topic-a3", title: "Making small talk with new coworkers during coffee breaks" },
+    { id: "topic-a4", title: "Talking to a teacher at a parent‑teacher meeting in London" },
+    { id: "topic-a5", title: "Solving a delivery issue with a missing IKEA order by phone" },
+    { id: "topic-a6", title: "Organizing a surprise birthday party for a colleague" },
+    { id: "topic-a7", title: "Negotiating a freelance contract with an international client" },
+    { id: "topic-a8", title: "Explaining a two‑year career break due to caregiving responsibilities" }
+  ],
+  // B. Role & Profession (6)
+  roleProfession: [
+    { id: "topic-b1", title: "Writing emails to suppliers for a café chain" },
+    { id: "topic-b2", title: "Presenting quarterly sales figures to management" },
+    { id: "topic-b3", title: "Conducting a code review in a software team" },
+    { id: "topic-b4", title: "Leading a brainstorming session in a marketing agency" },
+    { id: "topic-b5", title: "Interviewing candidates for a UX designer position" },
+    { id: "topic-b6", title: "Training new interns in a finance department" }
+  ],
+  // C. Everyday Life (6)
+  everydayLife: [
+    { id: "topic-c1", title: "Discussing weekend plans with friends over coffee" },
+    { id: "topic-c2", title: "Explaining your morning routine in detail" },
+    { id: "topic-c3", title: "Rescheduling a dentist appointment by phone" },
+    { id: "topic-c4", title: "Calling a landlord about a broken heater" },
+    { id: "topic-c5", title: "Planning a family dinner menu" },
+    { id: "topic-c6", title: "Asking a neighbor to pick up your mail" }
+  ],
+  // D. Travel & Leisure (6)
+  travelLeisure: [
+    { id: "topic-d1", title: "Booking a boutique hotel in Barcelona" },
+    { id: "topic-d2", title: "Creating a 5‑day hiking itinerary in the Alps" },
+    { id: "topic-d3", title: "Buying concert tickets online for a friend" },
+    { id: "topic-d4", title: "Arranging a city tour with a local guide" },
+    { id: "topic-d5", title: "Renting a car for a road trip through Scotland" },
+    { id: "topic-d6", title: "Choosing activities for a beach holiday in Greece" }
+  ],
+  // E. Emotional Context (4)
+  emotionalContext: [
+    { id: "topic-e1", title: "Calming nerves before a public speech" },
+    { id: "topic-e2", title: "Expressing frustration after a project setback" },
+    { id: "topic-e3", title: "Apologizing sincerely after a misunderstanding" },
+    { id: "topic-e4", title: "Celebrating a small victory at work" }
+  ],
+  // F. Task‑Oriented (4)
+  taskOriented: [
+    { id: "topic-f1", title: "Booking a doctor's appointment online" },
+    { id: "topic-f2", title: "Requesting a refund for a faulty product" },
+    { id: "topic-f3", title: "Ordering groceries for home delivery" },
+    { id: "topic-f4", title: "Registering for a professional conference" }
+  ],
+  // G. Open‑Ended Inspiration (4)
+  openEnded: [
+    { id: "topic-g1", title: "Discussing life goals and aspirations" },
+    { id: "topic-g2", title: "Describing your perfect day off" },
+    { id: "topic-g3", title: "Imagining the workplace of the future" },
+    { id: "topic-g4", title: "Brainstorming ideas for a passion project" }
+  ],
+  // H. Fun & Creative (4)
+  funCreative: [
+    { id: "topic-h1", title: "Designing a themed costume for Halloween party" },
+    { id: "topic-h2", title: "Writing a short poem about your favorite season" },
+    { id: "topic-h3", title: "Inventing a new gadget that solves daily chores" },
+    { id: "topic-h4", title: "Planning a karaoke night setlist for friends" }
+  ]
+};
+
+// Nowy system kafelków podzielony na kategorie dla Lesson Focus
+export const LESSON_FOCUS_TILES: Record<string, Tile[]> = {
+  specificScenario: [
+    { id: "focus-a1", title: "Answer tricky competency questions under pressure" },
+    { id: "focus-a2", title: "Navigate a flight delay and rebooking process" },
+    { id: "focus-a3", title: "Initiate small talk with new teammates" },
+    { id: "focus-a4", title: "Advocate for your child's needs at school meeting" },
+    { id: "focus-a5", title: "Escalate a customer complaint to a supervisor" },
+    { id: "focus-a6", title: "Coordinate a surprise event without revealing details" },
+    { id: "focus-a7", title: "Negotiate a freelance rate confidently" },
+    { id: "focus-a8", title: "Explain a gap in your CV clearly" }
+  ],
+  roleProfession: [
+    { id: "focus-b1", title: "Deliver a concise team status update" },
+    { id: "focus-b2", title: "Lead a client presentation on new product features" },
+    { id: "focus-b3", title: "Draft a press release for a corporate event" },
+    { id: "focus-b4", title: "Conduct a virtual training session" },
+    { id: "focus-b5", title: "Perform a job shadowing introduction" },
+    { id: "focus-b6", title: "Negotiate deliverables with a project manager" }
+  ],
+  everydayLife: [
+    { id: "focus-c1", title: "Ask for help when your phone's battery dies" },
+    { id: "focus-c2", title: "Explain dietary restrictions at a restaurant" },
+    { id: "focus-c3", title: "Arrange a playdate for your child" },
+    { id: "focus-c4", title: "Report a lost wallet to the police station" },
+    { id: "focus-c5", title: "Give directions to a stranger on the street" },
+    { id: "focus-c6", title: "Return a damaged item to a store" }
+  ],
+  travelLeisure: [
+    { id: "focus-d1", title: "Plan airport transfer with tight connection" },
+    { id: "focus-d2", title: "Book a guided wine tour in Bordeaux" },
+    { id: "focus-d3", title: "Select the best travel insurance plan" },
+    { id: "focus-d4", title: "Reserve seats for a city sightseeing bus" },
+    { id: "focus-d5", title: "Rent sports equipment during vacation" },
+    { id: "focus-d6", title: "Inquire about pet policies at hotels" }
+  ],
+  emotionalContext: [
+    { id: "focus-e1", title: "Express disappointment over a cancelled event" },
+    { id: "focus-e2", title: "Thank a colleague for unexpected support" },
+    { id: "focus-e3", title: "Apologize for missing an important deadline" },
+    { id: "focus-e4", title: "Celebrate finishing a challenging project" }
+  ],
+  taskOriented: [
+    { id: "focus-f1", title: "Schedule a dentist appointment via email" },
+    { id: "focus-f2", title: "Submit a warranty claim online" },
+    { id: "focus-f3", title: "Order office supplies for next week" },
+    { id: "focus-f4", title: "Register for a newsletter with a special code" }
+  ],
+  openEnded: [
+    { id: "focus-g1", title: "Reflect on your personal strengths" },
+    { id: "focus-g2", title: "Imagine your dream career path" },
+    { id: "focus-g3", title: "Brainstorm solutions for a community problem" },
+    { id: "focus-g4", title: "Discuss habits that boost productivity" }
+  ],
+  funCreative: [
+    { id: "focus-h1", title: "Write a funny job ad for a pet sitter" },
+    { id: "focus-h2", title: "Create a meme about remote work" },
+    { id: "focus-h3", title: "Invent a fictional travel destination" },
+    { id: "focus-h4", title: "Design a motivational office poster" }
+  ]
+};
+
+// Nowy system kafelków podzielony na kategorie dla Additional Information
+export const ADDITIONAL_INFO_TILES: Record<string, Tile[]> = {
+  specificScenario: [
+    { id: "info-a1", title: "Student: Lucy [30], relocating to Munich next month, needs airport German too" },
+    { id: "info-a2", title: "Student: Mark [42], managing remote team across time zones, struggles with async calls" },
+    { id: "info-a3", title: "Student: Anna [27], recovering from surgery, wants telehealth vocabulary" },
+    { id: "info-a4", title: "Student: Jake [35], planning a surprise anniversary trip, needs gift suggestions" },
+    { id: "info-a5", title: "Student: Sophie [29], editing a blog post for international audience" },
+    { id: "info-a6", title: "Student: Tom [50], upgrading to electric car, learning charging station terms" },
+    { id: "info-a7", title: "Student: Mia [33], volunteering in Kenya, needs medical mission phrases" },
+    { id: "info-a8", title: "Student: Leo [28], training for Boston Marathon, wants sports commentary vocab" }
+  ],
+  roleProfession: [
+    { id: "info-b1", title: "Software engineer at Google, presenting sprint demo" },
+    { id: "info-b2", title: "HR manager scheduling interviews for 20 candidates" },
+    { id: "info-b3", title: "Event planner organizing a 200‑person conference" },
+    { id: "info-b4", title: "Customer support rep handling high‑priority tickets" },
+    { id: "info-b5", title: "Graphic designer pitching concept to a brewery" },
+    { id: "info-b6", title: "Financial analyst writing quarterly forecasts" }
+  ],
+  everydayLife: [
+    { id: "info-c1", title: "Prefers WhatsApp over email; allergic to shellfish" },
+    { id: "info-c2", title: "Lives in a shared flat; needs polite roommate phrases" },
+    { id: "info-c3", title: "Volunteers every weekend; likes sustainability topics" },
+    { id: "info-c4", title: "Plays guitar; wants music-related vocabulary" },
+    { id: "info-c5", title: "Cooking enthusiast; shares recipes with friends" },
+    { id: "info-c6", title: "Learning photography; needs critique language" }
+  ],
+  travelLeisure: [
+    { id: "info-d1", title: "Backpacking across Southeast Asia for 3 months" },
+    { id: "info-d2", title: "Cruise to the Caribbean with travel insurance concerns" },
+    { id: "info-d3", title: "Road trip along Route 66 in a vintage car" },
+    { id: "info-d4", title: "Voluntourism in Costa Rica; needs jungle survival terms" },
+    { id: "info-d5", title: "Skiing holiday in the Alps; booking equipment rental" },
+    { id: "info-d6", title: "Attending Burning Man; discussing camp logistics" }
+  ],
+  emotionalContext: [
+    { id: "info-e1", title: "Anxious about public speaking at a wedding toast" },
+    { id: "info-e2", title: "Frustrated after losing important documents" },
+    { id: "info-e3", title: "Excited about starting a new hobby" },
+    { id: "info-e4", title: "Overwhelmed by relocation stress" }
+  ],
+  taskOriented: [
+    { id: "info-f1", title: "Need steps to set up a VPN at home" },
+    { id: "info-f2", title: "How to apply for a visa extension online" },
+    { id: "info-f3", title: "Process for returning an online purchase" },
+    { id: "info-f4", title: "Guide to scheduling a medical check‑up" }
+  ],
+  openEnded: [
+    { id: "info-g1", title: "Share your biggest career ambition" },
+    { id: "info-g2", title: "Describe your ideal community project" },
+    { id: "info-g3", title: "Imagine your perfect language learning environment" },
+    { id: "info-g4", title: "Discuss values most important to you" }
+  ],
+  funCreative: [
+    { id: "info-h1", title: "Write a humorous ad for a flying car" },
+    { id: "info-h2", title: "Create a slogan for a zero‑gravity café" },
+    { id: "info-h3", title: "Invent a holiday that celebrates laughter" },
+    { id: "info-h4", title: "Design a mascot for an intergalactic school" }
+  ]
+};
+
+export const ENGLISH_LEVEL_DESCRIPTIONS = {
+  "A1/A2": "Beginner/Elementary",
+  "B1/B2": "Intermediate/Upper-Intermediate", 
+  "C1/C2": "Advanced/Proficiency"
+};
+
+// Stare kafelki - zachowane dla kompatybilności wstecznej
 export const LESSON_TOPICS: Tile[] = [
   { id: "topic-1", title: "IT: debugging code" },
   { id: "topic-2", title: "Business negotiations" },
@@ -27,21 +250,7 @@ export const LESSON_GOALS: Tile[] = [
   { id: "goal-10", title: "Managing conflicts in the workplace" }
 ];
 
-export const GRAMMAR_FOCUS: Tile[] = [
-  { id: "grammar-1", title: "Using present perfect to talk about experience and gaps in employment" },
-  { id: "grammar-2", title: "Making polite requests and asking questions using could/would" },
-  { id: "grammar-3", title: "Practising small talk structures: question tags, short responses" },
-  { id: "grammar-4", title: "Using present simple and continuous to describe school situations" },
-  { id: "grammar-5", title: "Polite complaints: using passive voice and indirect language" }
-];
-
-export const ENGLISH_LEVEL_DESCRIPTIONS = {
-  "A1/A2": "Beginner/Elementary",
-  "B1/B2": "Intermediate/Upper-Intermediate", 
-  "C1/C2": "Advanced/Proficiency"
-};
-
-// New synchronized placeholders with 5 sets
+// Synchronized placeholders - pozostają bez zmian
 export const SYNCHRONIZED_PLACEHOLDERS = [
   {
     lessonTopic: "Preparing for a job interview at Amazon for a logistics specialist role",

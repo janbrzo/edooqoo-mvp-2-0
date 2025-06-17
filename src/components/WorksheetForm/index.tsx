@@ -4,15 +4,40 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { LessonTime, EnglishLevel, FormData, WorksheetFormProps, Tile } from './types';
-import { LESSON_TOPICS, LESSON_GOALS, GRAMMAR_FOCUS, SYNCHRONIZED_PLACEHOLDERS } from './constants';
-import EnglishLevelSelector from './EnglishLevelSelector';
+import { 
+  GRAMMAR_FOCUS, 
+  SYNCHRONIZED_PLACEHOLDERS,
+  LESSON_TOPIC_TILES,
+  LESSON_FOCUS_TILES,
+  ADDITIONAL_INFO_TILES
+} from './constants';
 import FormField from './FormField';
 import { useIsMobile } from "@/hooks/use-mobile";
 
 // Export FormData type so other files can import it
 export type { FormData };
 
-const getRandomTiles = (tiles: Tile[], count = 4): Tile[] => {
+// Funkcja do losowego wyboru 3 kategorii z 8 dostępnych (A-H)
+const getRandomCategories = (categoryKeys: string[], count = 3): string[] => {
+  const shuffled = [...categoryKeys].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+};
+
+// Funkcja do losowego wyboru jednego kafelka z każdej wybranej kategorii
+const getRandomTilesFromCategories = (tilesObject: Record<string, Tile[]>, selectedCategories: string[]): Tile[] => {
+  const selectedTiles: Tile[] = [];
+  selectedCategories.forEach(category => {
+    const categoryTiles = tilesObject[category];
+    if (categoryTiles && categoryTiles.length > 0) {
+      const randomIndex = Math.floor(Math.random() * categoryTiles.length);
+      selectedTiles.push(categoryTiles[randomIndex]);
+    }
+  });
+  return selectedTiles;
+};
+
+// Funkcja do losowego wyboru kafelków Grammar Focus (pozostaje jak była - 3 kafelki)
+const getRandomTiles = (tiles: Tile[], count = 3): Tile[] => {
   const shuffled = [...tiles].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);
 };
@@ -28,8 +53,30 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const [additionalInformation, setAdditionalInformation] = useState("");
   const [teachingPreferences, setTeachingPreferences] = useState("");
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
-  const [randomTopics, setRandomTopics] = useState(getRandomTiles(LESSON_TOPICS));
-  const [randomGoals, setRandomGoals] = useState(getRandomTiles(LESSON_GOALS));
+  
+  // Stany dla nowego systemu kategorii
+  const [topicCategories, setTopicCategories] = useState(() => 
+    getRandomCategories(Object.keys(LESSON_TOPIC_TILES))
+  );
+  const [focusCategories, setFocusCategories] = useState(() => 
+    getRandomCategories(Object.keys(LESSON_FOCUS_TILES))
+  );
+  const [infoCategories, setInfoCategories] = useState(() => 
+    getRandomCategories(Object.keys(ADDITIONAL_INFO_TILES))
+  );
+  
+  // Kafelki na podstawie wybranych kategorii
+  const [randomTopics, setRandomTopics] = useState(() => 
+    getRandomTilesFromCategories(LESSON_TOPIC_TILES, topicCategories)
+  );
+  const [randomGoals, setRandomGoals] = useState(() => 
+    getRandomTilesFromCategories(LESSON_FOCUS_TILES, focusCategories)
+  );
+  const [randomInfoTiles, setRandomInfoTiles] = useState(() => 
+    getRandomTilesFromCategories(ADDITIONAL_INFO_TILES, infoCategories)
+  );
+  
+  // Grammar Focus pozostaje jak było
   const [randomGrammarFocus, setRandomGrammarFocus] = useState(getRandomTiles(GRAMMAR_FOCUS));
   const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(getRandomPlaceholderIndex());
 
@@ -58,11 +105,25 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   };
 
   const refreshTiles = () => {
-    setRandomTopics(getRandomTiles(LESSON_TOPICS));
-    setRandomGoals(getRandomTiles(LESSON_GOALS));
+    // Losuj nowe kategorie dla każdego pola
+    const newTopicCategories = getRandomCategories(Object.keys(LESSON_TOPIC_TILES));
+    const newFocusCategories = getRandomCategories(Object.keys(LESSON_FOCUS_TILES));
+    const newInfoCategories = getRandomCategories(Object.keys(ADDITIONAL_INFO_TILES));
+    
+    // Ustaw nowe kategorie
+    setTopicCategories(newTopicCategories);
+    setFocusCategories(newFocusCategories);
+    setInfoCategories(newInfoCategories);
+    
+    // Wygeneruj nowe kafelki na podstawie nowych kategorii
+    setRandomTopics(getRandomTilesFromCategories(LESSON_TOPIC_TILES, newTopicCategories));
+    setRandomGoals(getRandomTilesFromCategories(LESSON_FOCUS_TILES, newFocusCategories));
+    setRandomInfoTiles(getRandomTilesFromCategories(ADDITIONAL_INFO_TILES, newInfoCategories));
+    
+    // Grammar Focus pozostaje jak było
     setRandomGrammarFocus(getRandomTiles(GRAMMAR_FOCUS));
     
-    // Change to random placeholder set
+    // Zmień placeholder na nowy losowy zestaw
     setCurrentPlaceholderIndex(getRandomPlaceholderIndex());
   };
 
@@ -170,7 +231,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                   placeholder={currentPlaceholders.additionalInfo}
                   value={additionalInformation}
                   onChange={setAdditionalInformation}
-                  suggestions={[]}
+                  suggestions={randomInfoTiles}
                 />
                 <FormField 
                   label="Grammar focus (optional):"
