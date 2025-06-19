@@ -4,23 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { LessonTime, EnglishLevel, FormData, WorksheetFormProps, Tile } from './types';
-import { 
-  GRAMMAR_FOCUS, 
-  WORKSHEET_SETS
-} from './constants';
+import { LESSON_TOPICS, LESSON_GOALS, GRAMMAR_FOCUS, SYNCHRONIZED_PLACEHOLDERS } from './constants';
+import EnglishLevelSelector from './EnglishLevelSelector';
 import FormField from './FormField';
 import { useIsMobile } from "@/hooks/use-mobile";
 
 // Export FormData type so other files can import it
 export type { FormData };
 
-// Funkcja do losowego wyboru zestawu 1-30
-const getRandomSetIndex = (): number => {
-  return Math.floor(Math.random() * WORKSHEET_SETS.length);
-};
-
-// Funkcja do losowego wyboru 2 kafelków Grammar Focus
-const getRandomTiles = (tiles: Tile[], count = 2): Tile[] => {
+const getRandomTiles = (tiles: Tile[], count = 4): Tile[] => {
   const shuffled = [...tiles].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);
 };
@@ -32,10 +24,10 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const [additionalInformation, setAdditionalInformation] = useState("");
   const [teachingPreferences, setTeachingPreferences] = useState("");
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
-  
-  // Stany dla nowego systemu zestawów
-  const [currentSetIndex, setCurrentSetIndex] = useState(() => getRandomSetIndex());
+  const [randomTopics, setRandomTopics] = useState(getRandomTiles(LESSON_TOPICS));
+  const [randomGoals, setRandomGoals] = useState(getRandomTiles(LESSON_GOALS));
   const [randomGrammarFocus, setRandomGrammarFocus] = useState(getRandomTiles(GRAMMAR_FOCUS));
+  const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(0);
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -62,16 +54,17 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   };
 
   const refreshTiles = () => {
-    // Losuj nowy zestaw
-    const newSetIndex = getRandomSetIndex();
-    setCurrentSetIndex(newSetIndex);
-    
-    // Grammar Focus pozostaje jak było
+    setRandomTopics(getRandomTiles(LESSON_TOPICS));
+    setRandomGoals(getRandomTiles(LESSON_GOALS));
     setRandomGrammarFocus(getRandomTiles(GRAMMAR_FOCUS));
+    
+    // Change to random placeholder set
+    const newIndex = Math.floor(Math.random() * SYNCHRONIZED_PLACEHOLDERS.length);
+    setCurrentPlaceholderIndex(newIndex);
   };
 
-  // Get current set data
-  const currentSet = WORKSHEET_SETS[currentSetIndex];
+  // Get current synchronized placeholders
+  const currentPlaceholders = SYNCHRONIZED_PLACEHOLDERS[currentPlaceholderIndex];
 
   return (
     <div className={`w-full ${isMobile ? 'py-2' : 'py-[24px]'}`}>
@@ -80,14 +73,9 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
               <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between items-start'} mb-6`}>
-                <div className={`${isMobile ? 'text-center' : ''}`}>
-                  <h1 className={`font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 ${isMobile ? 'text-xl' : 'text-3xl'}`}>
-                    Create A Worksheet
-                  </h1>
-                  <p className={`${isMobile ? 'text-sm' : 'text-base'} text-gray-600 mt-2`}>
-                    Tailored to your students. In seconds.
-                  </p>
-                </div>
+                <h1 className={`font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 ${isMobile ? 'text-xl text-center' : 'text-3xl'}`}>
+                  Create Your Worksheet
+                </h1>
                 
                 <div className={`flex ${isMobile ? 'flex-col gap-3' : 'gap-14'}`}>
                   <div className={`flex gap-2 ${isMobile ? 'justify-center' : 'w-32'}`}>
@@ -151,43 +139,40 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
               <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
                 <FormField 
                   label="Lesson topic: General theme or real‑life scenario"
-                  placeholder={currentSet.lessonTopic}
+                  placeholder={currentPlaceholders.lessonTopic}
                   value={lessonTopic}
                   onChange={setLessonTopic}
-                  suggestions={currentSet.topicTiles}
+                  suggestions={randomTopics}
+                  currentPlaceholderIndex={currentPlaceholderIndex}
                 />
 
                 <FormField 
                   label="Lesson focus: What should your student achieve by the end of the lesson?"
-                  placeholder={currentSet.lessonFocus}
+                  placeholder={currentPlaceholders.lessonFocus}
                   value={lessonGoal}
                   onChange={setLessonGoal}
-                  suggestions={currentSet.focusTiles}
+                  suggestions={randomGoals}
+                  currentPlaceholderIndex={currentPlaceholderIndex}
                 />
               </div>
 
               <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
                 <FormField 
                   label="Additional Information: Extra context & personal or situational details"
-                  placeholder={currentSet.additionalInfo}
+                  placeholder={currentPlaceholders.additionalInfo}
                   value={additionalInformation}
                   onChange={setAdditionalInformation}
-                  suggestions={currentSet.infoTiles}
+                  suggestions={[]}
                 />
                 <FormField 
                   label="Grammar focus (optional):"
-                  placeholder={currentSet.grammarFocus}
+                  placeholder={currentPlaceholders.grammarFocus}
                   value={teachingPreferences}
                   onChange={setTeachingPreferences}
                   suggestions={randomGrammarFocus}
                   isOptional
+                  currentPlaceholderIndex={currentPlaceholderIndex}
                 />
-              </div>
-
-              <div className={`${isMobile ? 'text-center' : ''} mb-6`}>
-                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>
-                  GENERAL HINT: To create a truly personalized, student‑focused worksheet, please provide as detailed a description as possible in each field.
-                </p>
               </div>
 
               <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between'} pt-4`}>
