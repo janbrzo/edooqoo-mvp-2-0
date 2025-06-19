@@ -16,19 +16,56 @@ export const processExercises = (exercises: any[]): any[] => {
       console.log(`🔧 Processed matching exercise with ${exercise.items.length} items`);
     }
     
-    // FIXED: Multiple choice questions processing - minimal intervention
+    // FIXED: Multiple choice questions processing to preserve correct answers
     if (exercise.type === "multiple-choice" && exercise.questions) {
       exercise.questions = exercise.questions.map((question: any) => {
-        if (question.options && question.options.length > 0) {
-          console.log('🔧 Processing multiple choice question - preserving original structure');
+        if (question.options && question.options.length >= 2) {
+          console.log('🔧 Processing multiple choice question options');
           
-          // Only ensure we have labels A, B, C, D if they're missing
-          question.options = question.options.map((opt: any, idx: number) => ({
-            ...opt, // Preserve all original data including correct status
-            label: opt.label || String.fromCharCode(65 + idx) // Only add label if missing
+          // Get all unique option texts while preserving their correct status
+          const uniqueTexts = new Set();
+          const uniqueOptions = [];
+          
+          // First, collect all unique options with their original correct status
+          question.options.forEach((opt: any) => {
+            if (!uniqueTexts.has(opt.text)) {
+              uniqueTexts.add(opt.text);
+              uniqueOptions.push({
+                text: opt.text,
+                correct: opt.correct || false // Preserve original correct status
+              });
+            }
+          });
+          
+          // Only ensure we have at least one correct answer if none exists
+          const hasCorrectAnswer = uniqueOptions.some(opt => opt.correct);
+          if (!hasCorrectAnswer && uniqueOptions.length > 0) {
+            // Find the first option that was originally marked as correct, or default to first
+            const originallyCorrectIndex = question.options.findIndex((opt: any) => opt.correct);
+            const targetIndex = originallyCorrectIndex >= 0 ? Math.min(originallyCorrectIndex, uniqueOptions.length - 1) : 0;
+            uniqueOptions[targetIndex].correct = true;
+          }
+          
+          // Add generic options if we don't have enough unique ones
+          while (uniqueOptions.length < 4) {
+            const genericText = `Option ${uniqueOptions.length + 1}`;
+            if (!uniqueTexts.has(genericText)) {
+              uniqueOptions.push({
+                text: genericText,
+                correct: false // Generic options are never correct
+              });
+            }
+          }
+          
+          // Take only first 4 options and assign labels WITHOUT changing correct status
+          const finalOptions = uniqueOptions.slice(0, 4).map((opt, idx) => ({
+            text: opt.text,
+            correct: opt.correct, // PRESERVE the original correct status
+            label: String.fromCharCode(65 + idx) // A, B, C, D
           }));
           
-          console.log('🔧 Multiple choice options preserved:', question.options.map(o => `${o.label}: ${o.text} (${o.correct ? 'correct' : 'incorrect'})`));
+          question.options = finalOptions;
+          console.log('🔧 Fixed multiple choice options:', question.options.map(o => `${o.label}: ${o.text} (${o.correct ? 'correct' : 'incorrect'})`));
         }
         return question;
       });

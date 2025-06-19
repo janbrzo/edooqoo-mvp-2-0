@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Tile } from './types';
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState, useEffect } from "react";
 
 interface FormFieldProps {
   label: string;
@@ -13,36 +12,17 @@ interface FormFieldProps {
   onChange: (value: string) => void;
   suggestions: Tile[];
   isOptional?: boolean;
-  placeholders?: string[];
-  currentPlaceholderIndex?: number;
 }
 
-export default function FormField({ 
-  label, 
-  placeholder, 
-  value, 
-  onChange, 
-  suggestions, 
-  isOptional,
-  placeholders,
-  currentPlaceholderIndex = 0
-}: FormFieldProps) {
+export default function FormField({ label, placeholder, value, onChange, suggestions, isOptional }: FormFieldProps) {
   const isMobile = useIsMobile();
-  const [currentPlaceholder, setCurrentPlaceholder] = useState(placeholder);
-  
-  // Update placeholder when index changes or placeholders change
-  useEffect(() => {
-    if (placeholders && placeholders.length > 0) {
-      setCurrentPlaceholder(placeholders[currentPlaceholderIndex] || placeholder);
-    }
-  }, [placeholders, currentPlaceholderIndex, placeholder]);
   
   return (
     <div>
       <label className={cn("block font-medium mb-2", isMobile ? "text-sm" : "text-sm", isOptional && "text-muted-foreground")}>{label}</label>
       <Input
         type="text"
-        placeholder={currentPlaceholder}
+        placeholder={placeholder}
         value={value} 
         onChange={e => onChange(e.target.value)} 
         className={`mb-3 ${isMobile ? 'text-sm' : ''}`}
