@@ -1,7 +1,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tile } from './types';
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -10,16 +9,32 @@ interface FormFieldProps {
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
-  suggestions: Tile[];
+  suggestions: Array<{ id: string; title: string }>;
   isOptional?: boolean;
+  isRequired?: boolean;
 }
 
-export default function FormField({ label, placeholder, value, onChange, suggestions, isOptional }: FormFieldProps) {
+export default function FormField({ 
+  label, 
+  placeholder, 
+  value, 
+  onChange, 
+  suggestions, 
+  isOptional = false,
+  isRequired = false
+}: FormFieldProps) {
   const isMobile = useIsMobile();
   
   return (
     <div>
-      <label className={cn("block font-medium mb-2", isMobile ? "text-sm" : "text-sm", isOptional && "text-muted-foreground")}>{label}</label>
+      <label className={cn(
+        "block font-medium mb-2", 
+        isMobile ? "text-sm" : "text-sm", 
+        isOptional && "text-muted-foreground",
+        isRequired && "text-gray-900"
+      )}>
+        {label}
+      </label>
       <Input
         type="text"
         placeholder={placeholder}

@@ -105,6 +105,10 @@ export default function GeneratingModal({ isOpen }: GeneratingModalProps) {
         <p className="text-center min-h-[24px] animate-pulse font-normal text-sky-400">
           {generationSteps[currentStep]}
         </p>
+        
+        <p className="text-center text-xs text-gray-400">
+          It can take up to 1:30 min
+        </p>
       </div>
     </div>
   );

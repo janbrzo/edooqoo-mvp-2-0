@@ -1,42 +1,53 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { LessonTime, EnglishLevel, FormData, WorksheetFormProps, Tile } from './types';
-import { LESSON_TOPICS, LESSON_GOALS, GRAMMAR_FOCUS } from './constants';
-import EnglishLevelSelector from './EnglishLevelSelector';
+import { LessonTime, EnglishLevel, FormData, WorksheetFormProps } from './types';
+import { getRandomPlaceholderSet, PlaceholderSet } from './placeholderSets';
+import { getRandomSuggestionSets, getSuggestionSetMatchingPlaceholder, SuggestionSet } from './suggestionSets';
 import FormField from './FormField';
 import { useIsMobile } from "@/hooks/use-mobile";
 
-// Export FormData type so other files can import it
 export type { FormData };
-
-const getRandomTiles = (tiles: Tile[], count = 4): Tile[] => {
-  const shuffled = [...tiles].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
-};
 
 export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const [lessonTime, setLessonTime] = useState<LessonTime>("60 min");
   const [lessonTopic, setLessonTopic] = useState("");
   const [lessonGoal, setLessonGoal] = useState("");
-  const [teachingPreferences, setTeachingPreferences] = useState("");
+  const [grammarFocus, setGrammarFocus] = useState("");
   const [additionalInformation, setAdditionalInformation] = useState("");
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
-  const [randomTopics, setRandomTopics] = useState(getRandomTiles(LESSON_TOPICS));
-  const [randomGoals, setRandomGoals] = useState(getRandomTiles(LESSON_GOALS));
-  const [randomGrammarFocus, setRandomGrammarFocus] = useState(getRandomTiles(GRAMMAR_FOCUS));
+  
+  const [currentPlaceholders, setCurrentPlaceholders] = useState<PlaceholderSet>(getRandomPlaceholderSet());
+  const [currentSuggestions, setCurrentSuggestions] = useState<SuggestionSet[]>([]);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
+  useEffect(() => {
+    if (isInitialLoad) {
+      // Na początku: pierwszy zestaw jak placeholder, drugi losowy
+      const matchingSet = getSuggestionSetMatchingPlaceholder(currentPlaceholders);
+      const randomSets = getRandomSuggestionSets(1);
+      
+      if (matchingSet) {
+        setCurrentSuggestions([matchingSet, randomSets[0]]);
+      } else {
+        setCurrentSuggestions(getRandomSuggestionSets(2));
+      }
+      setIsInitialLoad(false);
+    }
+  }, [currentPlaceholders, isInitialLoad]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!lessonTopic || !lessonGoal) {
+    if (!lessonTopic || !lessonGoal || !additionalInformation) {
       toast({
         title: "Missing information",
-        description: "Please fill in all required fields (Topic, Goal)",
+        description: "Please fill in all required fields (Topic, Focus, Additional Information)",
         variant: "destructive"
       });
       return;
@@ -45,16 +56,23 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
       lessonTime,
       lessonTopic,
       lessonGoal,
-      teachingPreferences,
+      teachingPreferences: grammarFocus,
       additionalInformation,
       englishLevel
     });
   };
 
-  const refreshTiles = () => {
-    setRandomTopics(getRandomTiles(LESSON_TOPICS));
-    setRandomGoals(getRandomTiles(LESSON_GOALS));
-    setRandomGrammarFocus(getRandomTiles(GRAMMAR_FOCUS));
+  const refreshSuggestions = () => {
+    // Po refresh: oba zestawy losowe
+    setCurrentPlaceholders(getRandomPlaceholderSet());
+    setCurrentSuggestions(getRandomSuggestionSets(2));
+  };
+
+  const createSuggestionTiles = (field: 'lessonTopic' | 'lessonFocus' | 'additionalInformation' | 'grammarFocus') => {
+    return currentSuggestions.map((set, index) => ({
+      id: `${set.id}-${field}-${index}`,
+      title: set[field]
+    }));
   };
 
   return (
@@ -64,9 +82,14 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
               <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between items-start'} mb-6`}>
-                <h1 className={`font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 ${isMobile ? 'text-xl text-center' : 'text-3xl'}`}>
-                  Create Your Worksheet
-                </h1>
+                <div className={`${isMobile ? 'text-center' : ''}`}>
+                  <h1 className={`font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 ${isMobile ? 'text-xl' : 'text-3xl'} mb-2`}>
+                    Create A Worksheet
+                  </h1>
+                  <p className={`text-gray-600 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                    Tailored to your students. In seconds.
+                  </p>
+                </div>
                 
                 <div className={`flex ${isMobile ? 'flex-col gap-3' : 'gap-14'}`}>
                   <div className={`flex gap-2 ${isMobile ? 'justify-center' : 'w-32'}`}>
@@ -129,46 +152,55 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
               
               <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
                 <FormField 
-                  label="Lesson topic: What is the main subject of the lesson?"
-                  placeholder="E.g. IT: debugging code"
+                  label="Lesson topic: General theme or real‑life scenario"
+                  placeholder={currentPlaceholders.lessonTopic}
                   value={lessonTopic}
                   onChange={setLessonTopic}
-                  suggestions={randomTopics}
+                  suggestions={createSuggestionTiles('lessonTopic')}
+                  isRequired={true}
                 />
 
                 <FormField 
-                  label="Lesson goal: What would you like to focus on during this lesson?"
-                  placeholder="E.g. Preparing for a work presentation on AI"
+                  label="Lesson focus: What should your student achieve by the end of the lesson?"
+                  placeholder={currentPlaceholders.lessonFocus}
                   value={lessonGoal}
                   onChange={setLessonGoal}
-                  suggestions={randomGoals}
+                  suggestions={createSuggestionTiles('lessonFocus')}
+                  isRequired={true}
                 />
               </div>
 
               <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
                 <FormField 
-                  label="Grammar focus (optional):"
-                  placeholder="E.g. Present Simple Tense, Conditionals"
-                  value={teachingPreferences}
-                  onChange={setTeachingPreferences}
-                  suggestions={randomGrammarFocus}
-                  isOptional
-                />
-                <FormField 
-                  label="Additional Information (optional)"
-                  placeholder="Describe your idea or specific need for the lesson topic"
+                  label="Additional Information: Extra context & personal or situational details"
+                  placeholder={currentPlaceholders.additionalInformation}
                   value={additionalInformation}
                   onChange={setAdditionalInformation}
-                  suggestions={[]}
-                  isOptional
+                  suggestions={createSuggestionTiles('additionalInformation')}
+                  isRequired={true}
                 />
+                
+                <FormField 
+                  label="Grammar focus (optional):"
+                  placeholder={currentPlaceholders.grammarFocus}
+                  value={grammarFocus}
+                  onChange={setGrammarFocus}
+                  suggestions={createSuggestionTiles('grammarFocus')}
+                  isOptional={true}
+                />
+              </div>
+
+              <div className={`mb-6 ${isMobile ? 'text-center' : ''}`}>
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                  GENERAL HINT: To create a truly personalized, student‑focused worksheet, please provide as detailed a description as possible in each field.
+                </p>
               </div>
 
               <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between'} pt-4`}>
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={refreshTiles} 
+                  onClick={refreshSuggestions} 
                   className={`border-worksheet-purple text-worksheet-purple hover:bg-worksheet-purpleLight ${isMobile ? 'w-full' : ''}`}
                   size={isMobile ? "sm" : "default"}
                 >

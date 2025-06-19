@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -133,8 +134,11 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
             </p>
             <div className="flex items-center gap-2 text-sm text-amber-700 mb-2">
               <Download className="h-4 w-4" />
-              <span>Both HTML versions included</span>
+              <span>Student and Teacher HTML versions included</span>
             </div>
+            <p className="text-xs text-amber-600 mb-1">
+              HTML file: Best quality, works offline. Double-click to open
+            </p>
             <p className="text-xs text-amber-600">
               ⚠️ Note: Closing the page will end your session and require a new payment.
             </p>
