@@ -4,7 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FormActionsProps {
   onRefreshTiles: () => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: () => void;
 }
 
 export default function FormActions({ onRefreshTiles, onSubmit }: FormActionsProps) {
@@ -23,7 +23,6 @@ export default function FormActions({ onRefreshTiles, onSubmit }: FormActionsPro
       </Button>
       <Button 
         type="submit" 
-        onClick={onSubmit}
         className={`bg-worksheet-purple hover:bg-worksheet-purpleDark ${isMobile ? 'w-full' : ''}`}
         size={isMobile ? "sm" : "default"}
       >
