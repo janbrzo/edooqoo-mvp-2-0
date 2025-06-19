@@ -13,10 +13,10 @@ export const mockWorksheetData = {
         {
           text: "_____ I see it, we need to reconsider our strategy.",
           options: [
-            { label: "A", text: "What", correct: false },
+            { label: "A", text: "The way", correct: true },
             { label: "B", text: "As far as", correct: false },
             { label: "C", text: "Where", correct: false },
-            { label: "D", text: "The way", correct: true }
+            { label: "D", text: "What", correct: false }
           ]
         },
         {
@@ -31,9 +31,9 @@ export const mockWorksheetData = {
         {
           text: "_____ your point, but have you considered the cost?",
           options: [
-            { label: "A", text: "I realize", correct: false },
+            { label: "A", text: "I see", correct: true },
             { label: "B", text: "I understand", correct: false },
-            { label: "C", text: "I see", correct: true },
+            { label: "C", text: "I realize", correct: false },
             { label: "D", text: "I acknowledge", correct: false }
           ]
         },
@@ -58,26 +58,26 @@ export const mockWorksheetData = {
         {
           text: "That's an interesting approach, _____.",
           options: [
-            { label: "A", text: "I must admit", correct: false },
+            { label: "A", text: "I must say", correct: true },
             { label: "B", text: "I must tell", correct: false },
-            { label: "C", text: "I must say", correct: true },
+            { label: "C", text: "I must admit", correct: false },
             { label: "D", text: "I must do", correct: false }
           ]
         },
         {
           text: "I'd like to _____ that this solution has worked before.",
           options: [
-            { label: "A", text: "mention", correct: false },
+            { label: "A", text: "point out", correct: true },
             { label: "B", text: "point in", correct: false },
             { label: "C", text: "point up", correct: false },
-            { label: "D", text: "point out", correct: true }
+            { label: "D", text: "mention", correct: false }
           ]
         },
         {
           text: "_____ I understand it, the main issue is funding.",
           options: [
-            { label: "A", text: "From what", correct: false },
-            { label: "B", text: "As", correct: true },
+            { label: "A", text: "As", correct: true },
+            { label: "B", text: "From what", correct: false },
             { label: "C", text: "Which", correct: false },
             { label: "D", text: "Because", correct: false }
           ]
@@ -85,19 +85,19 @@ export const mockWorksheetData = {
         {
           text: "I'm not saying you're wrong, _____.",
           options: [
-            { label: "A", text: "since you're obviously correct", correct: false },
+            { label: "A", text: "but there are other factors to consider", correct: true },
             { label: "B", text: "however I disagree completely", correct: false },
-            { label: "C", text: "but there are other factors to consider", correct: true },
+            { label: "C", text: "since you're obviously correct", correct: false },
             { label: "D", text: "and I agree with everything", correct: false }
           ]
         },
         {
           text: "_____, I believe this approach would be more effective.",
           options: [
-            { label: "A", text: "Overall", correct: false },
+            { label: "A", text: "On the whole", correct: true },
             { label: "B", text: "In general", correct: false },
             { label: "C", text: "At the part", correct: false },
-            { label: "D", text: "On the whole", correct: true }
+            { label: "D", text: "Overall", correct: false }
           ]
         }
       ],
