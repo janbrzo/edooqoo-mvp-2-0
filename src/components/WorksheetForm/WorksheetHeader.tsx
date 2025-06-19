@@ -1,7 +1,7 @@
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import LessonTimeSelector from './LessonTimeSelector';
-import { EnglishLevelSelector } from './EnglishLevelSelector';
+import EnglishLevelSelector from './EnglishLevelSelector';
 import { LessonTime, EnglishLevel } from './types';
 
 interface WorksheetHeaderProps {
@@ -39,7 +39,7 @@ export default function WorksheetHeader({
           
           <EnglishLevelSelector 
             englishLevel={englishLevel}
-            onEnglishLevelChange={onEnglishLevelChange}
+            setEnglishLevel={onEnglishLevelChange}
           />
         </div>
       </div>
