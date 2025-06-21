@@ -130,36 +130,6 @@ export type Database = {
           },
         ]
       }
-      profiles: {
-        Row: {
-          created_at: string
-          first_name: string | null
-          id: string
-          last_name: string | null
-          school_institution: string | null
-          teaching_preferences: Json | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          first_name?: string | null
-          id: string
-          last_name?: string | null
-          school_institution?: string | null
-          teaching_preferences?: Json | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          first_name?: string | null
-          id?: string
-          last_name?: string | null
-          school_institution?: string | null
-          teaching_preferences?: Json | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       user_events: {
         Row: {
           created_at: string | null
@@ -193,30 +163,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_roles: {
-        Row: {
-          assigned_at: string
-          assigned_by: string | null
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          assigned_at?: string
-          assigned_by?: string | null
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          assigned_at?: string
-          assigned_by?: string | null
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
       worksheets: {
         Row: {
           ai_response: string
@@ -235,7 +181,6 @@ export type Database = {
           sequence_number: number
           session_id: string | null
           status: string
-          teacher_id: string | null
           title: string | null
           user_agent: string | null
           user_id: string | null
@@ -257,7 +202,6 @@ export type Database = {
           sequence_number?: number
           session_id?: string | null
           status?: string
-          teacher_id?: string | null
           title?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -279,20 +223,11 @@ export type Database = {
           sequence_number?: number
           session_id?: string | null
           status?: string
-          teacher_id?: string | null
           title?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "worksheets_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
@@ -320,13 +255,6 @@ export type Database = {
       }
     }
     Functions: {
-      has_role: {
-        Args: {
-          _user_id: string
-          _role: Database["public"]["Enums"]["app_role"]
-        }
-        Returns: boolean
-      }
       increment_worksheet_download_count: {
         Args: { p_worksheet_id: string }
         Returns: undefined
@@ -376,7 +304,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "teacher"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -491,8 +419,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      app_role: ["admin", "teacher"],
-    },
+    Enums: {},
   },
 } as const
