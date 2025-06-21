@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { submitFeedback, updateFeedback } from "@/services/worksheetService";
 
 export const useWorksheetRating = (
@@ -16,7 +15,7 @@ export const useWorksheetRating = (
   const [submitting, setSubmitting] = useState(false);
   const [currentFeedbackId, setCurrentFeedbackId] = useState<string | null>(null);
   const { toast } = useToast();
-  const { userId } = useAnonymousAuth();
+  const { userId } = useAuth();
   
   const handleRatingClick = async (value: number) => {
     setSelected(value);
