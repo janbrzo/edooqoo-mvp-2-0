@@ -1,4 +1,3 @@
-
 import React from "react";
 import ExerciseSection from "./ExerciseSection";
 import VocabularySheet from "./VocabularySheet";
@@ -6,7 +5,6 @@ import WorksheetRating from "@/components/WorksheetRating";
 import TeacherNotes from "./TeacherNotes";
 import GrammarRules from "./GrammarRules";
 import DemoWatermark from "./DemoWatermark";
-import WarmupSection from "./WarmupSection";
 
 interface WorksheetContentProps {
   editableWorksheet: any;
@@ -45,46 +43,33 @@ export default function WorksheetContent({
       
       <div className="bg-white p-6 border rounded-lg shadow-sm mb-6 relative">
         {!isDownloadUnlocked && <DemoWatermark />}
+        <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight">
+          {isEditing ? (
+            <input 
+              type="text" 
+              value={editableWorksheet.title || ''} 
+              onChange={e => setEditableWorksheet({
+                ...editableWorksheet,
+                title: e.target.value
+              })} 
+              className="w-full border p-2 editable-content" 
+            />
+          ) : (editableWorksheet.title || 'Untitled Worksheet')}
+        </h1>
         
-        {/* Header with title and logo */}
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight">
-              {isEditing ? (
-                <input 
-                  type="text" 
-                  value={editableWorksheet.title || ''} 
-                  onChange={e => setEditableWorksheet({
-                    ...editableWorksheet,
-                    title: e.target.value
-                  })} 
-                  className="w-full border p-2 editable-content" 
-                />
-              ) : (editableWorksheet.title || 'Untitled Worksheet')}
-            </h1>
-            
-            <h2 className="text-xl text-worksheet-purple mb-3 leading-tight">
-              {isEditing ? (
-                <input 
-                  type="text" 
-                  value={editableWorksheet.subtitle || ''} 
-                  onChange={e => setEditableWorksheet({
-                    ...editableWorksheet,
-                    subtitle: e.target.value
-                  })} 
-                  className="w-full border p-2 editable-content" 
-                />
-              ) : (editableWorksheet.subtitle || '')}
-            </h2>
-          </div>
-          
-          {/* edooqoo Logo */}
-          <div className="flex-shrink-0 ml-6">
-            <div className="bg-purple-600 text-white px-4 py-2 rounded-lg border-2 border-purple-700 font-bold text-sm tracking-wide">
-              edooqoo
-            </div>
-          </div>
-        </div>
+        <h2 className="text-xl text-worksheet-purple mb-3 leading-tight">
+          {isEditing ? (
+            <input 
+              type="text" 
+              value={editableWorksheet.subtitle || ''} 
+              onChange={e => setEditableWorksheet({
+                ...editableWorksheet,
+                subtitle: e.target.value
+              })} 
+              className="w-full border p-2 editable-content" 
+            />
+          ) : (editableWorksheet.subtitle || '')}
+        </h2>
 
         <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-md">
           {isEditing ? (
@@ -101,20 +86,6 @@ export default function WorksheetContent({
           )}
         </div>
       </div>
-
-      {/* Warmup Section - appears before other sections */}
-      {editableWorksheet.warmup && (
-        <div className="relative">
-          {!isDownloadUnlocked && <DemoWatermark />}
-          <WarmupSection
-            warmup={editableWorksheet.warmup}
-            isEditing={isEditing}
-            viewMode={viewMode}
-            editableWorksheet={editableWorksheet}
-            setEditableWorksheet={setEditableWorksheet}
-          />
-        </div>
-      )}
 
       {editableWorksheet.grammar_rules && (
         <div className="relative">
