@@ -10,6 +10,65 @@ import { processExercises } from "@/utils/exerciseProcessor";
 import { getExpectedExerciseCount, validateWorksheet, createSampleVocabulary } from "@/utils/worksheetUtils";
 import { deepFixTextObjects } from "@/utils/textObjectFixer";
 
+// Function to generate warmup questions based on form data
+const generateWarmupQuestions = (formData: FormData): string[] => {
+  const { lessonTopic, lessonGoal, englishLevel } = formData;
+  
+  // Base questions that can be adapted
+  const questionTemplates = [
+    `What do you think about ${lessonTopic.toLowerCase()}? Do you have experience with this topic?`,
+    `How important is ${lessonTopic.toLowerCase()} in your daily life?`,
+    `What would you like to learn about ${lessonTopic.toLowerCase()} today?`,
+    `Have you ever had any interesting experiences related to ${lessonTopic.toLowerCase()}?`
+  ];
+
+  // Topic-specific questions
+  const topicSpecificQuestions: { [key: string]: string[] } = {
+    hotel: [
+      "Do you enjoy staying in hotels? What makes a good hotel experience?",
+      "What's the most important thing for you when choosing a hotel?",
+      "Have you ever had a memorable hotel experience? Tell me about it.",
+      "Do you prefer hotels or other types of accommodation? Why?"
+    ],
+    restaurant: [
+      "How often do you eat at restaurants? What's your favorite type of cuisine?",
+      "What makes a restaurant experience special for you?",
+      "Have you ever had to make a complaint at a restaurant? What happened?",
+      "Do you prefer fine dining or casual restaurants? Why?"
+    ],
+    travel: [
+      "What's your favorite travel destination? What makes it special?",
+      "Do you prefer traveling alone or with others? Why?",
+      "What's the most important thing to consider when planning a trip?",
+      "Have you ever had any travel problems? How did you solve them?"
+    ],
+    work: [
+      "What do you like most about your job or studies?",
+      "How do you handle stress at work or school?",
+      "What skills do you think are most important in your field?",
+      "What are your career goals for the future?"
+    ],
+    shopping: [
+      "Do you enjoy shopping? What do you like to buy most?",
+      "Do you prefer shopping online or in stores? Why?",
+      "How do you decide what to buy when you're shopping?",
+      "Have you ever bought something you regretted? What was it?"
+    ]
+  };
+
+  // Try to find topic-specific questions first
+  const topicKey = Object.keys(topicSpecificQuestions).find(key => 
+    lessonTopic.toLowerCase().includes(key)
+  );
+
+  if (topicKey) {
+    return topicSpecificQuestions[topicKey];
+  }
+
+  // Fall back to adapted general questions
+  return questionTemplates;
+};
+
 export const useWorksheetGeneration = (
   userId: string | null,
   worksheetState: any
@@ -81,6 +140,11 @@ export const useWorksheetGeneration = (
         deepFixedWorksheet.exercises = processExercises(deepFixedWorksheet.exercises);
         deepFixedWorksheet.id = newWorksheetId;
         
+        // Add warmup section
+        deepFixedWorksheet.warmup = {
+          questions: generateWarmupQuestions(data)
+        };
+        
         if (!deepFixedWorksheet.vocabulary_sheet || deepFixedWorksheet.vocabulary_sheet.length === 0) {
           console.log('📝 Creating sample vocabulary sheet...');
           deepFixedWorksheet.vocabulary_sheet = createSampleVocabulary(15);
@@ -112,6 +176,11 @@ export const useWorksheetGeneration = (
       fallbackWorksheet.exercises = fallbackWorksheet.exercises.slice(0, expectedExerciseCount);
       fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises);
       fallbackWorksheet.id = newWorksheetId;
+      
+      // Add warmup section to fallback too
+      fallbackWorksheet.warmup = {
+        questions: generateWarmupQuestions(data || { lessonTopic: 'English', lessonGoal: 'General practice', englishLevel: 'Intermediate' } as FormData)
+      };
       
       // CRITICAL FIX: Set both states atomically for fallback case too
       worksheetState.setGeneratedWorksheet(fallbackWorksheet);
