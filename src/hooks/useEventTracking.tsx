@@ -4,7 +4,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface TrackingEvent {
-  eventType: 'form_start' | 'form_abandon' | 'worksheet_view_time' | 'download_attempt' | 'payment_click';
+  eventType: 
+    | 'form_start' 
+    | 'form_abandon_page_leave' 
+    | 'form_abandon_tab_switch'
+    | 'form_submit'
+    | 'worksheet_generation_start'
+    | 'worksheet_generation_complete'
+    | 'worksheet_view_time'
+    | 'worksheet_view_end_page_leave'
+    | 'worksheet_view_end_tab_switch'
+    | 'download_attempt_locked' 
+    | 'download_attempt_unlocked'
+    | 'payment_button_click'
+    | 'stripe_payment_success';
   eventData?: any;
   userIdentifier?: string;
 }

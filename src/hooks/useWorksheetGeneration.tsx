@@ -9,6 +9,7 @@ import { formatPromptForAI, createFormDataForStorage } from "@/utils/promptForma
 import { processExercises } from "@/utils/exerciseProcessor";
 import { getExpectedExerciseCount, validateWorksheet, createSampleVocabulary } from "@/utils/worksheetUtils";
 import { deepFixTextObjects } from "@/utils/textObjectFixer";
+import { useEventTracking } from "@/hooks/useEventTracking";
 
 export const useWorksheetGeneration = (
   userId: string | null,
@@ -17,9 +18,24 @@ export const useWorksheetGeneration = (
   const [isGenerating, setIsGenerating] = useState(false);
   const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
   const { toast } = useToast();
+  const { trackEvent } = useEventTracking(userId);
 
   const generateWorksheetHandler = async (data: FormData) => {
     console.log('🚀 Starting worksheet generation for:', data.lessonTime);
+    
+    // Track worksheet generation start
+    await trackEvent({
+      eventType: 'worksheet_generation_start',
+      eventData: {
+        timestamp: new Date().toISOString(),
+        formData: {
+          lessonTime: data.lessonTime,
+          englishLevel: data.englishLevel,
+          lessonTopic: data.lessonTopic.substring(0, 50),
+          lessonGoal: data.lessonGoal.substring(0, 50)
+        }
+      }
+    });
     
     worksheetState.clearWorksheetStorage();
 
@@ -93,6 +109,18 @@ export const useWorksheetGeneration = (
         worksheetState.setGeneratedWorksheet(deepFixedWorksheet);
         worksheetState.setEditableWorksheet(deepFixedWorksheet);
         
+        // Track successful generation
+        await trackEvent({
+          eventType: 'worksheet_generation_complete',
+          eventData: {
+            timestamp: new Date().toISOString(),
+            success: true,
+            generationTime: actualGenerationTime,
+            exerciseCount: deepFixedWorksheet.exercises.length,
+            worksheetId: newWorksheetId
+          }
+        });
+        
         console.log('🎉 Worksheet generation completed successfully!');
         toast({
           title: "Worksheet generated successfully!",
@@ -116,6 +144,18 @@ export const useWorksheetGeneration = (
       // CRITICAL FIX: Set both states atomically for fallback case too
       worksheetState.setGeneratedWorksheet(fallbackWorksheet);
       worksheetState.setEditableWorksheet(fallbackWorksheet);
+      
+      // Track failed generation (using fallback)
+      await trackEvent({
+        eventType: 'worksheet_generation_complete',
+        eventData: {
+          timestamp: new Date().toISOString(),
+          success: false,
+          usedFallback: true,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          worksheetId: newWorksheetId
+        }
+      });
       
       toast({
         title: "Using sample worksheet",

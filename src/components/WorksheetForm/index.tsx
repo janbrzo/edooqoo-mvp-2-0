@@ -1,223 +1,183 @@
-
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { LessonTime, EnglishLevel, FormData, WorksheetFormProps } from './types';
-import { getRandomPlaceholderSet, PlaceholderSet } from './placeholderSets';
-import { getRandomSuggestionSets, getSuggestionSetMatchingPlaceholder, SuggestionSet } from './suggestionSets';
-import FormField from './FormField';
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Form } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Lightbulb, Clock, Target, BookOpen, Sparkles } from "lucide-react";
+import { z } from "zod";
+import { motion } from "framer-motion";
+import FormField from "./FormField";
+import EnglishLevelSelector from "./EnglishLevelSelector";
+import { 
+  LESSON_TIME_OPTIONS, 
+  LESSON_GOAL_OPTIONS, 
+  LESSON_TOPIC_OPTIONS 
+} from "./constants";
+import { useEventTracking } from "@/hooks/useEventTracking";
 
-export type { FormData };
+const formSchema = z.object({
+  lessonTime: z.string().min(1, "Please select lesson duration"),
+  englishLevel: z.string().min(1, "Please select English level"),
+  lessonTopic: z.string().min(3, "Topic must be at least 3 characters long"),
+  lessonGoal: z.string().min(10, "Goal must be at least 10 characters long"),
+});
 
-export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
-  const [lessonTime, setLessonTime] = useState<LessonTime>("60 min");
-  const [lessonTopic, setLessonTopic] = useState("");
-  const [lessonGoal, setLessonGoal] = useState("");
-  const [grammarFocus, setGrammarFocus] = useState("");
-  const [additionalInformation, setAdditionalInformation] = useState("");
-  const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
+export type FormData = z.infer<typeof formSchema>;
+
+interface WorksheetFormProps {
+  onSubmit: (data: FormData) => void;
+}
+
+const WorksheetForm = ({ onSubmit }: WorksheetFormProps) => {
+  const { trackEvent } = useEventTracking();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const [currentPlaceholders, setCurrentPlaceholders] = useState<PlaceholderSet>(getRandomPlaceholderSet());
-  const [currentSuggestions, setCurrentSuggestions] = useState<SuggestionSet[]>([]);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      lessonTime: "",
+      englishLevel: "",
+      lessonTopic: "",
+      lessonGoal: "",
+    },
+  });
 
-  const { toast } = useToast();
-  const isMobile = useIsMobile();
-
-  useEffect(() => {
-    if (isInitialLoad) {
-      // Na początku: pierwszy zestaw jak placeholder, drugi losowy
-      const matchingSet = getSuggestionSetMatchingPlaceholder(currentPlaceholders);
-      const randomSets = getRandomSuggestionSets(1);
-      
-      if (matchingSet) {
-        setCurrentSuggestions([matchingSet, randomSets[0]]);
-      } else {
-        setCurrentSuggestions(getRandomSuggestionSets(2));
+  const handleSubmit = async (data: FormData) => {
+    setIsSubmitting(true);
+    
+    // Track form submission
+    await trackEvent({
+      eventType: 'form_submit',
+      eventData: {
+        timestamp: new Date().toISOString(),
+        formData: {
+          lessonTime: data.lessonTime,
+          englishLevel: data.englishLevel,
+          lessonTopic: data.lessonTopic.substring(0, 50), // Truncate for privacy
+          lessonGoal: data.lessonGoal.substring(0, 50) // Truncate for privacy
+        }
       }
-      setIsInitialLoad(false);
-    }
-  }, [currentPlaceholders, isInitialLoad]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!lessonTopic || !lessonGoal || !additionalInformation) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all required fields (Topic, Focus, Additional Information)",
-        variant: "destructive"
-      });
-      return;
-    }
-    onSubmit({
-      lessonTime,
-      lessonTopic,
-      lessonGoal,
-      teachingPreferences: grammarFocus,
-      additionalInformation,
-      englishLevel
     });
-  };
-
-  const refreshSuggestions = () => {
-    // Po refresh: oba zestawy losowe
-    setCurrentPlaceholders(getRandomPlaceholderSet());
-    setCurrentSuggestions(getRandomSuggestionSets(2));
-  };
-
-  const createSuggestionTiles = (field: 'lessonTopic' | 'lessonFocus' | 'additionalInformation' | 'grammarFocus') => {
-    return currentSuggestions.map((set, index) => ({
-      id: `${set.id}-${field}-${index}`,
-      title: set[field]
-    }));
+    
+    onSubmit(data);
+    setIsSubmitting(false);
   };
 
   return (
-    <div className={`w-full ${isMobile ? 'py-2' : 'py-[24px]'}`}>
-      <Card className="bg-white shadow-sm">
-        <CardContent className={`${isMobile ? 'p-3' : 'p-8'}`}>
-          <form onSubmit={handleSubmit}>
-            <div className="mb-6">
-              <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between items-start'} mb-6`}>
-                <div className={`${isMobile ? 'text-center' : ''}`}>
-                  <h1 className={`font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 ${isMobile ? 'text-xl' : 'text-3xl'} mb-2`}>
-                    Create A Worksheet
-                  </h1>
-                  <p className={`text-gray-600 ${isMobile ? 'text-sm' : 'text-base'}`}>
-                    Tailored to your students. In seconds.
-                  </p>
-                </div>
-                
-                <div className={`flex ${isMobile ? 'flex-col gap-3' : 'gap-14'}`}>
-                  <div className={`flex gap-2 ${isMobile ? 'justify-center' : 'w-32'}`}>
-                    <Button 
-                      type="button"
-                      variant={lessonTime === "45 min" ? "default" : "outline"} 
-                      onClick={() => setLessonTime("45 min")} 
-                      className={lessonTime === "45 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
-                      size={isMobile ? "sm" : "sm"}
-                    >
-                      45 min
-                    </Button>
-                    <Button 
-                      type="button"
-                      variant={lessonTime === "60 min" ? "default" : "outline"} 
-                      onClick={() => setLessonTime("60 min")} 
-                      className={lessonTime === "60 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
-                      size={isMobile ? "sm" : "sm"}
-                    >
-                      60 min
-                    </Button>
-                  </div>
-                  
-                  <div className={`flex flex-col ${isMobile ? 'items-center' : 'items-end w-80'}`}>
-                    <div className={`flex gap-1 mb-1 ${isMobile ? 'flex-wrap justify-center' : ''}`}>
-                      <Button 
-                        type="button"
-                        variant={englishLevel === "A1/A2" ? "default" : "outline"} 
-                        onClick={() => setEnglishLevel("A1/A2")} 
-                        className={englishLevel === "A1/A2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
-                        size={isMobile ? "sm" : "sm"}
-                      >
-                        A1/A2
-                      </Button>
-                      <Button 
-                        type="button"
-                        variant={englishLevel === "B1/B2" ? "default" : "outline"} 
-                        onClick={() => setEnglishLevel("B1/B2")} 
-                        className={englishLevel === "B1/B2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
-                        size={isMobile ? "sm" : "sm"}
-                      >
-                        B1/B2
-                      </Button>
-                      <Button 
-                        type="button"
-                        variant={englishLevel === "C1/C2" ? "default" : "outline"} 
-                        onClick={() => setEnglishLevel("C1/C2")} 
-                        className={englishLevel === "C1/C2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
-                        size={isMobile ? "sm" : "sm"}
-                      >
-                        C1/C2
-                      </Button>
-                    </div>
-                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 ${isMobile ? 'text-center' : ''}`}>
-                      CEFR Scale: {englishLevel === "A1/A2" ? "Beginner/Elementary" : englishLevel === "B1/B2" ? "Intermediate/Upper-Intermediate" : "Advanced/Proficiency"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
-                <FormField 
-                  label="Lesson topic: General theme or real‑life scenario"
-                  placeholder={currentPlaceholders.lessonTopic}
-                  value={lessonTopic}
-                  onChange={setLessonTopic}
-                  suggestions={createSuggestionTiles('lessonTopic')}
-                  isRequired={true}
-                />
-
-                <FormField 
-                  label="Lesson focus: What should your student achieve by the end of the lesson?"
-                  placeholder={currentPlaceholders.lessonFocus}
-                  value={lessonGoal}
-                  onChange={setLessonGoal}
-                  suggestions={createSuggestionTiles('lessonFocus')}
-                  isRequired={true}
-                />
-              </div>
-
-              <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
-                <FormField 
-                  label="Additional Information: Extra context & personal or situational details"
-                  placeholder={currentPlaceholders.additionalInformation}
-                  value={additionalInformation}
-                  onChange={setAdditionalInformation}
-                  suggestions={createSuggestionTiles('additionalInformation')}
-                  isRequired={true}
-                />
-                
-                <FormField 
-                  label="Grammar focus (optional):"
-                  placeholder={currentPlaceholders.grammarFocus}
-                  value={grammarFocus}
-                  onChange={setGrammarFocus}
-                  suggestions={createSuggestionTiles('grammarFocus')}
-                  isOptional={true}
-                />
-              </div>
-
-              <div className={`mb-6 ${isMobile ? 'text-center' : ''}`}>
-                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>
-                  GENERAL HINT: To create a truly personalized, student‑focused worksheet, please provide as detailed a description as possible in each field.
-                </p>
-              </div>
-
-              <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between'} pt-4`}>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={refreshSuggestions} 
-                  className={`border-worksheet-purple text-worksheet-purple hover:bg-worksheet-purpleLight ${isMobile ? 'w-full' : ''}`}
-                  size={isMobile ? "sm" : "default"}
+    <div className="min-h-screen bg-gradient-to-br from-worksheet-purple/5 via-white to-worksheet-purple/10 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="w-full max-w-2xl"
+      >
+        <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
+          <CardHeader className="text-center space-y-4 pb-8">
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <CardTitle className="text-4xl font-bold bg-gradient-to-r from-worksheet-purple to-worksheet-purpleDark bg-clip-text text-transparent">
+                Worksheet Generator
+              </CardTitle>
+            </motion.div>
+            <CardDescription className="text-xl text-gray-600">
+              Create personalized English learning materials in seconds
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-8">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
                 >
-                  Refresh Suggestions
-                </Button>
-                <Button 
-                  type="submit" 
-                  className={`bg-worksheet-purple hover:bg-worksheet-purpleDark ${isMobile ? 'w-full' : ''}`}
-                  size={isMobile ? "sm" : "default"}
+                  <FormField
+                    control={form.control}
+                    name="lessonTime"
+                    label="Lesson Duration"
+                    icon={<Clock className="h-5 w-5" />}
+                    type="select"
+                    options={LESSON_TIME_OPTIONS}
+                    placeholder="Select lesson duration"
+                  />
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                  Generate Custom Worksheet
-                </Button>
-              </div>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+                  <EnglishLevelSelector control={form.control} />
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.5 }}
+                >
+                  <FormField
+                    control={form.control}
+                    name="lessonTopic"
+                    label="Lesson Topic"
+                    icon={<BookOpen className="h-5 w-5" />}
+                    type="combobox"
+                    options={LESSON_TOPIC_OPTIONS}
+                    placeholder="e.g., Travel, Food, Business English..."
+                  />
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                >
+                  <FormField
+                    control={form.control}
+                    name="lessonGoal"
+                    label="Lesson Goal"
+                    icon={<Target className="h-5 w-5" />}
+                    type="combobox"
+                    options={LESSON_GOAL_OPTIONS}
+                    placeholder="e.g., Practice past tense verbs..."
+                  />
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.7 }}
+                  className="pt-4"
+                >
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-gradient-to-r from-worksheet-purple to-worksheet-purpleDark hover:from-worksheet-purpleDark hover:to-worksheet-purple text-white font-semibold py-4 text-lg rounded-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                        Generating...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5" />
+                        Generate Worksheet
+                      </div>
+                    )}
+                  </Button>
+                </motion.div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
-}
+};
+
+export default WorksheetForm;
