@@ -1,5 +1,5 @@
 
-import { FormData } from "@/components/WorksheetForm";
+import { FormData } from "@/components/WorksheetForm/types";
 
 export const formatPromptForAI = (data: FormData): string => {
   console.log('📝 Formatting prompt for AI with data:', data);

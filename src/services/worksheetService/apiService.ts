@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
+import { FormData as WorksheetFormData } from '@/components/WorksheetForm/types';
 import { toast } from 'sonner';
 
 // URLs for the Edge Functions
