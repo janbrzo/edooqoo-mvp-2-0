@@ -1,184 +1,315 @@
+
 export const mockWorksheetData = {
-  title: "Business Communication Mastery",
-  subtitle: "Advanced Expressions for Professional Discussions",
-  introduction: "This worksheet focuses on sophisticated business expressions and communication techniques commonly used in professional environments. Students will practice using advanced vocabulary and expressions to communicate effectively in workplace situations.",
-  exercises: [
+  "title": "In a restaurant",
+  "subtitle": "Making a complaint about your dish in a restaurant: adjectives practice",
+  "introduction": "This lesson will help you practice making complaints in restaurants using appropriate adjectives and polite language. You'll learn how to express dissatisfaction professionally while maintaining good relationships with restaurant staff.",
+  "exercises": [
     {
-      type: "multiple-choice",
-      title: "Multiple Choice",
-      icon: "CheckCircle",
-      time: 6,
-      instructions: "Choose the best expression to complete each sentence.",
-      questions: [
+      "type": "reading",
+      "title": "Reading Comprehension",
+      "icon": "Book",
+      "time": 8,
+      "instructions": "Read the dialogue below and answer the questions that follow.",
+      "content": "Sarah and Mark are having dinner at an upscale restaurant. Sarah orders the grilled salmon with vegetables, while Mark chooses the beef steak. When their food arrives, Sarah notices that her salmon appears overcooked and dry. The vegetables look wilted and cold. She decides to speak with the waiter politely about the issue.\n\n'Excuse me,' Sarah says to the waiter. 'I'm sorry to bother you, but I think there might be an issue with my salmon. It seems quite overcooked and the vegetables appear to be cold. Would it be possible to have this replaced?'\n\nThe waiter apologizes sincerely and offers to bring a fresh dish immediately. He also mentions that the chef would like to offer a complimentary dessert for the inconvenience. Sarah appreciates the professional response and thanks the staff for their understanding.",
+      "questions": [
         {
-          text: "_____ I see it, we need to reconsider our strategy.",
-          options: [
-            { label: "A", text: "The way", correct: true },
-            { label: "B", text: "As far as", correct: false },
-            { label: "C", text: "Where", correct: false },
-            { label: "D", text: "What", correct: false }
+          "question": "What problem did Sarah notice with her meal?",
+          "type": "open"
+        },
+        {
+          "question": "How did Sarah approach the waiter about the issue?",
+          "type": "open"
+        },
+        {
+          "question": "What solution did the restaurant staff offer?",
+          "type": "open"
+        }
+      ],
+      "teacher_tip": "Encourage students to discuss the polite language used and alternative ways to make complaints in restaurants."
+    },
+    {
+      "type": "vocabulary_matching",
+      "title": "Vocabulary Matching",
+      "icon": "BookOpen",
+      "time": 6,
+      "instructions": "Match the adjectives with their correct meanings in the context of restaurant complaints.",
+      "items": [
+        {
+          "term": "Overcooked",
+          "meaning": "Cooked for too long, making food dry or tough"
+        },
+        {
+          "term": "Undercooked",
+          "meaning": "Not cooked enough, potentially unsafe to eat"
+        },
+        {
+          "term": "Bland",
+          "meaning": "Lacking flavor or taste"
+        },
+        {
+          "term": "Stale",
+          "meaning": "No longer fresh, old and dry"
+        },
+        {
+          "term": "Lukewarm",
+          "meaning": "Neither hot nor cold, tepid temperature"
+        },
+        {
+          "term": "Greasy",
+          "meaning": "Containing too much oil or fat"
+        },
+        {
+          "term": "Soggy",
+          "meaning": "Wet and soft, often unpleasantly so"
+        },
+        {
+          "term": "Burnt",
+          "meaning": "Cooked too much with a charred, blackened surface"
+        }
+      ],
+      "teacher_tip": "Have students create their own sentences using these adjectives to describe food problems they might encounter."
+    },
+    {
+      "type": "fill_in_the_blanks",
+      "title": "Complete the Complaint",
+      "icon": "Edit",
+      "time": 7,
+      "instructions": "Fill in the blanks with appropriate words from the word bank to complete these polite restaurant complaints.",
+      "word_bank": ["overcooked", "cold", "missing", "tough", "salty", "undercooked", "burnt", "soggy"],
+      "sentences": [
+        "Excuse me, but my steak seems quite _____ - it's very difficult to cut.",
+        "I'm sorry to mention this, but my soup has gone _____ while I was waiting.",
+        "The chicken appears to be _____ in the middle - could you please cook it a bit more?",
+        "My salad is _____ some ingredients that were mentioned on the menu.",
+        "This bread tastes _____ - I think it might have been sitting out too long.",
+        "The vegetables are quite _____ - they seem to have too much water in them.",
+        "I'm afraid my fish is _____ - it has black spots on the surface.",
+        "This dish is extremely _____ - could I perhaps get something with less salt?"
+      ],
+      "teacher_tip": "Practice the pronunciation of these adjectives and discuss cultural differences in making complaints."
+    },
+    {
+      "type": "multiple_choice",
+      "title": "Multiple Choice",
+      "icon": "CheckCircle",
+      "time": 8,
+      "instructions": "Choose the most appropriate adjective to complete each restaurant complaint.",
+      "questions": [
+        {
+          "text": "Excuse me, but this coffee is _____. Could you please warm it up?",
+          "options": [
+            {"label": "A", "text": "lukewarm", "correct": true},
+            {"label": "B", "text": "overcooked", "correct": false},
+            {"label": "C", "text": "undercooked", "correct": false},
+            {"label": "D", "text": "stale", "correct": false}
           ]
         },
         {
-          text: "I'm not entirely convinced; _____.",
-          options: [
-            { label: "A", text: "if I'm honest", correct: true },
-            { label: "B", text: "to be frank", correct: false },
-            { label: "C", text: "frankly speaking", correct: false },
-            { label: "D", text: "in my opinion", correct: false }
+          "text": "I'm sorry, but this meat is quite _____. It's very hard to chew.",
+          "options": [
+            {"label": "A", "text": "bland", "correct": false},
+            {"label": "B", "text": "tough", "correct": true},
+            {"label": "C", "text": "soggy", "correct": false},
+            {"label": "D", "text": "greasy", "correct": false}
           ]
         },
         {
-          text: "_____ your point, but have you considered the cost?",
-          options: [
-            { label: "A", text: "I see", correct: true },
-            { label: "B", text: "I understand", correct: false },
-            { label: "C", text: "I realize", correct: false },
-            { label: "D", text: "I acknowledge", correct: false }
+          "text": "This bread seems _____. It's not fresh at all.",
+          "options": [
+            {"label": "A", "text": "burnt", "correct": false},
+            {"label": "B", "text": "cold", "correct": false},
+            {"label": "C", "text": "stale", "correct": true},
+            {"label": "D", "text": "salty", "correct": false}
           ]
         },
         {
-          text: "Let me play devil's advocate for a moment. _____?",
-          options: [
-            { label: "A", text: "What about the risks", correct: true },
-            { label: "B", text: "I love your idea", correct: false },
-            { label: "C", text: "Have you considered alternatives", correct: false },
-            { label: "D", text: "This seems perfect", correct: false }
+          "text": "The pasta is _____. There's too much oil in the sauce.",
+          "options": [
+            {"label": "A", "text": "tough", "correct": false},
+            {"label": "B", "text": "bland", "correct": false},
+            {"label": "C", "text": "lukewarm", "correct": false},
+            {"label": "D", "text": "greasy", "correct": true}
           ]
         },
         {
-          text: "_____ we look at this from another perspective?",
-          options: [
-            { label: "A", text: "Could", correct: false },
-            { label: "B", text: "Why don't", correct: true },
-            { label: "C", text: "What if", correct: false },
-            { label: "D", text: "Should", correct: false }
+          "text": "This salad is _____. The lettuce is completely wet and limp.",
+          "options": [
+            {"label": "A", "text": "soggy", "correct": true},
+            {"label": "B", "text": "burnt", "correct": false},
+            {"label": "C", "text": "tough", "correct": false},
+            {"label": "D", "text": "missing", "correct": false}
           ]
         },
         {
-          text: "That's an interesting approach, _____.",
-          options: [
-            { label: "A", text: "I must say", correct: true },
-            { label: "B", text: "I must tell", correct: false },
-            { label: "C", text: "I must admit", correct: false },
-            { label: "D", text: "I must do", correct: false }
+          "text": "I'm afraid the chicken is _____. It's still pink in the middle.",
+          "options": [
+            {"label": "A", "text": "overcooked", "correct": false},
+            {"label": "B", "text": "undercooked", "correct": true},
+            {"label": "C", "text": "stale", "correct": false},
+            {"label": "D", "text": "greasy", "correct": false}
           ]
         },
         {
-          text: "I'd like to _____ that this solution has worked before.",
-          options: [
-            { label: "A", text: "point out", correct: true },
-            { label: "B", text: "point in", correct: false },
-            { label: "C", text: "point up", correct: false },
-            { label: "D", text: "mention", correct: false }
+          "text": "This dish is quite _____. It needs more seasoning and flavor.",
+          "options": [
+            {"label": "A", "text": "soggy", "correct": false},
+            {"label": "B", "text": "burnt", "correct": false},
+            {"label": "C", "text": "bland", "correct": true},
+            {"label": "D", "text": "tough", "correct": false}
           ]
         },
         {
-          text: "_____ I understand it, the main issue is funding.",
-          options: [
-            { label: "A", text: "As", correct: true },
-            { label: "B", text: "From what", correct: false },
-            { label: "C", text: "Which", correct: false },
-            { label: "D", text: "Because", correct: false }
-          ]
-        },
-        {
-          text: "I'm not saying you're wrong, _____.",
-          options: [
-            { label: "A", text: "but there are other factors to consider", correct: true },
-            { label: "B", text: "however I disagree completely", correct: false },
-            { label: "C", text: "since you're obviously correct", correct: false },
-            { label: "D", text: "and I agree with everything", correct: false }
-          ]
-        },
-        {
-          text: "_____, I believe this approach would be more effective.",
-          options: [
-            { label: "A", text: "On the whole", correct: true },
-            { label: "B", text: "In general", correct: false },
-            { label: "C", text: "At the part", correct: false },
-            { label: "D", text: "Overall", correct: false }
+          "text": "The toast is completely _____. It's black around the edges.",
+          "options": [
+            {"label": "A", "text": "lukewarm", "correct": false},
+            {"label": "B", "text": "bland", "correct": false},
+            {"label": "C", "text": "soggy", "correct": false},
+            {"label": "D", "text": "burnt", "correct": true}
           ]
         }
       ],
-      teacher_tip: "Focus on helping students understand the subtle differences between similar expressions and when to use them appropriately in business contexts."
+      "teacher_tip": "Discuss the difference between these adjectives and when to use each one appropriately in restaurant settings."
     },
     {
-      type: "fill_in_the_blanks",
-      title: "Fill in the Blanks",
-      icon: "Edit",
-      time: 8,
-      instructions: "Complete the following sentences with appropriate business expressions from the word bank.",
-      word_bank: ["to be honest", "in my experience", "on the other hand", "as a result", "in conclusion"],
-      sentences: [
-        "_____, this project has exceeded all expectations.",
-        "_____, I think we should consider a different approach.",
-        "_____, the market trends are not in our favor.",
-        "_____, we need to adjust our strategies.",
-        "_____, our team has shown remarkable resilience."
+      "type": "role_play",
+      "title": "Restaurant Role Play",
+      "icon": "Users",
+      "time": 12,
+      "instructions": "Work in pairs. One person is the customer, the other is the waiter. Practice making and responding to complaints using the vocabulary from this lesson.",
+      "scenarios": [
+        {
+          "situation": "Your soup arrived cold and your bread is stale",
+          "customer_role": "Politely complain about the temperature and freshness",
+          "server_role": "Apologize and offer solutions"
+        },
+        {
+          "situation": "Your steak is overcooked and tough, vegetables are soggy",
+          "customer_role": "Express disappointment about the cooking quality",
+          "server_role": "Take responsibility and suggest alternatives"
+        },
+        {
+          "situation": "Your salad is missing ingredients and dressing is too salty",
+          "customer_role": "Point out the problems with your order",
+          "server_role": "Offer to fix the issues promptly"
+        }
       ],
-      teacher_tip: "Encourage students to understand the context of each sentence before choosing the appropriate expression."
+      "teacher_tip": "Encourage students to use polite language and practice both giving and receiving complaints professionally."
     },
     {
-      type: "matching",
-      title: "Matching Expressions",
-      icon: "Layout",
-      time: 7,
-      instructions: "Match the business expression with its correct meaning.",
-      items: [
-        { term: "Touch base", meaning: "To make contact with someone" },
-        { term: "Think outside the box", meaning: "To come up with creative solutions" },
-        { term: "Get the ball rolling", meaning: "To start a process or activity" },
-        { term: "Blue sky thinking", meaning: "Unrestrained creative ideas" },
-        { term: "At the end of the day", meaning: "Ultimately; in conclusion" }
+      "type": "dialogue_completion",
+      "title": "Complete the Dialogue",
+      "icon": "MessageSquare",
+      "time": 10,
+      "instructions": "Complete this restaurant complaint dialogue with appropriate words and phrases.",
+      "dialogue": [
+        {
+          "speaker": "Customer",
+          "line": "Excuse me, waiter. I'm sorry to bother you, but there's a problem with my _____."
+        },
+        {
+          "speaker": "Waiter",
+          "line": "Oh, I'm so sorry to hear that. What seems to be the _____?"
+        },
+        {
+          "speaker": "Customer",
+          "line": "Well, the meat is quite _____ and the vegetables are completely _____."
+        },
+        {
+          "speaker": "Waiter",
+          "line": "I sincerely _____ for that. Would you like me to bring you a _____ dish?"
+        },
+        {
+          "speaker": "Customer",
+          "line": "That would be wonderful. And could you make sure it's _____ this time?"
+        },
+        {
+          "speaker": "Waiter",
+          "line": "Absolutely. I'll speak with the _____ personally and make sure everything is perfect."
+        }
       ],
-      teacher_tip: "Help students understand the nuances of each expression and how they are used in professional settings."
-    },
-    {
-      type: "dialogue",
-      title: "Business Dialogue",
-      icon: "MessageSquare",
-      time: 10,
-      instructions: "Complete the dialogue with appropriate business expressions.",
-      dialogue: [
-        { speaker: "Manager", line: "Good morning, team. Let's ____ today's agenda." },
-        { speaker: "Team Member 1", line: "____, I think we should start with the marketing strategy." },
-        { speaker: "Team Member 2", line: "____, I have some concerns about the budget." },
-        { speaker: "Manager", line: "____ those concerns, but we need to stay within our limits." },
-        { speaker: "Team Member 3", line: "____, let's find a compromise." }
-      ],
-      teacher_tip: "Encourage students to use a variety of expressions to make the dialogue sound natural and professional."
-    },
-    {
-      type: "open_ended",
-      title: "Open-Ended Discussion",
-      icon: "Forum",
-      time: 12,
-      instructions: "Discuss the importance of effective communication in the workplace. Use advanced business expressions in your discussion.",
-      content: "Consider the role of clear and concise communication in project management, team collaboration, and client relations.",
-      teacher_tip: "Facilitate a discussion where students can practice using the expressions they've learned in a meaningful context."
+      "teacher_tip": "Focus on polite expressions and the flow of a complaint conversation. Practice different scenarios with various food problems."
     }
   ],
-  vocabulary_sheet: [
+  "vocabulary_sheet": [
     {
-      term: "Devil's advocate",
-      meaning: "Someone who argues against an idea to test its strength"
+      "term": "Overcooked",
+      "meaning": "Cooked for too long, making food dry, tough, or burnt"
     },
     {
-      term: "Point out",
-      meaning: "To mention or draw attention to something"
+      "term": "Undercooked",
+      "meaning": "Not cooked enough, potentially dangerous to eat"
     },
     {
-      term: "On the whole",
-      meaning: "Generally speaking; considering everything"
+      "term": "Bland",
+      "meaning": "Lacking flavor, taste, or seasoning"
     },
     {
-      term: "The way I see it",
-      meaning: "In my opinion; from my perspective"
+      "term": "Stale",
+      "meaning": "No longer fresh, old and dry (bread, pastries)"
     },
     {
-      term: "If I'm honest",
-      meaning: "To be truthful; speaking frankly"
+      "term": "Lukewarm",
+      "meaning": "Neither hot nor cold, tepid temperature"
+    },
+    {
+      "term": "Greasy",
+      "meaning": "Containing too much oil or fat, oily"
+    },
+    {
+      "term": "Soggy",
+      "meaning": "Wet and soft, often unpleasantly so"
+    },
+    {
+      "term": "Burnt",
+      "meaning": "Cooked too much with a charred, blackened surface"
+    },
+    {
+      "term": "Tough",
+      "meaning": "Hard to chew or cut, not tender"
+    },
+    {
+      "term": "Salty",
+      "meaning": "Containing too much salt, overly seasoned"
+    },
+    {
+      "term": "Cold",
+      "meaning": "Not warm, lower temperature than expected"
+    },
+    {
+      "term": "Missing",
+      "meaning": "Not present, absent from the dish"
+    },
+    {
+      "term": "Complaint",
+      "meaning": "Expression of dissatisfaction about a product or service"
+    },
+    {
+      "term": "Apologize",
+      "meaning": "To express regret or say sorry for a mistake"
+    },
+    {
+      "term": "Replace",
+      "meaning": "To give something new in place of something else"
+    },
+    {
+      "term": "Fresh",
+      "meaning": "Recently made or prepared, not old"
+    },
+    {
+      "term": "Temperature",
+      "meaning": "How hot or cold something is"
+    },
+    {
+      "term": "Quality",
+      "meaning": "The standard or grade of something"
+    },
+    {
+      "term": "Seasoning",
+      "meaning": "Salt, pepper, herbs, and spices used to flavor food"
+    },
+    {
+      "term": "Professional",
+      "meaning": "Done in a skilled, competent, and polite manner"
     }
   ]
 };
