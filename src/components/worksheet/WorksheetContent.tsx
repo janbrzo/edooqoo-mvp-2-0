@@ -50,18 +50,26 @@ export default function WorksheetContent({
         
         {/* Logo edooqoo - positioned in top right */}
         <div className="absolute top-4 right-4 hidden sm:block">
-          <a 
-            href="https://edooqoo.com" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="block opacity-80 hover:opacity-100 transition-opacity duration-200"
-          >
-            <img 
-              src="/lovable-uploads/64b433e2-bb47-4ebc-9247-0aae2029cb12.png" 
-              alt="edooqoo.com" 
-              className="h-[70px] w-auto"
-            />
-          </a>
+          <div className="flex flex-col items-end space-y-1">
+            <a 
+              href="https://edooqoo.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block opacity-80 hover:opacity-100 transition-opacity duration-200"
+            >
+              <div className="h-[70px] w-auto flex items-center justify-center bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-lg text-lg font-bold shadow-md">
+                edooqoo
+              </div>
+            </a>
+            <a 
+              href="https://edooqoo.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-gray-500 hover:text-purple-600 transition-colors duration-200 no-underline"
+            >
+              Create your own at edooqoo.com
+            </a>
+          </div>
         </div>
         
         <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight pr-24">
