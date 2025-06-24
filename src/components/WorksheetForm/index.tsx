@@ -98,13 +98,12 @@ const WorksheetForm = ({ onSubmit }: WorksheetFormProps) => {
                   transition={{ duration: 0.5, delay: 0.3 }}
                 >
                   <FormField
-                    control={form.control}
-                    name="lessonTime"
                     label="Lesson Duration"
-                    icon={<Clock className="h-5 w-5" />}
-                    type="select"
-                    options={LESSON_TIME_OPTIONS}
                     placeholder="Select lesson duration"
+                    value={form.watch("lessonTime")}
+                    onChange={(value) => form.setValue("lessonTime", value)}
+                    suggestions={LESSON_TIME_OPTIONS}
+                    isRequired={true}
                   />
                 </motion.div>
 
@@ -113,7 +112,10 @@ const WorksheetForm = ({ onSubmit }: WorksheetFormProps) => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                  <EnglishLevelSelector control={form.control} />
+                  <EnglishLevelSelector 
+                    value={form.watch("englishLevel")}
+                    onChange={(value) => form.setValue("englishLevel", value)}
+                  />
                 </motion.div>
 
                 <motion.div
@@ -122,13 +124,12 @@ const WorksheetForm = ({ onSubmit }: WorksheetFormProps) => {
                   transition={{ duration: 0.5, delay: 0.5 }}
                 >
                   <FormField
-                    control={form.control}
-                    name="lessonTopic"
                     label="Lesson Topic"
-                    icon={<BookOpen className="h-5 w-5" />}
-                    type="combobox"
-                    options={LESSON_TOPIC_OPTIONS}
                     placeholder="e.g., Travel, Food, Business English..."
+                    value={form.watch("lessonTopic")}
+                    onChange={(value) => form.setValue("lessonTopic", value)}
+                    suggestions={LESSON_TOPIC_OPTIONS}
+                    isRequired={true}
                   />
                 </motion.div>
 
@@ -138,13 +139,12 @@ const WorksheetForm = ({ onSubmit }: WorksheetFormProps) => {
                   transition={{ duration: 0.5, delay: 0.6 }}
                 >
                   <FormField
-                    control={form.control}
-                    name="lessonGoal"
                     label="Lesson Goal"
-                    icon={<Target className="h-5 w-5" />}
-                    type="combobox"
-                    options={LESSON_GOAL_OPTIONS}
                     placeholder="e.g., Practice past tense verbs..."
+                    value={form.watch("lessonGoal")}
+                    onChange={(value) => form.setValue("lessonGoal", value)}
+                    suggestions={LESSON_GOAL_OPTIONS}
+                    isRequired={true}
                   />
                 </motion.div>
 
