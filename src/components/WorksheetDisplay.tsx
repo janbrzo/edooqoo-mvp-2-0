@@ -94,7 +94,7 @@ export default function WorksheetDisplay({
   // Track time spent when user leaves
   useEffect(() => {
     const handleBeforeUnload = () => {
-      trackTimeSpent('worksheet_view_end_page_leave', {
+      trackTimeSpent('worksheet_view_time', {
         worksheetId,
         action: 'page_leave'
       });
@@ -102,7 +102,7 @@ export default function WorksheetDisplay({
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        trackTimeSpent('worksheet_view_end_tab_switch', {
+        trackTimeSpent('worksheet_view_time', {
           worksheetId,
           action: 'tab_hidden'
         });
@@ -217,7 +217,7 @@ export default function WorksheetDisplay({
   const handleDownloadWithTracking = () => {
     // Track download attempt
     trackEvent({
-      eventType: 'download_attempt_unlocked',
+      eventType: 'download_attempt',
       eventData: {
         worksheetId,
         isUnlocked: isDownloadUnlocked,
@@ -234,7 +234,7 @@ export default function WorksheetDisplay({
   // Enhanced payment unlock handler with tracking
   const handleDownloadUnlockWithTracking = (token: string) => {
     trackEvent({
-      eventType: 'stripe_payment_success',
+      eventType: 'payment_click',
       eventData: {
         worksheetId,
         timestamp: new Date().toISOString(),

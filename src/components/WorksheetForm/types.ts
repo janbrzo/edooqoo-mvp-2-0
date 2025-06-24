@@ -8,12 +8,12 @@ export type Tile = {
 };
 
 export interface FormData {
-  lessonTime: string;
-  englishLevel: string;
+  lessonTime: LessonTime;
   lessonTopic: string;
   lessonGoal: string;
-  teachingPreferences?: string;
+  teachingPreferences: string;
   additionalInformation?: string;
+  englishLevel?: EnglishLevel;
   fullPrompt?: string;
   formDataForStorage?: any;
 }

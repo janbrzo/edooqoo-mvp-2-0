@@ -1,3 +1,4 @@
+
 import { Tile } from './types';
 
 export const LESSON_TOPICS: Tile[] = [{
@@ -220,12 +221,3 @@ export const ENGLISH_LEVEL_DESCRIPTIONS = {
   "B1/B2": "Intermediate/Upper-Intermediate", 
   "C1/C2": "Advanced/Proficiency"
 };
-
-// Export with the names expected by the form
-export const LESSON_TIME_OPTIONS = [
-  { id: "45", title: "45 minutes" },
-  { id: "60", title: "60 minutes" }
-];
-
-export const LESSON_TOPIC_OPTIONS = LESSON_TOPICS;
-export const LESSON_GOAL_OPTIONS = LESSON_GOALS;
