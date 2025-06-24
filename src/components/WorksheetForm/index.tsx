@@ -1,222 +1,239 @@
-import React from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { useEventTracking } from '@/hooks/useEventTracking';
+import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { LessonTime, EnglishLevel, FormData, WorksheetFormProps } from './types';
+import { getRandomPlaceholderSet, PlaceholderSet } from './placeholderSets';
+import { getRandomSuggestionSets, getSuggestionSetMatchingPlaceholder, SuggestionSet } from './suggestionSets';
+import FormField from './FormField';
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useEventTracking } from "@/hooks/useEventTracking";
 
-const formSchema = z.object({
-  topic: z.string().min(2, {
-    message: "Topic must be at least 2 characters.",
-  }),
-  grade: z.string().min(1, {
-    message: "Please select a grade.",
-  }),
-  exercise_count: z.string().min(1, {
-    message: "Please select number of exercises.",
-  }),
-  student_level: z.string().min(1, {
-    message: "Please select student level.",
-  }),
-  instructions: z.string().optional(),
-});
+export type { FormData };
 
-interface WorksheetFormProps {
-  onSubmit: (values: FormData) => void;
-  isLoading: boolean;
-  inputParams?: any;
-}
+export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
+  const [lessonTime, setLessonTime] = useState<LessonTime>("60 min");
+  const [lessonTopic, setLessonTopic] = useState("");
+  const [lessonGoal, setLessonGoal] = useState("");
+  const [grammarFocus, setGrammarFocus] = useState("");
+  const [additionalInformation, setAdditionalInformation] = useState("");
+  const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
+  
+  const [currentPlaceholders, setCurrentPlaceholders] = useState<PlaceholderSet>(getRandomPlaceholderSet());
+  const [currentSuggestions, setCurrentSuggestions] = useState<SuggestionSet[]>([]);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-export interface FormData {
-  topic: string;
-  grade: string;
-  exercise_count: string;
-  student_level: string;
-  instructions?: string;
-}
-
-const WorksheetForm = ({ onSubmit, isLoading, inputParams }: WorksheetFormProps) => {
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      topic: inputParams?.topic || "",
-      grade: inputParams?.grade || "",
-      exercise_count: inputParams?.exercise_count || "",
-      student_level: inputParams?.student_level || "",
-      instructions: inputParams?.instructions || "",
-    },
-  });
-
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
   const { trackEvent } = useEventTracking();
 
-  function isValidPositiveInteger(str: string) {
-    if (typeof str !== 'string') {
-      return false;
+  useEffect(() => {
+    if (isInitialLoad) {
+      // Na początku: pierwszy zestaw jak placeholder, drugi losowy
+      const matchingSet = getSuggestionSetMatchingPlaceholder(currentPlaceholders);
+      const randomSets = getRandomSuggestionSets(1);
+      
+      if (matchingSet) {
+        setCurrentSuggestions([matchingSet, randomSets[0]]);
+      } else {
+        setCurrentSuggestions(getRandomSuggestionSets(2));
+      }
+      setIsInitialLoad(false);
+    }
+  }, [currentPlaceholders, isInitialLoad]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!lessonTopic || !lessonGoal || !additionalInformation) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields (Topic, Focus, Additional Information)",
+        variant: "destructive"
+      });
+      return;
     }
 
-    const num = Number(str);
-
-    if (Number.isNaN(num)) {
-      return false;
-    }
-
-    if (!Number.isInteger(num)) {
-      return false;
-    }
-
-    if (num <= 0) {
-      return false;
-    }
-
-    return true;
-  }
-
-  const handleSubmit = (data: FormData) => {
-    // Track form submit
+    // Track form submission
     trackEvent({
       eventType: 'form_submit',
       eventData: {
-        timestamp: new Date().toISOString(),
-        formData: data
+        lessonTime,
+        lessonTopic,
+        lessonGoal,
+        grammarFocus,
+        additionalInformation,
+        englishLevel,
+        timestamp: new Date().toISOString()
       }
     });
 
-    onSubmit(data);
+    onSubmit({
+      lessonTime,
+      lessonTopic,
+      lessonGoal,
+      teachingPreferences: grammarFocus,
+      additionalInformation,
+      englishLevel
+    });
+  };
+
+  const refreshSuggestions = () => {
+    // Po refresh: oba zestawy losowe
+    setCurrentPlaceholders(getRandomPlaceholderSet());
+    setCurrentSuggestions(getRandomSuggestionSets(2));
+  };
+
+  const createSuggestionTiles = (field: 'lessonTopic' | 'lessonFocus' | 'additionalInformation' | 'grammarFocus') => {
+    return currentSuggestions.map((set, index) => ({
+      id: `${set.id}-${field}-${index}`,
+      title: set[field]
+    }));
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="topic"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Topic</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g. Present Simple" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="grade"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Grade</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a grade" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="1">Grade 1</SelectItem>
-                    <SelectItem value="2">Grade 2</SelectItem>
-                    <SelectItem value="3">Grade 3</SelectItem>
-                    <SelectItem value="4">Grade 4</SelectItem>
-                    <SelectItem value="5">Grade 5</SelectItem>
-                    <SelectItem value="6">Grade 6</SelectItem>
-                    <SelectItem value="7">Grade 7</SelectItem>
-                    <SelectItem value="8">Grade 8</SelectItem>
-                    <SelectItem value="9">Grade 9</SelectItem>
-                    <SelectItem value="10">Grade 10</SelectItem>
-                    <SelectItem value="11">Grade 11</SelectItem>
-                    <SelectItem value="12">Grade 12</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="exercise_count"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Number of exercises</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select number of exercises" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="3">3 exercises</SelectItem>
-                    <SelectItem value="5">5 exercises</SelectItem>
-                    <SelectItem value="7">7 exercises</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          control={form.control}
-          name="student_level"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Student Level</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select student level" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="beginner">Beginner</SelectItem>
-                  <SelectItem value="intermediate">Intermediate</SelectItem>
-                  <SelectItem value="advanced">Advanced</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="instructions"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Instructions</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Specific instructions for the worksheet (optional)"
-                  className="resize-none"
-                  {...field}
+    <div className={`w-full ${isMobile ? 'py-2' : 'py-[24px]'}`}>
+      <Card className="bg-white shadow-sm">
+        <CardContent className={`${isMobile ? 'p-3' : 'p-8'}`}>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-6">
+              <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between items-start'} mb-6`}>
+                <div className={`${isMobile ? 'text-center' : ''}`}>
+                  <h1 className={`font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 ${isMobile ? 'text-xl' : 'text-3xl'} mb-2`}>
+                    Create A Worksheet
+                  </h1>
+                  <p className={`text-gray-600 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                    Tailored to your students. In seconds.
+                  </p>
+                </div>
+                
+                <div className={`flex ${isMobile ? 'flex-col gap-3' : 'gap-14'}`}>
+                  <div className={`flex gap-2 ${isMobile ? 'justify-center' : 'w-32'}`}>
+                    <Button 
+                      type="button"
+                      variant={lessonTime === "45 min" ? "default" : "outline"} 
+                      onClick={() => setLessonTime("45 min")} 
+                      className={lessonTime === "45 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                      size={isMobile ? "sm" : "sm"}
+                    >
+                      45 min
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant={lessonTime === "60 min" ? "default" : "outline"} 
+                      onClick={() => setLessonTime("60 min")} 
+                      className={lessonTime === "60 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                      size={isMobile ? "sm" : "sm"}
+                    >
+                      60 min
+                    </Button>
+                  </div>
+                  
+                  <div className={`flex flex-col ${isMobile ? 'items-center' : 'items-end w-80'}`}>
+                    <div className={`flex gap-1 mb-1 ${isMobile ? 'flex-wrap justify-center' : ''}`}>
+                      <Button 
+                        type="button"
+                        variant={englishLevel === "A1/A2" ? "default" : "outline"} 
+                        onClick={() => setEnglishLevel("A1/A2")} 
+                        className={englishLevel === "A1/A2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                        size={isMobile ? "sm" : "sm"}
+                      >
+                        A1/A2
+                      </Button>
+                      <Button 
+                        type="button"
+                        variant={englishLevel === "B1/B2" ? "default" : "outline"} 
+                        onClick={() => setEnglishLevel("B1/B2")} 
+                        className={englishLevel === "B1/B2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                        size={isMobile ? "sm" : "sm"}
+                      >
+                        B1/B2
+                      </Button>
+                      <Button 
+                        type="button"
+                        variant={englishLevel === "C1/C2" ? "default" : "outline"} 
+                        onClick={() => setEnglishLevel("C1/C2")} 
+                        className={englishLevel === "C1/C2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                        size={isMobile ? "sm" : "sm"}
+                      >
+                        C1/C2
+                      </Button>
+                    </div>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 ${isMobile ? 'text-center' : ''}`}>
+                      CEFR Scale: {englishLevel === "A1/A2" ? "Beginner/Elementary" : englishLevel === "B1/B2" ? "Intermediate/Upper-Intermediate" : "Advanced/Proficiency"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
+                <FormField 
+                  label="Lesson topic: General theme or real‑life scenario"
+                  placeholder={currentPlaceholders.lessonTopic}
+                  value={lessonTopic}
+                  onChange={setLessonTopic}
+                  suggestions={createSuggestionTiles('lessonTopic')}
+                  isRequired={true}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Generating..." : "Generate Worksheet"}
-        </Button>
-      </form>
-    </Form>
-  );
-};
 
-export default WorksheetForm;
+                <FormField 
+                  label="Lesson focus: What should your student achieve by the end of the lesson?"
+                  placeholder={currentPlaceholders.lessonFocus}
+                  value={lessonGoal}
+                  onChange={setLessonGoal}
+                  suggestions={createSuggestionTiles('lessonFocus')}
+                  isRequired={true}
+                />
+              </div>
+
+              <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
+                <FormField 
+                  label="Additional Information: Extra context & personal or situational details"
+                  placeholder={currentPlaceholders.additionalInformation}
+                  value={additionalInformation}
+                  onChange={setAdditionalInformation}
+                  suggestions={createSuggestionTiles('additionalInformation')}
+                  isRequired={true}
+                />
+                
+                <FormField 
+                  label="Grammar focus (optional):"
+                  placeholder={currentPlaceholders.grammarFocus}
+                  value={grammarFocus}
+                  onChange={setGrammarFocus}
+                  suggestions={createSuggestionTiles('grammarFocus')}
+                  isOptional={true}
+                />
+              </div>
+
+              <div className={`mb-6 ${isMobile ? 'text-center' : ''}`}>
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                  GENERAL HINT: To create a truly personalized, student‑focused worksheet, please provide as detailed a description as possible in each field.
+                </p>
+              </div>
+
+              <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between'} pt-4`}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={refreshSuggestions} 
+                  className={`border-worksheet-purple text-worksheet-purple hover:bg-worksheet-purpleLight ${isMobile ? 'w-full' : ''}`}
+                  size={isMobile ? "sm" : "default"}
+                >
+                  Refresh Suggestions
+                </Button>
+                <Button 
+                  type="submit" 
+                  className={`bg-worksheet-purple hover:bg-worksheet-purpleDark ${isMobile ? 'w-full' : ''}`}
+                  size={isMobile ? "sm" : "default"}
+                >
+                  Generate Custom Worksheet
+                </Button>
+              </div>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
