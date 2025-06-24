@@ -1,3 +1,4 @@
+
 import React from "react";
 import ExerciseSection from "./ExerciseSection";
 import VocabularySheet from "./VocabularySheet";
@@ -47,16 +48,28 @@ export default function WorksheetContent({
       <div className="bg-white p-6 border rounded-lg shadow-sm mb-6 relative">
         {!isDownloadUnlocked && <DemoWatermark />}
         
-        {/* Simple edooqoo link - positioned in top right */}
+        {/* Logo edooqoo - positioned in top right */}
         <div className="absolute top-4 right-4 hidden sm:block">
-          <a 
-            href="https://edooqoo.com" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-sm text-gray-500 hover:text-worksheet-purple transition-colors duration-200"
-          >
-            Create your own at edooqoo.com
-          </a>
+          <div className="flex flex-col items-end space-y-1">
+            <a 
+              href="https://edooqoo.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block opacity-80 hover:opacity-100 transition-opacity duration-200"
+            >
+              <div className="h-[70px] w-auto flex items-center justify-center bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-lg text-lg font-bold shadow-md">
+                edooqoo
+              </div>
+            </a>
+            <a 
+              href="https://edooqoo.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-gray-500 hover:text-purple-600 transition-colors duration-200 no-underline"
+            >
+              Create your own at edooqoo.com
+            </a>
+          </div>
         </div>
         
         <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight pr-24">
