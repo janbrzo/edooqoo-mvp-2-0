@@ -6,7 +6,7 @@ import PaymentPopup from "@/components/PaymentPopup";
 import { exportAsHTML } from "@/utils/htmlExport";
 import { trackWorksheetEvent } from "@/services/worksheetService";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { TrackingEvent } from "@/hooks/useEventTracking";
+import { useDownloadTracking } from "@/hooks/useDownloadTracking";
 import {
   Tooltip,
   TooltipContent,
@@ -27,7 +27,7 @@ interface WorksheetToolbarProps {
   onTrackDownload?: () => void;
   showPdfButton?: boolean;
   editableWorksheet: any;
-  trackEvent?: (event: TrackingEvent) => Promise<void>;
+  userId?: string;
 }
 
 const WorksheetToolbar = ({
@@ -43,11 +43,12 @@ const WorksheetToolbar = ({
   onTrackDownload,
   showPdfButton = false,
   editableWorksheet,
-  trackEvent,
+  userId,
 }: WorksheetToolbarProps) => {
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [pendingAction, setPendingAction] = useState<'html-student' | 'html-teacher' | 'pdf' | null>(null);
   const isMobile = useIsMobile();
+  const { trackDownloadAttempt } = useDownloadTracking(userId);
 
   const handleDownloadHTML = async (downloadViewMode: "student" | "teacher") => {
     const originalViewMode = viewMode;
@@ -104,23 +105,10 @@ const WorksheetToolbar = ({
   };
 
   const handleDownloadClick = async (type: 'html-student' | 'html-teacher' | 'pdf') => {
-    // FIXED: Add trackEvent call for download_attempt
-    if (trackEvent) {
-      try {
-        await trackEvent({
-          eventType: 'download_attempt',
-          eventData: {
-            worksheetId,
-            downloadType: type,
-            isUnlocked: isDownloadUnlocked,
-            timestamp: new Date().toISOString()
-          }
-        });
-        console.log('Download attempt tracked successfully');
-      } catch (error) {
-        console.error('Failed to track download attempt:', error);
-      }
-    }
+    // Track download attempt with proper locked/unlocked distinction
+    trackDownloadAttempt(!isDownloadUnlocked, worksheetId || 'unknown', {
+      downloadType: type
+    });
 
     if (isDownloadUnlocked) {
       if (type === 'html-student') {
@@ -151,61 +139,6 @@ const WorksheetToolbar = ({
   const handlePaymentPopupClose = () => {
     setShowPaymentPopup(false);
     setPendingAction(null);
-  };
-
-  // FIXED: Add payment_click tracking when payment popup opens
-  const handlePaymentPopupOpen = async (type: 'html-student' | 'html-teacher' | 'pdf') => {
-    if (trackEvent) {
-      try {
-        await trackEvent({
-          eventType: 'payment_click',
-          eventData: {
-            worksheetId,
-            downloadType: type,
-            timestamp: new Date().toISOString(),
-            action: 'payment_popup_opened'
-          }
-        });
-        console.log('Payment click tracked successfully');
-      } catch (error) {
-        console.error('Failed to track payment click:', error);
-      }
-    }
-    
-    setPendingAction(type);
-    setShowPaymentPopup(true);
-  };
-
-  // FIXED: Update handleDownloadClick to use new payment tracking
-  const handleDownloadClickWithTracking = async (type: 'html-student' | 'html-teacher' | 'pdf') => {
-    // Track download attempt
-    if (trackEvent) {
-      try {
-        await trackEvent({
-          eventType: 'download_attempt',
-          eventData: {
-            worksheetId,
-            downloadType: type,
-            isUnlocked: isDownloadUnlocked,
-            timestamp: new Date().toISOString()
-          }
-        });
-        console.log('Download attempt tracked successfully');
-      } catch (error) {
-        console.error('Failed to track download attempt:', error);
-      }
-    }
-
-    if (isDownloadUnlocked) {
-      if (type === 'html-student') {
-        handleDownloadHTML('student');
-      } else if (type === 'html-teacher') {
-        handleDownloadHTML('teacher');
-      }
-    } else {
-      // Track payment click when showing payment popup
-      await handlePaymentPopupOpen(type);
-    }
   };
 
   return (
@@ -256,7 +189,7 @@ const WorksheetToolbar = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    onClick={() => handleDownloadClickWithTracking('html-student')}
+                    onClick={() => handleDownloadClick('html-student')}
                     className={`${isDownloadUnlocked 
                       ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
                       : 'bg-gray-400 hover:bg-gray-500'} ${isMobile ? 'w-full' : ''}`}
@@ -277,7 +210,7 @@ const WorksheetToolbar = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    onClick={() => handleDownloadClickWithTracking('html-teacher')}
+                    onClick={() => handleDownloadClick('html-teacher')}
                     className={`${isDownloadUnlocked 
                       ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
                       : 'bg-gray-400 hover:bg-gray-500'} ${isMobile ? 'w-full' : ''}`}
