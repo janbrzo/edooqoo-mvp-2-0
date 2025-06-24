@@ -52,16 +52,17 @@ export const useWorksheetGeneration = (
     try {
       console.log('📡 Calling generateWorksheet API...');
       
-      // NEW: Create full prompt for ChatGPT and save it to database
-      const fullPrompt = formatPromptForAI(data);
-      const formDataForStorage = createFormDataForStorage(data);
+      // Create enhanced FormData with additional properties
+      const enhancedData = {
+        ...data,
+        fullPrompt: formatPromptForAI(data),
+        formDataForStorage: createFormDataForStorage(data),
+        teachingPreferences: '', // Add empty string for compatibility
+        additionalInformation: '' // Add empty string for compatibility
+      };
       
-      // Pass the full prompt to the API
-      const worksheetData = await generateWorksheet({ 
-        ...data, 
-        fullPrompt,
-        formDataForStorage 
-      }, userId || 'anonymous');
+      // Pass the enhanced data to the API
+      const worksheetData = await generateWorksheet(enhancedData, userId || 'anonymous');
       
       console.log("✅ Generated worksheet data received:", {
         hasData: !!worksheetData,
