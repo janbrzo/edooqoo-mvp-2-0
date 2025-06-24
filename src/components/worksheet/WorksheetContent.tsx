@@ -1,4 +1,3 @@
-
 import React from "react";
 import ExerciseSection from "./ExerciseSection";
 import VocabularySheet from "./VocabularySheet";
@@ -48,19 +47,15 @@ export default function WorksheetContent({
       <div className="bg-white p-6 border rounded-lg shadow-sm mb-6 relative">
         {!isDownloadUnlocked && <DemoWatermark />}
         
-        {/* Logo edooqoo - positioned in top right */}
+        {/* Simple edooqoo link - positioned in top right */}
         <div className="absolute top-4 right-4 hidden sm:block">
           <a 
             href="https://edooqoo.com" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="block opacity-80 hover:opacity-100 transition-opacity duration-200"
+            className="text-sm text-gray-500 hover:text-worksheet-purple transition-colors duration-200"
           >
-            <img 
-              src="/lovable-uploads/64b433e2-bb47-4ebc-9247-0aae2029cb12.png" 
-              alt="edooqoo.com" 
-              className="h-[70px] w-auto"
-            />
+            Create your own at edooqoo.com
           </a>
         </div>
         
