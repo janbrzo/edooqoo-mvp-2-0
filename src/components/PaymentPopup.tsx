@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, CreditCard, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { TrackingEvent } from "@/hooks/useEventTracking";
 
 interface PaymentPopupProps {
   isOpen: boolean;
@@ -12,10 +12,9 @@ interface PaymentPopupProps {
   onPaymentSuccess: (sessionToken: string) => void;
   worksheetId: string | null;
   userIp?: string | null;
-  trackEvent?: (event: TrackingEvent) => Promise<void>;
 }
 
-const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp, trackEvent }: PaymentPopupProps) => {
+const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }: PaymentPopupProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
@@ -49,23 +48,6 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp, 
         variant: "destructive"
       });
       return;
-    }
-
-    // Track payment button click
-    if (trackEvent) {
-      try {
-        await trackEvent({
-          eventType: 'payment_button_click',
-          eventData: {
-            worksheetId,
-            timestamp: new Date().toISOString(),
-            action: 'stripe_payment_clicked'
-          }
-        });
-        console.log('Payment button click tracked successfully');
-      } catch (error) {
-        console.error('Failed to track payment button click:', error);
-      }
     }
 
     // Use IP address as user identifier, fallback to browser fingerprint
@@ -117,25 +99,7 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp, 
     }
   };
 
-  const handleSkipPayment = async () => {
-    // Track test mode payment
-    if (trackEvent) {
-      try {
-        await trackEvent({
-          eventType: 'stripe_payment_success',
-          eventData: {
-            worksheetId,
-            timestamp: new Date().toISOString(),
-            testMode: true,
-            action: 'test_payment_skipped'
-          }
-        });
-        console.log('Test payment tracked successfully');
-      } catch (error) {
-        console.error('Failed to track test payment:', error);
-      }
-    }
-
+  const handleSkipPayment = () => {
     // Generate temporary session token for testing
     const tempToken = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
