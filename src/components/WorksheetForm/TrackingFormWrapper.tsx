@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useEventTracking } from '@/hooks/useEventTracking';
 
 interface TrackingFormWrapperProps {
@@ -8,47 +8,37 @@ interface TrackingFormWrapperProps {
 }
 
 const TrackingFormWrapper: React.FC<TrackingFormWrapperProps> = ({ children, userId }) => {
-  const { trackEvent, startTimer } = useEventTracking(userId);
-  const [hasStartedForm, setHasStartedForm] = useState(false);
+  const { trackEvent, startTimer, trackTimeSpent } = useEventTracking(userId);
+  const hasStartedForm = useRef(false);
 
-  // Track form start when component mounts
+  // Track form start
   useEffect(() => {
-    if (!hasStartedForm) {
+    if (!hasStartedForm.current) {
       trackEvent({
         eventType: 'form_start',
         eventData: {
-          timestamp: new Date().toISOString(),
-          referrer: document.referrer || 'direct'
+          timestamp: new Date().toISOString()
         }
       });
-      setHasStartedForm(true);
+      hasStartedForm.current = true;
       startTimer();
     }
-  }, [trackEvent, startTimer, hasStartedForm]);
+  }, [trackEvent, startTimer]);
 
-  // Track form abandon when user leaves page or switches tabs
+  // Track form abandon events
   useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (hasStartedForm) {
-        trackEvent({
-          eventType: 'form_abandon_page_leave',
-          eventData: {
-            timestamp: new Date().toISOString(),
-            url: window.location.href
-          }
-        });
-      }
+    if (!hasStartedForm.current) return;
+
+    const handleBeforeUnload = () => {
+      trackTimeSpent('form_abandon_page_leave', {
+        timestamp: new Date().toISOString()
+      });
     };
 
     const handleVisibilityChange = () => {
-      if (document.hidden && hasStartedForm) {
-        trackEvent({
-          eventType: 'form_abandon_tab_switch',
-          eventData: {
-            timestamp: new Date().toISOString(),
-            reason: 'visibility_change',
-            url: window.location.href
-          }
+      if (document.hidden) {
+        trackTimeSpent('form_abandon_tab_switch', {
+          timestamp: new Date().toISOString()
         });
       }
     };
@@ -60,7 +50,7 @@ const TrackingFormWrapper: React.FC<TrackingFormWrapperProps> = ({ children, use
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [trackEvent, hasStartedForm]);
+  }, [trackTimeSpent]);
 
   return <>{children}</>;
 };
