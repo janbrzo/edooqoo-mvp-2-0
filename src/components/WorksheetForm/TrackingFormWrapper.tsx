@@ -26,12 +26,12 @@ const TrackingFormWrapper: React.FC<TrackingFormWrapperProps> = ({ children, use
     }
   }, [trackEvent, startTimer, hasStartedForm]);
 
-  // Track form abandon when user leaves page
+  // Track form abandon when user leaves page or switches tabs
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (hasStartedForm) {
         trackEvent({
-          eventType: 'form_abandon',
+          eventType: 'form_abandon_page_leave',
           eventData: {
             timestamp: new Date().toISOString(),
             url: window.location.href
@@ -40,11 +40,10 @@ const TrackingFormWrapper: React.FC<TrackingFormWrapperProps> = ({ children, use
       }
     };
 
-    // Track page visibility changes (mobile/tab switching)
     const handleVisibilityChange = () => {
       if (document.hidden && hasStartedForm) {
         trackEvent({
-          eventType: 'form_abandon',
+          eventType: 'form_abandon_tab_switch',
           eventData: {
             timestamp: new Date().toISOString(),
             reason: 'visibility_change',

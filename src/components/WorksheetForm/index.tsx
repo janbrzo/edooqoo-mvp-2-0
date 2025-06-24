@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { getRandomPlaceholderSet, PlaceholderSet } from './placeholderSets';
 import { getRandomSuggestionSets, getSuggestionSetMatchingPlaceholder, SuggestionSet } from './suggestionSets';
 import FormField from './FormField';
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useEventTracking } from "@/hooks/useEventTracking";
 
 export type { FormData };
 
@@ -25,6 +25,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { trackEvent } = useEventTracking();
 
   useEffect(() => {
     if (isInitialLoad) {
@@ -52,6 +53,21 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
       });
       return;
     }
+
+    // Track form submission
+    trackEvent({
+      eventType: 'form_submit',
+      eventData: {
+        lessonTime,
+        lessonTopic,
+        lessonGoal,
+        grammarFocus,
+        additionalInformation,
+        englishLevel,
+        timestamp: new Date().toISOString()
+      }
+    });
+
     onSubmit({
       lessonTime,
       lessonTopic,

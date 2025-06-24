@@ -299,10 +299,18 @@ export type Database = {
       conversion_funnel: {
         Row: {
           date: string | null
-          download_attempts: number | null
-          form_abandons: number | null
+          download_attempts_locked: number | null
+          download_attempts_unlocked: number | null
+          form_abandons_page_leave: number | null
+          form_abandons_tab_switch: number | null
           form_starts: number | null
-          payment_clicks: number | null
+          form_submits: number | null
+          payment_button_clicks: number | null
+          stripe_payments_success: number | null
+          worksheet_generation_completes: number | null
+          worksheet_generation_starts: number | null
+          worksheet_view_ends_page_leave: number | null
+          worksheet_view_ends_tab_switch: number | null
           worksheet_views: number | null
         }
         Relationships: []
