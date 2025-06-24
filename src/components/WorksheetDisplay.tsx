@@ -285,6 +285,7 @@ export default function WorksheetDisplay({
           worksheetId={worksheetId}
           onFeedbackSubmit={onFeedbackSubmit}
           isDownloadUnlocked={isDownloadUnlocked}
+          inputParams={inputParams}
         />
       </div>
     </WorksheetContainer>

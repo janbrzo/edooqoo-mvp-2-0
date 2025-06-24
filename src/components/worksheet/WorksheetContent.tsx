@@ -1,3 +1,4 @@
+
 import React from "react";
 import ExerciseSection from "./ExerciseSection";
 import VocabularySheet from "./VocabularySheet";
@@ -5,6 +6,7 @@ import WorksheetRating from "@/components/WorksheetRating";
 import TeacherNotes from "./TeacherNotes";
 import GrammarRules from "./GrammarRules";
 import DemoWatermark from "./DemoWatermark";
+import WarmupSection from "./WarmupSection";
 
 interface WorksheetContentProps {
   editableWorksheet: any;
@@ -14,6 +16,7 @@ interface WorksheetContentProps {
   worksheetId?: string | null;
   onFeedbackSubmit?: (rating: number, feedback: string) => void;
   isDownloadUnlocked: boolean;
+  inputParams?: any;
 }
 
 export default function WorksheetContent({
@@ -23,7 +26,8 @@ export default function WorksheetContent({
   setEditableWorksheet,
   worksheetId,
   onFeedbackSubmit,
-  isDownloadUnlocked
+  isDownloadUnlocked,
+  inputParams
 }: WorksheetContentProps) {
   // CRITICAL FIX: Add safety check to prevent rendering with null worksheet
   if (!editableWorksheet) {
@@ -43,7 +47,24 @@ export default function WorksheetContent({
       
       <div className="bg-white p-6 border rounded-lg shadow-sm mb-6 relative">
         {!isDownloadUnlocked && <DemoWatermark />}
-        <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight">
+        
+        {/* Logo edooqoo - positioned in top right */}
+        <div className="absolute top-4 right-4 hidden sm:block">
+          <a 
+            href="https://edooqoo.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="block opacity-80 hover:opacity-100 transition-opacity duration-200"
+          >
+            <img 
+              src="/lovable-uploads/64b433e2-bb47-4ebc-9247-0aae2029cb12.png" 
+              alt="edooqoo.com" 
+              className="h-[70px] w-auto"
+            />
+          </a>
+        </div>
+        
+        <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight pr-24">
           {isEditing ? (
             <input 
               type="text" 
@@ -57,7 +78,7 @@ export default function WorksheetContent({
           ) : (editableWorksheet.title || 'Untitled Worksheet')}
         </h1>
         
-        <h2 className="text-xl text-worksheet-purple mb-3 leading-tight">
+        <h2 className="text-xl text-worksheet-purple mb-3 leading-tight pr-24">
           {isEditing ? (
             <input 
               type="text" 
@@ -86,6 +107,17 @@ export default function WorksheetContent({
           )}
         </div>
       </div>
+
+      {/* Warmup Section - added before grammar rules */}
+      {inputParams && (
+        <WarmupSection
+          inputParams={inputParams}
+          isEditing={isEditing}
+          editableWorksheet={editableWorksheet}
+          setEditableWorksheet={setEditableWorksheet}
+          isDownloadUnlocked={isDownloadUnlocked}
+        />
+      )}
 
       {editableWorksheet.grammar_rules && (
         <div className="relative">
