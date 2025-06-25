@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Download, CreditCard, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useEventTracking } from "@/hooks/useEventTracking";
 
 interface PaymentPopupProps {
   isOpen: boolean;
@@ -18,7 +17,6 @@ interface PaymentPopupProps {
 const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }: PaymentPopupProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
-  const { trackEvent } = useEventTracking();
 
   // Check for existing valid token when popup opens
   useEffect(() => {
@@ -51,15 +49,6 @@ const PaymentPopup = ({ isOpen, onClose, onPaymentSuccess, worksheetId, userIp }
       });
       return;
     }
-
-    // Track payment button click
-    trackEvent({
-      eventType: 'stripe_payment_clicks',
-      eventData: {
-        worksheetId,
-        timestamp: new Date().toISOString()
-      }
-    });
 
     // Use IP address as user identifier, fallback to browser fingerprint
     const userIdentifier = userIp || `browser_${navigator.userAgent.slice(0, 50)}_${Date.now()}`;

@@ -5,10 +5,9 @@ import { useEventTracking } from '@/hooks/useEventTracking';
 interface TrackingFormWrapperProps {
   children: React.ReactNode;
   userId?: string;
-  onFormSubmit?: () => void;
 }
 
-const TrackingFormWrapper: React.FC<TrackingFormWrapperProps> = ({ children, userId, onFormSubmit }) => {
+const TrackingFormWrapper: React.FC<TrackingFormWrapperProps> = ({ children, userId }) => {
   const { trackEvent, startTimer } = useEventTracking(userId);
   const [hasStartedForm, setHasStartedForm] = useState(false);
 
@@ -26,23 +25,6 @@ const TrackingFormWrapper: React.FC<TrackingFormWrapperProps> = ({ children, use
       startTimer();
     }
   }, [trackEvent, startTimer, hasStartedForm]);
-
-  // Track form submit when onFormSubmit is called
-  useEffect(() => {
-    if (onFormSubmit) {
-      const originalSubmit = onFormSubmit;
-      const wrappedSubmit = () => {
-        trackEvent({
-          eventType: 'form_submit',
-          eventData: {
-            timestamp: new Date().toISOString()
-          }
-        });
-        originalSubmit();
-      };
-      // This is a bit tricky - we need to intercept the submit
-    }
-  }, [onFormSubmit, trackEvent]);
 
   // Track form abandon when user leaves page or switches tabs
   useEffect(() => {

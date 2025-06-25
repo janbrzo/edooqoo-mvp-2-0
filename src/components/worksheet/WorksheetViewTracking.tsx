@@ -1,10 +1,10 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useEventTracking } from '@/hooks/useEventTracking';
 
 interface WorksheetViewTrackingProps {
   children: React.ReactNode;
-  worksheetId?: string | null;
+  worksheetId?: string;
   userId?: string;
 }
 
@@ -13,12 +13,12 @@ const WorksheetViewTracking: React.FC<WorksheetViewTrackingProps> = ({
   worksheetId, 
   userId 
 }) => {
-  const { trackEvent, startTimer } = useEventTracking(userId);
-  const hasTrackedView = useRef(false);
+  const { trackEvent, startTimer, trackTimeSpent } = useEventTracking(userId);
+  const [hasStartedViewing, setHasStartedViewing] = useState(false);
 
+  // Track worksheet view start
   useEffect(() => {
-    if (worksheetId && !hasTrackedView.current) {
-      // Track worksheet view start
+    if (worksheetId && !hasStartedViewing) {
       trackEvent({
         eventType: 'worksheet_view_time',
         eventData: {
@@ -26,33 +26,27 @@ const WorksheetViewTracking: React.FC<WorksheetViewTrackingProps> = ({
           timestamp: new Date().toISOString()
         }
       });
-      hasTrackedView.current = true;
+      setHasStartedViewing(true);
       startTimer();
     }
-  }, [worksheetId, trackEvent, startTimer]);
+  }, [worksheetId, trackEvent, startTimer, hasStartedViewing]);
 
+  // Track worksheet view end events
   useEffect(() => {
+    if (!hasStartedViewing) return;
+
     const handleBeforeUnload = () => {
-      if (hasTrackedView.current && worksheetId) {
-        trackEvent({
-          eventType: 'worksheet_view_end_page_leave',
-          eventData: {
-            worksheetId,
-            timestamp: new Date().toISOString()
-          }
-        });
-      }
+      trackTimeSpent('worksheet_view_end_page_leave', {
+        worksheetId,
+        timestamp: new Date().toISOString()
+      });
     };
 
     const handleVisibilityChange = () => {
-      if (document.hidden && hasTrackedView.current && worksheetId) {
-        trackEvent({
-          eventType: 'worksheet_view_end_tab_switch',
-          eventData: {
-            worksheetId,
-            timestamp: new Date().toISOString(),
-            reason: 'visibility_change'
-          }
+      if (document.hidden) {
+        trackTimeSpent('worksheet_view_end_tab_switch', {
+          worksheetId,
+          timestamp: new Date().toISOString()
         });
       }
     };
@@ -64,7 +58,7 @@ const WorksheetViewTracking: React.FC<WorksheetViewTrackingProps> = ({
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [worksheetId, trackEvent]);
+  }, [hasStartedViewing, worksheetId, trackTimeSpent]);
 
   return <>{children}</>;
 };

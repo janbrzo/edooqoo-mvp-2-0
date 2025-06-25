@@ -1,230 +1,239 @@
-import React from 'react';
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { LessonTime, EnglishLevel, FormData, WorksheetFormProps } from './types';
+import { getRandomPlaceholderSet, PlaceholderSet } from './placeholderSets';
+import { getRandomSuggestionSets, getSuggestionSetMatchingPlaceholder, SuggestionSet } from './suggestionSets';
+import FormField from './FormField';
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useEventTracking } from "@/hooks/useEventTracking";
-import TrackingFormWrapper from './TrackingFormWrapper';
 
-const formSchema = z.object({
-  lessonTopic: z.string().min(3, {
-    message: "Lesson topic must be at least 3 characters.",
-  }),
-  lessonGoal: z.string().min(10, {
-    message: "Lesson goal must be at least 10 characters.",
-  }),
-  teachingPreferences: z.string().optional(),
-  additionalInformation: z.string().optional(),
-  englishLevel: z.string().optional(),
-  lessonTime: z.string(),
-});
+export type { FormData };
 
-export interface FormData extends z.infer<typeof formSchema> {}
+export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
+  const [lessonTime, setLessonTime] = useState<LessonTime>("60 min");
+  const [lessonTopic, setLessonTopic] = useState("");
+  const [lessonGoal, setLessonGoal] = useState("");
+  const [grammarFocus, setGrammarFocus] = useState("");
+  const [additionalInformation, setAdditionalInformation] = useState("");
+  const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
+  
+  const [currentPlaceholders, setCurrentPlaceholders] = useState<PlaceholderSet>(getRandomPlaceholderSet());
+  const [currentSuggestions, setCurrentSuggestions] = useState<SuggestionSet[]>([]);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-interface WorksheetFormProps {
-  onSubmit: (data: FormData) => void;
-  isLoading: boolean;
-}
-
-const WorksheetForm = ({ onSubmit, isLoading }: WorksheetFormProps) => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const { trackEvent } = useEventTracking();
 
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      lessonTopic: "",
-      lessonGoal: "",
-      teachingPreferences: "",
-      additionalInformation: "",
-      englishLevel: "A1",
-      lessonTime: "60 min",
-    },
-  });
+  useEffect(() => {
+    if (isInitialLoad) {
+      // Na początku: pierwszy zestaw jak placeholder, drugi losowy
+      const matchingSet = getSuggestionSetMatchingPlaceholder(currentPlaceholders);
+      const randomSets = getRandomSuggestionSets(1);
+      
+      if (matchingSet) {
+        setCurrentSuggestions([matchingSet, randomSets[0]]);
+      } else {
+        setCurrentSuggestions(getRandomSuggestionSets(2));
+      }
+      setIsInitialLoad(false);
+    }
+  }, [currentPlaceholders, isInitialLoad]);
 
-  const handleSubmit = (data: FormData) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!lessonTopic || !lessonGoal || !additionalInformation) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields (Topic, Focus, Additional Information)",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Track form submission
     trackEvent({
       eventType: 'form_submit',
       eventData: {
-        timestamp: new Date().toISOString(),
-        lessonTime: data.lessonTime,
-        englishLevel: data.englishLevel
+        lessonTime,
+        lessonTopic,
+        lessonGoal,
+        grammarFocus,
+        additionalInformation,
+        englishLevel,
+        timestamp: new Date().toISOString()
       }
     });
-    
-    onSubmit(data);
+
+    onSubmit({
+      lessonTime,
+      lessonTopic,
+      lessonGoal,
+      teachingPreferences: grammarFocus,
+      additionalInformation,
+      englishLevel
+    });
+  };
+
+  const refreshSuggestions = () => {
+    // Po refresh: oba zestawy losowe
+    setCurrentPlaceholders(getRandomPlaceholderSet());
+    setCurrentSuggestions(getRandomSuggestionSets(2));
+  };
+
+  const createSuggestionTiles = (field: 'lessonTopic' | 'lessonFocus' | 'additionalInformation' | 'grammarFocus') => {
+    return currentSuggestions.map((set, index) => ({
+      id: `${set.id}-${field}-${index}`,
+      title: set[field]
+    }));
   };
 
   return (
-    <TrackingFormWrapper>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="lessonTopic"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Lesson Topic</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter lesson topic" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="lessonGoal"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Lesson Goal</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter lesson goal"
-                    className="resize-none"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="teachingPreferences"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Teaching Preferences (Optional)</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter teaching preferences"
-                    className="resize-none"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="additionalInformation"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Additional Information (Optional)</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter any additional information"
-                    className="resize-none"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="englishLevel"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>English Level</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select level" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="A1">A1</SelectItem>
-                      <SelectItem value="A2">A2</SelectItem>
-                      <SelectItem value="B1">B1</SelectItem>
-                      <SelectItem value="B2">B2</SelectItem>
-                      <SelectItem value="C1">C1</SelectItem>
-                      <SelectItem value="C2">C2</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="lessonTime"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Lesson Time</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select time" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="30 min">30 min</SelectItem>
-                      <SelectItem value="45 min">45 min</SelectItem>
-                      <SelectItem value="60 min">60 min</SelectItem>
-                      <SelectItem value="90 min">90 min</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                Generating...
-                <svg
-                  className="animate-spin h-5 w-5 ml-2"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-              </>
-            ) : (
-              "Generate Worksheet"
-            )}
-          </Button>
-        </form>
-      </Form>
-    </TrackingFormWrapper>
-  );
-};
+    <div className={`w-full ${isMobile ? 'py-2' : 'py-[24px]'}`}>
+      <Card className="bg-white shadow-sm">
+        <CardContent className={`${isMobile ? 'p-3' : 'p-8'}`}>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-6">
+              <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between items-start'} mb-6`}>
+                <div className={`${isMobile ? 'text-center' : ''}`}>
+                  <h1 className={`font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 ${isMobile ? 'text-xl' : 'text-3xl'} mb-2`}>
+                    Create A Worksheet
+                  </h1>
+                  <p className={`text-gray-600 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                    Tailored to your students. In seconds.
+                  </p>
+                </div>
+                
+                <div className={`flex ${isMobile ? 'flex-col gap-3' : 'gap-14'}`}>
+                  <div className={`flex gap-2 ${isMobile ? 'justify-center' : 'w-32'}`}>
+                    <Button 
+                      type="button"
+                      variant={lessonTime === "45 min" ? "default" : "outline"} 
+                      onClick={() => setLessonTime("45 min")} 
+                      className={lessonTime === "45 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                      size={isMobile ? "sm" : "sm"}
+                    >
+                      45 min
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant={lessonTime === "60 min" ? "default" : "outline"} 
+                      onClick={() => setLessonTime("60 min")} 
+                      className={lessonTime === "60 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                      size={isMobile ? "sm" : "sm"}
+                    >
+                      60 min
+                    </Button>
+                  </div>
+                  
+                  <div className={`flex flex-col ${isMobile ? 'items-center' : 'items-end w-80'}`}>
+                    <div className={`flex gap-1 mb-1 ${isMobile ? 'flex-wrap justify-center' : ''}`}>
+                      <Button 
+                        type="button"
+                        variant={englishLevel === "A1/A2" ? "default" : "outline"} 
+                        onClick={() => setEnglishLevel("A1/A2")} 
+                        className={englishLevel === "A1/A2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                        size={isMobile ? "sm" : "sm"}
+                      >
+                        A1/A2
+                      </Button>
+                      <Button 
+                        type="button"
+                        variant={englishLevel === "B1/B2" ? "default" : "outline"} 
+                        onClick={() => setEnglishLevel("B1/B2")} 
+                        className={englishLevel === "B1/B2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                        size={isMobile ? "sm" : "sm"}
+                      >
+                        B1/B2
+                      </Button>
+                      <Button 
+                        type="button"
+                        variant={englishLevel === "C1/C2" ? "default" : "outline"} 
+                        onClick={() => setEnglishLevel("C1/C2")} 
+                        className={englishLevel === "C1/C2" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                        size={isMobile ? "sm" : "sm"}
+                      >
+                        C1/C2
+                      </Button>
+                    </div>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 ${isMobile ? 'text-center' : ''}`}>
+                      CEFR Scale: {englishLevel === "A1/A2" ? "Beginner/Elementary" : englishLevel === "B1/B2" ? "Intermediate/Upper-Intermediate" : "Advanced/Proficiency"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
+                <FormField 
+                  label="Lesson topic: General theme or real‑life scenario"
+                  placeholder={currentPlaceholders.lessonTopic}
+                  value={lessonTopic}
+                  onChange={setLessonTopic}
+                  suggestions={createSuggestionTiles('lessonTopic')}
+                  isRequired={true}
+                />
 
-export default WorksheetForm;
+                <FormField 
+                  label="Lesson focus: What should your student achieve by the end of the lesson?"
+                  placeholder={currentPlaceholders.lessonFocus}
+                  value={lessonGoal}
+                  onChange={setLessonGoal}
+                  suggestions={createSuggestionTiles('lessonFocus')}
+                  isRequired={true}
+                />
+              </div>
+
+              <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
+                <FormField 
+                  label="Additional Information: Extra context & personal or situational details"
+                  placeholder={currentPlaceholders.additionalInformation}
+                  value={additionalInformation}
+                  onChange={setAdditionalInformation}
+                  suggestions={createSuggestionTiles('additionalInformation')}
+                  isRequired={true}
+                />
+                
+                <FormField 
+                  label="Grammar focus (optional):"
+                  placeholder={currentPlaceholders.grammarFocus}
+                  value={grammarFocus}
+                  onChange={setGrammarFocus}
+                  suggestions={createSuggestionTiles('grammarFocus')}
+                  isOptional={true}
+                />
+              </div>
+
+              <div className={`mb-6 ${isMobile ? 'text-center' : ''}`}>
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                  GENERAL HINT: To create a truly personalized, student‑focused worksheet, please provide as detailed a description as possible in each field.
+                </p>
+              </div>
+
+              <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between'} pt-4`}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={refreshSuggestions} 
+                  className={`border-worksheet-purple text-worksheet-purple hover:bg-worksheet-purpleLight ${isMobile ? 'w-full' : ''}`}
+                  size={isMobile ? "sm" : "default"}
+                >
+                  Refresh Suggestions
+                </Button>
+                <Button 
+                  type="submit" 
+                  className={`bg-worksheet-purple hover:bg-worksheet-purpleDark ${isMobile ? 'w-full' : ''}`}
+                  size={isMobile ? "sm" : "default"}
+                >
+                  Generate Custom Worksheet
+                </Button>
+              </div>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
