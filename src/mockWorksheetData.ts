@@ -1,8 +1,13 @@
-
 export const mockWorksheetData = {
   "title": "In a restaurant",
   "subtitle": "Making a complaint about your dish in a restaurant: adjectives practice",
   "introduction": "This lesson will help you practice making complaints in restaurants using appropriate adjectives and polite language. You'll learn how to express dissatisfaction professionally while maintaining good relationships with restaurant staff.",
+  "warmup_questions": [
+    "What's your favorite type of restaurant and why?",
+    "Have you ever had to complain about food in a restaurant? What happened?",
+    "What do you think makes a good dining experience?",
+    "How important is good customer service to you when eating out?"
+  ],
   "exercises": [
     {
       "type": "reading",
