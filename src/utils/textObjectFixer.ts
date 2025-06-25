@@ -26,6 +26,21 @@ export const deepFixTextObjects = (obj: any, path: string = 'root'): any => {
   // Handle regular objects
   const fixed: any = {};
   for (const [key, value] of Object.entries(obj)) {
+    // Handle warmup_questions array
+    if (key === 'warmup_questions' && Array.isArray(value)) {
+      console.log(`🔧 ${path}.${key}: Processing warmup questions array`);
+      fixed[key] = value.map((question, index) => {
+        if (typeof question === 'string') {
+          return question;
+        }
+        if (typeof question === 'object' && question.text) {
+          return question.text;
+        }
+        return `Question ${index + 1}`;
+      });
+      continue;
+    }
+    
     fixed[key] = deepFixTextObjects(value, `${path}.${key}`);
   }
   

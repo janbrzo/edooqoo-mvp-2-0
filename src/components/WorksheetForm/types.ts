@@ -18,6 +18,18 @@ export interface FormData {
   formDataForStorage?: any;
 }
 
+export interface WorksheetData {
+  title: string;
+  subtitle: string;
+  introduction: string;
+  warmup_questions?: string[];
+  exercises: any[];
+  vocabulary_sheet: {
+    term: string;
+    meaning: string;
+  }[];
+}
+
 export interface WorksheetFormProps {
   onSubmit: (data: FormData) => void;
 }

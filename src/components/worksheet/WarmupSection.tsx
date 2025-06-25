@@ -112,30 +112,30 @@ const WarmupSection: React.FC<WarmupSectionProps> = ({
   isDownloadUnlocked
 }) => {
   // Initialize warmup questions if not present
-  if (!editableWorksheet.warmupQuestions) {
+  if (!editableWorksheet.warmup_questions) {
     const generatedQuestions = generateWarmupQuestions(inputParams);
     setEditableWorksheet({
       ...editableWorksheet,
-      warmupQuestions: generatedQuestions
+      warmup_questions: generatedQuestions
     });
   }
 
   const handleQuestionChange = (index: number, value: string) => {
-    const updatedQuestions = [...(editableWorksheet.warmupQuestions || [])];
+    const updatedQuestions = [...(editableWorksheet.warmup_questions || [])];
     updatedQuestions[index] = value;
     setEditableWorksheet({
       ...editableWorksheet,
-      warmupQuestions: updatedQuestions
+      warmup_questions: updatedQuestions
     });
   };
 
-  const questions = editableWorksheet.warmupQuestions || generateWarmupQuestions(inputParams);
+  const questions = editableWorksheet.warmup_questions || generateWarmupQuestions(inputParams);
 
   return (
     <div className="bg-white border rounded-lg shadow-sm mb-6 relative">
       {!isDownloadUnlocked && <DemoWatermark />}
       
-      <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center">
+      <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center rounded-t-lg">
         <div className="flex items-center">
           <div className="p-2 bg-white/20 rounded-full mr-3">
             <MessageCircle className="h-5 w-5" />
