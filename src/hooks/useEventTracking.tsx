@@ -17,7 +17,7 @@ export interface TrackingEvent {
     | 'download_attempt_locked' 
     | 'download_attempt_unlocked'
     | 'payment_button_click'
-    | 'stripe_payment_success';
+    | 'stripe_payments_success';
   eventData?: any;
   userIdentifier?: string;
 }
