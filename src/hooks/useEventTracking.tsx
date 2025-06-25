@@ -16,7 +16,7 @@ export interface TrackingEvent {
     | 'worksheet_view_end_tab_switch'
     | 'download_attempt_locked' 
     | 'download_attempt_unlocked'
-    | 'payment_button_click'
+    | 'stripe_payment_clicks'
     | 'stripe_payment_success';
   eventData?: any;
   userIdentifier?: string;

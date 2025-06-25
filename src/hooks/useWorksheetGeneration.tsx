@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { generateWorksheet } from "@/services/worksheetService";
@@ -9,6 +8,7 @@ import { formatPromptForAI, createFormDataForStorage } from "@/utils/promptForma
 import { processExercises } from "@/utils/exerciseProcessor";
 import { getExpectedExerciseCount, validateWorksheet, createSampleVocabulary } from "@/utils/worksheetUtils";
 import { deepFixTextObjects } from "@/utils/textObjectFixer";
+import { useWorksheetGenerationTracking } from "./useWorksheetGenerationTracking";
 
 export const useWorksheetGeneration = (
   userId: string | null,
@@ -16,11 +16,18 @@ export const useWorksheetGeneration = (
 ) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
+  const [error, setError] = useState<any>(null);
+  const [worksheetData, setWorksheetData] = useState<any>(null);
   const { toast } = useToast();
+
+  // Add generation tracking
+  useWorksheetGenerationTracking(isGenerating, worksheetData, error);
 
   const generateWorksheetHandler = async (data: FormData) => {
     console.log('🚀 Starting worksheet generation for:', data.lessonTime);
     
+    setError(null);
+    setWorksheetData(null);
     worksheetState.clearWorksheetStorage();
 
     const newWorksheetId = uuidv4();
@@ -105,6 +112,7 @@ export const useWorksheetGeneration = (
       }
     } catch (error) {
       console.error("💥 Worksheet generation error:", error);
+      setError(error);
       
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
       const expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60 min');
