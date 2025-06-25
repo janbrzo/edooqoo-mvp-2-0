@@ -1,10 +1,10 @@
-
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { CheckCircle, Download, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { usePaymentTracking } from "@/hooks/usePaymentTracking";
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -13,6 +13,7 @@ const PaymentSuccess = () => {
   const [isVerifying, setIsVerifying] = useState(true);
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const { trackStripePaymentSuccess } = usePaymentTracking();
 
   const sessionId = searchParams.get('session_id');
 
@@ -45,6 +46,11 @@ const PaymentSuccess = () => {
       if (data.status === 'paid' && data.sessionToken) {
         sessionStorage.setItem('downloadToken', data.sessionToken);
         sessionStorage.setItem('downloadTokenExpiry', new Date(data.expiresAt).getTime().toString());
+        
+        // Track successful Stripe payment
+        if (data.worksheetId && data.paymentId) {
+          trackStripePaymentSuccess(data.worksheetId, data.paymentId, data.amount || 100);
+        }
         
         toast({
           title: "Payment successful!",

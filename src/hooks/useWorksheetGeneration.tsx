@@ -9,6 +9,7 @@ import { formatPromptForAI, createFormDataForStorage } from "@/utils/promptForma
 import { processExercises } from "@/utils/exerciseProcessor";
 import { getExpectedExerciseCount, validateWorksheet, createSampleVocabulary } from "@/utils/worksheetUtils";
 import { deepFixTextObjects } from "@/utils/textObjectFixer";
+import { useEventTracking } from "@/hooks/useEventTracking";
 
 export const useWorksheetGeneration = (
   userId: string | null,
@@ -17,6 +18,7 @@ export const useWorksheetGeneration = (
   const [isGenerating, setIsGenerating] = useState(false);
   const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
   const { toast } = useToast();
+  const { trackEvent } = useEventTracking(userId);
 
   const generateWorksheetHandler = async (data: FormData) => {
     console.log('🚀 Starting worksheet generation for:', data.lessonTime);
@@ -32,6 +34,15 @@ export const useWorksheetGeneration = (
     
     const startTime = Date.now();
     setStartGenerationTime(startTime);
+    
+    // Track worksheet generation start
+    trackEvent({
+      eventType: 'worksheet_generation_start',
+      eventData: {
+        worksheetId: newWorksheetId,
+        timestamp: new Date().toISOString()
+      }
+    });
     
     try {
       console.log('📡 Calling generateWorksheet API...');
@@ -93,6 +104,17 @@ export const useWorksheetGeneration = (
         worksheetState.setGeneratedWorksheet(deepFixedWorksheet);
         worksheetState.setEditableWorksheet(deepFixedWorksheet);
         
+        // Track successful worksheet generation
+        trackEvent({
+          eventType: 'worksheet_generation_complete',
+          eventData: {
+            worksheetId: newWorksheetId,
+            success: true,
+            generationTimeSeconds: actualGenerationTime,
+            timestamp: new Date().toISOString()
+          }
+        });
+        
         console.log('🎉 Worksheet generation completed successfully!');
         toast({
           title: "Worksheet generated successfully!",
@@ -105,6 +127,17 @@ export const useWorksheetGeneration = (
       }
     } catch (error) {
       console.error("💥 Worksheet generation error:", error);
+      
+      // Track failed worksheet generation
+      trackEvent({
+        eventType: 'worksheet_generation_complete',
+        eventData: {
+          worksheetId: newWorksheetId,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString()
+        }
+      });
       
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
       const expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60 min');
