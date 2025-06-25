@@ -17,7 +17,7 @@ export const usePaymentTracking = (userId?: string) => {
 
   const trackStripePaymentSuccess = (worksheetId: string, paymentId: string, amount: number) => {
     trackEvent({
-      eventType: 'stripe_payment_success',
+      eventType: 'stripe_payments_success',
       eventData: {
         worksheetId,
         paymentId,
