@@ -22,7 +22,7 @@ export const formatPromptForAI = (data: FormData): string => {
   }
 
   // Add instructions for warmup questions
-  promptLines.push(`\nIMPORTANT: Include a "warmup_questions" section with exactly 4 conversation starter questions that are personal and opinion-based, directly related to the lesson topic "${data.lessonTopic}". These should help students think about the topic and engage them at the beginning of the lesson. Make them specific to the topic, not generic.`);
+  promptLines.push(`\nIMPORTANT: Include a "warmup_questions" section with exactly 4 conversation starter questions that are personal and opinion-based, directly related to the lesson topic "${data.lessonTopic}". These should help students think about the topic and engage them at the beginning of the lesson. Make question number 1 and 2 generic and question numer 3 and 4 specific.`);
 
   // Join lines with newlines for clean key-value format
   const formattedPrompt = promptLines.join('\n');
