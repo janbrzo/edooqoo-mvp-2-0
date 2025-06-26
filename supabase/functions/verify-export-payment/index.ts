@@ -55,6 +55,8 @@ serve(async (req) => {
     const { sessionId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
 
+    console.log('🔍 VERIFY PAYMENT START - Session ID:', sessionId?.substring(0, 20) + '...');
+
     // Input validation
     if (!sessionId || typeof sessionId !== 'string') {
       return new Response(
@@ -97,8 +99,6 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log('Verifying payment session:', sessionId.substring(0, 20) + '...');
-
     // Retrieve the session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
@@ -112,7 +112,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Session status:', session.payment_status);
+    console.log('💳 STRIPE SESSION STATUS:', session.payment_status);
 
     // Extract and validate customer email from session
     const customerEmail = session.customer_details?.email || session.customer_email;
@@ -135,7 +135,7 @@ serve(async (req) => {
       .single();
 
     if (updateError) {
-      console.error('Error updating payment:', updateError);
+      console.error('❌ ERROR UPDATING PAYMENT:', updateError);
       return new Response(
         JSON.stringify({ error: 'Failed to update payment status' }),
         { 
@@ -144,6 +144,13 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log('📊 PAYMENT DATA FROM DB:', {
+      id: paymentData?.id,
+      worksheet_id: paymentData?.worksheet_id,
+      status: paymentData?.status,
+      amount: paymentData?.amount
+    });
 
     if (session.payment_status === 'paid') {
       // Generate secure download session token
@@ -182,35 +189,47 @@ serve(async (req) => {
           .eq('id', paymentData.worksheet_id);
       }
 
-      console.log('Download session created successfully');
+      console.log('✅ DOWNLOAD SESSION CREATED SUCCESSFULLY');
+
+      const responseData = { 
+        status: 'paid',
+        sessionToken: sessionToken,
+        worksheetId: paymentData.worksheet_id,
+        paymentId: paymentData.id,
+        amount: paymentData.amount,
+        expiresAt: downloadSession.expires_at
+      };
+
+      console.log('📤 RETURNING RESPONSE DATA:', responseData);
 
       return new Response(
-        JSON.stringify({ 
-          status: 'paid',
-          sessionToken: sessionToken,
-          worksheetId: paymentData.worksheet_id,
-          expiresAt: downloadSession.expires_at
-        }),
+        JSON.stringify(responseData),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
 
+    const responseData = { 
+      status: session.payment_status,
+      worksheetId: paymentData.worksheet_id,
+      paymentId: paymentData.id,
+      amount: paymentData.amount
+    };
+
+    console.log('📤 RETURNING NON-PAID RESPONSE DATA:', responseData);
+
     return new Response(
-      JSON.stringify({ 
-        status: session.payment_status,
-        worksheetId: paymentData.worksheet_id
-      }),
+      JSON.stringify(responseData),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
 
   } catch (error) {
-    console.error('Error verifying payment:', error);
+    console.error('💥 ERROR IN VERIFY PAYMENT:', error);
     
-    // Sanitize error message
+    // Sanitized error message
     const sanitizedError = typeof error === 'object' && error !== null ? 
       'Failed to verify payment' : 
       String(error).substring(0, 200);
