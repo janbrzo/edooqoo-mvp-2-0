@@ -188,6 +188,28 @@ serve(async (req) => {
           })
           .eq('id', paymentData.worksheet_id);
       }
+      // Track successful payment in user events table
+try {
+  console.log('Tracking successful payment event');
+  await supabase.rpc('track_user_event', {
+    p_user_identifier: paymentData.user_identifier || ip,
+    p_event_type: 'stripe_payment_success',
+    p_event_data: {
+      worksheetId: paymentData.worksheet_id,
+      sessionId: sessionId,
+      amount: paymentData.amount,
+      timestamp: new Date().toISOString()
+    },
+    p_ip_address: ip,
+    p_user_agent: req.headers.get('user-agent') || 'unknown',
+    p_session_id: null
+  });
+  console.log('Payment success event tracked successfully');
+} catch (trackingError) {
+  console.error('Failed to track payment success event:', trackingError);
+  // Don't fail the whole request if tracking fails
+}
+
 
       console.log('✅ DOWNLOAD SESSION CREATED SUCCESSFULLY');
 
