@@ -2,11 +2,11 @@
 import { useMemo } from 'react';
 import { calculateWorksheetTimes, WorksheetTimes } from '@/utils/timeCalculator';
 
-export const useWorksheetTimes = (lessonTime?: string): WorksheetTimes => {
+export const useWorksheetTimes = (lessonTime?: string, hasGrammar: boolean = true): WorksheetTimes => {
   return useMemo(() => {
     if (!lessonTime) {
-      return calculateWorksheetTimes('45min'); // Default fallback
+      return calculateWorksheetTimes('45min', hasGrammar); // Default fallback
     }
-    return calculateWorksheetTimes(lessonTime);
-  }, [lessonTime]);
+    return calculateWorksheetTimes(lessonTime, hasGrammar);
+  }, [lessonTime, hasGrammar]);
 };
