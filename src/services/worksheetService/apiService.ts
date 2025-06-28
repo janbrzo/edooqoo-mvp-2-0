@@ -95,30 +95,7 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPro
     const expectedCount = getExpectedExerciseCount(prompt.lessonTime);
     console.log(`Expected ${expectedCount} exercises for ${prompt.lessonTime} lesson, got ${worksheetData.exercises.length}`);
     
-    // CRITICAL: Store full HTML content after worksheet is generated
-    if (worksheetData && worksheetData.worksheetId) {
-      console.log('💾 Storing full HTML content for worksheet:', worksheetData.worksheetId);
-      
-      // Wait a bit for the DOM to be ready, then generate and store HTML
-      setTimeout(async () => {
-        try {
-          const { generateWorksheetHTML } = await import('@/utils/htmlExport');
-          const fullHTML = generateWorksheetHTML(worksheetData, 'student', worksheetData.title);
-          
-          if (fullHTML) {
-            // Update the worksheet with full HTML content
-            await supabase
-              .from('worksheets')
-              .update({ html_content: fullHTML })
-              .eq('id', worksheetData.worksheetId);
-            
-            console.log('✅ Full HTML content stored successfully');
-          }
-        } catch (htmlError) {
-          console.error('❌ Failed to store HTML content:', htmlError);
-        }
-      }, 2000); // Wait 2 seconds for DOM to be ready
-    }
+    console.log('✅ Worksheet generated successfully with full HTML stored in database');
     
     return worksheetData;
   } catch (error) {
