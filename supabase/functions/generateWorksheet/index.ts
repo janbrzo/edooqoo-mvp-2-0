@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
@@ -20,422 +21,6 @@ const corsHeaders = {
 };
 
 const rateLimiter = new RateLimiter();
-
-// Function to generate complete HTML for worksheet
-function generateCompleteWorksheetHTML(worksheetData: any, viewMode: 'student' | 'teacher' = 'student'): string {
-  const title = worksheetData.title || 'English Worksheet';
-  
-  // Generate exercises HTML
-  let exercisesHTML = '';
-  worksheetData.exercises?.forEach((exercise: any, index: number) => {
-    const exerciseNumber = index + 1;
-    
-    exercisesHTML += `
-    <div class="exercise-section mb-8 p-6 bg-white rounded-lg border border-gray-200">
-      <div class="exercise-header mb-4">
-        <h3 class="text-xl font-semibold text-gray-800 mb-2">
-          <i class="fas ${exercise.icon || 'fa-pencil-alt'} mr-2 text-blue-600"></i>
-          Exercise ${exerciseNumber}: ${exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1)}
-        </h3>
-        <div class="flex items-center text-sm text-gray-600 mb-2">
-          <i class="fas fa-clock mr-1"></i>
-          <span>${exercise.time || 5} minutes</span>
-        </div>
-        <p class="text-gray-700 font-medium">${exercise.instructions || ''}</p>
-      </div>
-      
-      <div class="exercise-content">`;
-    
-    // Add specific content based on exercise type
-    if (exercise.type === 'reading') {
-      exercisesHTML += `
-        <div class="reading-content mb-6">
-          <div class="prose max-w-none">
-            ${exercise.content?.split('\n').map((paragraph: string) => 
-              paragraph.trim() ? `<p class="mb-4">${paragraph}</p>` : ''
-            ).join('') || ''}
-          </div>
-        </div>
-        <div class="questions">
-          <h4 class="font-semibold mb-3">Questions:</h4>`;
-      
-      exercise.questions?.forEach((q: any, qIndex: number) => {
-        exercisesHTML += `
-          <div class="question mb-4">
-            <p class="font-medium mb-2">${qIndex + 1}. ${q.text}</p>
-            ${viewMode === 'teacher' ? `<p class="text-sm text-gray-600 italic">Answer: ${q.answer}</p>` : ''}
-          </div>`;
-      });
-      
-      exercisesHTML += `</div>`;
-      
-    } else if (exercise.type === 'matching') {
-      exercisesHTML += `
-        <div class="matching-items grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <h4 class="font-semibold mb-3">Terms:</h4>`;
-      
-      exercise.items?.forEach((item: any, itemIndex: number) => {
-        exercisesHTML += `<p class="mb-2">${itemIndex + 1}. ${item.term}</p>`;
-      });
-      
-      exercisesHTML += `
-          </div>
-          <div>
-            <h4 class="font-semibold mb-3">Definitions:</h4>`;
-      
-      const shuffledDefinitions = exercise.items?.map((item: any, index: number) => ({
-        definition: item.definition,
-        originalIndex: index
-      })) || [];
-      
-      shuffledDefinitions.forEach((item: any, itemIndex: number) => {
-        exercisesHTML += `<p class="mb-2">${String.fromCharCode(65 + itemIndex)}. ${item.definition}</p>`;
-      });
-      
-      exercisesHTML += `</div></div>`;
-      
-      if (viewMode === 'teacher') {
-        exercisesHTML += `
-          <div class="answers mt-4 p-3 bg-gray-50 rounded">
-            <h4 class="font-semibold mb-2">Answers:</h4>`;
-        
-        exercise.items?.forEach((item: any, itemIndex: number) => {
-          exercisesHTML += `<p class="text-sm">${itemIndex + 1} - ${String.fromCharCode(65 + itemIndex)}</p>`;
-        });
-        
-        exercisesHTML += `</div>`;
-      }
-      
-    } else if (exercise.type === 'fill-in-blanks') {
-      if (exercise.word_bank) {
-        exercisesHTML += `
-          <div class="word-bank mb-6 p-4 bg-gray-50 rounded">
-            <h4 class="font-semibold mb-3">Word Bank:</h4>
-            <div class="flex flex-wrap gap-2">`;
-        
-        exercise.word_bank.forEach((word: string) => {
-          exercisesHTML += `<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">${word}</span>`;
-        });
-        
-        exercisesHTML += `</div></div>`;
-      }
-      
-      exercisesHTML += `<div class="sentences">`;
-      
-      exercise.sentences?.forEach((sentence: any, sIndex: number) => {
-        const sentenceWithBlank = sentence.text.replace('_____', '________');
-        exercisesHTML += `
-          <div class="sentence mb-4">
-            <p class="mb-2">${sIndex + 1}. ${sentenceWithBlank}</p>
-            ${viewMode === 'teacher' ? `<p class="text-sm text-gray-600 italic">Answer: ${sentence.answer}</p>` : ''}
-          </div>`;
-      });
-      
-      exercisesHTML += `</div>`;
-      
-    } else if (exercise.type === 'multiple-choice') {
-      exercisesHTML += `<div class="questions">`;
-      
-      exercise.questions?.forEach((question: any, qIndex: number) => {
-        exercisesHTML += `
-          <div class="question mb-6">
-            <p class="font-medium mb-3">${qIndex + 1}. ${question.text}</p>
-            <div class="options ml-4">`;
-        
-        question.options?.forEach((option: any) => {
-          const isCorrect = viewMode === 'teacher' && option.correct;
-          exercisesHTML += `
-            <p class="mb-2 ${isCorrect ? 'font-semibold text-green-600' : ''}">
-              ${option.label}. ${option.text}
-            </p>`;
-        });
-        
-        exercisesHTML += `</div></div>`;
-      });
-      
-      exercisesHTML += `</div>`;
-      
-    } else if (exercise.type === 'dialogue') {
-      exercisesHTML += `
-        <div class="dialogue mb-6">
-          <div class="dialogue-lines">`;
-      
-      exercise.dialogue?.forEach((line: any) => {
-        exercisesHTML += `
-          <div class="dialogue-line mb-3 p-3 ${line.speaker === 'Customer' ? 'bg-blue-50' : 'bg-green-50'} rounded">
-            <span class="font-semibold">${line.speaker}:</span> ${line.text}
-          </div>`;
-      });
-      
-      exercisesHTML += `
-          </div>
-        </div>
-        <div class="expressions">
-          <h4 class="font-semibold mb-3">Useful Expressions:</h4>
-          <ul class="list-disc ml-6">`;
-      
-      exercise.expressions?.forEach((expr: string) => {
-        exercisesHTML += `<li class="mb-1">${expr}</li>`;
-      });
-      
-      exercisesHTML += `</ul></div>`;
-      
-    } else if (exercise.type === 'true-false') {
-      exercisesHTML += `<div class="statements">`;
-      
-      exercise.statements?.forEach((statement: any, sIndex: number) => {
-        exercisesHTML += `
-          <div class="statement mb-4">
-            <p class="mb-2">${sIndex + 1}. ${statement.text}</p>
-            ${viewMode === 'teacher' ? `<p class="text-sm text-gray-600 italic">Answer: ${statement.isTrue ? 'True' : 'False'}</p>` : ''}
-          </div>`;
-      });
-      
-      exercisesHTML += `</div>`;
-      
-    } else if (exercise.type === 'discussion') {
-      exercisesHTML += `
-        <div class="questions">
-          <ul class="space-y-3">`;
-      
-      exercise.questions?.forEach((question: any, qIndex: number) => {
-        exercisesHTML += `<li class="flex items-start"><span class="font-medium mr-2">${qIndex + 1}.</span> <span>${question.text}</span></li>`;
-      });
-      
-      exercisesHTML += `</ul></div>`;
-      
-    } else if (exercise.type === 'error-correction') {
-      exercisesHTML += `<div class="sentences">`;
-      
-      exercise.sentences?.forEach((sentence: any, sIndex: number) => {
-        exercisesHTML += `
-          <div class="sentence mb-4">
-            <p class="mb-2">${sIndex + 1}. ${sentence.text}</p>
-            ${viewMode === 'teacher' ? `<p class="text-sm text-gray-600 italic">Correction: ${sentence.correction}</p>` : ''}
-          </div>`;
-      });
-      
-      exercisesHTML += `</div>`;
-    }
-    
-    // Add teacher tip if present and in teacher mode
-    if (viewMode === 'teacher' && exercise.teacher_tip) {
-      exercisesHTML += `
-        <div class="teacher-tip mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400">
-          <h5 class="font-semibold text-yellow-800 mb-2">Teacher Tip:</h5>
-          <p class="text-yellow-700 text-sm">${exercise.teacher_tip}</p>
-        </div>`;
-    }
-    
-    exercisesHTML += `
-      </div>
-    </div>`;
-  });
-  
-  // Generate vocabulary section if present
-  let vocabularyHTML = '';
-  if (worksheetData.vocabulary_sheet && worksheetData.vocabulary_sheet.length > 0) {
-    vocabularyHTML = `
-      <div class="vocabulary-section mt-8 p-6 bg-white rounded-lg border border-gray-200">
-        <h3 class="text-xl font-semibold text-gray-800 mb-4">
-          <i class="fas fa-book mr-2 text-purple-600"></i>
-          Vocabulary Sheet
-        </h3>
-        <div class="vocabulary-grid grid grid-cols-1 md:grid-cols-2 gap-4">`;
-    
-    worksheetData.vocabulary_sheet.forEach((vocab: any) => {
-      vocabularyHTML += `
-        <div class="vocab-item p-3 bg-gray-50 rounded">
-          <span class="font-semibold text-gray-800">${vocab.term}:</span>
-          <span class="text-gray-700"> ${vocab.meaning}</span>
-        </div>`;
-    });
-    
-    vocabularyHTML += `
-        </div>
-      </div>`;
-  }
-  
-  // Generate grammar rules if present
-  let grammarHTML = '';
-  if (worksheetData.grammar_rules) {
-    grammarHTML = `
-      <div class="grammar-section mt-8 p-6 bg-white rounded-lg border border-gray-200">
-        <h3 class="text-xl font-semibold text-gray-800 mb-4">
-          <i class="fas fa-graduation-cap mr-2 text-green-600"></i>
-          ${worksheetData.grammar_rules.title}
-        </h3>
-        <div class="grammar-intro mb-6">
-          <p class="text-gray-700">${worksheetData.grammar_rules.introduction}</p>
-        </div>
-        <div class="grammar-rules">`;
-    
-    worksheetData.grammar_rules.rules?.forEach((rule: any, rIndex: number) => {
-      grammarHTML += `
-        <div class="rule mb-6 p-4 bg-gray-50 rounded">
-          <h4 class="font-semibold text-gray-800 mb-2">${rIndex + 1}. ${rule.title}</h4>
-          <p class="text-gray-700 mb-3">${rule.explanation}</p>
-          <div class="examples">
-            <h5 class="font-medium text-gray-800 mb-2">Examples:</h5>
-            <ul class="list-disc ml-6">`;
-      
-      rule.examples?.forEach((example: string) => {
-        grammarHTML += `<li class="text-gray-700 mb-1">${example}</li>`;
-      });
-      
-      grammarHTML += `
-            </ul>
-          </div>
-        </div>`;
-    });
-    
-    grammarHTML += `
-        </div>
-      </div>`;
-  }
-  
-  // Complete HTML document
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} - ${viewMode === 'teacher' ? 'Teacher' : 'Student'} Version</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        /* Tailwind-like base styles */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.6; 
-            color: #374151; 
-            background: #f9fafb; 
-            padding: 20px; 
-        }
-        .container { 
-            max-width: 800px; 
-            margin: 0 auto; 
-            background: white; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
-            overflow: hidden;
-        }
-        .header { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            color: white; 
-            padding: 30px; 
-            text-align: center; 
-        }
-        .header h1 { 
-            font-size: 2rem; 
-            font-weight: 700; 
-            margin-bottom: 8px; 
-        }
-        .header p { 
-            font-size: 1.1rem; 
-            opacity: 0.9; 
-        }
-        .content { 
-            padding: 30px; 
-        }
-        .mb-2 { margin-bottom: 8px; }
-        .mb-3 { margin-bottom: 12px; }
-        .mb-4 { margin-bottom: 16px; }
-        .mb-6 { margin-bottom: 24px; }
-        .mb-8 { margin-bottom: 32px; }
-        .mt-4 { margin-top: 16px; }
-        .mt-8 { margin-top: 32px; }
-        .ml-4 { margin-left: 16px; }
-        .ml-6 { margin-left: 24px; }
-        .mr-1 { margin-right: 4px; }
-        .mr-2 { margin-right: 8px; }
-        .p-3 { padding: 12px; }
-        .p-4 { padding: 16px; }
-        .p-6 { padding: 24px; }
-        .px-3 { padding-left: 12px; padding-right: 12px; }
-        .py-1 { padding-top: 4px; padding-bottom: 4px; }
-        .text-sm { font-size: 0.875rem; }
-        .text-xl { font-size: 1.25rem; }
-        .font-medium { font-weight: 500; }
-        .font-semibold { font-weight: 600; }
-        .font-bold { font-weight: 700; }
-        .text-gray-600 { color: #6b7280; }
-        .text-gray-700 { color: #374151; }
-        .text-gray-800 { color: #1f2937; }
-        .text-blue-600 { color: #2563eb; }
-        .text-blue-800 { color: #1e40af; }
-        .text-green-600 { color: #16a34a; }
-        .text-purple-600 { color: #9333ea; }
-        .text-yellow-700 { color: #a16207; }
-        .text-yellow-800 { color: #92400e; }
-        .bg-white { background-color: white; }
-        .bg-gray-50 { background-color: #f9fafb; }
-        .bg-blue-50 { background-color: #eff6ff; }
-        .bg-blue-100 { background-color: #dbeafe; }
-        .bg-green-50 { background-color: #f0fdf4; }
-        .bg-yellow-50 { background-color: #fefce8; }
-        .border { border: 1px solid #e5e7eb; }
-        .border-gray-200 { border-color: #e5e7eb; }
-        .border-l-4 { border-left: 4px solid; }
-        .border-yellow-400 { border-color: #facc15; }
-        .rounded { border-radius: 4px; }
-        .rounded-lg { border-radius: 8px; }
-        .rounded-full { border-radius: 9999px; }
-        .grid { display: grid; }
-        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .gap-2 { gap: 8px; }
-        .gap-4 { gap: 16px; }
-        .flex { display: flex; }
-        .flex-wrap { flex-wrap: wrap; }
-        .items-center { align-items: center; }
-        .items-start { align-items: flex-start; }
-        .space-y-3 > * + * { margin-top: 12px; }
-        .list-disc { list-style-type: disc; }
-        .italic { font-style: italic; }
-        .prose { max-width: none; }
-        .prose p { margin-bottom: 16px; }
-        
-        @media (min-width: 768px) {
-            .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
-        
-        @media print {
-            body { background: white; padding: 0; }
-            .container { box-shadow: none; }
-            .header { background: #4f46e5 !important; }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>${title}</h1>
-            <p>${viewMode === 'teacher' ? 'Teacher Version' : 'Student Version'}</p>
-            ${worksheetData.subtitle ? `<p style="margin-top: 8px; font-size: 1rem;">${worksheetData.subtitle}</p>` : ''}
-        </div>
-        
-        <div class="content">
-            ${worksheetData.introduction ? `
-            <div class="introduction mb-8 p-6 bg-gray-50 rounded-lg">
-                <h2 class="text-xl font-semibold mb-3">Introduction</h2>
-                <p class="text-gray-700">${worksheetData.introduction}</p>
-            </div>
-            ` : ''}
-            
-            ${grammarHTML}
-            
-            <div class="exercises">
-                ${exercisesHTML}
-            </div>
-            
-            ${vocabularyHTML}
-        </div>
-    </div>
-</body>
-</html>`;
-}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -478,7 +63,6 @@ serve(async (req) => {
 
     // Get geolocation data
     const geoData = await getGeolocation(ip);
-    console.log(`🌍 Geolocation result: ${JSON.stringify(geoData)}`);
 
     // Sanitize inputs
     const sanitizedPrompt = sanitizeInput(prompt, 5000);
@@ -616,6 +200,222 @@ ${hasGrammarFocus ? `
         {"term": "Customer service", "definition": "The assistance and advice provided by a restaurant or business to people who use its services."}
       ],
       "teacher_tip": "Before the matching activity, introduce and pronounce each term to ensure students feel confident recognizing and understanding them. If needed, translate the most difficult or abstract vocabulary terms into the student's native language. After the exercise, assign students a follow-up task to write 10 original sentences using the new vocabulary."
+    },
+    {
+      "type": "fill-in-blanks",
+      "title": "Exercise 3: Fill in the Blanks",
+      "icon": "fa-pencil-alt",
+      "time": 8,
+      "instructions": "Complete each sentence with the correct word from the box.",
+      "word_bank": ["famous", "international", "incorrect", "small", "popular", "cold", "different", "thin", "expensive", "common"],
+      "sentences": [
+        {"text": "New York is _____ for its wide variety of restaurants and street food.", "answer": "famous"},
+        {"text": "The city offers many _____ cuisines, like Thai, Italian, and Indian.", "answer": "international"},
+        {"text": "Customers often complain when their bill is _____.", "answer": "incorrect"},
+        {"text": "Appetizers are usually _____ dishes served before the main course.", "answer": "small"},
+        {"text": "Pizza is one of the most _____ foods in New York.", "answer": "popular"},
+        {"text": "One common complaint is that the food arrives _____.", "answer": "cold"},
+        {"text": "You can try food from many _____ cultures in New York.", "answer": "different"},
+        {"text": "New York-style pizza is known for its wide and _____ crust.", "answer": "thin"},
+        {"text": "Some restaurants are very _____, but they offer high-quality service.", "answer": "expensive"},
+        {"text": "It is _____ to leave a tip in American restaurants.", "answer": "common"}
+      ],
+      "teacher_tip": "You can use this exercise in the next class as a sentence translation activity—provide the sentences in the student's native language and ask them to translate them into English to practice the new vocabulary."
+    },
+    {
+      "type": "multiple-choice",
+      "title": "Exercise 4: Multiple Choice",
+      "icon": "fa-check-square",
+      "time": 8,
+      "instructions": "Choose the best option to complete each sentence.",
+      "questions": [
+        {
+          "text": "This restaurant is ______ than the one we went to last week.",
+          "options": [
+            {"label": "A", "text": "good", "correct": false},
+            {"label": "B", "text": "better", "correct": true},
+            {"label": "C", "text": "best", "correct": false},
+            {"label": "D", "text": "the better", "correct": false}
+          ]
+        },
+        {
+          "text": "That was the ______ meal I've ever had!",
+          "options": [
+            {"label": "A", "text": "most delicious", "correct": true},
+            {"label": "B", "text": "more delicious", "correct": false},
+            {"label": "C", "text": "deliciouser", "correct": false},
+            {"label": "D", "text": "deliciousest", "correct": false}
+          ]
+        },
+        {
+          "text": "Chinese food is usually ______ than British food.",
+          "options": [
+            {"label": "A", "text": "spicy", "correct": false},
+            {"label": "B", "text": "the spiciest", "correct": false},
+            {"label": "C", "text": "spicier", "correct": true},
+            {"label": "D", "text": "most spicy", "correct": false}
+          ]
+        },
+        {
+          "text": "That's the ______ restaurant in our neighborhood.",
+          "options": [
+            {"label": "A", "text": "expensiver", "correct": false},
+            {"label": "B", "text": "most expensive", "correct": true},
+            {"label": "C", "text": "more expensive", "correct": false},
+            {"label": "D", "text": "expensivest", "correct": false}
+          ]
+        },
+        {
+          "text": "John eats ______ than his brother.",
+          "options": [
+            {"label": "A", "text": "most slowly", "correct": false},
+            {"label": "B", "text": "the slowest", "correct": false},
+            {"label": "C", "text": "slow", "correct": false},
+            {"label": "D", "text": "more slowly", "correct": true}
+          ]
+        },
+        {
+          "text": "This soup is ______ than the one I made yesterday.",
+          "options": [
+            {"label": "A", "text": "tastier", "correct": true},
+            {"label": "B", "text": "the tastiest", "correct": false},
+            {"label": "C", "text": "tasty", "correct": false},
+            {"label": "D", "text": "more tastiest", "correct": false}
+          ]
+        },
+        {
+          "text": "Of all the dishes on the menu, the lasagna is the ______.",
+          "options": [
+            {"label": "A", "text": "good", "correct": false},
+            {"label": "B", "text": "better", "correct": false},
+            {"label": "C", "text": "best", "correct": true},
+            {"label": "D", "text": "more better", "correct": false}
+          ]
+        },
+        {
+          "text": "Pizza is ______ than soup for a quick lunch.",
+          "options": [
+            {"label": "A", "text": "the convenient", "correct": false},
+            {"label": "B", "text": "more convenient", "correct": true},
+            {"label": "C", "text": "convenientest", "correct": false},
+            {"label": "D", "text": "most convenient", "correct": false}
+          ]
+        },
+        {
+          "text": "This is the ______ café in town. Everyone loves it!",
+          "options": [
+            {"label": "A", "text": "more popular", "correct": false},
+            {"label": "B", "text": "popular", "correct": false},
+            {"label": "C", "text": "popularest", "correct": false},
+            {"label": "D", "text": "most popular", "correct": true}
+          ]
+        },
+        {
+          "text": "The weather today is much ______ than it was yesterday.",
+          "options": [
+            {"label": "A", "text": "warmer", "correct": true},
+            {"label": "B", "text": "the warmest", "correct": false},
+            {"label": "C", "text": "warm", "correct": false},
+            {"label": "D", "text": "most warm", "correct": false}
+          ]
+        }
+      ],
+      "teacher_tip": "After choosing an answer, ask students to explain why they picked it. This encourages deeper thinking and grammar awareness. Show tricky or commonly confused forms (more better, the most nicest) and explain why they are incorrect."
+    },
+    {
+      "type": "dialogue",
+      "title": "Exercise 5: Dialogue Practice",
+      "icon": "fa-comments",
+      "time": 8,
+      "instructions": "Read the dialogue and practice with a partner.",
+      "dialogue": [
+        {"speaker": "Waiter", "text": "Good evening! Can I take your order?"},
+        {"speaker": "Customer", "text": "Yes, I'd like the grilled salmon with vegetables, please."},
+        {"speaker": "Waiter", "text": "Of course. Would you like anything to drink?"},
+        {"speaker": "Customer", "text": "A glass of sparkling water, please."},
+        {"speaker": "Waiter", "text": "Great. Your order will be ready shortly."},
+        {"speaker": "Waiter", "text": "Here is your grilled salmon. Enjoy your meal!"},
+        {"speaker": "Customer", "text": "Thank you."},
+        {"speaker": "Customer", "text": "Excuse me, I'm sorry but this isn't what I ordered. I asked for grilled salmon, but this is fried."},
+        {"speaker": "Waiter", "text": "Oh, I'm really sorry about that. Let me fix it right away."},
+        {"speaker": "Customer", "text": "Thank you, I'd appreciate that."},
+        {"speaker": "Waiter", "text": "Please accept our apologies. I'll bring the correct dish in just a few minutes."},
+        {"speaker": "Customer", "text": "No problem. Thank you for your help."}
+      ],
+      "expressions": [
+        "I'd like to order the ……, please.",
+        "Can I see the menu, please?",
+        "Could you recommend something vegetarian?",
+        "I think there's a mistake with my order.",
+        "Excuse me, but this isn't what I asked for.",
+        "Could I get the bill, please?",
+        "Can I have this to go?",
+        "The food was delicious, thank you!",
+        "I'm afraid my dish is cold.",
+        "Can you bring us some more water, please?"
+      ],
+      "expression_instruction": "Practice using these expressions in your own dialogues and real-life situations.",
+      "teacher_tip": "Include unexpected issues (e.g., the order is cold, the waiter forgets the drink) to keep the role-play dynamic and spontaneous. Assign students to write a restaurant review or a list of useful expressions they used or learned."
+    },
+    {
+      "type": "true-false",
+      "title": "Exercise 6: True or False",
+      "icon": "fa-balance-scale",
+      "time": 5,
+      "instructions": "Read each statement and decide if it is true or false.",
+      "statements": [
+        {"text": "Comparative adjectives are used to compare two things.", "isTrue": true},
+        {"text": "We always add 'more' to make a comparative adjective, even for short words like 'big'.", "isTrue": false},
+        {"text": "Superlative adjectives are used to compare more than two things.", "isTrue": true},
+        {"text": "The superlative form of 'good' is 'goodest'.", "isTrue": false},
+        {"text": "Adjectives with three or more syllables usually take 'more' or 'most'.", "isTrue": true},
+        {"text": "We use 'than' with superlatives.", "isTrue": false},
+        {"text": "The comparative form of 'happy' is 'happier'.", "isTrue": true},
+        {"text": "To form comparatives, we never change the spelling of the adjective.", "isTrue": false},
+        {"text": "The superlative form of 'bad' is 'the worst'.", "isTrue": true},
+        {"text": "We add 'er' and 'est' to all adjectives to form comparatives and superlatives.", "isTrue": false}
+      ],
+      "teacher_tip": "You can use this exercise to check whether the student has understood the grammar topic."
+    },
+    {
+      "type": "discussion",
+      "title": "Exercise 7: Discussion Questions",
+      "icon": "fa-users",
+      "time": 8,
+      "instructions": "Discuss these questions with your teacher or partner.",
+      "questions": [
+        {"text": "What is your favorite type of restaurant and why?"},
+        {"text": "Have you ever had a bad experience in a restaurant? What happened?"},
+        {"text": "Do you prefer eating at home or dining out? Give reasons using comparatives."},
+        {"text": "What dish would you recommend to someone visiting your country for the first time?"},
+        {"text": "Which restaurant in your city is the most popular? Why do you think it's the best?"},
+        {"text": "How do you usually react if your order is wrong or the food isn't good?"},
+        {"text": "What is more important to you: good food or good service? Why?"},
+        {"text": "Can you describe the most expensive meal you've ever had? Was it worth it?"},
+        {"text": "What makes a restaurant better than others in your opinion?"},
+        {"text": "Have you ever tried a dish that was better than you expected? What was it?"}
+      ],
+      "teacher_tip": "Encourage deeper thinking by asking students to explain, justify, or give examples for their answers.Focus on major errors or repeated mistakes after the discussion, not during."
+    },
+    {
+      "type": "error-correction",
+      "title": "Exercise 8: Error Correction",
+      "icon": "fa-exclamation-triangle",
+      "time": 7,
+      "instructions": "Find and correct the errors in these sentences.",
+      "sentences": [
+        {"text": "This pizza is more better than the one I had yesterday.", "correction": "This pizza is better than the one I had yesterday."},
+        {"text": "She is the most tallest girl in the class.", "correction": "She is the tallest girl in the class."},
+        {"text": "My house is more big than yours.", "correction": "My house is bigger than yours."},
+        {"text": "Today is the most hottest day of the year.", "correction": "Today is the hottest day of the year."},
+        {"text": "This restaurant is more expensiveer than the other one.", "correction": "This restaurant is more expensive than the other one."},
+        {"text": "He is smarter than his brother.", "correction": "He is smarter than his brother."},
+        {"text": "That movie was the most funniest I have ever seen.", "correction": "That movie was the funniest I have ever seen."},
+        {"text": "My car is more faster now after the repair.", "correction": "My car is faster now after the repair."},
+        {"text": "Winter is colder than summer.", "correction": "Winter is colder than summer."},
+        {"text": "She is the more talented singer in our group.", "correction": "She is the most talented singer in our group."}
+      ],
+      "teacher_tip": "Highlight frequent errors with comparatives and superlatives, like double comparatives (e.g., more better) or incorrect superlative forms.Ask students to explain why a sentence is incorrect to deepen comprehension."
     }
   ],
   "vocabulary_sheet": [
@@ -723,11 +523,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
     const generationEndTime = Date.now();
     const generationTimeSeconds = Math.round((generationEndTime - generationStartTime) / 1000);
 
-    // Generate complete HTML for the worksheet
-    const fullHTML = generateCompleteWorksheetHTML(worksheetData, 'student');
-    console.log(`📝 Generated complete HTML, length: ${fullHTML.length} characters`);
-
-    // Save worksheet to database with FULL PROMPT (SYSTEM + USER) and COMPLETE HTML
+    // Save worksheet to database with FULL PROMPT (SYSTEM + USER)
     try {
       // CREATE FULL PROMPT - this is what should be saved to database
       const fullPrompt = `SYSTEM MESSAGE:\n${systemMessage}\n\nUSER MESSAGE:\n${sanitizedPrompt}`;
@@ -741,7 +537,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
           p_prompt: fullPrompt, // NOW SAVING FULL PROMPT (SYSTEM + USER)
           p_form_data: sanitizedFormData,
           p_ai_response: jsonContent?.substring(0, 50000) || '', // Limit response size
-          p_html_content: fullHTML, // NOW SAVING COMPLETE HTML instead of JSON
+          p_html_content: JSON.stringify(worksheetData),
           p_user_id: userId || null,
           p_ip_address: ip,
           p_status: 'created',
@@ -754,15 +550,12 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
 
       if (worksheetError) {
         console.error('Error saving worksheet to database:', worksheetError);
-      } else {
-        console.log('✅ Worksheet saved successfully with full HTML content');
       }
 
       // Track generation event if we have a worksheet ID
       if (worksheet && worksheet.length > 0 && worksheet[0].id) {
         const worksheetId = worksheet[0].id;
         worksheetData.id = worksheetId;
-        worksheetData.worksheetId = worksheetId; // Add for compatibility
         console.log('Worksheet generated and saved successfully with ID:', worksheetId);
         console.log(`Generation time: ${generationTimeSeconds} seconds`);
         console.log(`Geo data: ${geoData.country || 'unknown'}, ${geoData.city || 'unknown'}`);

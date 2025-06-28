@@ -95,13 +95,9 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPro
     const expectedCount = getExpectedExerciseCount(prompt.lessonTime);
     console.log(`Expected ${expectedCount} exercises for ${prompt.lessonTime} lesson, got ${worksheetData.exercises.length}`);
     
-    console.log('✅ Worksheet generated successfully with full HTML stored in database');
-    
     return worksheetData;
   } catch (error) {
     console.error('Error generating worksheet:', error);
     throw error;
   }
 }
-
-export const generateWorksheet = generateWorksheetAPI;

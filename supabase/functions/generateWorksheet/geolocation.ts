@@ -1,5 +1,5 @@
 
-// Enhanced geolocation utility for Edge Functions
+// Enhanced geolocation utility with HTTPS, timeout, retry, and fallback
 
 export async function getGeolocation(ip: string): Promise<{ country?: string; city?: string }> {
   console.log(`🌍 Starting geolocation lookup for IP: ${ip}`);
@@ -10,17 +10,17 @@ export async function getGeolocation(ip: string): Promise<{ country?: string; ci
     return {};
   }
   
-  // Use ipapi.co which works better with Edge Functions
+  // Primary service with HTTPS
   const services = [
     {
-      name: 'ipapi.co',
-      url: `https://ipapi.co/${ip}/json/`,
-      timeout: 8000
+      name: 'ip-api.com',
+      url: `https://ip-api.com/json/${ip}?fields=status,country,city`,
+      timeout: 5000
     },
     {
-      name: 'ip-api.com', 
-      url: `https://ip-api.com/json/${ip}?fields=status,country,city`,
-      timeout: 8000
+      name: 'ipinfo.io',
+      url: `https://ipinfo.io/${ip}/json`,
+      timeout: 5000
     }
   ];
   
@@ -34,8 +34,7 @@ export async function getGeolocation(ip: string): Promise<{ country?: string; ci
       const response = await fetch(service.url, {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'Edooqoo-Analytics/1.0 (+https://edooqoo.com)',
-          'Accept': 'application/json'
+          'User-Agent': 'Edooqoo-Worksheet-Generator/1.0'
         }
       });
       
@@ -51,23 +50,14 @@ export async function getGeolocation(ip: string): Promise<{ country?: string; ci
       
       let country, city;
       
-      if (service.name === 'ipapi.co') {
-        country = data.country_name || data.country;
-        city = data.city;
-        
-        // Check for errors in ipapi.co response
-        if (data.error) {
-          console.warn(`🌍 ${service.name} returned error: ${data.reason}`);
-          continue;
-        }
-      } else if (service.name === 'ip-api.com') {
+      if (service.name === 'ip-api.com') {
         if (data.status === 'success') {
           country = data.country;
           city = data.city;
-        } else {
-          console.warn(`🌍 ${service.name} returned status: ${data.status}`);
-          continue;
         }
+      } else if (service.name === 'ipinfo.io') {
+        country = data.country;
+        city = data.city;
       }
       
       if (country || city) {
