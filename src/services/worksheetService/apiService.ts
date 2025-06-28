@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 import { toast } from 'sonner';
@@ -101,3 +100,62 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPro
     throw error;
   }
 }
+
+export const generateWorksheet = async (
+  formData: FormData & { fullPrompt?: string; formDataForStorage?: any },
+  userIdentifier: string = 'anonymous'
+): Promise<any> => {
+  console.log('📡 Starting API call to generate worksheet...');
+  
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/generateWorksheet`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'x-user-identifier': userIdentifier,
+      },
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ API Error Response:', errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ API Response received');
+    
+    // CRITICAL: Store full HTML content after worksheet is generated
+    if (data && data.worksheetId) {
+      console.log('💾 Storing full HTML content for worksheet:', data.worksheetId);
+      
+      // Wait a bit for the DOM to be ready
+      setTimeout(async () => {
+        try {
+          const { generateWorksheetHTML } = await import('@/utils/htmlExport');
+          const fullHTML = generateWorksheetHTML(data, 'student', data.title);
+          
+          if (fullHTML) {
+            // Update the worksheet with full HTML content
+            const { supabase } = await import('@/integrations/supabase/client');
+            await supabase
+              .from('worksheets')
+              .update({ html_content: fullHTML })
+              .eq('id', data.worksheetId);
+            
+            console.log('✅ Full HTML content stored successfully');
+          }
+        } catch (htmlError) {
+          console.error('❌ Failed to store HTML content:', htmlError);
+        }
+      }, 2000); // Wait 2 seconds for DOM to be ready
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('💥 API call failed:', error);
+    throw error;
+  }
+};

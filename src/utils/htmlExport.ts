@@ -350,3 +350,122 @@ ${finalCSS}
     return false;
   }
 }
+
+export const generateWorksheetHTML = (
+  worksheet: any,
+  viewMode: 'student' | 'teacher' = 'student',
+  title?: string
+): string => {
+  console.log('🖨️ Generating full HTML for worksheet:', title);
+  
+  // Get the worksheet content element
+  const worksheetElement = document.getElementById('worksheet-content');
+  if (!worksheetElement) {
+    console.error('❌ Could not find worksheet-content element');
+    return '';
+  }
+
+  // Clone the element to avoid modifying the original
+  const clonedElement = worksheetElement.cloneNode(true) as HTMLElement;
+  
+  // Remove any demo watermarks from the cloned content
+  const watermarks = clonedElement.querySelectorAll('[class*="watermark"], [class*="demo"]');
+  watermarks.forEach(watermark => watermark.remove());
+  
+  // Remove any payment buttons or locked content indicators
+  const paymentElements = clonedElement.querySelectorAll('[class*="payment"], [class*="locked"], [class*="unlock"]');
+  paymentElements.forEach(element => element.remove());
+  
+  // Get current CSS from the page
+  const stylesheets = Array.from(document.styleSheets);
+  let cssContent = '';
+  
+  try {
+    stylesheets.forEach(stylesheet => {
+      try {
+        if (stylesheet.cssRules) {
+          Array.from(stylesheet.cssRules).forEach(rule => {
+            cssContent += rule.cssText + '\n';
+          });
+        }
+      } catch (e) {
+        // Skip stylesheets we can't access due to CORS
+        console.log('Skipping stylesheet due to CORS');
+      }
+    });
+  } catch (e) {
+    console.warn('Could not extract all CSS rules');
+  }
+
+  const fullHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title || worksheet.title || 'Worksheet'} - ${viewMode === 'teacher' ? 'Teacher' : 'Student'} Version</title>
+    <style>
+/* CSS from Edooqoo application */
+${cssContent}
+
+/* Additional print styles */
+@media print {
+    @page {
+        margin: 10mm;
+    }
+    
+    .page-number {
+        position: fixed;
+        bottom: 10mm;
+        right: 10mm;
+        font-size: 10pt;
+        color: #666;
+    }
+    
+    .page-number::before {
+        content: "Page " counter(page) " of " counter(pages);
+    }
+    
+    /* Hide any remaining interactive elements */
+    button, .cursor-pointer, [onclick] {
+        display: none !important;
+    }
+}
+
+/* Ensure proper styling for standalone HTML */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: #f8f9fa;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        ${clonedElement.outerHTML}
+    </div>
+    
+    <script>
+        // Remove any remaining interactive elements
+        document.addEventListener('DOMContentLoaded', function() {
+            const interactiveElements = document.querySelectorAll('button, [onclick], .cursor-pointer');
+            interactiveElements.forEach(el => el.style.display = 'none');
+        });
+    </script>
+</body>
+</html>`;
+
+  console.log('✅ Full HTML generated, length:', fullHTML.length);
+  return fullHTML;
+};

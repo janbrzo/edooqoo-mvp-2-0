@@ -18,7 +18,7 @@ export async function getGeolocation(ip: string): Promise<{ country?: string; ci
       timeout: 5000
     },
     {
-      name: 'ipinfo.io',
+      name: 'ipinfo.io', 
       url: `https://ipinfo.io/${ip}/json`,
       timeout: 5000
     }
