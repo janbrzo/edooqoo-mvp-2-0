@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import ExerciseSection from "./ExerciseSection";
 import VocabularySheet from "./VocabularySheet";
 import WorksheetRating from "@/components/WorksheetRating";
@@ -8,7 +8,6 @@ import GrammarRules from "./GrammarRules";
 import DemoWatermark from "./DemoWatermark";
 import WarmupSection from "./WarmupSection";
 import { useWorksheetTimes } from "@/hooks/useWorksheetTimes";
-import { saveWorksheetHtmlContent } from "@/services/worksheetService";
 
 interface WorksheetContentProps {
   editableWorksheet: any;
@@ -44,26 +43,6 @@ export default function WorksheetContent({
       </div>
     );
   }
-
-  // Save HTML content after worksheet is rendered
-  useEffect(() => {
-    if (worksheetId && editableWorksheet && !isEditing) {
-      console.log('📄 Scheduling HTML content capture for worksheet:', worksheetId);
-      
-      // Save HTML content after a delay to ensure everything is rendered
-      const timer = setTimeout(() => {
-        saveWorksheetHtmlContent(worksheetId).then((success) => {
-          if (success) {
-            console.log('📄 ✅ HTML content saved successfully');
-          } else {
-            console.log('📄 ❌ Failed to save HTML content');
-          }
-        });
-      }, 3000); // 3 second delay to ensure full rendering
-      
-      return () => clearTimeout(timer);
-    }
-  }, [worksheetId, editableWorksheet, isEditing]);
 
   console.log('WorksheetContent: Rendering with editableWorksheet:', editableWorksheet);
   console.log('WorksheetContent: Calculated times:', worksheetTimes);

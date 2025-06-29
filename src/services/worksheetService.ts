@@ -4,7 +4,6 @@ import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 import { generateWorksheetAPI } from './worksheetService/apiService';
 import { submitFeedbackAPI, updateFeedbackAPI } from './worksheetService/feedbackService';
 import { trackWorksheetEventAPI } from './worksheetService/trackingService';
-import { saveWorksheetHtmlContentDelayed } from './worksheetService/htmlContentService';
 
 /**
  * Main service export for worksheet functionality
@@ -13,8 +12,7 @@ export {
   generateWorksheet,
   submitFeedback, 
   updateFeedback, 
-  trackWorksheetEvent,
-  saveWorksheetHtmlContent
+  trackWorksheetEvent 
 };
 
 /**
@@ -43,11 +41,4 @@ async function updateFeedback(id: string, comment: string, userId: string) {
  */
 async function trackWorksheetEvent(type: string, worksheetId: string, userId: string, metadata: any = {}) {
   return trackWorksheetEventAPI(type, worksheetId, userId, metadata);
-}
-
-/**
- * Saves the rendered HTML content of a worksheet to the database
- */
-async function saveWorksheetHtmlContent(worksheetId: string) {
-  return saveWorksheetHtmlContentDelayed(worksheetId, 3000);
 }
