@@ -1,7 +1,6 @@
 import React from "react";
 import { BookOpen, Clock } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useWorksheetTimes } from "@/hooks/useWorksheetTimes";
 
 interface GrammarRule {
   title: string;
@@ -20,15 +19,23 @@ interface GrammarRulesProps {
   isEditing: boolean;
   editableWorksheet: any;
   setEditableWorksheet: (worksheet: any) => void;
+  inputParams?: any;
 }
 
 export default function GrammarRules({
   grammarRules,
   isEditing,
   editableWorksheet,
-  setEditableWorksheet
+  setEditableWorksheet,
+  inputParams
 }: GrammarRulesProps) {
   const isMobile = useIsMobile();
+
+  // Calculate grammar time based on lesson duration
+  const getGrammarTime = () => {
+    if (!inputParams?.lessonTime) return 10;
+    return inputParams.lessonTime === '45min' ? 10 : 15;
+  };
 
   const updateGrammarRules = (field: string, value: any) => {
     setEditableWorksheet({
@@ -63,7 +70,7 @@ export default function GrammarRules({
         </div>
         <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
           <Clock className="h-4 w-4 mr-1" />
-          <span className="text-sm">10 min</span>
+          <span className="text-sm">{getGrammarTime()} min</span>
         </div>
       </div>
 
