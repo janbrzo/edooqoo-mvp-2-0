@@ -29,6 +29,8 @@ export const calculateWorksheetTimes = (lessonTime: string, hasGrammar: boolean 
 
 // Fixed exercise times based on lesson duration and grammar presence - updated with exact specifications
 export const getExerciseTimeByType = (exerciseType: string, lessonTime: string, hasGrammar: boolean = true): number => {
+  console.log(`🔧 getExerciseTimeByType called with:`, { exerciseType, lessonTime, hasGrammar });
+  
   const timeMap = {
     '45min': {
       withGrammar: { // 45min total: 5 warmup + 10 grammar + 30 exercises = 45min
@@ -84,10 +86,26 @@ export const getExerciseTimeByType = (exerciseType: string, lessonTime: string, 
     }
   };
   
-  const lessonConfig = timeMap[lessonTime as keyof typeof timeMap];
-  const grammarConfig = hasGrammar ? lessonConfig.withGrammar : lessonConfig.withoutGrammar;
+  // Normalize lesson time format - handle both "45min" and "45 min" formats
+  const normalizedLessonTime = lessonTime.replace(/\s+/g, ''); // Remove all spaces
+  console.log(`🔧 Normalized lesson time from "${lessonTime}" to "${normalizedLessonTime}"`);
   
-  return grammarConfig[exerciseType as keyof typeof grammarConfig] || 0;
+  const lessonConfig = timeMap[normalizedLessonTime as keyof typeof timeMap];
+  if (!lessonConfig) {
+    console.warn(`🔧 No lesson config found for "${normalizedLessonTime}", falling back to 45min`);
+    const fallbackConfig = timeMap['45min'];
+    const grammarConfig = hasGrammar ? fallbackConfig.withGrammar : fallbackConfig.withoutGrammar;
+    const result = grammarConfig[exerciseType as keyof typeof grammarConfig] || 0;
+    console.log(`🔧 Fallback result for ${exerciseType}: ${result} minutes`);
+    return result;
+  }
+  
+  const grammarConfig = hasGrammar ? lessonConfig.withGrammar : lessonConfig.withoutGrammar;
+  const result = grammarConfig[exerciseType as keyof typeof grammarConfig] || 0;
+  
+  console.log(`🔧 Found time for ${exerciseType} in ${normalizedLessonTime} ${hasGrammar ? 'with' : 'without'} grammar: ${result} minutes`);
+  
+  return result;
 };
 
 export const validateWorksheetTimes = (

@@ -6,6 +6,10 @@ export const processExercises = (exercises: any[], lessonTime: string = '45min',
   console.log('🔧 Processing exercises - Starting with:', exercises.length, 'exercises');
   console.log('🔧 Lesson config:', { lessonTime, hasGrammar });
   
+  // Normalize lesson time format to remove spaces
+  const normalizedLessonTime = lessonTime.replace(/\s+/g, '');
+  console.log('🔧 Normalized lesson time:', normalizedLessonTime);
+  
   const processedExercises = exercises.map((exercise: any, index: number) => {
     console.log(`🔧 Processing exercise ${index + 1}: ${exercise.type}`);
     
@@ -13,8 +17,8 @@ export const processExercises = (exercises: any[], lessonTime: string = '45min',
     exercise.title = `Exercise ${index + 1}: ${exerciseType}`;
     
     // Assign fixed time based on exercise type, lesson duration, and grammar presence
-    exercise.time = getExerciseTimeByType(exercise.type, lessonTime, hasGrammar);
-    console.log(`🔧 Assigned ${exercise.time} minutes to ${exercise.type} exercise (hasGrammar: ${hasGrammar})`);
+    exercise.time = getExerciseTimeByType(exercise.type, normalizedLessonTime, hasGrammar);
+    console.log(`🔧 Assigned ${exercise.time} minutes to ${exercise.type} exercise (lessonTime: ${normalizedLessonTime}, hasGrammar: ${hasGrammar})`);
     
     if (exercise.type === "matching" && exercise.items) {
       exercise.originalItems = [...exercise.items];
@@ -131,11 +135,20 @@ export const processExercises = (exercises: any[], lessonTime: string = '45min',
   
   // Validate total exercise times
   const exerciseTimes = processedExercises.map(ex => ex.time || 0);
-  const targetTime = lessonTime === '45min' ? 45 : 60;
+  const targetTime = normalizedLessonTime === '45min' ? 45 : 60;
   const warmupTime = 5;
-  const grammarTime = hasGrammar ? (lessonTime === '45min' ? 10 : 15) : 0;
+  const grammarTime = hasGrammar ? (normalizedLessonTime === '45min' ? 10 : 15) : 0;
   
   const validation = validateWorksheetTimes(warmupTime, grammarTime, exerciseTimes, targetTime);
+  
+  console.log(`🔧 Exercise times breakdown:`, {
+    exercises: processedExercises.map((ex, idx) => `${ex.type}: ${ex.time}min`),
+    totalExerciseTime: exerciseTimes.reduce((sum, time) => sum + time, 0),
+    warmup: warmupTime,
+    grammar: grammarTime,
+    actualTotal: validation.actualTime,
+    targetTotal: targetTime
+  });
   
   if (!validation.isValid) {
     console.warn(`⚠️ Worksheet time validation failed:`, {

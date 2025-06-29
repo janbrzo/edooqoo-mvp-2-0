@@ -1,5 +1,5 @@
 
-export type LessonTime = "45 min" | "60 min";
+export type LessonTime = "45min" | "60min"; // Changed from "45 min" | "60 min" to match timeCalculator
 export type EnglishLevel = "A1/A2" | "B1/B2" | "C1/C2";
 
 export type Tile = {
