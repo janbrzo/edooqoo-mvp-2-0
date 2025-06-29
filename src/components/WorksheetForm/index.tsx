@@ -12,7 +12,7 @@ import { useEventTracking } from "@/hooks/useEventTracking";
 export type { FormData };
 
 export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
-  const [lessonTime, setLessonTime] = useState<LessonTime>("60 min");
+  const [lessonTime, setLessonTime] = useState<LessonTime>("60min"); // Changed from "60 min" to "60min"
   const [lessonTopic, setLessonTopic] = useState("");
   const [lessonGoal, setLessonGoal] = useState("");
   const [grammarFocus, setGrammarFocus] = useState("");
@@ -111,18 +111,18 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                   <div className={`flex gap-2 ${isMobile ? 'justify-center' : 'w-32'}`}>
                     <Button 
                       type="button"
-                      variant={lessonTime === "45 min" ? "default" : "outline"} 
-                      onClick={() => setLessonTime("45 min")} 
-                      className={lessonTime === "45 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                      variant={lessonTime === "45min" ? "default" : "outline"} 
+                      onClick={() => setLessonTime("45min")} 
+                      className={lessonTime === "45min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
                       size={isMobile ? "sm" : "sm"}
                     >
                       45 min
                     </Button>
                     <Button 
                       type="button"
-                      variant={lessonTime === "60 min" ? "default" : "outline"} 
-                      onClick={() => setLessonTime("60 min")} 
-                      className={lessonTime === "60 min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
+                      variant={lessonTime === "60min" ? "default" : "outline"} 
+                      onClick={() => setLessonTime("60min")} 
+                      className={lessonTime === "60min" ? "bg-worksheet-purple hover:bg-worksheet-purpleDark" : ""}
                       size={isMobile ? "sm" : "sm"}
                     >
                       60 min
