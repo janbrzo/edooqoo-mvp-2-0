@@ -9,6 +9,7 @@ import DemoWatermark from "./DemoWatermark";
 import WarmupSection from "./WarmupSection";
 import { useWorksheetTimes } from "@/hooks/useWorksheetTimes";
 import { saveWorksheetHtmlContent } from "@/services/worksheetService";
+import { supabase } from '@/integrations/supabase/client';
 
 interface WorksheetContentProps {
   editableWorksheet: any;
@@ -45,12 +46,40 @@ export default function WorksheetContent({
     );
   }
 
-  // Save HTML content after worksheet is rendered
+  // Track if worksheet is using mockup data and save HTML content
   useEffect(() => {
     if (worksheetId && editableWorksheet && !isEditing) {
       console.log('📄 Scheduling HTML content capture for worksheet:', worksheetId);
       
-      // Save HTML content after a delay to ensure everything is rendered
+      // Check if this is mockup data
+      const isMockup = editableWorksheet.title === "In a restaurant" && 
+                      editableWorksheet.subtitle === "Making a complaint about your dish in a restaurant: adjectives practice";
+      
+      if (isMockup) {
+        console.log('📊 Detected mockup usage, tracking event');
+        // Track mockup usage event
+        supabase.functions.invoke('track-user-event', {
+          body: {
+            eventType: 'worksheet_mockup_used',
+            eventData: { worksheetId },
+            userIdentifier: worksheetId
+          }
+        }).catch(error => console.log('📊 Error tracking mockup usage:', error));
+        
+        // Also update worksheet record to mark as mockup
+        supabase
+          .from('worksheets')
+          .update({ 
+            form_data: { 
+              ...editableWorksheet.form_data || {},
+              _is_mockup: true 
+            }
+          })
+          .eq('id', worksheetId)
+          .catch(error => console.log('📊 Error marking worksheet as mockup:', error));
+      }
+      
+      // Save HTML content after a longer delay to ensure full rendering
       const timer = setTimeout(() => {
         saveWorksheetHtmlContent(worksheetId).then((success) => {
           if (success) {
@@ -59,7 +88,7 @@ export default function WorksheetContent({
             console.log('📄 ❌ Failed to save HTML content');
           }
         });
-      }, 3000); // 3 second delay to ensure full rendering
+      }, 5000); // Increased to 5 seconds
       
       return () => clearTimeout(timer);
     }
