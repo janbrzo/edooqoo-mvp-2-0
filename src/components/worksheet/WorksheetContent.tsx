@@ -7,7 +7,6 @@ import TeacherNotes from "./TeacherNotes";
 import GrammarRules from "./GrammarRules";
 import DemoWatermark from "./DemoWatermark";
 import WarmupSection from "./WarmupSection";
-import { useWorksheetTimes } from "@/hooks/useWorksheetTimes";
 
 interface WorksheetContentProps {
   editableWorksheet: any;
@@ -30,10 +29,6 @@ export default function WorksheetContent({
   isDownloadUnlocked,
   inputParams
 }: WorksheetContentProps) {
-  // Check if worksheet has grammar rules
-  const hasGrammar = Boolean(editableWorksheet?.grammar_rules);
-  const worksheetTimes = useWorksheetTimes(inputParams?.lessonTime, hasGrammar);
-  
   // CRITICAL FIX: Add safety check to prevent rendering with null worksheet
   if (!editableWorksheet) {
     console.log('WorksheetContent: editableWorksheet is null, showing loading...');
@@ -45,8 +40,6 @@ export default function WorksheetContent({
   }
 
   console.log('WorksheetContent: Rendering with editableWorksheet:', editableWorksheet);
-  console.log('WorksheetContent: Calculated times:', worksheetTimes);
-  console.log('WorksheetContent: Has grammar:', hasGrammar);
 
   return (
     <div className="worksheet-content mb-8" id="worksheet-content">
@@ -109,16 +102,6 @@ export default function WorksheetContent({
             <p className="leading-snug">{editableWorksheet.introduction || ''}</p>
           )}
         </div>
-
-        {/* Total lesson time display */}
-        {viewMode === 'teacher' && (
-          <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md mb-4">
-            <strong>Total lesson time: {worksheetTimes.totalLesson} minutes</strong>
-            <div className="mt-1 text-xs">
-              Warmup: {worksheetTimes.warmup}min{hasGrammar ? ` • Grammar: ${worksheetTimes.grammar}min` : ''} • Exercises: {worksheetTimes.exercisesTotal}min
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Warmup Section - added before grammar rules */}
@@ -140,7 +123,6 @@ export default function WorksheetContent({
             isEditing={isEditing}
             editableWorksheet={editableWorksheet}
             setEditableWorksheet={setEditableWorksheet}
-            inputParams={inputParams}
           />
         </div>
       )}

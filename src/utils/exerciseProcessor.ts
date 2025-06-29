@@ -1,26 +1,15 @@
 
-import { shuffleArray, createSampleVocabulary } from "./worksheetUtils";
-import { getExerciseTimeByType, validateWorksheetTimes } from "./timeCalculator";
 
-export const processExercises = (exercises: any[], lessonTime: string = '45min', hasGrammar: boolean = true): any[] => {
+import { shuffleArray, createSampleVocabulary } from "./worksheetUtils";
+
+export const processExercises = (exercises: any[]): any[] => {
   console.log('🔧 Processing exercises - Starting with:', exercises.length, 'exercises');
-  console.log('🔧 Lesson config:', { lessonTime, hasGrammar });
   
   const processedExercises = exercises.map((exercise: any, index: number) => {
     console.log(`🔧 Processing exercise ${index + 1}: ${exercise.type}`);
     
     const exerciseType = exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1).replace(/-/g, ' ');
     exercise.title = `Exercise ${index + 1}: ${exerciseType}`;
-    
-    // Assign fixed time based on exercise type, lesson duration, and grammar presence
-    exercise.time = getExerciseTimeByType(exercise.type, lessonTime, hasGrammar);
-    console.log(`🔧 Assigned ${exercise.time} minutes to ${exercise.type} exercise (hasGrammar: ${hasGrammar})`);
-    
-    // Skip exercises with 0 time (not used in this configuration)
-    if (exercise.time === 0) {
-      console.log(`🔧 Skipping ${exercise.type} exercise - not used in ${lessonTime} ${hasGrammar ? 'with' : 'without'} grammar`);
-      return null;
-    }
     
     if (exercise.type === "matching" && exercise.items) {
       exercise.originalItems = [...exercise.items];
@@ -133,35 +122,9 @@ export const processExercises = (exercises: any[], lessonTime: string = '45min',
     }
     
     return exercise;
-  }).filter(exercise => exercise !== null); // Remove exercises with 0 time
-  
-  // Validate total exercise times
-  const exerciseTimes = processedExercises.map(ex => ex.time || 0);
-  const targetTime = lessonTime === '45min' ? 45 : 60;
-  const warmupTime = 5;
-  const grammarTime = hasGrammar ? (lessonTime === '45min' ? 10 : 15) : 0;
-  
-  const validation = validateWorksheetTimes(warmupTime, grammarTime, exerciseTimes, targetTime);
-  
-  console.log(`🔧 Time breakdown:`, {
-    target: targetTime,
-    warmup: warmupTime,
-    grammar: grammarTime,
-    exercises: exerciseTimes,
-    exercisesSum: exerciseTimes.reduce((sum, time) => sum + time, 0),
-    actualTotal: validation.actualTime
   });
-  
-  if (!validation.isValid) {
-    console.warn(`⚠️ Worksheet time validation failed:`, {
-      target: targetTime,
-      actual: validation.actualTime,
-      difference: validation.difference
-    });
-  } else {
-    console.log(`✅ Worksheet times validated successfully: ${validation.actualTime}/${targetTime} minutes`);
-  }
   
   console.log('🔧 Processing exercises - Completed with:', processedExercises.length, 'exercises');
   return processedExercises;
 };
+
