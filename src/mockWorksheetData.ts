@@ -8,6 +8,47 @@ export const mockWorksheetData = {
     "What do you think makes a good dining experience?",
     "How important is good customer service to you when eating out?"
   ],
+  "grammar_rules": {
+    "title": "Grammar Focus: Comparative and Superlative Adjectives",
+    "introduction": "Adjectives are words that describe or modify nouns, providing information about qualities such as size, color, shape, age, and many others. When we want to compare people, objects, or ideas, we use adjectives in their comparative or superlative forms.\n\nComparatives are used to compare two things or people, showing that one has a higher or lower degree of a particular quality than the other. For example, when saying \"John is taller than Mike,\" the adjective \"taller\" is in the comparative form, indicating a comparison between two individuals. Comparatives are often followed by the word \"than\" to introduce the second element of comparison.\n\nSuperlatives, on the other hand, are used to describe the extreme or highest degree of a quality among three or more things or people. For example, \"Anna is the tallest in her class\" uses the superlative form \"tallest\" to indicate that Anna has the greatest height compared to all others in the group. Superlatives are usually preceded by the definite article \"the\".\n\nThe formation of comparatives and superlatives depends largely on the length and ending of the adjective. One-syllable adjectives usually form comparatives and superlatives by adding the suffixes \"-er\" and \"-est\". For adjectives with two syllables or more, especially those with three or more syllables, the words \"more\" and \"most\" are used before the adjective instead of adding suffixes.\n\nSome adjectives have irregular comparative and superlative forms that must be memorized as they do not follow standard patterns. For instance, \"good\" becomes \"better\" (comparative) and \"best\" (superlative).\n\nIn addition to indicating comparisons of difference, adjectives can also be used to express equality, using the structure \"as + adjective + as\" to show that two things share the same degree of a quality.\n\nUnderstanding and correctly using comparatives and superlatives is essential for effective communication, enabling speakers and writers to accurately compare qualities and express degrees of difference or similarity.",
+    "rules": [
+      {
+        "title": "Forming Comparatives for One-Syllable Adjectives",
+        "explanation": "Most one-syllable adjectives form their comparative by adding the suffix \"-er\" to the base adjective. If the adjective ends with a single consonant preceded by a single vowel, double the consonant before adding \"-er\". When the adjective ends with \"-e\", just add \"-r\".",
+        "examples": ["tall → taller", "big → bigger", "nice → nicer"]
+      },
+      {
+        "title": "Forming Superlatives for One-Syllable Adjectives",
+        "explanation": "One-syllable adjectives form the superlative by adding the suffix \"-est\" to the base adjective. Similar spelling rules apply as with comparatives.",
+        "examples": ["tall → tallest", "big → biggest", "nice → nicest"]
+      },
+      {
+        "title": "Forming Comparatives and Superlatives for Adjectives with Two or More Syllables",
+        "explanation": "Adjectives with two or more syllables generally form comparatives and superlatives by using \"more\" before the adjective for comparatives, and \"most\" before the adjective for superlatives. Some two-syllable adjectives can also take \"-er\" and \"-est\" if they end with \"-y\" or certain other endings.",
+        "examples": ["beautiful → more beautiful → most beautiful", "careful → more careful → most careful", "happy → happier → happiest"]
+      },
+      {
+        "title": "Irregular Comparatives and Superlatives",
+        "explanation": "Some adjectives have irregular forms that do not follow the usual patterns and must be memorized. These are common and important adjectives.",
+        "examples": ["good → better → best", "bad → worse → worst", "far → farther/further → farthest/furthest"]
+      },
+      {
+        "title": "Using \"than\" in Comparatives",
+        "explanation": "Comparative adjectives are usually followed by \"than\" to introduce the second element being compared.",
+        "examples": ["She is taller than her brother.", "This book is more interesting than the last one."]
+      },
+      {
+        "title": "Using \"the\" with Superlatives",
+        "explanation": "Superlative adjectives are usually preceded by the definite article \"the\" to show that one thing is the highest or lowest in a group.",
+        "examples": ["He is the fastest runner in the team.", "This is the most expensive restaurant in town."]
+      },
+      {
+        "title": "Comparing Equality with \"as...as\"",
+        "explanation": "To show that two things are equal in some quality, use the structure \"as + adjective + as\".",
+        "examples": ["She is as tall as her sister.", "This test is as difficult as the last one."]
+      }
+    ]
+  },
   "exercises": [
     {
       "type": "reading",

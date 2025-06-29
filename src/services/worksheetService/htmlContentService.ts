@@ -6,17 +6,40 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export async function saveWorksheetHtmlContent(worksheetId: string): Promise<boolean> {
   try {
-    console.log(`📄 Capturing HTML content for worksheet: ${worksheetId}`);
+    console.log(`📄 Starting HTML capture for worksheet: ${worksheetId}`);
     
-    // Get the worksheet content element
+    // Wait a bit more for DOM to be fully rendered
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Get the worksheet content element with better error handling
     const worksheetElement = document.getElementById('worksheet-content');
     if (!worksheetElement) {
-      console.error('📄 Worksheet content element not found');
+      console.error('📄 Worksheet content element not found with ID: worksheet-content');
+      // Try alternative selectors
+      const altElement = document.querySelector('.worksheet-content');
+      if (!altElement) {
+        console.error('📄 No worksheet content found with any selector');
+        return false;
+      }
+      console.log('📄 Found worksheet content with alternative selector');
+    }
+
+    const elementToCapture = worksheetElement || document.querySelector('.worksheet-content');
+    
+    if (!elementToCapture) {
+      console.error('📄 No worksheet element found for HTML capture');
       return false;
     }
 
+    console.log(`📄 Element found, capturing content. Element has ${elementToCapture.children.length} children`);
+
     // Get the document head content for styles
     const headContent = document.head.innerHTML;
+    
+    // Capture the full HTML content
+    const worksheetHtml = elementToCapture.outerHTML;
+    console.log(`📄 Captured worksheet HTML: ${worksheetHtml.length} characters`);
+    console.log(`📄 HTML preview: ${worksheetHtml.substring(0, 200)}...`);
     
     // Create complete HTML document
     const completeHtml = `<!DOCTYPE html>
@@ -53,12 +76,12 @@ export async function saveWorksheetHtmlContent(worksheetId: string): Promise<boo
 </head>
 <body>
     <div class="container">
-        ${worksheetElement.outerHTML}
+        ${worksheetHtml}
     </div>
 </body>
 </html>`;
 
-    console.log(`📄 Generated HTML content (${completeHtml.length} characters)`);
+    console.log(`📄 Generated complete HTML: ${completeHtml.length} characters`);
 
     // Update the worksheet with HTML content
     const { error } = await supabase
@@ -83,12 +106,21 @@ export async function saveWorksheetHtmlContent(worksheetId: string): Promise<boo
 }
 
 /**
- * Saves HTML content with a delay to ensure the worksheet is fully rendered
+ * Saves HTML content with enhanced retry logic and better timing
  */
-export async function saveWorksheetHtmlContentDelayed(worksheetId: string, delay: number = 2000): Promise<boolean> {
+export async function saveWorksheetHtmlContentDelayed(worksheetId: string, delay: number = 5000): Promise<boolean> {
   return new Promise((resolve) => {
     setTimeout(async () => {
-      const success = await saveWorksheetHtmlContent(worksheetId);
+      // First attempt
+      let success = await saveWorksheetHtmlContent(worksheetId);
+      
+      // If failed, retry once more after additional delay
+      if (!success) {
+        console.log('📄 First attempt failed, retrying in 2 seconds...');
+        await new Promise(r => setTimeout(r, 2000));
+        success = await saveWorksheetHtmlContent(worksheetId);
+      }
+      
       resolve(success);
     }, delay);
   });
