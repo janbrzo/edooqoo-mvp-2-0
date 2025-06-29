@@ -27,59 +27,59 @@ export const calculateWorksheetTimes = (lessonTime: string, hasGrammar: boolean 
   };
 };
 
-// Fixed exercise times based on lesson duration and grammar presence
+// Fixed exercise times based on lesson duration and grammar presence - updated with exact specifications
 export const getExerciseTimeByType = (exerciseType: string, lessonTime: string, hasGrammar: boolean = true): number => {
   const timeMap = {
     '45min': {
       withGrammar: { // 45min total: 5 warmup + 10 grammar + 30 exercises = 45min
-        'reading': 8,
-        'multiple-choice': 6,
-        'fill-in-blanks': 7,
+        'reading': 7,
+        'multiple-choice': 5,
+        'fill-in-blanks': 4,
         'matching': 5,
-        'dialogue': 8,
-        'discussion': 8,
-        'error-correction': 6,
-        'word-formation': 6,
-        'word-order': 5,
-        'true-false': 5
+        'dialogue': 6,
+        'discussion': 0, // Obcięte w 45min
+        'error-correction': 0, // Obcięte w 45min
+        'word-formation': 4,
+        'word-order': 4,
+        'true-false': 3
       },
       withoutGrammar: { // 45min total: 5 warmup + 0 grammar + 40 exercises = 45min
-        'reading': 10,
-        'multiple-choice': 8,
-        'fill-in-blanks': 9,
-        'matching': 7,
-        'dialogue': 10,
-        'discussion': 10,
-        'error-correction': 8,
-        'word-formation': 8,
-        'word-order': 7,
-        'true-false': 7
+        'reading': 9,
+        'multiple-choice': 7,
+        'fill-in-blanks': 5,
+        'matching': 6,
+        'dialogue': 8,
+        'discussion': 0, // Obcięte w 45min
+        'error-correction': 0, // Obcięte w 45min
+        'word-formation': 5,
+        'word-order': 5,
+        'true-false': 5
       }
     },
     '60min': {
       withGrammar: { // 60min total: 5 warmup + 15 grammar + 40 exercises = 60min
-        'reading': 10,
-        'multiple-choice': 8,
-        'fill-in-blanks': 9,
-        'matching': 6,
-        'dialogue': 10,
-        'discussion': 10,
-        'error-correction': 8,
-        'word-formation': 8,
-        'word-order': 6,
-        'true-false': 6
+        'reading': 7,
+        'multiple-choice': 5,
+        'fill-in-blanks': 4,
+        'matching': 5,
+        'dialogue': 6,
+        'discussion': 6,
+        'error-correction': 4,
+        'word-formation': 4,
+        'word-order': 4,
+        'true-false': 3
       },
       withoutGrammar: { // 60min total: 5 warmup + 0 grammar + 55 exercises = 60min
-        'reading': 14,
-        'multiple-choice': 11,
-        'fill-in-blanks': 12,
-        'matching': 9,
-        'dialogue': 13,
-        'discussion': 13,
-        'error-correction': 11,
-        'word-formation': 11,
-        'word-order': 9,
-        'true-false': 9
+        'reading': 9,
+        'multiple-choice': 7,
+        'fill-in-blanks': 5,
+        'matching': 6,
+        'dialogue': 8,
+        'discussion': 9,
+        'error-correction': 6,
+        'word-formation': 6,
+        'word-order': 6,
+        'true-false': 5
       }
     }
   };
@@ -87,7 +87,7 @@ export const getExerciseTimeByType = (exerciseType: string, lessonTime: string, 
   const lessonConfig = timeMap[lessonTime as keyof typeof timeMap];
   const grammarConfig = hasGrammar ? lessonConfig.withGrammar : lessonConfig.withoutGrammar;
   
-  return grammarConfig[exerciseType as keyof typeof grammarConfig] || (hasGrammar ? 6 : 8);
+  return grammarConfig[exerciseType as keyof typeof grammarConfig] || 0;
 };
 
 export const validateWorksheetTimes = (
