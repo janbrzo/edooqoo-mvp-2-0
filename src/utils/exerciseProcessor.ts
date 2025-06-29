@@ -16,6 +16,12 @@ export const processExercises = (exercises: any[], lessonTime: string = '45min',
     exercise.time = getExerciseTimeByType(exercise.type, lessonTime, hasGrammar);
     console.log(`🔧 Assigned ${exercise.time} minutes to ${exercise.type} exercise (hasGrammar: ${hasGrammar})`);
     
+    // Skip exercises with 0 time (not used in this configuration)
+    if (exercise.time === 0) {
+      console.log(`🔧 Skipping ${exercise.type} exercise - not used in ${lessonTime} ${hasGrammar ? 'with' : 'without'} grammar`);
+      return null;
+    }
+    
     if (exercise.type === "matching" && exercise.items) {
       exercise.originalItems = [...exercise.items];
       exercise.shuffledTerms = shuffleArray([...exercise.items]);
@@ -127,7 +133,7 @@ export const processExercises = (exercises: any[], lessonTime: string = '45min',
     }
     
     return exercise;
-  });
+  }).filter(exercise => exercise !== null); // Remove exercises with 0 time
   
   // Validate total exercise times
   const exerciseTimes = processedExercises.map(ex => ex.time || 0);
@@ -137,17 +143,20 @@ export const processExercises = (exercises: any[], lessonTime: string = '45min',
   
   const validation = validateWorksheetTimes(warmupTime, grammarTime, exerciseTimes, targetTime);
   
+  console.log(`🔧 Time breakdown:`, {
+    target: targetTime,
+    warmup: warmupTime,
+    grammar: grammarTime,
+    exercises: exerciseTimes,
+    exercisesSum: exerciseTimes.reduce((sum, time) => sum + time, 0),
+    actualTotal: validation.actualTime
+  });
+  
   if (!validation.isValid) {
     console.warn(`⚠️ Worksheet time validation failed:`, {
       target: targetTime,
       actual: validation.actualTime,
-      difference: validation.difference,
-      breakdown: {
-        warmup: warmupTime,
-        grammar: grammarTime,
-        exercises: exerciseTimes,
-        exercisesSum: exerciseTimes.reduce((sum, time) => sum + time, 0)
-      }
+      difference: validation.difference
     });
   } else {
     console.log(`✅ Worksheet times validated successfully: ${validation.actualTime}/${targetTime} minutes`);
