@@ -22,6 +22,11 @@ export const useWorksheetGeneration = (
 
   const generateWorksheetHandler = async (data: FormData) => {
     console.log('🚀 Starting worksheet generation for:', data.lessonTime);
+    console.log('🔧 Form data received:', { 
+      lessonTime: data.lessonTime, 
+      grammarFocus: data.teachingPreferences,
+      hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim())
+    });
     
     worksheetState.clearWorksheetStorage();
 
@@ -89,7 +94,15 @@ export const useWorksheetGeneration = (
           deepFixedWorksheet.exercises = deepFixedWorksheet.exercises.slice(0, expectedExerciseCount);
         }
         
-        deepFixedWorksheet.exercises = processExercises(deepFixedWorksheet.exercises);
+        // FIXED: Pass correct lessonTime and hasGrammar parameters
+        const hasGrammar = !!(data.teachingPreferences && data.teachingPreferences.trim());
+        console.log('🔧 Processing exercises with parameters:', { 
+          lessonTime: data.lessonTime, 
+          hasGrammar,
+          exerciseCount: deepFixedWorksheet.exercises.length 
+        });
+        
+        deepFixedWorksheet.exercises = processExercises(deepFixedWorksheet.exercises, data.lessonTime, hasGrammar);
         deepFixedWorksheet.id = newWorksheetId;
         
         if (!deepFixedWorksheet.vocabulary_sheet || deepFixedWorksheet.vocabulary_sheet.length === 0) {
@@ -140,10 +153,19 @@ export const useWorksheetGeneration = (
       });
       
       const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
-      const expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60 min');
+      const expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60min');
       
       fallbackWorksheet.exercises = fallbackWorksheet.exercises.slice(0, expectedExerciseCount);
-      fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises);
+      
+      // FIXED: Pass correct parameters to fallback processExercises too
+      const hasGrammar = !!(data?.teachingPreferences && data.teachingPreferences.trim());
+      console.log('🔧 Processing fallback exercises with parameters:', { 
+        lessonTime: data?.lessonTime || '60min', 
+        hasGrammar,
+        exerciseCount: fallbackWorksheet.exercises.length 
+      });
+      
+      fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises, data?.lessonTime || '60min', hasGrammar);
       fallbackWorksheet.id = newWorksheetId;
       
       // CRITICAL FIX: Set both states atomically for fallback case too
