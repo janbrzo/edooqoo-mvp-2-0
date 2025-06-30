@@ -1,3 +1,4 @@
+
 /**
  * Fetches CSS content from a URL
  */
@@ -270,7 +271,7 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
     versionHeader.style.fontWeight = 'bold';
     versionHeader.innerHTML = `${title} - ${exportViewMode === 'teacher' ? 'Teacher' : 'Student'} Version`;
 
-    // Create print button
+    // Create print button with new text
     const printButton = docClone.createElement('button');
     printButton.className = 'print-button';
     printButton.innerHTML = `
@@ -279,7 +280,7 @@ export async function exportAsHTML(elementId: string, filename: string, exportVi
         <path d="M6,18 L4,18 C2.9,18 2,17.1 2,16 L2,10 C2,8.9 2.9,8 4,8 L20,8 C21.1,8 22,8.9 22,10 L22,16 C22,17.1 21.1,18 20,18 L18,18"></path>
         <rect x="6" y="14" width="12" height="8"></rect>
       </svg>
-      PRINT
+      GET PDF
     `;
     printButton.setAttribute('onclick', 'window.print()');
 
