@@ -118,7 +118,7 @@ ${hasGrammarFocus ? `
 `}
 
 13. Generate a structured JSON worksheet with this EXACT format:
-
+EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
 {
   "title": "In a restaurant",
   "subtitle": "Making a complaint about your dish in a restaurant: adjectives practice",
@@ -436,6 +436,7 @@ ${hasGrammarFocus ? `
     {"term": "Tip", "meaning": "An extra amount of money given to the waiter as a thank you for good service."}
   ]
 }
+END OF EXAMPLE
 
 CRITICAL REQUIREMENTS VERIFICATION:
 1. Exercise 1 (reading): Content MUST be 280-320 words. Count words carefully.
