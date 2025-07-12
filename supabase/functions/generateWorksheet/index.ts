@@ -102,7 +102,7 @@ serve(async (req) => {
 6. DO NOT USE PLACEHOLDERS. Write full, complete, high-quality content for every field.
 7. Write tasks using natural, spoken English that reflects how real people talk. Avoid robotic AI or textbook-style phrases. Use contractions, informal structures, and natural flow. Keep it appropriate for the learner's level, but make it sound like a real-life conversation, not a scripted monologue.
 8. DO NOT include any text outside of the JSON structure.
-9. Exercise 1 (Reading Comprehension) MUST have content more than 300 words. Analyze the lessonTopic, lessonGoal and AdditionalInformation to determine the most appropriate text format (article, review, interview, story, email, etc.). The reading text should exemplify the format students will encounter or create based on the lesson objectives.
+9. Exercise 1 (Reading Comprehension) MUST have content more than 300 words. Analyze the lessonTopic, lessonGoal and additionalInformation to determine the most appropriate text format (article, review, interview, story, email, etc.). The reading text should exemplify the format students will encounter or create based on the lesson objectives.
 10. Focus on overall flow, coherence and pedagogical value.
 11. ADAPT TO USER'S INPUT: Carefully analyze all information from the USER MESSAGE. The 'lessonTopic' and 'lessonGoal' must define the theme of all exercises. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale.
 
