@@ -13,6 +13,7 @@ AI-powered tool that creates personalized English worksheets for teachers workin
 ## Key Features
 - ✅ **8 exercise types** - Multiple choice, fill-in-blanks, reading, dialogue, matching
 - ✅ **Two versions** - Clean student version + teacher version with answers
+- ✅ **Context-aware content** - Grammar examples use lesson-specific vocabulary
 - ✅ **Instant generation** - Ready in under a minute
 - ✅ **Professional quality** - Print-ready, offline-capable HTML files
 - ✅ **Editable content** - Modify any part before downloading
