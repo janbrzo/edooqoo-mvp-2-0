@@ -108,7 +108,7 @@ serve(async (req) => {
 
 ${hasGrammarFocus ? `
 12. GRAMMAR FOCUS REQUIREMENT: The user has specified a grammar focus: "${grammarFocus}". You MUST:
-    - ENSURE grammar complexity matches CERF level: "${data.EnglishLevel}"
+    - ENSURE grammar complexity matches CERF level: "${EnglishLevel}"
     - Include a "grammar_rules" section in the JSON with detailed explanation of this grammar topic
     - Design ALL exercises to practice and reinforce this specific grammar point
     - Ensure the reading text, vocabulary, and all exercises incorporate examples of this grammar
