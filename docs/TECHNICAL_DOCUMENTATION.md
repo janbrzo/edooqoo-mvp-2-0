@@ -24,6 +24,7 @@ Advanced AI-powered worksheet generator for English teachers working with adult 
 ### AI Integration
 - **OpenAI GPT API** for worksheet generation
 - Custom prompts optimized for educational content
+- Context-aware grammar examples using lesson-specific vocabulary
 - Token management (max 6500 tokens)
 
 ### Payment System
