@@ -102,12 +102,13 @@ serve(async (req) => {
 6. DO NOT USE PLACEHOLDERS. Write full, complete, high-quality content for every field.
 7. Write tasks using natural, spoken English that reflects how real people talk. Avoid robotic AI or textbook-style phrases. Use contractions, informal structures, and natural flow. Keep it appropriate for the learner's level, but make it sound like a real-life conversation, not a scripted monologue.
 8. DO NOT include any text outside of the JSON structure.
-9. Exercise 1 (Reading Comprehension) MUST have content more than 300 words.
+9. Exercise 1 (Reading Comprehension) MUST have content more than 300 words. Analyze the lessonTopic, lessonGoal and additionalInformation to determine the most appropriate text format (article, review, interview, story, email, etc.). The reading text should exemplify the format students will encounter or create based on the lesson objectives.
 10. Focus on overall flow, coherence and pedagogical value.
 11. ADAPT TO USER'S INPUT: Carefully analyze all information from the USER MESSAGE. The 'lessonTopic' and 'lessonGoal' must define the theme of all exercises. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale.
 
 ${hasGrammarFocus ? `
 12. GRAMMAR FOCUS REQUIREMENT: The user has specified a grammar focus: "${grammarFocus}". You MUST:
+    - ENSURE grammar complexity matches CERF level: "${formData.englishLevel}"
     - Include a "grammar_rules" section in the JSON with detailed explanation of this grammar topic
     - Design ALL exercises to practice and reinforce this specific grammar point
     - Ensure the reading text, vocabulary, and all exercises incorporate examples of this grammar
@@ -130,12 +131,12 @@ EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
       {
         "title": "Forming Comparatives for One-Syllable Adjectives",
         "explanation": "Most one-syllable adjectives form their comparative by adding the suffix \\"-er\\" to the base adjective. If the adjective ends with a single consonant preceded by a single vowel, double the consonant before adding \\"-er\\". When the adjective ends with \\"-e\\", just add \\"-r\\".",
-        "examples": ["tall → taller", "big → bigger", "nice → nicer"]
+        "examples": ["food → colder food", "dish → spicier dish", "service → slower service"]
       },
       {
         "title": "Forming Superlatives for One-Syllable Adjectives",
         "explanation": "One-syllable adjectives form the superlative by adding the suffix \\"-est\\" to the base adjective. Similar spelling rules apply as with comparatives.",
-        "examples": ["tall → tallest", "big → biggest", "nice → nicest"]
+        "examples": ["food → coldest food", "dish → spiciest dish", "service → slowest service"]
       },
       {
         "title": "Forming Comparatives and Superlatives for Adjectives with Two or More Syllables",
@@ -439,7 +440,7 @@ EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
 END OF EXAMPLE
 
 CRITICAL REQUIREMENTS VERIFICATION:
-1. Exercise 1 (reading): Content MUST be 280-320 words. Count words carefully.
+1. Exercise 1 (reading): Content MUST have more than 320 words. Count words carefully.
 2. Exercise 2 (matching): EXACTLY 10 items to match.
 3. Exercise 3 (fill-in-blanks): EXACTLY 10 sentences and 10 words in word bank.
 4. Exercise 4 (multiple-choice): EXACTLY 10 questions with 4 options each. All 4 options must be completely different from each other – no duplicates or similar variations allowed. Only one option per question is correct.
@@ -448,7 +449,7 @@ CRITICAL REQUIREMENTS VERIFICATION:
 7. Exercise 7 (discussion): EXACTLY 10 discussion questions.
 8. Exercise 8 (error-correction): EXACTLY 10 sentences with errors.
 9. Vocabulary sheet: EXACTLY 15 terms with definitions.
-${hasGrammarFocus ? `10. Grammar Rules: Must include exactly 7 grammar rules with title, explanation, and 3 examples each.` : ''}
+${hasGrammarFocus ? `10. Grammar Rules: Must include 4-7 grammar rules with title, explanation, and 3 examples each.` : ''}
 
 RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
 
