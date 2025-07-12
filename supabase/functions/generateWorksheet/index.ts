@@ -440,7 +440,7 @@ EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
 END OF EXAMPLE
 
 CRITICAL REQUIREMENTS VERIFICATION:
-1. Exercise 1 (reading): Content MUST be 280-320 words. Count words carefully.
+1. Exercise 1 (reading): Content MUST have more than 320 words. Count words carefully.
 2. Exercise 2 (matching): EXACTLY 10 items to match.
 3. Exercise 3 (fill-in-blanks): EXACTLY 10 sentences and 10 words in word bank.
 4. Exercise 4 (multiple-choice): EXACTLY 10 questions with 4 options each. All 4 options must be completely different from each other – no duplicates or similar variations allowed. Only one option per question is correct.
@@ -449,7 +449,7 @@ CRITICAL REQUIREMENTS VERIFICATION:
 7. Exercise 7 (discussion): EXACTLY 10 discussion questions.
 8. Exercise 8 (error-correction): EXACTLY 10 sentences with errors.
 9. Vocabulary sheet: EXACTLY 15 terms with definitions.
-${hasGrammarFocus ? `10. Grammar Rules: Must include exactly 7 grammar rules with title, explanation, and 3 examples each.` : ''}
+${hasGrammarFocus ? `10. Grammar Rules: Must include 4-7 grammar rules with title, explanation, and 3 examples each.` : ''}
 
 RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
 
