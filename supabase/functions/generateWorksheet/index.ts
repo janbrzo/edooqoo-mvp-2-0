@@ -141,27 +141,27 @@ EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
       {
         "title": "Forming Comparatives and Superlatives for Adjectives with Two or More Syllables",
         "explanation": "Adjectives with two or more syllables generally form comparatives and superlatives by using \\"more\\" before the adjective for comparatives, and \\"most\\" before the adjective for superlatives. Some two-syllable adjectives can also take \\"-er\\" and \\"-est\\" if they end with \\"-y\\" or certain other endings.",
-        "examples": ["beautiful → more beautiful → most beautiful", "careful → more careful → most careful", "happy → happier → happiest"]
+        "examples": ["delicious → more delicious → most delicious", "uncomfortable → more uncomfortable → most uncomfortable", "friendly staff → friendlier staff → friendliest staff"]
       },
       {
         "title": "Irregular Comparatives and Superlatives",
         "explanation": "Some adjectives have irregular forms that do not follow the usual patterns and must be memorized. These are common and important adjectives.",
-        "examples": ["good → better → best", "bad → worse → worst", "far → farther/further → farthest/furthest"]
+        "examples": ["good service → better service → best service", "bad coffee → worse coffee → worst coffee", "far table → farther table → farthest table"]
       },
       {
         "title": "Using \\"than\\" in Comparatives",
         "explanation": "Comparative adjectives are usually followed by \\"than\\" to introduce the second element being compared.",
-        "examples": ["She is taller than her brother.", "This book is more interesting than the last one."]
+        "examples": ["This soup is colder than it should be.", "The second waiter was more polite than the first one."]
       },
       {
         "title": "Using \\"the\\" with Superlatives",
         "explanation": "Superlative adjectives are usually preceded by the definite article \\"the\\" to show that one thing is the highest or lowest in a group.",
-        "examples": ["He is the fastest runner in the team.", "This is the most expensive restaurant in town."]
+        "examples": ["That was the worst pasta I’ve ever eaten.", "This is the most expensive restaurant in the area."]
       },
       {
         "title": "Comparing Equality with \\"as...as\\"",
         "explanation": "To show that two things are equal in some quality, use the structure \\"as + adjective + as\\".",
-        "examples": ["She is as tall as her sister.", "This test is as difficult as the last one."]
+        "examples": ["This dish is not as hot as I expected.", "The new waiter is as friendly as the old one."]
       }
     ]
   },` : ''}
