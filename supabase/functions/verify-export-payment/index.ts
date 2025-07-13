@@ -193,7 +193,7 @@ try {
   console.log('Tracking successful payment event');
   await supabase.rpc('track_user_event', {
     p_user_identifier: paymentData.user_identifier || ip,
-    p_event_type: 'stripe_payment_success',
+    p_event_type: 'stripe_payments_success',
     p_event_data: {
       worksheetId: paymentData.worksheet_id,
       sessionId: sessionId,

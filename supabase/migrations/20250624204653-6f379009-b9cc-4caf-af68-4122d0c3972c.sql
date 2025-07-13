@@ -18,7 +18,7 @@ SELECT
   COUNT(CASE WHEN event_type = 'download_attempt_locked' THEN 1 END) as download_attempts_locked,
   COUNT(CASE WHEN event_type = 'download_attempt_unlocked' THEN 1 END) as download_attempts_unlocked,
   COUNT(CASE WHEN event_type = 'payment_button_click' THEN 1 END) as payment_button_clicks,
-  COUNT(CASE WHEN event_type = 'stripe_payment_success' THEN 1 END) as stripe_payments_success
+  COUNT(CASE WHEN event_type = 'stripe_payments_success' THEN 1 END) as stripe_payments_success
 FROM public.user_events 
 GROUP BY DATE(created_at)
 ORDER BY date DESC;
