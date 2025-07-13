@@ -338,47 +338,24 @@ export type Database = {
         Returns: number
       }
       insert_worksheet_bypass_limit: {
-        Args:
-          | {
-              p_prompt: string
-              p_form_data: Json
-              p_ai_response: string
-              p_html_content: Json
-              p_user_id?: string
-              p_ip_address?: string
-              p_title?: string
-              p_subtitle?: string
-              p_introduction?: string
-            }
-          | {
-              p_prompt: string
-              p_form_data: Json
-              p_ai_response: string
-              p_html_content: string
-              p_user_id: string
-              p_ip_address: string
-              p_status: string
-              p_title: string
-              p_generation_time_seconds: number
-              p_country?: string
-              p_city?: string
-            }
-          | {
-              p_prompt: string
-              p_form_data: Json
-              p_ai_response: string
-              p_html_content: string
-              p_user_id: string
-              p_ip_address: string
-              p_status: string
-              p_title: string
-              p_generation_time_seconds: number
-              p_country?: string
-              p_city?: string
-              p_teacher_id?: string
-              p_student_id?: string
-            }
-        Returns: string
+        Args: {
+          p_prompt: string
+          p_form_data: Json
+          p_ai_response: string
+          p_html_content: string
+          p_user_id: string
+          p_ip_address: string
+          p_status: string
+          p_title: string
+          p_generation_time_seconds: number
+          p_country?: string
+          p_city?: string
+        }
+        Returns: {
+          id: string
+          created_at: string
+          title: string
+        }[]
       }
       track_user_event: {
         Args: {
