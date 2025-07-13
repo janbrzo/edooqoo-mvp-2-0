@@ -42,15 +42,7 @@ export type Database = {
           session_token?: string
           worksheet_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "download_sessions_payment_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "export_payments"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       export_payments: {
         Row: {
@@ -125,15 +117,7 @@ export type Database = {
           user_id?: string | null
           worksheet_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "feedbacks_worksheet_id_fkey"
-            columns: ["worksheet_id"]
-            isOneToOne: false
-            referencedRelation: "worksheets"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -289,15 +273,7 @@ export type Database = {
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "worksheets_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
@@ -333,6 +309,23 @@ export type Database = {
       }
     }
     Functions: {
+      add_tokens: {
+        Args: {
+          p_teacher_id: string
+          p_amount: number
+          p_description: string
+          p_reference_id?: string
+        }
+        Returns: undefined
+      }
+      consume_token: {
+        Args: { p_teacher_id: string; p_worksheet_id: string }
+        Returns: boolean
+      }
+      get_token_balance: {
+        Args: { p_teacher_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -342,7 +335,7 @@ export type Database = {
       }
       increment_worksheet_download_count: {
         Args: { p_worksheet_id: string }
-        Returns: undefined
+        Returns: number
       }
       insert_worksheet_bypass_limit: {
         Args:
@@ -350,12 +343,12 @@ export type Database = {
               p_prompt: string
               p_form_data: Json
               p_ai_response: string
-              p_html_content: string
-              p_user_id: string
-              p_ip_address: string
-              p_status: string
-              p_title: string
-              p_generation_time_seconds: number
+              p_html_content: Json
+              p_user_id?: string
+              p_ip_address?: string
+              p_title?: string
+              p_subtitle?: string
+              p_introduction?: string
             }
           | {
               p_prompt: string
@@ -370,11 +363,22 @@ export type Database = {
               p_country?: string
               p_city?: string
             }
-        Returns: {
-          id: string
-          created_at: string
-          title: string
-        }[]
+          | {
+              p_prompt: string
+              p_form_data: Json
+              p_ai_response: string
+              p_html_content: string
+              p_user_id: string
+              p_ip_address: string
+              p_status: string
+              p_title: string
+              p_generation_time_seconds: number
+              p_country?: string
+              p_city?: string
+              p_teacher_id?: string
+              p_student_id?: string
+            }
+        Returns: string
       }
       track_user_event: {
         Args: {
