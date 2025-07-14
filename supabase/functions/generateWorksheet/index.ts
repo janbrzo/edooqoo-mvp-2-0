@@ -1,80 +1,26 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import OpenAI from "https://esm.sh/openai@4.28.0";
+import { getExerciseTypesForCount, parseAIResponse } from './helpers.ts';
+import { validateExercise } from './validators.ts';
+import { isValidUUID, sanitizeInput, validatePrompt } from './security.ts';
+import { RateLimiter } from './rateLimiter.ts';
+import { getGeolocation } from './geolocation.ts';
 
-console.log('🔥 Starting generateWorksheet function initialization...');
+const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
 
-try {
-  console.log('📦 Attempting to import Supabase...');
-  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-  console.log('✅ Supabase import successful');
-  
-  console.log('🤖 Attempting to import OpenAI...');
-  const OpenAI = (await import("https://esm.sh/openai@4.28.0")).default;
-  console.log('✅ OpenAI import successful');
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+);
 
-  console.log('🛠️ Attempting to import helpers...');
-  const { getExerciseTypesForCount, parseAIResponse } = await import('./helpers.ts');
-  console.log('✅ Helpers import successful');
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
-  console.log('🔍 Attempting to import validators...');
-  const { validateExercise } = await import('./validators.ts');
-  console.log('✅ Validators import successful');
-
-  console.log('🔒 Attempting to import security...');
-  const { isValidUUID, sanitizeInput, validatePrompt } = await import('./security.ts');
-  console.log('✅ Security import successful');
-
-  console.log('⏰ Attempting to import rate limiter...');
-  const { RateLimiter } = await import('./rateLimiter.ts');
-  console.log('✅ Rate limiter import successful');
-
-  console.log('🌍 Attempting to import geolocation...');
-  const { getGeolocation } = await import('./geolocation.ts');
-  console.log('✅ Geolocation import successful');
-
-  console.log('🔑 Initializing OpenAI client...');
-  const openaiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!openaiKey) {
-    throw new Error('OPENAI_API_KEY not found in environment');
-  }
-  console.log(`OpenAI key length: ${openaiKey.length}`);
-  const openai = new OpenAI({ apiKey: openaiKey });
-  console.log('✅ OpenAI client initialized');
-
-  console.log('🗄️ Initializing Supabase client...');
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
-  if (!supabaseUrl) {
-    throw new Error('SUPABASE_URL not found in environment');
-  }
-  if (!supabaseKey) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY not found in environment');
-  }
-  
-  console.log(`Supabase URL: ${supabaseUrl}`);
-  console.log(`Supabase key length: ${supabaseKey.length}`);
-  
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  console.log('✅ Supabase client initialized');
-
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  };
-
-  console.log('🚦 Initializing rate limiter...');
-  const rateLimiter = new RateLimiter();
-  console.log('✅ Rate limiter initialized');
-
-  console.log('🎉 All initialization completed successfully!');
-
-} catch (initError) {
-  console.error('❌ CRITICAL: Initialization failed:', initError);
-  console.error('Error details:', initError.message);
-  console.error('Stack trace:', initError.stack);
-  throw initError;
-}
+const rateLimiter = new RateLimiter();
 
 serve(async (req) => {
   console.log('🚀 Edge Function started');
