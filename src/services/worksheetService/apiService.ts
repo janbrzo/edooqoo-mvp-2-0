@@ -4,7 +4,7 @@ import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 import { toast } from 'sonner';
 
 // URLs for the Edge Functions
-const GENERATE_WORKSHEET_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/v1/generateWorksheet';
+const GENERATE_WORKSHEET_URL = 'https://cdoyjgiyrfziejbrcvpx.supabase.co/functions/v1/generateWorksheet';
 
 /**
  * Generates a worksheet using the Edge Function
