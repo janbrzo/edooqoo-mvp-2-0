@@ -1,1 +1,19 @@
 project_id = "cdoyjgiyrfziejbrcvpx"
+
+
+
+
+[functions.generateWorksheet]
+verify_jwt = false
+
+[functions.submitFeedback]
+verify_jwt = false
+
+[functions.create-export-payment]
+verify_jwt = false
+
+[functions.verify-export-payment]
+verify_jwt = false
+
+[functions.track-user-event]
+verify_jwt = false
