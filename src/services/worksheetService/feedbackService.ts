@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // URL for the Edge Function
-const SUBMIT_FEEDBACK_URL = 'https://cdoyjgiyrfziejbrcvpx.supabase.co/functions/v1/submitFeedback';
+const SUBMIT_FEEDBACK_URL = 'https://bvfrkzdlklyvnhlpleck.supabase.co/functions/v1/submitFeedback';
 
 /**
  * Submits feedback for a worksheet
