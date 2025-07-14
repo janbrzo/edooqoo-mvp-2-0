@@ -23,67 +23,16 @@ const corsHeaders = {
 const rateLimiter = new RateLimiter();
 
 serve(async (req) => {
-  console.log('🚀 Edge Function started');
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('✅ CORS preflight request handled');
     return new Response(null, { headers: corsHeaders });
-  }
-
-  console.log('📊 Starting worksheet generation request');
-  
-  // Test environment variables
-  try {
-    console.log('🔑 Checking environment variables...');
-    const openaiKey = Deno.env.get('OPENAI_API_KEY');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    console.log(`OPENAI_API_KEY exists: ${!!openaiKey}`);
-    console.log(`SUPABASE_URL exists: ${!!supabaseUrl}`);
-    console.log(`SUPABASE_SERVICE_ROLE_KEY exists: ${!!serviceRoleKey}`);
-    
-    if (supabaseUrl) {
-      console.log(`SUPABASE_URL value: ${supabaseUrl}`);
-    }
-  } catch (envError) {
-    console.error('❌ Error checking environment variables:', envError);
-    return new Response(
-      JSON.stringify({ error: 'Environment variables check failed' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  // Test client initialization
-  try {
-    console.log('🔧 Testing OpenAI client...');
-    if (!openai) {
-      throw new Error('OpenAI client not initialized');
-    }
-    console.log('✅ OpenAI client OK');
-    
-    console.log('🔧 Testing Supabase client...');
-    if (!supabase) {
-      throw new Error('Supabase client not initialized');
-    }
-    console.log('✅ Supabase client OK');
-  } catch (clientError) {
-    console.error('❌ Error with client initialization:', clientError);
-    return new Response(
-      JSON.stringify({ error: 'Client initialization failed' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   }
 
   // Start generation time measurement
   const generationStartTime = Date.now();
-  console.log('⏱️ Generation timer started');
 
   try {
-    console.log('📥 Parsing request body...');
     const { prompt, formData, userId } = await req.json();
-    console.log('✅ Request body parsed successfully');
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || 'unknown';
     
     // Input validation
