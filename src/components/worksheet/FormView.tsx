@@ -1,10 +1,12 @@
 
 import React from "react";
+import { Link } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
 import WorksheetForm, { FormData } from "@/components/WorksheetForm";
 import TrackingFormWrapper from "@/components/WorksheetForm/TrackingFormWrapper";
 import IsometricBackground from "@/components/IsometricBackground";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
 
 interface FormViewProps {
   onSubmit: (data: FormData) => void;
@@ -16,6 +18,16 @@ const FormView: React.FC<FormViewProps> = ({ onSubmit, userId }) => {
 
   return (
     <TrackingFormWrapper userId={userId}>
+      {/* Header with auth buttons */}
+      <div className="absolute top-4 right-4 z-20 flex gap-2">
+        <Button asChild variant="outline">
+          <Link to="/auth">Sign In</Link>
+        </Button>
+        <Button asChild>
+          <Link to="/dashboard">Dashboard</Link>
+        </Button>
+      </div>
+      
       <div className={`${isMobile ? 'w-full min-h-screen' : 'container mx-auto'} flex main-container relative`}>
         {/* Izometryczne tło - tylko na desktop */}
         {!isMobile && <IsometricBackground />}

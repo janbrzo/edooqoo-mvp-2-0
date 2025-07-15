@@ -1,8 +1,10 @@
 
 import React from "react";
+import { Link } from "react-router-dom";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 import { useWorksheetState } from "@/hooks/useWorksheetState";
 import { useWorksheetGeneration } from "@/hooks/useWorksheetGeneration";
+import { Button } from "@/components/ui/button";
 import GeneratingModal from "@/components/GeneratingModal";
 import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";

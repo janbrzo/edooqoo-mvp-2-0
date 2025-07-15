@@ -124,30 +124,177 @@ export type Database = {
           created_at: string
           first_name: string | null
           id: string
+          last_limit_reset: string | null
           last_name: string | null
+          monthly_worksheet_limit: number | null
+          monthly_worksheets_used: number
           school_institution: string | null
+          subscription_expires_at: string | null
+          subscription_status: string | null
+          subscription_type: string | null
           teaching_preferences: Json | null
+          token_balance: number
           updated_at: string
         }
         Insert: {
           created_at?: string
           first_name?: string | null
           id: string
+          last_limit_reset?: string | null
           last_name?: string | null
+          monthly_worksheet_limit?: number | null
+          monthly_worksheets_used?: number
           school_institution?: string | null
+          subscription_expires_at?: string | null
+          subscription_status?: string | null
+          subscription_type?: string | null
           teaching_preferences?: Json | null
+          token_balance?: number
           updated_at?: string
         }
         Update: {
           created_at?: string
           first_name?: string | null
           id?: string
+          last_limit_reset?: string | null
           last_name?: string | null
+          monthly_worksheet_limit?: number | null
+          monthly_worksheets_used?: number
           school_institution?: string | null
+          subscription_expires_at?: string | null
+          subscription_status?: string | null
+          subscription_type?: string | null
           teaching_preferences?: Json | null
+          token_balance?: number
           updated_at?: string
         }
         Relationships: []
+      }
+      students: {
+        Row: {
+          created_at: string
+          english_level: string
+          id: string
+          main_goal: string
+          name: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          english_level: string
+          id?: string
+          main_goal: string
+          name: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          english_level?: string
+          id?: string
+          main_goal?: string
+          name?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          monthly_limit: number
+          plan_type: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end: string
+          current_period_start: string
+          id?: string
+          monthly_limit: number
+          plan_type: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          monthly_limit?: number
+          plan_type?: string
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      token_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          reference_id: string | null
+          teacher_id: string
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          teacher_id: string
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          teacher_id?: string
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "token_transactions_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_events: {
         Row: {
@@ -224,6 +371,7 @@ export type Database = {
           sequence_number: number
           session_id: string | null
           status: string
+          student_id: string | null
           teacher_id: string | null
           title: string | null
           user_agent: string | null
@@ -246,6 +394,7 @@ export type Database = {
           sequence_number?: number
           session_id?: string | null
           status?: string
+          student_id?: string | null
           teacher_id?: string | null
           title?: string | null
           user_agent?: string | null
@@ -268,12 +417,21 @@ export type Database = {
           sequence_number?: number
           session_id?: string | null
           status?: string
+          student_id?: string | null
           teacher_id?: string | null
           title?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "worksheets_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
