@@ -13,7 +13,8 @@ import { useEventTracking } from "@/hooks/useEventTracking";
 
 export const useWorksheetGeneration = (
   userId: string | null,
-  worksheetState: any
+  worksheetState: any,
+  studentId?: string | null
 ) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
@@ -60,7 +61,8 @@ export const useWorksheetGeneration = (
       const worksheetData = await generateWorksheet({ 
         ...data, 
         fullPrompt,
-        formDataForStorage 
+        formDataForStorage,
+        studentId
       }, userId || 'anonymous');
       
       console.log("✅ Generated worksheet data received:", {

@@ -7,6 +7,8 @@ import TrackingFormWrapper from "@/components/WorksheetForm/TrackingFormWrapper"
 import IsometricBackground from "@/components/IsometricBackground";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
+import { useWorksheetState } from "@/hooks/useWorksheetState";
+import { useWorksheetGeneration } from "@/hooks/useWorksheetGeneration";
 
 interface FormViewProps {
   onSubmit: (data: FormData) => void;
@@ -15,6 +17,12 @@ interface FormViewProps {
 
 const FormView: React.FC<FormViewProps> = ({ onSubmit, userId }) => {
   const isMobile = useIsMobile();
+  const worksheetState = useWorksheetState(false);
+  
+  const handleSubmit = (data: FormData) => {
+    const hook = useWorksheetGeneration(userId, worksheetState, data.studentId);
+    hook.generateWorksheetHandler(data);
+  };
 
   return (
     <TrackingFormWrapper userId={userId}>
@@ -38,7 +46,7 @@ const FormView: React.FC<FormViewProps> = ({ onSubmit, userId }) => {
           </div>
         )}
         <div className={`${isMobile ? 'w-full px-2 py-2' : 'w-4/5 px-6 py-6'} form-container relative z-10`}>
-          <WorksheetForm onSubmit={onSubmit} />
+          <WorksheetForm onSubmit={handleSubmit} />
         </div>
       </div>
     </TrackingFormWrapper>

@@ -16,6 +16,7 @@ export interface FormData {
   englishLevel?: EnglishLevel;
   fullPrompt?: string;
   formDataForStorage?: any;
+  studentId?: string;
 }
 
 export interface WorksheetData {

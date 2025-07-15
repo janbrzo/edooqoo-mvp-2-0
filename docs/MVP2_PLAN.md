@@ -66,15 +66,15 @@ Przekonwertować użytkowników na subskrypcje przez zbudowanie minimalnego syst
 - ✅ Komponenty autentykacji
 
 ### FAZA 2: Dashboard i Uczniowie (2-3 dni)
-- Dashboard nauczyciela
-- Zarządzanie uczniami (CRUD)
+- ✅ Dashboard nauczyciela
+- ✅ Zarządzanie uczniami (CRUD)
 - Historia worksheetów
-- Podstawowa nawigacja
+- ✅ Podstawowa nawigacja
 
 ### FAZA 3: Generator Zintegrowany (2-3 dni)
-- Wybór ucznia w generatorze
+- ✅ Wybór ucznia w generatorze
+- ✅ Przypisywanie worksheetów
 - System tokenów
-- Przypisywanie worksheetów
 - Logika paywall
 
 ### FAZA 4: Płatności i Subskrypcje (3-4 dni)

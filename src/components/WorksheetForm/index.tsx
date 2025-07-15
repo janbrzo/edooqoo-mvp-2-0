@@ -8,6 +8,9 @@ import { getRandomSuggestionSets, getSuggestionSetMatchingPlaceholder, Suggestio
 import FormField from './FormField';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEventTracking } from "@/hooks/useEventTracking";
+import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
+import { useStudents } from "@/hooks/useStudents";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type { FormData };
 
@@ -18,6 +21,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const [grammarFocus, setGrammarFocus] = useState("");
   const [additionalInformation, setAdditionalInformation] = useState("");
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
   
   const [currentPlaceholders, setCurrentPlaceholders] = useState<PlaceholderSet>(getRandomPlaceholderSet());
   const [currentSuggestions, setCurrentSuggestions] = useState<SuggestionSet[]>([]);
@@ -26,6 +30,8 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { trackEvent } = useEventTracking();
+  const { userId } = useAnonymousAuth();
+  const { students } = useStudents();
 
   useEffect(() => {
     if (isInitialLoad) {
@@ -74,7 +80,8 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
       lessonGoal,
       teachingPreferences: grammarFocus,
       additionalInformation,
-      englishLevel
+      englishLevel,
+      studentId: selectedStudentId || undefined
     });
   };
 
@@ -205,6 +212,28 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                   isOptional={true}
                 />
               </div>
+
+              {/* Student Selection - only for authenticated users */}
+              {userId && students.length > 0 && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Student (optional):
+                  </label>
+                  <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose a student or leave empty for general worksheet" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No specific student</SelectItem>
+                      {students.map((student) => (
+                        <SelectItem key={student.id} value={student.id}>
+                          {student.name} ({student.english_level})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className={`mb-6 ${isMobile ? 'text-center' : ''}`}>
                 <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>

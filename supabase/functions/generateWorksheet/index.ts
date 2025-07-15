@@ -32,7 +32,7 @@ serve(async (req) => {
   const generationStartTime = Date.now();
 
   try {
-    const { prompt, formData, userId } = await req.json();
+    const { prompt, formData, userId, studentId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || 'unknown';
     
     // Input validation
@@ -533,21 +533,24 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
       // Sanitize form data
       const sanitizedFormData = formData ? JSON.parse(JSON.stringify(formData)) : {};
       
-      const { data: worksheet, error: worksheetError } = await supabase.rpc(
-        'insert_worksheet_bypass_limit',
-        {
-          p_prompt: fullPrompt, // NOW SAVING FULL PROMPT (SYSTEM + USER)
-          p_form_data: sanitizedFormData,
-          p_ai_response: jsonContent?.substring(0, 50000) || '', // Limit response size
-          p_html_content: JSON.stringify(worksheetData),
-          p_user_id: userId || null,
-          p_ip_address: ip,
-          p_status: 'created',
-          p_title: worksheetData.title?.substring(0, 255) || 'Generated Worksheet', // Limit title length
-          p_generation_time_seconds: generationTimeSeconds,
-          p_country: geoData.country || null,
-          p_city: geoData.city || null
-        }
+      const { data: worksheet, error: worksheetError } = await supabase
+        .from('worksheets')
+        .insert({
+          prompt: fullPrompt, // NOW SAVING FULL PROMPT (SYSTEM + USER)
+          form_data: sanitizedFormData,
+          ai_response: jsonContent?.substring(0, 50000) || '', // Limit response size
+          html_content: JSON.stringify(worksheetData),
+          user_id: userId || null,
+          teacher_id: userId || null, // Add teacher_id for authenticated users
+          student_id: studentId || null, // Add student_id if provided
+          ip_address: ip,
+          status: 'created',
+          title: worksheetData.title?.substring(0, 255) || 'Generated Worksheet', // Limit title length
+          generation_time_seconds: generationTimeSeconds,
+          country: geoData.country || null,
+          city: geoData.city || null
+        })
+        .select('id, created_at, title')
       );
 
       if (worksheetError) {
