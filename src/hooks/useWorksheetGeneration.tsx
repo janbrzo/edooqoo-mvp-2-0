@@ -24,7 +24,7 @@ export const useWorksheetGeneration = (
   const { tokenBalance, hasTokens, isDemo, consumeToken } = useTokenSystem(userId);
 
   const generateWorksheetHandler = async (data: FormData) => {
-    console.log('🚀 Starting worksheet generation for:', data.lessonTime);
+    console.log('🚀 Starting worksheet generation with studentId:', data.studentId);
     console.log('🔧 Form data received:', { 
       lessonTime: data.lessonTime, 
       grammarFocus: data.teachingPreferences,
@@ -65,19 +65,21 @@ export const useWorksheetGeneration = (
     });
     
     try {
-      console.log('📡 Calling generateWorksheet API...');
+      console.log('📡 Calling generateWorksheet API with studentId:', data.studentId);
       
-      // NEW: Create full prompt for ChatGPT and save it to database
+      // Create full prompt for ChatGPT and save it to database
       const fullPrompt = formatPromptForAI(data);
       const formDataForStorage = createFormDataForStorage(data);
       
-      // Pass the full prompt to the API with teacher_id and student_id
+      // CRITICAL: Pass studentId correctly to the API
       const worksheetData = await generateWorksheet({ 
         ...data, 
         fullPrompt,
         formDataForStorage,
-        studentId: data.studentId
+        studentId: data.studentId // Ensure studentId is passed
       }, userId || 'anonymous');
+
+      console.log('📊 Worksheet API response - studentId should be:', data.studentId);
 
       // Consume token for authenticated users AFTER successful generation
       if (!isDemo && userId) {
