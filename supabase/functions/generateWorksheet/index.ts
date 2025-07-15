@@ -550,8 +550,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
           country: geoData.country || null,
           city: geoData.city || null
         })
-        .select('id, created_at, title')
-      );
+        .select('id, created_at, title');
 
       if (worksheetError) {
         console.error('Error saving worksheet to database:', worksheetError);
