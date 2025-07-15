@@ -33,6 +33,4 @@ export interface WorksheetData {
 
 export interface WorksheetFormProps {
   onSubmit: (data: FormData) => void;
-  onStudentSelect?: (studentId: string | null) => void;
-  selectedStudentId?: string | null;
 }

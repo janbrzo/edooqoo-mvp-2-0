@@ -51,7 +51,6 @@ interface WorksheetDisplayProps {
   onFeedbackSubmit?: (rating: number, feedback: string) => void;
   editableWorksheet: any;
   setEditableWorksheet: (worksheet: any) => void;
-  studentName?: string | null;
   userId?: string;
 }
 
@@ -67,7 +66,6 @@ export default function WorksheetDisplay({
   onFeedbackSubmit,
   editableWorksheet,
   setEditableWorksheet,
-  studentName,
   userId
 }: WorksheetDisplayProps) {
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
@@ -206,7 +204,6 @@ export default function WorksheetDisplay({
             generationTime={generationTime}
             sourceCount={sourceCount}
             inputParams={inputParams}
-            studentName={studentName}
           />
           <InputParamsCard inputParams={inputParams} />
           <WorksheetToolbar

@@ -24,12 +24,11 @@ export const useWorksheetGeneration = (
   const { tokenBalance, hasTokens, isDemo, consumeToken } = useTokenSystem(userId);
 
   const generateWorksheetHandler = async (data: FormData) => {
-    console.log('🚀 Starting worksheet generation with studentId:', data.studentId);
+    console.log('🚀 Starting worksheet generation for:', data.lessonTime);
     console.log('🔧 Form data received:', { 
       lessonTime: data.lessonTime, 
       grammarFocus: data.teachingPreferences,
-      hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim()),
-      studentId: data.studentId
+      hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim())
     });
 
     // Check token requirements for authenticated users
@@ -59,27 +58,24 @@ export const useWorksheetGeneration = (
       eventType: 'worksheet_generation_start',
       eventData: {
         worksheetId: newWorksheetId,
-        studentId: data.studentId,
         timestamp: new Date().toISOString()
       }
     });
     
     try {
-      console.log('📡 Calling generateWorksheet API with studentId:', data.studentId);
+      console.log('📡 Calling generateWorksheet API...');
       
-      // Create full prompt for ChatGPT and save it to database
+      // NEW: Create full prompt for ChatGPT and save it to database
       const fullPrompt = formatPromptForAI(data);
       const formDataForStorage = createFormDataForStorage(data);
       
-      // CRITICAL: Pass studentId correctly to the API
+      // Pass the full prompt to the API
       const worksheetData = await generateWorksheet({ 
         ...data, 
         fullPrompt,
         formDataForStorage,
-        studentId: data.studentId // Ensure studentId is passed
+        studentId
       }, userId || 'anonymous');
-
-      console.log('📊 Worksheet API response - studentId should be:', data.studentId);
 
       // Consume token for authenticated users AFTER successful generation
       if (!isDemo && userId) {
@@ -148,7 +144,6 @@ export const useWorksheetGeneration = (
           eventType: 'worksheet_generation_complete',
           eventData: {
             worksheetId: newWorksheetId,
-            studentId: data.studentId,
             success: true,
             generationTimeSeconds: actualGenerationTime,
             timestamp: new Date().toISOString()
@@ -173,7 +168,6 @@ export const useWorksheetGeneration = (
         eventType: 'worksheet_generation_complete',
         eventData: {
           worksheetId: newWorksheetId,
-          studentId: data.studentId,
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString()
