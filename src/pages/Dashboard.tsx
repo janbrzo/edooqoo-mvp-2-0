@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,9 +60,14 @@ const Dashboard = () => {
               Welcome back, {profile?.first_name || 'Teacher'}! Manage your students and worksheets
             </p>
           </div>
-          <Button variant="outline" onClick={handleSignOut}>
-            Sign Out
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link to="/">Generator</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/profile">Profile</Link>
+            </Button>
+          </div>
         </div>
 
         {/* Main Content Grid */}

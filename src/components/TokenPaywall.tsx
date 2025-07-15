@@ -82,6 +82,14 @@ export const TokenPaywall: React.FC<TokenPaywallProps> = ({
             Buy 10 Tokens - $4.99
           </Button>
         </div>
+        <div className="flex gap-2 pt-4">
+          <Button asChild variant="outline" className="flex-1">
+            <Link to="/dashboard">Dashboard</Link>
+          </Button>
+          <Button asChild variant="outline" className="flex-1">
+            <Link to="/profile">Profile</Link>
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

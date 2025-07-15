@@ -29,7 +29,7 @@ const FormView: React.FC<FormViewProps> = ({ onSubmit, userId }) => {
           </Button>
         ) : (
           <Button asChild variant="outline">
-            <Link to="/dashboard">Profile</Link>
+            <Link to="/profile">Profile</Link>
           </Button>
         )}
         <Button asChild>

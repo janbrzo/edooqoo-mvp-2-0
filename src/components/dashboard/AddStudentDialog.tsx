@@ -17,11 +17,16 @@ const ENGLISH_LEVELS = [
 ];
 
 const MAIN_GOALS = [
-  { value: 'work', label: 'Work/Business' },
-  { value: 'exam', label: 'Exam Preparation' },
-  { value: 'general', label: 'General English' },
-  { value: 'travel', label: 'Travel' },
-  { value: 'academic', label: 'Academic' }
+  { value: 'business-communication', label: 'Business Communication & Presentations' },
+  { value: 'academic-writing', label: 'Academic Writing & Research' },
+  { value: 'conversation-speaking', label: 'Conversation & Speaking Fluency' },
+  { value: 'exam-preparation', label: 'Exam Preparation (IELTS/TOEFL/Cambridge)' },
+  { value: 'grammar-structure', label: 'Grammar & Language Structure' },
+  { value: 'vocabulary-building', label: 'Vocabulary Building & Usage' },
+  { value: 'reading-comprehension', label: 'Reading Comprehension & Analysis' },
+  { value: 'listening-skills', label: 'Listening Skills & Understanding' },
+  { value: 'travel-practical', label: 'Travel & Practical English' },
+  { value: 'custom', label: 'Custom Goal (enter below)' }
 ];
 
 export const AddStudentDialog = () => {
@@ -29,20 +34,24 @@ export const AddStudentDialog = () => {
   const [name, setName] = useState('');
   const [englishLevel, setEnglishLevel] = useState('');
   const [mainGoal, setMainGoal] = useState('');
+  const [customGoal, setCustomGoal] = useState('');
   const [loading, setLoading] = useState(false);
-  const { addStudent } = useStudents();
+  const { addStudent, refetch } = useStudents();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !englishLevel || !mainGoal) return;
+    const finalGoal = mainGoal === 'custom' ? customGoal : mainGoal;
+    if (!name || !englishLevel || !finalGoal) return;
 
     setLoading(true);
     try {
-      await addStudent(name, englishLevel, mainGoal);
+      await addStudent(name, englishLevel, finalGoal);
+      await refetch(); // Refresh the students list immediately
       setOpen(false);
       setName('');
       setEnglishLevel('');
       setMainGoal('');
+      setCustomGoal('');
     } catch (error) {
       // Error handled in hook
     } finally {
@@ -105,12 +114,20 @@ export const AddStudentDialog = () => {
                 ))}
               </SelectContent>
             </Select>
+            {mainGoal === 'custom' && (
+              <Input
+                placeholder="Enter custom learning goal"
+                value={customGoal}
+                onChange={(e) => setCustomGoal(e.target.value)}
+                required={mainGoal === 'custom'}
+              />
+            )}
           </div>
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !name || !englishLevel || !mainGoal}>
+            <Button type="submit" disabled={loading || !name || !englishLevel || !mainGoal || (mainGoal === 'custom' && !customGoal)}>
               {loading ? 'Adding...' : 'Add Student'}
             </Button>
           </div>

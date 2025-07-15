@@ -22,6 +22,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const [additionalInformation, setAdditionalInformation] = useState("");
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
   const [selectedStudentId, setSelectedStudentId] = useState<string>("no-student");
+
   
   const [currentPlaceholders, setCurrentPlaceholders] = useState<PlaceholderSet>(getRandomPlaceholderSet());
   const [currentSuggestions, setCurrentSuggestions] = useState<SuggestionSet[]>([]);
@@ -32,6 +33,24 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const { trackEvent } = useEventTracking();
   const { userId } = useAnonymousAuth();
   const { students } = useStudents();
+
+  // Auto-adjust English level when student is selected
+  useEffect(() => {
+    if (selectedStudentId && selectedStudentId !== "no-student") {
+      const selectedStudent = students.find(s => s.id === selectedStudentId);
+      if (selectedStudent) {
+        const studentLevel = selectedStudent.english_level;
+        // Map individual levels to our grouped levels
+        if (studentLevel === 'A1' || studentLevel === 'A2') {
+          setEnglishLevel('A1/A2');
+        } else if (studentLevel === 'B1' || studentLevel === 'B2') {
+          setEnglishLevel('B1/B2');
+        } else if (studentLevel === 'C1' || studentLevel === 'C2') {
+          setEnglishLevel('C1/C2');
+        }
+      }
+    }
+  }, [selectedStudentId, students]);
 
   useEffect(() => {
     if (isInitialLoad) {
