@@ -4,10 +4,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
+import { useStudents } from '@/hooks/useStudents';
+import { useProfile } from '@/hooks/useProfile';
+import { AddStudentDialog } from '@/components/dashboard/AddStudentDialog';
+import { StudentCard } from '@/components/dashboard/StudentCard';
 import { toast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
   const { userId, loading } = useAnonymousAuth();
+  const { students, loading: studentsLoading } = useStudents();
+  const { profile, loading: profileLoading } = useProfile();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -27,7 +33,7 @@ const Dashboard = () => {
     }
   };
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -50,7 +56,9 @@ const Dashboard = () => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold">Teacher Dashboard</h1>
-            <p className="text-muted-foreground">Manage your students and worksheets</p>
+            <p className="text-muted-foreground">
+              Welcome back, {profile?.first_name || 'Teacher'}! Manage your students and worksheets
+            </p>
           </div>
           <Button variant="outline" onClick={handleSignOut}>
             Sign Out
@@ -65,17 +73,37 @@ const Dashboard = () => {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle>My Students</CardTitle>
+                    <CardTitle>My Students ({students.length})</CardTitle>
                     <CardDescription>Manage your student list</CardDescription>
                   </div>
-                  <Button>Add Student</Button>
+                  <AddStudentDialog />
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-lg mb-2">No students added yet</p>
-                  <p className="text-sm">Add your first student to get started!</p>
-                </div>
+                {studentsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : students.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="text-lg mb-2">No students added yet</p>
+                    <p className="text-sm">Add your first student to get started!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {students.map((student) => (
+                      <StudentCard
+                        key={student.id}
+                        student={student}
+                        worksheetCount={0} // TODO: Add actual worksheet count
+                        onViewHistory={(studentId) => {
+                          // TODO: Navigate to student history
+                          console.log('View history for student:', studentId);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -102,11 +130,11 @@ const Dashboard = () => {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Available Tokens</span>
-                  <span className="font-semibold">2</span>
+                  <span className="font-semibold">{profile?.token_balance || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Plan</span>
-                  <span className="font-semibold">Free Demo</span>
+                  <span className="font-semibold">{profile?.subscription_type || 'Free Demo'}</span>
                 </div>
                 <Button className="w-full" variant="outline">
                   Upgrade Plan
