@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
@@ -59,14 +60,7 @@ const FormView: React.FC<FormViewProps> = ({ onSubmit, userId, onStudentSelect, 
       <IsometricBackground />
       
       <div className="relative z-10 container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Worksheet Generator</h1>
-            <p className="text-lg text-muted-foreground">
-              Create custom English worksheets in seconds
-            </p>
-          </div>
-          
+        <div className="flex flex-col lg:flex-row justify-end items-end mb-8">
           <div className="flex gap-2">
             {isAuthenticated ? (
               <>

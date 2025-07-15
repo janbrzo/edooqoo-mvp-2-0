@@ -28,7 +28,8 @@ export const useWorksheetGeneration = (
     console.log('🔧 Form data received:', { 
       lessonTime: data.lessonTime, 
       grammarFocus: data.teachingPreferences,
-      hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim())
+      hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim()),
+      studentId: data.studentId
     });
 
     // Check token requirements for authenticated users
@@ -58,6 +59,7 @@ export const useWorksheetGeneration = (
       eventType: 'worksheet_generation_start',
       eventData: {
         worksheetId: newWorksheetId,
+        studentId: data.studentId,
         timestamp: new Date().toISOString()
       }
     });
@@ -69,12 +71,12 @@ export const useWorksheetGeneration = (
       const fullPrompt = formatPromptForAI(data);
       const formDataForStorage = createFormDataForStorage(data);
       
-      // Pass the full prompt to the API
+      // Pass the full prompt to the API with teacher_id and student_id
       const worksheetData = await generateWorksheet({ 
         ...data, 
         fullPrompt,
         formDataForStorage,
-        studentId
+        studentId: data.studentId
       }, userId || 'anonymous');
 
       // Consume token for authenticated users AFTER successful generation
@@ -144,6 +146,7 @@ export const useWorksheetGeneration = (
           eventType: 'worksheet_generation_complete',
           eventData: {
             worksheetId: newWorksheetId,
+            studentId: data.studentId,
             success: true,
             generationTimeSeconds: actualGenerationTime,
             timestamp: new Date().toISOString()
@@ -168,6 +171,7 @@ export const useWorksheetGeneration = (
         eventType: 'worksheet_generation_complete',
         eventData: {
           worksheetId: newWorksheetId,
+          studentId: data.studentId,
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString()
