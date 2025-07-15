@@ -21,7 +21,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
   const [grammarFocus, setGrammarFocus] = useState("");
   const [additionalInformation, setAdditionalInformation] = useState("");
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
-  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("no-student");
   
   const [currentPlaceholders, setCurrentPlaceholders] = useState<PlaceholderSet>(getRandomPlaceholderSet());
   const [currentSuggestions, setCurrentSuggestions] = useState<SuggestionSet[]>([]);
@@ -81,7 +81,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
       teachingPreferences: grammarFocus,
       additionalInformation,
       englishLevel,
-      studentId: selectedStudentId || undefined
+      studentId: selectedStudentId === "no-student" ? undefined : selectedStudentId || undefined
     });
   };
 
@@ -224,7 +224,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                       <SelectValue placeholder="Choose a student or leave empty for general worksheet" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No specific student</SelectItem>
+                      <SelectItem value="no-student">No specific student</SelectItem>
                       {students.map((student) => (
                         <SelectItem key={student.id} value={student.id}>
                           {student.name} ({student.english_level})
