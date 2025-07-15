@@ -10,6 +10,7 @@ import { processExercises } from "@/utils/exerciseProcessor";
 import { getExpectedExerciseCount, validateWorksheet, createSampleVocabulary } from "@/utils/worksheetUtils";
 import { deepFixTextObjects } from "@/utils/textObjectFixer";
 import { useEventTracking } from "@/hooks/useEventTracking";
+import { useTokenSystem } from "@/hooks/useTokenSystem";
 
 export const useWorksheetGeneration = (
   userId: string | null,
@@ -20,6 +21,7 @@ export const useWorksheetGeneration = (
   const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
   const { toast } = useToast();
   const { trackEvent } = useEventTracking(userId);
+  const { tokenBalance, hasTokens, isDemo, consumeToken } = useTokenSystem(userId);
 
   const generateWorksheetHandler = async (data: FormData) => {
     console.log('🚀 Starting worksheet generation for:', data.lessonTime);
@@ -28,6 +30,16 @@ export const useWorksheetGeneration = (
       grammarFocus: data.teachingPreferences,
       hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim())
     });
+
+    // Check token requirements for authenticated users
+    if (!isDemo && !hasTokens) {
+      toast({
+        title: "No tokens available",
+        description: "You need tokens to generate worksheets. Please upgrade your plan or purchase tokens.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     worksheetState.clearWorksheetStorage();
 
@@ -64,6 +76,14 @@ export const useWorksheetGeneration = (
         formDataForStorage,
         studentId
       }, userId || 'anonymous');
+
+      // Consume token for authenticated users AFTER successful generation
+      if (!isDemo && userId) {
+        const tokenConsumed = await consumeToken(newWorksheetId);
+        if (!tokenConsumed) {
+          console.warn('⚠️ Failed to consume token, but worksheet was generated');
+        }
+      }
       
       console.log("✅ Generated worksheet data received:", {
         hasData: !!worksheetData,
@@ -189,6 +209,9 @@ export const useWorksheetGeneration = (
 
   return {
     isGenerating,
-    generateWorksheetHandler
+    generateWorksheetHandler,
+    tokenBalance,
+    hasTokens,
+    isDemo
   };
 };

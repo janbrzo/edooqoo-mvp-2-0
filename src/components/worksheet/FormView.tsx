@@ -7,8 +7,7 @@ import TrackingFormWrapper from "@/components/WorksheetForm/TrackingFormWrapper"
 import IsometricBackground from "@/components/IsometricBackground";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { useWorksheetState } from "@/hooks/useWorksheetState";
-import { useWorksheetGeneration } from "@/hooks/useWorksheetGeneration";
+import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 
 interface FormViewProps {
   onSubmit: (data: FormData) => void;
@@ -17,20 +16,22 @@ interface FormViewProps {
 
 const FormView: React.FC<FormViewProps> = ({ onSubmit, userId }) => {
   const isMobile = useIsMobile();
-  const worksheetState = useWorksheetState(false);
-  
-  const handleSubmit = (data: FormData) => {
-    const hook = useWorksheetGeneration(userId, worksheetState, data.studentId);
-    hook.generateWorksheetHandler(data);
-  };
+  const { userId: authUserId } = useAnonymousAuth();
+  const isLoggedIn = !!authUserId;
 
   return (
     <TrackingFormWrapper userId={userId}>
       {/* Header with auth buttons */}
       <div className="absolute top-4 right-4 z-20 flex gap-2">
-        <Button asChild variant="outline">
-          <Link to="/auth">Sign In</Link>
-        </Button>
+        {!isLoggedIn ? (
+          <Button asChild variant="outline">
+            <Link to="/auth">Sign In</Link>
+          </Button>
+        ) : (
+          <Button asChild variant="outline">
+            <Link to="/dashboard">Profile</Link>
+          </Button>
+        )}
         <Button asChild>
           <Link to="/dashboard">Dashboard</Link>
         </Button>
@@ -46,7 +47,7 @@ const FormView: React.FC<FormViewProps> = ({ onSubmit, userId }) => {
           </div>
         )}
         <div className={`${isMobile ? 'w-full px-2 py-2' : 'w-4/5 px-6 py-6'} form-container relative z-10`}>
-          <WorksheetForm onSubmit={handleSubmit} />
+          <WorksheetForm onSubmit={onSubmit} />
         </div>
       </div>
     </TrackingFormWrapper>

@@ -69,7 +69,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Students Section */}
           <div className="lg:col-span-2 space-y-6">
-            <Card>
+            <Card data-section="students">
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
@@ -107,7 +107,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card data-section="worksheets">
               <CardHeader>
                 <CardTitle>Recent Worksheets</CardTitle>
                 <CardDescription>Your latest generated worksheets</CardDescription>
@@ -153,10 +153,24 @@ const Dashboard = () => {
                 >
                   Generate Worksheet
                 </Button>
-                <Button className="w-full" variant="outline">
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  onClick={() => {
+                    // Scroll to students section
+                    document.querySelector('[data-section="students"]')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
                   View All Students
                 </Button>
-                <Button className="w-full" variant="outline">
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  onClick={() => {
+                    // Scroll to worksheets section
+                    document.querySelector('[data-section="worksheets"]')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
                   Worksheet History
                 </Button>
               </CardContent>

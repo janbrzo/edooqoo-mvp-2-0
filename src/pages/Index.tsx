@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import GeneratingModal from "@/components/GeneratingModal";
 import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";
+import { TokenPaywall } from "@/components/TokenPaywall";
 
 /**
  * Main Index page component that handles worksheet generation and display
@@ -15,7 +16,7 @@ import GenerationView from "@/components/worksheet/GenerationView";
 const Index = () => {
   const { userId, loading: authLoading } = useAnonymousAuth();
   const worksheetState = useWorksheetState(authLoading);
-  const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(userId, worksheetState);
+  const { isGenerating, generateWorksheetHandler, tokenBalance, hasTokens, isDemo } = useWorksheetGeneration(userId, worksheetState);
 
   // Show loading indicator while auth is initializing
   if (authLoading) {
@@ -28,11 +29,25 @@ const Index = () => {
 
   // CRITICAL FIX: Check both generatedWorksheet AND editableWorksheet are ready
   const bothWorksheetsReady = worksheetState.generatedWorksheet && worksheetState.editableWorksheet;
+  
+  // Show paywall if authenticated user has no tokens
+  const shouldShowPaywall = !isDemo && !hasTokens && !bothWorksheetsReady;
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {!bothWorksheetsReady ? (
-        <FormView onSubmit={generateWorksheetHandler} />
+      {shouldShowPaywall ? (
+        <div className="container mx-auto px-4 py-8">
+          <TokenPaywall 
+            isDemo={isDemo}
+            tokenBalance={tokenBalance}
+            onUpgrade={() => {
+              // TODO: Implement subscription upgrade
+              console.log('Upgrade plan clicked');
+            }}
+          />
+        </div>
+      ) : !bothWorksheetsReady ? (
+        <FormView onSubmit={generateWorksheetHandler} userId={userId} />
       ) : (
         <GenerationView 
           worksheetId={worksheetState.worksheetId}
