@@ -14,14 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export type { FormData };
 
-export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
+export default function WorksheetForm({ onSubmit, onStudentSelect, selectedStudentId }: WorksheetFormProps) {
   const [lessonTime, setLessonTime] = useState<LessonTime>("60min"); // Changed from "60 min" to "60min"
   const [lessonTopic, setLessonTopic] = useState("");
   const [lessonGoal, setLessonGoal] = useState("");
   const [grammarFocus, setGrammarFocus] = useState("");
   const [additionalInformation, setAdditionalInformation] = useState("");
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
-  const [selectedStudentId, setSelectedStudentId] = useState<string>("no-student");
+  const [internalStudentId, setInternalStudentId] = useState<string>(selectedStudentId || "no-student");
 
   
   const [currentPlaceholders, setCurrentPlaceholders] = useState<PlaceholderSet>(getRandomPlaceholderSet());
@@ -36,8 +36,8 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
 
   // Auto-adjust English level when student is selected
   useEffect(() => {
-    if (selectedStudentId && selectedStudentId !== "no-student") {
-      const selectedStudent = students.find(s => s.id === selectedStudentId);
+    if (internalStudentId && internalStudentId !== "no-student") {
+      const selectedStudent = students.find(s => s.id === internalStudentId);
       if (selectedStudent) {
         const studentLevel = selectedStudent.english_level;
         // Map individual levels to our grouped levels
@@ -50,7 +50,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
         }
       }
     }
-  }, [selectedStudentId, students]);
+  }, [internalStudentId, students]);
 
   useEffect(() => {
     if (isInitialLoad) {
@@ -100,7 +100,7 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
       teachingPreferences: grammarFocus,
       additionalInformation,
       englishLevel,
-      studentId: selectedStudentId === "no-student" ? undefined : selectedStudentId || undefined
+      studentId: internalStudentId === "no-student" ? undefined : internalStudentId || undefined
     });
   };
 
@@ -238,7 +238,10 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Select Student (optional):
                   </label>
-                  <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                   <Select value={internalStudentId} onValueChange={(value) => {
+                     setInternalStudentId(value);
+                     onStudentSelect?.(value === "no-student" ? null : value);
+                   }}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Choose a student or leave empty for general worksheet" />
                     </SelectTrigger>

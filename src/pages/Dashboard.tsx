@@ -8,12 +8,14 @@ import { useStudents } from '@/hooks/useStudents';
 import { useProfile } from '@/hooks/useProfile';
 import { AddStudentDialog } from '@/components/dashboard/AddStudentDialog';
 import { StudentCard } from '@/components/dashboard/StudentCard';
+import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { toast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
   const { userId, loading } = useAnonymousAuth();
   const { students, loading: studentsLoading } = useStudents();
   const { profile, loading: profileLoading } = useProfile();
+  const { worksheets, loading: worksheetsLoading } = useWorksheetHistory(userId);
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -100,10 +102,9 @@ const Dashboard = () => {
                       <StudentCard
                         key={student.id}
                         student={student}
-                        worksheetCount={0} // TODO: Add actual worksheet count
                         onViewHistory={(studentId) => {
-                          // TODO: Navigate to student history
-                          console.log('View history for student:', studentId);
+                          // Navigate to student-specific worksheet history
+                          navigate(`/student-history/${studentId}`);
                         }}
                       />
                     ))}
@@ -118,10 +119,51 @@ const Dashboard = () => {
                 <CardDescription>Your latest generated worksheets</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-lg mb-2">No worksheets generated yet</p>
-                  <p className="text-sm">Create your first worksheet from the generator!</p>
-                </div>
+                {worksheetsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : worksheets.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="text-lg mb-2">No worksheets generated yet</p>
+                    <p className="text-sm">Create your first worksheet from the generator!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {worksheets.slice(0, 5).map((worksheet) => (
+                      <div key={worksheet.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-medium truncate">{worksheet.title || 'Untitled Worksheet'}</h4>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>{new Date(worksheet.created_at).toLocaleDateString()}</span>
+                            {worksheet.student_id && (
+                              <span>• For student</span>
+                            )}
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            sessionStorage.setItem('openWorksheetId', worksheet.id);
+                            navigate('/');
+                          }}
+                        >
+                          Open
+                        </Button>
+                      </div>
+                    ))}
+                    {worksheets.length > 5 && (
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => navigate('/worksheet-history')}
+                      >
+                        View All ({worksheets.length})
+                      </Button>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -171,10 +213,7 @@ const Dashboard = () => {
                 <Button 
                   className="w-full" 
                   variant="outline"
-                  onClick={() => {
-                    // Scroll to worksheets section
-                    document.querySelector('[data-section="worksheets"]')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
+                  onClick={() => navigate('/worksheet-history')}
                 >
                   Worksheet History
                 </Button>

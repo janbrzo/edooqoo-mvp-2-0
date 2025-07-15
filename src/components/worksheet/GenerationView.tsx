@@ -12,6 +12,7 @@ interface GenerationViewProps {
   inputParams: any;
   generationTime: number;
   sourceCount: number;
+  studentName?: string | null;
   onBack: () => void;
   userId: string;
 }
@@ -24,6 +25,7 @@ export default function GenerationView({
   inputParams,
   generationTime,
   sourceCount,
+  studentName,
   onBack,
   userId
 }: GenerationViewProps) {
@@ -64,6 +66,7 @@ export default function GenerationView({
       inputParams={inputParams}
       generationTime={generationTime}
       sourceCount={sourceCount}
+      studentName={studentName}
       onBack={onBack}
       worksheetId={worksheetId}
       onFeedbackSubmit={handleFeedbackSubmit}
