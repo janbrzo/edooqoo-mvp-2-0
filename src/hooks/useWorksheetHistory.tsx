@@ -22,8 +22,12 @@ export const useWorksheetHistory = (studentId?: string) => {
 
   const fetchWorksheets = async () => {
     try {
+      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setWorksheets([]);
+        return;
+      }
 
       let query = supabase
         .from('worksheets')
@@ -37,10 +41,16 @@ export const useWorksheetHistory = (studentId?: string) => {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching worksheets:', error);
+        throw error;
+      }
+      
+      console.log('Fetched worksheets:', data);
       setWorksheets(data || []);
     } catch (error: any) {
       console.error('Error fetching worksheets:', error);
+      setWorksheets([]);
     } finally {
       setLoading(false);
     }

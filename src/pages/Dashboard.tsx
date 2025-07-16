@@ -16,9 +16,9 @@ import { format } from 'date-fns';
 
 const Dashboard = () => {
   const { userId, loading } = useAnonymousAuth();
-  const { students, loading: studentsLoading } = useStudents();
+  const { students, loading: studentsLoading, refetch: refetchStudents } = useStudents();
   const { profile, loading: profileLoading } = useProfile();
-  const { worksheets, loading: worksheetsLoading, getRecentWorksheets } = useWorksheetHistory();
+  const { worksheets, loading: worksheetsLoading, getRecentWorksheets, refetch: refetchWorksheets } = useWorksheetHistory();
   const navigate = useNavigate();
 
   const recentWorksheets = getRecentWorksheets(5);
@@ -44,6 +44,12 @@ const Dashboard = () => {
     // Store worksheet data in sessionStorage and navigate
     sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheet));
     navigate('/');
+  };
+
+  const handleStudentAdded = () => {
+    // Refresh both students and worksheets lists
+    refetchStudents();
+    refetchWorksheets();
   };
 
   if (loading || profileLoading) {
@@ -94,7 +100,7 @@ const Dashboard = () => {
                     <CardTitle>My Students ({students.length})</CardTitle>
                     <CardDescription>Manage your student list</CardDescription>
                   </div>
-                  <AddStudentDialog />
+                  <AddStudentDialog onStudentAdded={handleStudentAdded} />
                 </div>
               </CardHeader>
               <CardContent>
