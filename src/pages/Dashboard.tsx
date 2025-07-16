@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,15 +7,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useStudents } from '@/hooks/useStudents';
 import { useProfile } from '@/hooks/useProfile';
+import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { AddStudentDialog } from '@/components/dashboard/AddStudentDialog';
 import { StudentCard } from '@/components/dashboard/StudentCard';
 import { toast } from '@/hooks/use-toast';
+import { FileText, Calendar } from 'lucide-react';
+import { format } from 'date-fns';
 
 const Dashboard = () => {
   const { userId, loading } = useAnonymousAuth();
   const { students, loading: studentsLoading } = useStudents();
   const { profile, loading: profileLoading } = useProfile();
+  const { worksheets, loading: worksheetsLoading, getRecentWorksheets } = useWorksheetHistory();
   const navigate = useNavigate();
+
+  const recentWorksheets = getRecentWorksheets(5);
 
   const handleSignOut = async () => {
     try {
@@ -31,6 +38,12 @@ const Dashboard = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleOpenWorksheet = (worksheet: any) => {
+    // Store worksheet data in sessionStorage and navigate
+    sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheet));
+    navigate('/');
   };
 
   if (loading || profileLoading) {
@@ -100,11 +113,11 @@ const Dashboard = () => {
                       <StudentCard
                         key={student.id}
                         student={student}
-                        worksheetCount={0} // TODO: Add actual worksheet count
                         onViewHistory={(studentId) => {
                           // TODO: Navigate to student history
-                          console.log('View history for student:', studentId);
+                          console.log('View all history for student:', studentId);
                         }}
+                        onOpenWorksheet={handleOpenWorksheet}
                       />
                     ))}
                   </div>
@@ -118,10 +131,42 @@ const Dashboard = () => {
                 <CardDescription>Your latest generated worksheets</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-lg mb-2">No worksheets generated yet</p>
-                  <p className="text-sm">Create your first worksheet from the generator!</p>
-                </div>
+                {worksheetsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : recentWorksheets.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="text-lg mb-2">No worksheets generated yet</p>
+                    <p className="text-sm">Create your first worksheet from the generator!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {recentWorksheets.map((worksheet) => (
+                      <div
+                        key={worksheet.id}
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
+                        onClick={() => handleOpenWorksheet(worksheet)}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium text-sm">
+                              {worksheet.title || 'Untitled Worksheet'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {worksheet.form_data?.lessonTime || 'Unknown duration'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          <span>{format(new Date(worksheet.created_at), 'MMM dd, yyyy')}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

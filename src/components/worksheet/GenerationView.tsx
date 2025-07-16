@@ -3,6 +3,7 @@ import React from "react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
 import { submitFeedback } from "@/services/worksheetService";
 import { useToast } from "@/hooks/use-toast";
+import { useStudents } from "@/hooks/useStudents";
 
 interface GenerationViewProps {
   worksheetId: string | null;
@@ -28,6 +29,12 @@ export default function GenerationView({
   userId
 }: GenerationViewProps) {
   const { toast } = useToast();
+  const { students } = useStudents();
+
+  // Find student name if studentId is provided in inputParams
+  const studentName = inputParams?.studentId 
+    ? students.find(s => s.id === inputParams.studentId)?.name 
+    : undefined;
 
   const handleFeedbackSubmit = async (rating: number, feedback: string) => {
     if (!worksheetId) {
@@ -67,6 +74,8 @@ export default function GenerationView({
       onBack={onBack}
       worksheetId={worksheetId}
       onFeedbackSubmit={handleFeedbackSubmit}
+      userId={userId}
+      studentName={studentName}
     />
   );
 }

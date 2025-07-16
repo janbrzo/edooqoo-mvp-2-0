@@ -1,14 +1,15 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 import { useWorksheetState } from "@/hooks/useWorksheetState";
 import { useWorksheetGeneration } from "@/hooks/useWorksheetGeneration";
+import { useTokenSystem } from "@/hooks/useTokenSystem";
 import { Button } from "@/components/ui/button";
 import GeneratingModal from "@/components/GeneratingModal";
 import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";
-import { TokenPaywall } from "@/components/TokenPaywall";
+import { TokenPaywallModal } from "@/components/TokenPaywallModal";
 
 /**
  * Main Index page component that handles worksheet generation and display
@@ -16,7 +17,29 @@ import { TokenPaywall } from "@/components/TokenPaywall";
 const Index = () => {
   const { userId, loading: authLoading } = useAnonymousAuth();
   const worksheetState = useWorksheetState(authLoading);
-  const { isGenerating, generateWorksheetHandler, tokenBalance, hasTokens, isDemo } = useWorksheetGeneration(userId, worksheetState);
+  const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(userId, worksheetState);
+  const { tokenBalance, hasTokens, isDemo } = useTokenSystem(userId);
+  const [showTokenModal, setShowTokenModal] = useState(false);
+
+  // Check for restored worksheet from dashboard
+  useEffect(() => {
+    const restoredWorksheet = sessionStorage.getItem('restoredWorksheet');
+    if (restoredWorksheet) {
+      try {
+        const worksheet = JSON.parse(restoredWorksheet);
+        worksheetState.setGeneratedWorksheet(worksheet);
+        worksheetState.setEditableWorksheet(worksheet);
+        worksheetState.setInputParams(worksheet.inputParams || {});
+        worksheetState.setWorksheetId(worksheet.id);
+        worksheetState.setGenerationTime(5); // Default value
+        worksheetState.setSourceCount(75); // Default value
+        sessionStorage.removeItem('restoredWorksheet');
+      } catch (error) {
+        console.error('Error restoring worksheet:', error);
+        sessionStorage.removeItem('restoredWorksheet');
+      }
+    }
+  }, []);
 
   // Show loading indicator while auth is initializing
   if (authLoading) {
@@ -29,25 +52,20 @@ const Index = () => {
 
   // CRITICAL FIX: Check both generatedWorksheet AND editableWorksheet are ready
   const bothWorksheetsReady = worksheetState.generatedWorksheet && worksheetState.editableWorksheet;
-  
-  // Show paywall if authenticated user has no tokens
-  const shouldShowPaywall = !isDemo && !hasTokens && !bothWorksheetsReady;
+
+  // Enhanced generation handler that checks for tokens
+  const handleGenerateWorksheet = (data: any) => {
+    if (!isDemo && !hasTokens) {
+      setShowTokenModal(true);
+      return;
+    }
+    generateWorksheetHandler(data);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {shouldShowPaywall ? (
-        <div className="container mx-auto px-4 py-8">
-          <TokenPaywall 
-            isDemo={isDemo}
-            tokenBalance={tokenBalance}
-            onUpgrade={() => {
-              // TODO: Implement subscription upgrade
-              console.log('Upgrade plan clicked');
-            }}
-          />
-        </div>
-      ) : !bothWorksheetsReady ? (
-        <FormView onSubmit={generateWorksheetHandler} userId={userId} />
+      {!bothWorksheetsReady ? (
+        <FormView onSubmit={handleGenerateWorksheet} userId={userId} />
       ) : (
         <GenerationView 
           worksheetId={worksheetState.worksheetId}
@@ -63,6 +81,17 @@ const Index = () => {
       )}
       
       <GeneratingModal isOpen={isGenerating} />
+      
+      <TokenPaywallModal
+        isOpen={showTokenModal}
+        onClose={() => setShowTokenModal(false)}
+        tokenBalance={tokenBalance}
+        onUpgrade={() => {
+          // TODO: Implement subscription upgrade
+          console.log('Upgrade plan clicked');
+          setShowTokenModal(false);
+        }}
+      />
     </div>
   );
 };
