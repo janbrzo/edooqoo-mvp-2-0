@@ -70,7 +70,9 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
       const { error } = await supabase
         .from('students')
         .insert({
-          ...data,
+          name: data.name,
+          english_level: data.english_level,
+          main_goal: data.main_goal,
           teacher_id: user.id,
         });
 
