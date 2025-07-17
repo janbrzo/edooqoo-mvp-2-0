@@ -33,9 +33,9 @@ const Index = () => {
   };
 
   const handleFeedbackSubmit = async (rating: number, feedback: string) => {
-    if (worksheetState.worksheetId) {
-      await submitRating(worksheetState.worksheetId, rating, feedback);
-    }
+    // The handleSubmit function from useWorksheetRating doesn't take parameters
+    // It handles the submission internally
+    await submitRating();
   };
 
   if (showWorksheet) {
@@ -70,7 +70,6 @@ const Index = () => {
           
           <WorksheetForm 
             onSubmit={generateWorksheetHandler}
-            userId={userId}
           />
         </div>
       </div>
