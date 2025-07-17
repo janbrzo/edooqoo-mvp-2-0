@@ -27,15 +27,55 @@ const Index = () => {
     if (restoredWorksheet) {
       try {
         const worksheet = JSON.parse(restoredWorksheet);
-        worksheetState.setGeneratedWorksheet(worksheet);
-        worksheetState.setEditableWorksheet(worksheet);
-        worksheetState.setInputParams(worksheet.inputParams || {});
-        worksheetState.setWorksheetId(worksheet.id);
-        worksheetState.setGenerationTime(5); // Default value
-        worksheetState.setSourceCount(75); // Default value
+        console.log('🔄 Restoring worksheet from dashboard:', worksheet);
+        
+        // Handle worksheet data structure from database
+        let worksheetContent = null;
+        let inputParamsData = null;
+        
+        // Parse ai_response if it's a string (from database)
+        if (typeof worksheet.ai_response === 'string') {
+          try {
+            worksheetContent = JSON.parse(worksheet.ai_response);
+            console.log('✅ Parsed ai_response from database:', worksheetContent);
+          } catch (parseError) {
+            console.error('❌ Failed to parse ai_response:', parseError);
+          }
+        } else if (worksheet.ai_response && typeof worksheet.ai_response === 'object') {
+          worksheetContent = worksheet.ai_response;
+        }
+        
+        // Use form_data for input parameters (from database)
+        if (worksheet.form_data) {
+          inputParamsData = worksheet.form_data;
+          console.log('✅ Using form_data as inputParams:', inputParamsData);
+        } else if (worksheet.inputParams) {
+          // Fallback for direct worksheet objects
+          inputParamsData = worksheet.inputParams;
+        }
+        
+        // If we have valid worksheet content, restore it
+        if (worksheetContent && inputParamsData) {
+          // Ensure worksheet has an ID
+          if (!worksheetContent.id && worksheet.id) {
+            worksheetContent.id = worksheet.id;
+          }
+          
+          worksheetState.setGeneratedWorksheet(worksheetContent);
+          worksheetState.setEditableWorksheet(worksheetContent);
+          worksheetState.setInputParams(inputParamsData);
+          worksheetState.setWorksheetId(worksheet.id);
+          worksheetState.setGenerationTime(worksheet.generation_time_seconds || 5);
+          worksheetState.setSourceCount(75); // Default value
+          
+          console.log('🎉 Successfully restored worksheet from database');
+        } else {
+          console.warn('⚠️ Missing required data for worksheet restoration');
+        }
+        
         sessionStorage.removeItem('restoredWorksheet');
       } catch (error) {
-        console.error('Error restoring worksheet:', error);
+        console.error('💥 Error restoring worksheet:', error);
         sessionStorage.removeItem('restoredWorksheet');
       }
     }
