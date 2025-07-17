@@ -27,9 +27,13 @@ const Index = () => {
     if (restoredWorksheet) {
       try {
         const worksheet = JSON.parse(restoredWorksheet);
-        worksheetState.setGeneratedWorksheet(worksheet);
-        worksheetState.setEditableWorksheet(worksheet);
-        worksheetState.setInputParams(worksheet.inputParams || {});
+        
+        // Parse ai_response which is stored as JSON string in database
+        const parsedWorksheet = JSON.parse(worksheet.ai_response);
+        
+        worksheetState.setGeneratedWorksheet(parsedWorksheet);
+        worksheetState.setEditableWorksheet(parsedWorksheet);
+        worksheetState.setInputParams(worksheet.form_data || {});
         worksheetState.setWorksheetId(worksheet.id);
         worksheetState.setGenerationTime(5); // Default value
         worksheetState.setSourceCount(75); // Default value
