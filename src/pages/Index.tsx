@@ -12,7 +12,7 @@ const Index = () => {
   const { userId } = useAnonymousAuth();
   const worksheetState = useWorksheetState();
   const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(userId, worksheetState);
-  const { submitRating } = useWorksheetRating();
+  const { handleSubmit: submitRating } = useWorksheetRating();
 
   // Show worksheet if we have generated content OR restored content
   const showWorksheet = worksheetState.generatedWorksheet && worksheetState.editableWorksheet;
@@ -70,7 +70,6 @@ const Index = () => {
           
           <WorksheetForm 
             onSubmit={generateWorksheetHandler}
-            isGenerating={isGenerating}
             userId={userId}
           />
         </div>
@@ -78,7 +77,6 @@ const Index = () => {
       
       <GeneratingModal 
         isOpen={isGenerating} 
-        generationStartTime={Date.now()}
       />
     </div>
   );
