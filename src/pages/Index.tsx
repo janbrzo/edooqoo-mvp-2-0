@@ -1,136 +1,81 @@
 
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
-import { useWorksheetState } from "@/hooks/useWorksheetState";
-import { useWorksheetGeneration } from "@/hooks/useWorksheetGeneration";
-import { useTokenSystem } from "@/hooks/useTokenSystem";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import WorksheetForm from "@/components/WorksheetForm";
+import WorksheetDisplay from "@/components/WorksheetDisplay";
 import GeneratingModal from "@/components/GeneratingModal";
-import FormView from "@/components/worksheet/FormView";
-import GenerationView from "@/components/worksheet/GenerationView";
-import { TokenPaywallModal } from "@/components/TokenPaywallModal";
+import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
+import { useWorksheetGeneration } from "@/hooks/useWorksheetGeneration";
+import { useWorksheetState } from "@/hooks/useWorksheetState";
+import { useWorksheetRating } from "@/hooks/useWorksheetRating";
 
-/**
- * Main Index page component that handles worksheet generation and display
- */
 const Index = () => {
-  const { userId, loading: authLoading } = useAnonymousAuth();
-  const worksheetState = useWorksheetState(authLoading);
+  const { userId } = useAnonymousAuth();
+  const worksheetState = useWorksheetState();
   const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(userId, worksheetState);
-  const { tokenBalance, hasTokens, isDemo } = useTokenSystem(userId);
-  const [showTokenModal, setShowTokenModal] = useState(false);
+  const { handleSubmit: submitRating } = useWorksheetRating();
 
-  // Check for restored worksheet from dashboard
-  useEffect(() => {
-    const restoredWorksheet = sessionStorage.getItem('restoredWorksheet');
-    if (restoredWorksheet) {
-      try {
-        const worksheet = JSON.parse(restoredWorksheet);
-        console.log('🔄 Restoring worksheet from dashboard:', worksheet);
-        
-        // Handle worksheet data structure from database
-        let worksheetContent = null;
-        let inputParamsData = null;
-        
-        // Parse ai_response if it's a string (from database)
-        if (typeof worksheet.ai_response === 'string') {
-          try {
-            worksheetContent = JSON.parse(worksheet.ai_response);
-            console.log('✅ Parsed ai_response from database:', worksheetContent);
-          } catch (parseError) {
-            console.error('❌ Failed to parse ai_response:', parseError);
-          }
-        } else if (worksheet.ai_response && typeof worksheet.ai_response === 'object') {
-          worksheetContent = worksheet.ai_response;
-        }
-        
-        // Use form_data for input parameters (from database)
-        if (worksheet.form_data) {
-          inputParamsData = worksheet.form_data;
-          console.log('✅ Using form_data as inputParams:', inputParamsData);
-        } else if (worksheet.inputParams) {
-          // Fallback for direct worksheet objects
-          inputParamsData = worksheet.inputParams;
-        }
-        
-        // If we have valid worksheet content, restore it
-        if (worksheetContent && inputParamsData) {
-          // Ensure worksheet has an ID
-          if (!worksheetContent.id && worksheet.id) {
-            worksheetContent.id = worksheet.id;
-          }
-          
-          worksheetState.setGeneratedWorksheet(worksheetContent);
-          worksheetState.setEditableWorksheet(worksheetContent);
-          worksheetState.setInputParams(inputParamsData);
-          worksheetState.setWorksheetId(worksheet.id);
-          worksheetState.setGenerationTime(worksheet.generation_time_seconds || 5);
-          worksheetState.setSourceCount(75); // Default value
-          
-          console.log('🎉 Successfully restored worksheet from database');
-        } else {
-          console.warn('⚠️ Missing required data for worksheet restoration');
-        }
-        
-        sessionStorage.removeItem('restoredWorksheet');
-      } catch (error) {
-        console.error('💥 Error restoring worksheet:', error);
-        sessionStorage.removeItem('restoredWorksheet');
-      }
-    }
-  }, []);
+  // Show worksheet if we have generated content OR restored content
+  const showWorksheet = worksheetState.generatedWorksheet && worksheetState.editableWorksheet;
 
-  // Show loading indicator while auth is initializing
-  if (authLoading) {
+  console.log('🔍 Index page state:', {
+    showWorksheet,
+    hasGeneratedWorksheet: !!worksheetState.generatedWorksheet,
+    hasEditableWorksheet: !!worksheetState.editableWorksheet,
+    worksheetId: worksheetState.worksheetId
+  });
+
+  const handleBack = () => {
+    worksheetState.setGeneratedWorksheet(null);
+    worksheetState.setEditableWorksheet(null);
+    worksheetState.setInputParams(null);
+    worksheetState.setWorksheetId(null);
+    worksheetState.clearWorksheetStorage();
+  };
+
+  const handleFeedbackSubmit = async (rating: number, feedback: string) => {
+    // The handleSubmit function from useWorksheetRating doesn't take parameters
+    // It handles the submission internally
+    await submitRating();
+  };
+
+  if (showWorksheet) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin h-8 w-8 border-4 border-worksheet-purple border-t-transparent rounded-full"></div>
-      </div>
+      <WorksheetDisplay
+        worksheet={worksheetState.generatedWorksheet}
+        inputParams={worksheetState.inputParams}
+        generationTime={worksheetState.generationTime}
+        sourceCount={worksheetState.sourceCount}
+        onBack={handleBack}
+        worksheetId={worksheetState.worksheetId}
+        onFeedbackSubmit={handleFeedbackSubmit}
+        editableWorksheet={worksheetState.editableWorksheet}
+        setEditableWorksheet={worksheetState.setEditableWorksheet}
+        userId={userId}
+      />
     );
   }
 
-  // CRITICAL FIX: Check both generatedWorksheet AND editableWorksheet are ready
-  const bothWorksheetsReady = worksheetState.generatedWorksheet && worksheetState.editableWorksheet;
-
-  // Enhanced generation handler that checks for tokens
-  const handleGenerateWorksheet = (data: any) => {
-    if (!isDemo && !hasTokens) {
-      setShowTokenModal(true);
-      return;
-    }
-    generateWorksheetHandler(data);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-100">
-      {!bothWorksheetsReady ? (
-        <FormView onSubmit={handleGenerateWorksheet} userId={userId} />
-      ) : (
-        <GenerationView 
-          worksheetId={worksheetState.worksheetId}
-          generatedWorksheet={worksheetState.generatedWorksheet}
-          editableWorksheet={worksheetState.editableWorksheet}
-          setEditableWorksheet={worksheetState.setEditableWorksheet}
-          inputParams={worksheetState.inputParams}
-          generationTime={worksheetState.generationTime}
-          sourceCount={worksheetState.sourceCount}
-          onBack={worksheetState.resetWorksheetState}
-          userId={userId || 'anonymous'}
-        />
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-worksheet-purple to-worksheet-purpleDark bg-clip-text text-transparent">
+              English Worksheet Generator
+            </h1>
+            <p className="text-xl text-muted-foreground">
+              Create customized English worksheets for your students in minutes
+            </p>
+          </div>
+          
+          <WorksheetForm 
+            onSubmit={generateWorksheetHandler}
+          />
+        </div>
+      </div>
       
-      <GeneratingModal isOpen={isGenerating} />
-      
-      <TokenPaywallModal
-        isOpen={showTokenModal}
-        onClose={() => setShowTokenModal(false)}
-        tokenBalance={tokenBalance}
-        onUpgrade={() => {
-          // TODO: Implement subscription upgrade
-          console.log('Upgrade plan clicked');
-          setShowTokenModal(false);
-        }}
+      <GeneratingModal 
+        isOpen={isGenerating} 
       />
     </div>
   );
