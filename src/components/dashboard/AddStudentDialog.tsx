@@ -1,104 +1,61 @@
-
 import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useStudents } from '@/hooks/useStudents';
 import { Plus } from 'lucide-react';
 
-const formSchema = z.object({
-  name: z.string().min(1, 'Student name is required'),
-  english_level: z.string().min(1, 'English level is required'),
-  main_goal: z.string().min(1, 'Main goal is required'),
-});
+const ENGLISH_LEVELS = [
+  { value: 'A1', label: 'A1 (Beginner)' },
+  { value: 'A2', label: 'A2 (Elementary)' },
+  { value: 'B1', label: 'B1 (Intermediate)' },
+  { value: 'B2', label: 'B2 (Upper-Intermediate)' },
+  { value: 'C1', label: 'C1 (Advanced)' },
+  { value: 'C2', label: 'C2 (Proficiency)' }
+];
 
-type FormData = z.infer<typeof formSchema>;
+const MAIN_GOALS = [
+  { value: 'business-communication', label: 'Business Communication & Presentations' },
+  { value: 'academic-writing', label: 'Academic Writing & Research' },
+  { value: 'conversation-speaking', label: 'Conversation & Speaking Fluency' },
+  { value: 'exam-preparation', label: 'Exam Preparation (IELTS/TOEFL/Cambridge)' },
+  { value: 'grammar-structure', label: 'Grammar & Language Structure' },
+  { value: 'vocabulary-building', label: 'Vocabulary Building & Usage' },
+  { value: 'reading-comprehension', label: 'Reading Comprehension & Analysis' },
+  { value: 'listening-skills', label: 'Listening Skills & Understanding' },
+  { value: 'travel-practical', label: 'Travel & Practical English' },
+  { value: 'custom', label: 'Custom Goal (enter below)' }
+];
 
-interface AddStudentDialogProps {
-  onStudentAdded?: () => void;
-}
-
-export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
+export const AddStudentDialog = () => {
   const [open, setOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
+  const [name, setName] = useState('');
+  const [englishLevel, setEnglishLevel] = useState('');
+  const [mainGoal, setMainGoal] = useState('');
+  const [customGoal, setCustomGoal] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { addStudent, refetch } = useStudents();
 
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: '',
-      english_level: '',
-      main_goal: '',
-    },
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const finalGoal = mainGoal === 'custom' ? customGoal : mainGoal;
+    if (!name || !englishLevel || !finalGoal) return;
 
-  const onSubmit = async (data: FormData) => {
+    setLoading(true);
     try {
-      setIsSubmitting(true);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      const { error } = await supabase
-        .from('students')
-        .insert({
-          name: data.name,
-          english_level: data.english_level,
-          main_goal: data.main_goal,
-          teacher_id: user.id,
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Student added successfully!",
-        description: `${data.name} has been added to your student list.`,
-      });
-
-      form.reset();
+      await addStudent(name, englishLevel, finalGoal);
+      await refetch(); // Refresh the students list immediately
       setOpen(false);
-      
-      // Call the callback to refresh the students list
-      if (onStudentAdded) {
-        onStudentAdded();
-      }
-    } catch (error: any) {
-      console.error('Error adding student:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to add student",
-        variant: "destructive",
-      });
+      setName('');
+      setEnglishLevel('');
+      setMainGoal('');
+      setCustomGoal('');
+    } catch (error) {
+      // Error handled in hook
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -114,91 +71,67 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
         <DialogHeader>
           <DialogTitle>Add New Student</DialogTitle>
           <DialogDescription>
-            Add a new student to your list. You can generate personalized worksheets for them.
+            Add a new student to your class. You can update their information later.
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Student Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter student name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Student Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter student's name"
+              required
             />
-            
-            <FormField
-              control={form.control}
-              name="english_level"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>English Level</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select English level" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="A1">A1 - Beginner</SelectItem>
-                      <SelectItem value="A2">A2 - Elementary</SelectItem>
-                      <SelectItem value="B1">B1 - Intermediate</SelectItem>
-                      <SelectItem value="B2">B2 - Upper Intermediate</SelectItem>
-                      <SelectItem value="C1">C1 - Advanced</SelectItem>
-                      <SelectItem value="C2">C2 - Proficient</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="main_goal"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Main Goal</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select main learning goal" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="work">Work/Business</SelectItem>
-                      <SelectItem value="exam">Exam Preparation</SelectItem>
-                      <SelectItem value="general">General English</SelectItem>
-                      <SelectItem value="travel">Travel</SelectItem>
-                      <SelectItem value="academic">Academic</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Adding...' : 'Add Student'}
-              </Button>
-            </div>
-          </form>
-        </Form>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="level">English Level (CEFR)</Label>
+            <Select value={englishLevel} onValueChange={setEnglishLevel} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select English level" />
+              </SelectTrigger>
+              <SelectContent>
+                {ENGLISH_LEVELS.map((level) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="goal">Main Goal</Label>
+            <Select value={mainGoal} onValueChange={setMainGoal} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select main learning goal" />
+              </SelectTrigger>
+              <SelectContent>
+                {MAIN_GOALS.map((goal) => (
+                  <SelectItem key={goal.value} value={goal.value}>
+                    {goal.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {mainGoal === 'custom' && (
+              <Input
+                placeholder="Enter custom learning goal"
+                value={customGoal}
+                onChange={(e) => setCustomGoal(e.target.value)}
+                required={mainGoal === 'custom'}
+              />
+            )}
+          </div>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading || !name || !englishLevel || !mainGoal || (mainGoal === 'custom' && !customGoal)}>
+              {loading ? 'Adding...' : 'Add Student'}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
