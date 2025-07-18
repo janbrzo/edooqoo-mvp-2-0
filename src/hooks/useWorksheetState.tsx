@@ -1,83 +1,142 @@
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { FormData } from "@/components/WorksheetForm";
 
-import { useState, useCallback, useEffect } from "react";
-
-export const useWorksheetState = () => {
+export const useWorksheetState = (authLoading: boolean) => {
   const [generatedWorksheet, setGeneratedWorksheet] = useState<any>(null);
   const [editableWorksheet, setEditableWorksheet] = useState<any>(null);
-  const [inputParams, setInputParams] = useState<any>(null);
-  const [generationTime, setGenerationTime] = useState<number>(0);
-  const [sourceCount, setSourceCount] = useState<number>(0);
+  const [inputParams, setInputParams] = useState<FormData | null>(null);
+  const [generationTime, setGenerationTime] = useState(0);
+  const [sourceCount, setSourceCount] = useState(0);
   const [worksheetId, setWorksheetId] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  // Check for restored worksheet from sessionStorage on mount
+  // Restore worksheet state from sessionStorage on component mount
   useEffect(() => {
-    const restoredWorksheetData = sessionStorage.getItem('restoredWorksheet');
-    if (restoredWorksheetData) {
+    const restoreWorksheetState = () => {
       try {
-        const restored = JSON.parse(restoredWorksheetData);
-        console.log('🔄 Restoring worksheet from sessionStorage:', restored);
-        
-        // Parse the AI response to get the actual worksheet content
-        let worksheetContent;
-        try {
-          worksheetContent = JSON.parse(restored.ai_response);
-        } catch (error) {
-          console.error('❌ Failed to parse ai_response:', error);
-          // Fallback to creating a basic structure
-          worksheetContent = {
-            title: restored.title || 'Restored Worksheet',
-            subtitle: '',
-            introduction: '',
-            exercises: [],
-            vocabulary_sheet: []
-          };
+        // Check if user is returning from payment - if so, don't show restore message
+        const returningFromPayment = sessionStorage.getItem('returningFromPayment');
+        if (returningFromPayment) {
+          sessionStorage.removeItem('returningFromPayment');
+          console.log('User returning from payment, skipping restore message but proceeding with restoration.');
         }
 
-        // Set the worksheet content
-        console.log('📄 Parsed worksheet content:', worksheetContent);
-        setGeneratedWorksheet(worksheetContent);
-        setEditableWorksheet(worksheetContent);
-        
-        // Restore input parameters from form_data
-        if (restored.form_data) {
-          console.log('📋 Restoring input params:', restored.form_data);
-          setInputParams(restored.form_data);
+        const savedWorksheet = sessionStorage.getItem('currentWorksheet');
+        const savedEditableWorksheet = sessionStorage.getItem('currentEditableWorksheet');
+        const savedInputParams = sessionStorage.getItem('currentInputParams');
+        const savedGenerationTime = sessionStorage.getItem('currentGenerationTime');
+        const savedSourceCount = sessionStorage.getItem('currentSourceCount');
+        const savedWorksheetId = sessionStorage.getItem('currentWorksheetId');
+
+        if (savedWorksheet && savedInputParams) {
+          console.log('Restoring worksheet state from sessionStorage');
+          const parsedWorksheet = JSON.parse(savedWorksheet);
+          setGeneratedWorksheet(parsedWorksheet);
+          
+          // Set editable worksheet to saved version or fall back to original
+          if (savedEditableWorksheet) {
+            setEditableWorksheet(JSON.parse(savedEditableWorksheet));
+            console.log('Restored edited worksheet from sessionStorage');
+          } else {
+            setEditableWorksheet(parsedWorksheet);
+          }
+          
+          setInputParams(JSON.parse(savedInputParams));
+          setGenerationTime(savedGenerationTime ? parseInt(savedGenerationTime) : 0);
+          setSourceCount(savedSourceCount ? parseInt(savedSourceCount) : 0);
+          setWorksheetId(savedWorksheetId);
+          
+          // Only show toast if NOT returning from payment
+          if (!returningFromPayment) {
+            toast({
+              title: "Worksheet restored",
+              description: "Your previous worksheet has been restored.",
+              className: "bg-green-50 border-green-200"
+            });
+          }
         }
-        
-        // Set other metadata
-        setWorksheetId(restored.id);
-        setGenerationTime(restored.generation_time_seconds || 0);
-        setSourceCount(65); // Default source count
-        
-        // Clear the sessionStorage after restoration
-        sessionStorage.removeItem('restoredWorksheet');
-        
-        console.log('✅ Worksheet restoration completed');
       } catch (error) {
-        console.error('❌ Error restoring worksheet:', error);
-        sessionStorage.removeItem('restoredWorksheet');
+        console.error('Error restoring worksheet state:', error);
+        clearWorksheetStorage();
+      }
+    };
+
+    if (!authLoading) {
+      restoreWorksheetState();
+    }
+  }, [authLoading, toast]);
+
+  // Save worksheet state to sessionStorage whenever it changes
+  useEffect(() => {
+    if (generatedWorksheet && inputParams) {
+      try {
+        sessionStorage.setItem('currentWorksheet', JSON.stringify(generatedWorksheet));
+        sessionStorage.setItem('currentInputParams', JSON.stringify(inputParams));
+        sessionStorage.setItem('currentGenerationTime', generationTime.toString());
+        sessionStorage.setItem('currentSourceCount', sourceCount.toString());
+        if (worksheetId) {
+          sessionStorage.setItem('currentWorksheetId', worksheetId);
+        }
+        console.log('Worksheet state saved to sessionStorage');
+      } catch (error) {
+        console.error('Error saving worksheet state:', error);
       }
     }
-  }, []);
+  }, [generatedWorksheet, inputParams, generationTime, sourceCount, worksheetId]);
 
-  const clearWorksheetStorage = useCallback(() => {
-    sessionStorage.removeItem('worksheetData');
-    sessionStorage.removeItem('restoredWorksheet');
-  }, []);
+  // Save editable worksheet separately whenever it changes
+  useEffect(() => {
+    if (editableWorksheet) {
+      try {
+        sessionStorage.setItem('currentEditableWorksheet', JSON.stringify(editableWorksheet));
+        console.log('Editable worksheet saved to sessionStorage');
+      } catch (error) {
+        console.error('Error saving editable worksheet state:', error);
+      }
+    }
+  }, [editableWorksheet]);
+
+  // REMOVED THE PROBLEMATIC useEffect that was causing re-renders (lines 83-87)
+
+  const clearWorksheetStorage = () => {
+    sessionStorage.removeItem('currentWorksheet');
+    sessionStorage.removeItem('currentEditableWorksheet');
+    sessionStorage.removeItem('currentInputParams');
+    sessionStorage.removeItem('currentGenerationTime');
+    sessionStorage.removeItem('currentSourceCount');
+    sessionStorage.removeItem('currentWorksheetId');
+  };
+
+  const clearPaymentStorage = () => {
+    sessionStorage.removeItem('downloadToken');
+    sessionStorage.removeItem('downloadTokenExpiry');
+    console.log('Payment tokens cleared from sessionStorage');
+  };
+
+  const resetWorksheetState = () => {
+    setGeneratedWorksheet(null);
+    setEditableWorksheet(null);
+    setInputParams(null);
+    setWorksheetId(null);
+    clearWorksheetStorage();
+    clearPaymentStorage(); // Clear payment tokens when creating new worksheet
+  };
 
   return {
     generatedWorksheet,
-    editableWorksheet,
-    inputParams,
-    generationTime,
-    sourceCount,
-    worksheetId,
     setGeneratedWorksheet,
+    editableWorksheet,
     setEditableWorksheet,
+    inputParams,
     setInputParams,
+    generationTime,
     setGenerationTime,
+    sourceCount,
     setSourceCount,
+    worksheetId,
     setWorksheetId,
-    clearWorksheetStorage
+    clearWorksheetStorage,
+    resetWorksheetState
   };
 };
