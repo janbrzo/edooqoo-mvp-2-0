@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Zap, Database, Clock } from "lucide-react";
@@ -18,6 +17,9 @@ function WorksheetHeader({
   inputParams,
   studentName
 }: WorksheetHeaderProps) {
+  // Determine student name from multiple sources
+  const finalStudentName = studentName || inputParams?.restoredStudentName;
+  
   return (
     <>
       <Button variant="ghost" onClick={onBack} className="mb-4">
@@ -28,8 +30,8 @@ function WorksheetHeader({
           <div>
             <h1 className="mb-1 font-bald text-white text-2xl font-semibold">
               Your Generated Worksheet
-              {studentName && (
-                <span className="text-yellow-300 ml-2">for {studentName}</span>
+              {finalStudentName && (
+                <span className="text-yellow-300 ml-2">for {finalStudentName}</span>
               )}
             </h1>
           </div>

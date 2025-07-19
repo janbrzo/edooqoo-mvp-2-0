@@ -1,20 +1,34 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useProfile } from '@/hooks/useProfile';
-import { EditableProfileField } from '@/components/profile/EditableProfileField';
 import { toast } from '@/hooks/use-toast';
-import { User, Coins, CreditCard, School, Calendar, Zap, GraduationCap } from 'lucide-react';
+import { EditableProfileField } from '@/components/profile/EditableProfileField';
+import { GraduationCap } from 'lucide-react';
 
 const Profile = () => {
   const { userId, loading } = useAnonymousAuth();
-  const { profile, loading: profileLoading, refetch } = useProfile();
+  const { profile, loading: profileLoading, updateProfile } = useProfile();
   const navigate = useNavigate();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedProfile, setEditedProfile] = useState({
+    first_name: '',
+    last_name: '',
+    school_institution: ''
+  });
+
+  React.useEffect(() => {
+    if (profile) {
+      setEditedProfile({
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        school_institution: profile.school_institution || ''
+      });
+    }
+  }, [profile]);
 
   const handleSignOut = async () => {
     try {
@@ -33,29 +47,30 @@ const Profile = () => {
     }
   };
 
-  const handleUpdateProfile = async (field: string, value: string) => {
-    if (!userId) return;
-
+  const handleSaveProfile = async () => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ [field]: value })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      await refetch();
+      await updateProfile(editedProfile);
+      setIsEditing(false);
       toast({
         title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+        description: "Your profile has been successfully updated.",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to update profile. Please try again.",
         variant: "destructive"
       });
     }
+  };
+
+  const handleCancelEdit = () => {
+    setEditedProfile({
+      first_name: profile?.first_name || '',
+      last_name: profile?.last_name || '',
+      school_institution: profile?.school_institution || ''
+    });
+    setIsEditing(false);
   };
 
   if (loading || profileLoading) {
@@ -80,168 +95,101 @@ const Profile = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Teacher Profile</h1>
-            <p className="text-muted-foreground">
-              Manage your account settings and subscription
-            </p>
+            <h1 className="text-3xl font-bold">Profile</h1>
+            <p className="text-muted-foreground">Manage your account settings</p>
           </div>
-          <div className="flex gap-2">
-            <Button asChild>
-              <Link to="/">Generate Worksheet</Link>
-            </Button>
-            <Button asChild variant="outline" size="icon">
-              <Link to="/dashboard">
-                <GraduationCap className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
+          <Button asChild>
+            <Link to="/dashboard">
+              <GraduationCap className="h-4 w-4 mr-2" />
+              Dashboard
+            </Link>
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Personal Information */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Personal Information
-                </CardTitle>
-                <CardDescription>Your account details</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <EditableProfileField
-                    label="First Name"
-                    value={profile?.first_name}
-                    placeholder="Not set"
-                    onSave={(value) => handleUpdateProfile('first_name', value)}
-                  />
-                  <EditableProfileField
-                    label="Last Name"
-                    value={profile?.last_name}
-                    placeholder="Not set"
-                    onSave={(value) => handleUpdateProfile('last_name', value)}
-                  />
-                </div>
-                <EditableProfileField
-                  label="School/Institution"
-                  value={profile?.school_institution}
-                  placeholder="Not set"
-                  onSave={(value) => handleUpdateProfile('school_institution', value)}
-                />
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Member Since</label>
-                  <p className="text-lg flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'Unknown'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Subscription & Billing
-                </CardTitle>
-                <CardDescription>Manage your subscription plan</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Current Plan</span>
-                  <Badge variant="secondary">
-                    {profile?.subscription_type || 'Free Demo'}
-                  </Badge>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-secondary/50 p-4 rounded-lg text-center">
-                    <CreditCard className="w-8 h-8 mx-auto mb-2 text-primary" />
-                    <h4 className="font-semibold">Side-Gig Plan</h4>
-                    <p className="text-2xl font-bold">$9.99</p>
-                    <p className="text-sm text-muted-foreground">50 worksheets/month</p>
-                  </div>
-                  <div className="bg-secondary/50 p-4 rounded-lg text-center">
-                    <Zap className="w-8 h-8 mx-auto mb-2 text-primary" />
-                    <h4 className="font-semibold">Full-Time Plan</h4>
-                    <p className="text-2xl font-bold">$19.99</p>
-                    <p className="text-sm text-muted-foreground">200 worksheets/month</p>
-                  </div>
-                </div>
-
-                <Button className="w-full">
-                  Upgrade Plan
-                </Button>
-
-                <div className="border-t pt-4">
-                  <p className="text-sm text-muted-foreground mb-3">Or buy individual tokens:</p>
-                  <Button variant="outline" className="w-full">
-                    Buy 10 Tokens - $4.99
+        {/* Profile Information */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Personal Information</CardTitle>
+              <CardDescription>Your account details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <EditableProfileField
+                label="First Name"
+                value={editedProfile.first_name}
+                isEditing={isEditing}
+                onChange={(value) => setEditedProfile(prev => ({ ...prev, first_name: value }))}
+                placeholder="Enter your first name"
+              />
+              <EditableProfileField
+                label="Last Name"
+                value={editedProfile.last_name}
+                isEditing={isEditing}
+                onChange={(value) => setEditedProfile(prev => ({ ...prev, last_name: value }))}
+                placeholder="Enter your last name"
+              />
+              <EditableProfileField
+                label="School/Institution"
+                value={editedProfile.school_institution}
+                isEditing={isEditing}
+                onChange={(value) => setEditedProfile(prev => ({ ...prev, school_institution: value }))}
+                placeholder="Enter your school or institution"
+              />
+              
+              <div className="flex gap-2 pt-4">
+                {!isEditing ? (
+                  <Button onClick={() => setIsEditing(true)}>
+                    Edit Profile
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                ) : (
+                  <>
+                    <Button onClick={handleSaveProfile}>
+                      Save Changes
+                    </Button>
+                    <Button variant="outline" onClick={handleCancelEdit}>
+                      Cancel
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Coins className="h-5 w-5" />
-                  Token Balance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-primary mb-2">
-                    {profile?.token_balance || 0}
-                  </div>
-                  <p className="text-sm text-muted-foreground">Available tokens</p>
-                </div>
-                <div className="mt-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">This month used</span>
-                    <span>{profile?.monthly_worksheets_used || 0}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Monthly limit</span>
-                    <span>{profile?.monthly_worksheet_limit || 'Unlimited'}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Available Tokens</span>
+                <span className="font-semibold">{profile?.token_balance || 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Plan</span>
+                <span className="font-semibold">{profile?.subscription_type || 'Free Demo'}</span>
+              </div>
+              <Button className="w-full" variant="outline">
+                Upgrade Plan
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Account Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button 
-                  className="w-full" 
-                  onClick={() => navigate('/')}
-                >
-                  Generate Worksheet
-                </Button>
-                <Button 
-                  className="w-full" 
-                  variant="outline"
-                  onClick={() => navigate('/dashboard')}
-                >
-                  <GraduationCap className="h-4 w-4 mr-2" />
-                  Dashboard
-                </Button>
-                <Button 
-                  className="w-full" 
-                  variant="destructive"
-                  onClick={handleSignOut}
-                >
-                  Sign Out
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                variant="destructive" 
+                onClick={handleSignOut}
+                className="w-full sm:w-auto"
+              >
+                Sign Out
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { generateWorksheet } from "@/services/worksheetService";
@@ -28,7 +27,8 @@ export const useWorksheetGeneration = (
     console.log('🔧 Form data received:', { 
       lessonTime: data.lessonTime, 
       grammarFocus: data.teachingPreferences,
-      hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim())
+      hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim()),
+      studentId: data.studentId || studentId // Use studentId from data or hook parameter
     });
 
     // Check token requirements for authenticated users
@@ -65,16 +65,20 @@ export const useWorksheetGeneration = (
     try {
       console.log('📡 Calling generateWorksheet API...');
       
-      // NEW: Create full prompt for ChatGPT and save it to database
+      // Create full prompt for ChatGPT and save it to database
       const fullPrompt = formatPromptForAI(data);
       const formDataForStorage = createFormDataForStorage(data);
       
-      // Pass the full prompt to the API
+      // CRITICAL FIX: Ensure studentId is properly passed to the API
+      const finalStudentId = data.studentId || studentId;
+      console.log('🎯 Final studentId being sent to API:', finalStudentId);
+      
+      // Pass the full prompt to the API with proper studentId
       const worksheetData = await generateWorksheet({ 
         ...data, 
         fullPrompt,
         formDataForStorage,
-        studentId
+        studentId: finalStudentId // Ensure studentId is included
       }, userId || 'anonymous');
 
       // Consume token for authenticated users AFTER successful generation
@@ -105,7 +109,7 @@ export const useWorksheetGeneration = (
       if (validateWorksheet(worksheetData, expectedExerciseCount)) {
         console.log('✅ Worksheet validation passed, processing exercises...');
         
-        // CRITICAL: Deep fix the entire worksheet before processing
+        // Deep fix the entire worksheet before processing
         console.log('🔧 DEEP FIXING entire worksheet before processing...');
         const deepFixedWorksheet = deepFixTextObjects(worksheetData, 'worksheet');
         console.log('🔧 Worksheet after deep fix:', deepFixedWorksheet);
@@ -116,7 +120,7 @@ export const useWorksheetGeneration = (
           deepFixedWorksheet.exercises = deepFixedWorksheet.exercises.slice(0, expectedExerciseCount);
         }
         
-        // FIXED: Pass correct lessonTime and hasGrammar parameters
+        // Process exercises with correct parameters
         const hasGrammar = !!(data.teachingPreferences && data.teachingPreferences.trim());
         console.log('🔧 Processing exercises with parameters:', { 
           lessonTime: data.lessonTime, 
@@ -135,7 +139,7 @@ export const useWorksheetGeneration = (
         console.log('💾 Setting both worksheets in state ATOMICALLY...');
         console.log('💾 Final worksheet before setState:', deepFixedWorksheet);
         
-        // CRITICAL FIX: Set both states atomically in the same synchronous operation
+        // Set both states atomically in the same synchronous operation
         worksheetState.setGeneratedWorksheet(deepFixedWorksheet);
         worksheetState.setEditableWorksheet(deepFixedWorksheet);
         
@@ -179,7 +183,7 @@ export const useWorksheetGeneration = (
       
       fallbackWorksheet.exercises = fallbackWorksheet.exercises.slice(0, expectedExerciseCount);
       
-      // FIXED: Pass correct parameters to fallback processExercises too
+      // Process fallback exercises with correct parameters
       const hasGrammar = !!(data?.teachingPreferences && data.teachingPreferences.trim());
       console.log('🔧 Processing fallback exercises with parameters:', { 
         lessonTime: data?.lessonTime || '60min', 
@@ -190,7 +194,7 @@ export const useWorksheetGeneration = (
       fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises, data?.lessonTime || '60min', hasGrammar);
       fallbackWorksheet.id = newWorksheetId;
       
-      // CRITICAL FIX: Set both states atomically for fallback case too
+      // Set both states atomically for fallback case too
       worksheetState.setGeneratedWorksheet(fallbackWorksheet);
       worksheetState.setEditableWorksheet(fallbackWorksheet);
       

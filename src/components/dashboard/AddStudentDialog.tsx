@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -39,6 +38,13 @@ export const AddStudentDialog = () => {
   const [loading, setLoading] = useState(false);
   const { addStudent } = useStudents();
 
+  const resetForm = () => {
+    setName('');
+    setEnglishLevel('');
+    setMainGoal('');
+    setCustomGoal('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalGoal = mainGoal === 'custom' ? customGoal : mainGoal;
@@ -47,12 +53,9 @@ export const AddStudentDialog = () => {
     setLoading(true);
     try {
       await addStudent(name, englishLevel, finalGoal);
-      // Close dialog and reset form immediately after successful addition
+      // Immediately close dialog and reset form after successful addition
       setOpen(false);
-      setName('');
-      setEnglishLevel('');
-      setMainGoal('');
-      setCustomGoal('');
+      resetForm();
     } catch (error) {
       // Error handled in hook
     } finally {
@@ -60,8 +63,15 @@ export const AddStudentDialog = () => {
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      resetForm();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
