@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export type { FormData };
 
-export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
+interface ExtendedWorksheetFormProps extends WorksheetFormProps {
+  onStudentChange?: (studentId: string | null) => void;
+}
+
+export default function WorksheetForm({ onSubmit, onStudentChange }: ExtendedWorksheetFormProps) {
   const [lessonTime, setLessonTime] = useState<LessonTime>("60min"); // Changed from "60 min" to "60min"
   const [lessonTopic, setLessonTopic] = useState("");
   const [lessonGoal, setLessonGoal] = useState("");
@@ -51,6 +56,14 @@ export default function WorksheetForm({ onSubmit }: WorksheetFormProps) {
       }
     }
   }, [selectedStudentId, students]);
+
+  // Call onStudentChange when selectedStudentId changes
+  useEffect(() => {
+    if (onStudentChange) {
+      const studentId = selectedStudentId === "no-student" ? null : selectedStudentId;
+      onStudentChange(studentId);
+    }
+  }, [selectedStudentId, onStudentChange]);
 
   useEffect(() => {
     if (isInitialLoad) {

@@ -13,9 +13,10 @@ import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 interface FormViewProps {
   onSubmit: (data: FormData) => void;
   userId?: string;
+  onStudentChange?: (studentId: string | null) => void;
 }
 
-const FormView: React.FC<FormViewProps> = ({ onSubmit, userId }) => {
+const FormView: React.FC<FormViewProps> = ({ onSubmit, userId, onStudentChange }) => {
   const isMobile = useIsMobile();
   const { userId: authUserId } = useAnonymousAuth();
   const isLoggedIn = !!authUserId;
@@ -55,7 +56,7 @@ const FormView: React.FC<FormViewProps> = ({ onSubmit, userId }) => {
           </div>
         )}
         <div className={`${isMobile ? 'w-full px-2 py-2' : 'w-4/5 px-6 py-6'} form-container relative z-10`}>
-          <WorksheetForm onSubmit={onSubmit} />
+          <WorksheetForm onSubmit={onSubmit} onStudentChange={onStudentChange} />
         </div>
       </div>
     </TrackingFormWrapper>

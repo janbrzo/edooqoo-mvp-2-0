@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
@@ -17,7 +18,8 @@ import { deepFixTextObjects } from "@/utils/textObjectFixer";
 const Index = () => {
   const { userId, loading: authLoading } = useAnonymousAuth();
   const worksheetState = useWorksheetState(authLoading);
-  const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(userId, worksheetState);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(userId, worksheetState, selectedStudentId);
   const { tokenBalance, hasTokens, isDemo } = useTokenSystem(userId);
   const [showTokenModal, setShowTokenModal] = useState(false);
 
@@ -106,7 +108,11 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       {!bothWorksheetsReady ? (
-        <FormView onSubmit={handleGenerateWorksheet} userId={userId} />
+        <FormView 
+          onSubmit={handleGenerateWorksheet} 
+          userId={userId} 
+          onStudentChange={setSelectedStudentId}
+        />
       ) : (
         <GenerationView 
           worksheetId={worksheetState.worksheetId}
