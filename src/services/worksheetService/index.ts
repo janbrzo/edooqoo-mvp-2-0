@@ -18,7 +18,7 @@ export {
 /**
  * Generates a worksheet using the Edge Function
  */
-async function generateWorksheet(prompt: WorksheetFormData, userId: string) {
+async function generateWorksheet(prompt: WorksheetFormData & { fullPrompt?: string, formDataForStorage?: any, studentId?: string }, userId: string) {
   return generateWorksheetAPI(prompt, userId);
 }
 

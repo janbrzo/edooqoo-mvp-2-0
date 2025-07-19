@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 import { toast } from 'sonner';
@@ -9,7 +8,7 @@ const GENERATE_WORKSHEET_URL = 'https://cdoyjgiyrfziejbrcvpx.supabase.co/functio
 /**
  * Generates a worksheet using the Edge Function
  */
-export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPrompt?: string, formDataForStorage?: any }, userId: string) {
+export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPrompt?: string, formDataForStorage?: any, studentId?: string }, userId: string) {
   try {
     console.log('Generating worksheet with prompt:', prompt);
     
@@ -26,6 +25,7 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPro
     };
     
     console.log('Sending formatted prompt to API:', formattedPrompt);
+    console.log('Student ID being sent:', prompt.studentId);
     
     const response = await fetch(GENERATE_WORKSHEET_URL, {
       method: 'POST',
@@ -35,7 +35,8 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPro
       body: JSON.stringify({
         prompt: formattedPrompt,  // This will be saved as the full prompt in database
         formData: formData,
-        userId
+        userId,
+        studentId: prompt.studentId  // Add studentId to the request
       })
     });
 
