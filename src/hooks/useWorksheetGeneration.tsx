@@ -29,7 +29,7 @@ export const useWorksheetGeneration = (
       lessonTime: data.lessonTime, 
       grammarFocus: data.teachingPreferences,
       hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim()),
-      studentId: studentId
+      studentId: studentId // FIXED: Use studentId from hook parameter, not from data
     });
 
     // Check token requirements for authenticated users
@@ -71,9 +71,10 @@ export const useWorksheetGeneration = (
       const fullPrompt = formatPromptForAI(data);
       const formDataForStorage = createFormDataForStorage(data);
       
-      // FIXED: Add studentId to formDataForStorage if provided
+      // FIXED: Add studentId to formDataForStorage if provided (using hook parameter)
       if (studentId) {
         formDataForStorage.studentId = studentId;
+        console.log('✅ Added studentId to formDataForStorage:', studentId);
       }
       
       // Pass the full prompt AND studentId to the API
@@ -81,7 +82,7 @@ export const useWorksheetGeneration = (
         ...data, 
         fullPrompt,
         formDataForStorage,
-        studentId
+        studentId // FIXED: Use studentId from hook parameter
       }, userId || 'anonymous');
 
       // Consume token for authenticated users AFTER successful generation
