@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,12 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useProfile } from '@/hooks/useProfile';
+import { EditableProfileField } from '@/components/profile/EditableProfileField';
 import { toast } from '@/hooks/use-toast';
 import { User, Coins, CreditCard, School, Calendar, Zap, GraduationCap } from 'lucide-react';
 
 const Profile = () => {
   const { userId, loading } = useAnonymousAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { profile, loading: profileLoading, refetch } = useProfile();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -22,6 +24,31 @@ const Profile = () => {
         description: "You have been logged out.",
       });
       navigate('/');
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateProfile = async (field: string, value: string) => {
+    if (!userId) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ [field]: value })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      await refetch();
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -62,10 +89,9 @@ const Profile = () => {
             <Button asChild>
               <Link to="/">Generate Worksheet</Link>
             </Button>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" size="icon">
               <Link to="/dashboard">
-                <GraduationCap className="h-4 w-4 mr-2" />
-                Dashboard
+                <GraduationCap className="h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -84,22 +110,25 @@ const Profile = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">First Name</label>
-                    <p className="text-lg">{profile?.first_name || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Last Name</label>
-                    <p className="text-lg">{profile?.last_name || 'Not set'}</p>
-                  </div>
+                  <EditableProfileField
+                    label="First Name"
+                    value={profile?.first_name}
+                    placeholder="Not set"
+                    onSave={(value) => handleUpdateProfile('first_name', value)}
+                  />
+                  <EditableProfileField
+                    label="Last Name"
+                    value={profile?.last_name}
+                    placeholder="Not set"
+                    onSave={(value) => handleUpdateProfile('last_name', value)}
+                  />
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">School/Institution</label>
-                  <p className="text-lg flex items-center gap-2">
-                    <School className="h-4 w-4" />
-                    {profile?.school_institution || 'Not set'}
-                  </p>
-                </div>
+                <EditableProfileField
+                  label="School/Institution"
+                  value={profile?.school_institution}
+                  placeholder="Not set"
+                  onSave={(value) => handleUpdateProfile('school_institution', value)}
+                />
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Member Since</label>
                   <p className="text-lg flex items-center gap-2">
