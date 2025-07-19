@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 
 const Dashboard = () => {
   const { userId, loading } = useAnonymousAuth();
-  const { students, loading: studentsLoading } = useStudents();
+  const { students, loading: studentsLoading, refetch: refetchStudents } = useStudents();
   const { profile, loading: profileLoading } = useProfile();
   const { worksheets, loading: worksheetsLoading, getRecentWorksheets } = useWorksheetHistory();
   const navigate = useNavigate();
@@ -41,18 +41,30 @@ const Dashboard = () => {
   };
 
   const handleOpenWorksheet = (worksheet: any) => {
+    // Find student name if worksheet has student_id
+    const student = worksheet.student_id 
+      ? students.find(s => s.id === worksheet.student_id)
+      : null;
+    
     // Store worksheet data with student information in sessionStorage
     const worksheetWithStudentInfo = {
       ...worksheet,
-      // Find student name if worksheet has student_id
-      studentName: worksheet.student_id 
-        ? students.find(s => s.id === worksheet.student_id)?.name 
-        : undefined
+      studentName: student?.name
     };
     
     sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheetWithStudentInfo));
-    sessionStorage.setItem('worksheetStudentName', worksheetWithStudentInfo.studentName || '');
+    
+    // Store student name separately for easier access
+    if (student?.name) {
+      sessionStorage.setItem('worksheetStudentName', student.name);
+    }
+    
     navigate('/');
+  };
+
+  const handleStudentAdded = () => {
+    // Refresh the students list when a new student is added
+    refetchStudents();
   };
 
   if (loading || profileLoading) {
@@ -105,7 +117,7 @@ const Dashboard = () => {
                     <CardTitle>My Students ({students.length})</CardTitle>
                     <CardDescription>Manage your student list</CardDescription>
                   </div>
-                  <AddStudentDialog />
+                  <AddStudentDialog onStudentAdded={handleStudentAdded} />
                 </div>
               </CardHeader>
               <CardContent>
@@ -153,29 +165,38 @@ const Dashboard = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {recentWorksheets.map((worksheet) => (
-                      <div
-                        key={worksheet.id}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
-                        onClick={() => handleOpenWorksheet(worksheet)}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium text-sm">
-                              {worksheet.title || 'Untitled Worksheet'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {worksheet.form_data?.lessonTime || 'Unknown duration'}
-                            </p>
+                    {recentWorksheets.map((worksheet) => {
+                      const student = worksheet.student_id 
+                        ? students.find(s => s.id === worksheet.student_id)
+                        : null;
+                      
+                      return (
+                        <div
+                          key={worksheet.id}
+                          className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
+                          onClick={() => handleOpenWorksheet(worksheet)}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium text-sm">
+                                {worksheet.title || 'Untitled Worksheet'}
+                                {student && (
+                                  <span className="text-muted-foreground ml-2">for {student.name}</span>
+                                )}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {worksheet.form_data?.lessonTime || 'Unknown duration'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            <span>{format(new Date(worksheet.created_at), 'MMM dd, yyyy')}</span>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          <span>{format(new Date(worksheet.created_at), 'MMM dd, yyyy')}</span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>

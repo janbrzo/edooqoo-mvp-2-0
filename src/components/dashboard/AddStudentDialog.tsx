@@ -30,7 +30,11 @@ const MAIN_GOALS = [
   { value: 'custom', label: 'Custom Goal (enter below)' }
 ];
 
-export const AddStudentDialog = () => {
+interface AddStudentDialogProps {
+  onStudentAdded?: () => void;
+}
+
+export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [englishLevel, setEnglishLevel] = useState('');
@@ -53,6 +57,11 @@ export const AddStudentDialog = () => {
       setMainGoal('');
       setCustomGoal('');
       setOpen(false);
+      
+      // Notify parent component that student was added
+      if (onStudentAdded) {
+        onStudentAdded();
+      }
     } catch (error) {
       // Error handled in hook
     } finally {
