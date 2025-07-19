@@ -27,15 +27,48 @@ const Index = () => {
     if (restoredWorksheet) {
       try {
         const worksheet = JSON.parse(restoredWorksheet);
-        worksheetState.setGeneratedWorksheet(worksheet);
-        worksheetState.setEditableWorksheet(worksheet);
-        worksheetState.setInputParams(worksheet.inputParams || {});
-        worksheetState.setWorksheetId(worksheet.id);
-        worksheetState.setGenerationTime(5); // Default value
-        worksheetState.setSourceCount(75); // Default value
+        console.log('🔄 Restoring worksheet from dashboard:', worksheet);
+        
+        // FIXED: Map database format to frontend format
+        // Database has: form_data, ai_response (JSON string)
+        // Frontend expects: inputParams, generatedWorksheet/editableWorksheet (objects)
+        
+        // Parse ai_response from JSON string to object
+        let parsedWorksheet = null;
+        if (worksheet.ai_response) {
+          try {
+            parsedWorksheet = JSON.parse(worksheet.ai_response);
+            console.log('✅ Successfully parsed ai_response:', parsedWorksheet);
+          } catch (parseError) {
+            console.error('❌ Failed to parse ai_response:', parseError);
+            console.log('Raw ai_response:', worksheet.ai_response);
+          }
+        }
+        
+        if (parsedWorksheet) {
+          // Set the parsed worksheet content
+          parsedWorksheet.id = worksheet.id;
+          worksheetState.setGeneratedWorksheet(parsedWorksheet);
+          worksheetState.setEditableWorksheet(parsedWorksheet);
+          
+          // Map form_data to inputParams (database format -> frontend format)
+          if (worksheet.form_data) {
+            worksheetState.setInputParams(worksheet.form_data);
+            console.log('✅ Successfully mapped form_data to inputParams:', worksheet.form_data);
+          }
+          
+          worksheetState.setWorksheetId(worksheet.id);
+          worksheetState.setGenerationTime(worksheet.generation_time_seconds || 5);
+          worksheetState.setSourceCount(75); // Default value
+          
+          console.log('🎉 Worksheet fully restored with content');
+        } else {
+          console.warn('⚠️ Could not parse worksheet content, removing from storage');
+        }
+        
         sessionStorage.removeItem('restoredWorksheet');
       } catch (error) {
-        console.error('Error restoring worksheet:', error);
+        console.error('💥 Error restoring worksheet:', error);
         sessionStorage.removeItem('restoredWorksheet');
       }
     }
