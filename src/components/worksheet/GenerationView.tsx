@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -78,9 +79,10 @@ export default function GenerationView({
           </Button>
         ) : (
           <>
-            <Button asChild variant="outline" size="icon">
+            <Button asChild variant="outline">
               <Link to="/profile">
-                <User className="h-4 w-4" />
+                <User className="h-4 w-4 mr-2" />
+                Profile
               </Link>
             </Button>
             <Button asChild>

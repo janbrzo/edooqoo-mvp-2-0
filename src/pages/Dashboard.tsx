@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,12 +41,8 @@ const Dashboard = () => {
   };
 
   const handleOpenWorksheet = (worksheet: any) => {
-    // Store worksheet data and student info in sessionStorage and navigate
-    const worksheetData = {
-      ...worksheet,
-      studentName: worksheet.student_id ? students.find(s => s.id === worksheet.student_id)?.name : null
-    };
-    sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheetData));
+    // Store worksheet data in sessionStorage and navigate
+    sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheet));
     navigate('/');
   };
 
@@ -119,6 +116,7 @@ const Dashboard = () => {
                         key={student.id}
                         student={student}
                         onViewHistory={(studentId) => {
+                          // TODO: Navigate to student history
                           console.log('View all history for student:', studentId);
                         }}
                         onOpenWorksheet={handleOpenWorksheet}
@@ -146,38 +144,29 @@ const Dashboard = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {recentWorksheets.map((worksheet) => {
-                      const studentName = worksheet.student_id 
-                        ? students.find(s => s.id === worksheet.student_id)?.name 
-                        : null;
-                      
-                      return (
-                        <div
-                          key={worksheet.id}
-                          className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
-                          onClick={() => handleOpenWorksheet(worksheet)}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <p className="font-medium text-sm">
-                                {worksheet.title || 'Untitled Worksheet'}
-                                {studentName && (
-                                  <span className="text-blue-600 ml-1">for {studentName}</span>
-                                )}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {worksheet.form_data?.lessonTime || 'Unknown duration'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            <span>{format(new Date(worksheet.created_at), 'MMM dd, yyyy')}</span>
+                    {recentWorksheets.map((worksheet) => (
+                      <div
+                        key={worksheet.id}
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
+                        onClick={() => handleOpenWorksheet(worksheet)}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium text-sm">
+                              {worksheet.title || 'Untitled Worksheet'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {worksheet.form_data?.lessonTime || 'Unknown duration'}
+                            </p>
                           </div>
                         </div>
-                      );
-                    })}
+                        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          <span>{format(new Date(worksheet.created_at), 'MMM dd, yyyy')}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>
@@ -220,6 +209,7 @@ const Dashboard = () => {
                   className="w-full" 
                   variant="outline"
                   onClick={() => {
+                    // Scroll to students section
                     document.querySelector('[data-section="students"]')?.scrollIntoView({ behavior: 'smooth' });
                   }}
                 >
@@ -229,6 +219,7 @@ const Dashboard = () => {
                   className="w-full" 
                   variant="outline"
                   onClick={() => {
+                    // Scroll to worksheets section
                     document.querySelector('[data-section="worksheets"]')?.scrollIntoView({ behavior: 'smooth' });
                   }}
                 >
