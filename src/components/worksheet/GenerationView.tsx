@@ -1,9 +1,13 @@
 
 import React from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { User, GraduationCap } from "lucide-react";
 import WorksheetDisplay from "@/components/WorksheetDisplay";
 import { submitFeedback } from "@/services/worksheetService";
 import { useToast } from "@/hooks/use-toast";
 import { useStudents } from "@/hooks/useStudents";
+import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 
 interface GenerationViewProps {
   worksheetId: string | null;
@@ -30,6 +34,8 @@ export default function GenerationView({
 }: GenerationViewProps) {
   const { toast } = useToast();
   const { students } = useStudents();
+  const { userId: authUserId } = useAnonymousAuth();
+  const isLoggedIn = !!authUserId;
 
   // Find student name if studentId is provided in inputParams
   const studentName = inputParams?.studentId 
@@ -64,18 +70,44 @@ export default function GenerationView({
   };
 
   return (
-    <WorksheetDisplay
-      worksheet={generatedWorksheet}
-      editableWorksheet={editableWorksheet}
-      setEditableWorksheet={setEditableWorksheet}
-      inputParams={inputParams}
-      generationTime={generationTime}
-      sourceCount={sourceCount}
-      onBack={onBack}
-      worksheetId={worksheetId}
-      onFeedbackSubmit={handleFeedbackSubmit}
-      userId={userId}
-      studentName={studentName}
-    />
+    <div className="min-h-screen bg-gray-100">
+      {/* Header with navigation buttons */}
+      <div className="absolute top-4 right-4 z-20 flex gap-2">
+        {!isLoggedIn ? (
+          <Button asChild variant="outline">
+            <Link to="/auth">Sign In for Free</Link>
+          </Button>
+        ) : (
+          <>
+            <Button asChild variant="outline">
+              <Link to="/profile">
+                <User className="h-4 w-4 mr-2" />
+                Profile
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/dashboard">
+                <GraduationCap className="h-4 w-4 mr-2" />
+                Dashboard
+              </Link>
+            </Button>
+          </>
+        )}
+      </div>
+
+      <WorksheetDisplay
+        worksheet={generatedWorksheet}
+        editableWorksheet={editableWorksheet}
+        setEditableWorksheet={setEditableWorksheet}
+        inputParams={inputParams}
+        generationTime={generationTime}
+        sourceCount={sourceCount}
+        onBack={onBack}
+        worksheetId={worksheetId}
+        onFeedbackSubmit={handleFeedbackSubmit}
+        userId={userId}
+        studentName={studentName}
+      />
+    </div>
   );
 }

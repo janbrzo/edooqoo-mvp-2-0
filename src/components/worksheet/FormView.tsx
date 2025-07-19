@@ -7,6 +7,7 @@ import TrackingFormWrapper from "@/components/WorksheetForm/TrackingFormWrapper"
 import IsometricBackground from "@/components/IsometricBackground";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
+import { User, GraduationCap } from "lucide-react";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 
 interface FormViewProps {
@@ -28,13 +29,21 @@ const FormView: React.FC<FormViewProps> = ({ onSubmit, userId }) => {
             <Link to="/auth">Sign In</Link>
           </Button>
         ) : (
-          <Button asChild variant="outline">
-            <Link to="/profile">Profile</Link>
-          </Button>
+          <>
+            <Button asChild variant="outline">
+              <Link to="/profile">
+                <User className="h-4 w-4 mr-2" />
+                Profile
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/dashboard">
+                <GraduationCap className="h-4 w-4 mr-2" />
+                Dashboard
+              </Link>
+            </Button>
+          </>
         )}
-        <Button asChild>
-          <Link to="/dashboard">Dashboard</Link>
-        </Button>
       </div>
       
       <div className={`${isMobile ? 'w-full min-h-screen' : 'container mx-auto'} flex main-container relative`}>

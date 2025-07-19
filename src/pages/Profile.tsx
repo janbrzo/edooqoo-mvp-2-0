@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { toast } from '@/hooks/use-toast';
-import { User, Coins, CreditCard, School, Calendar, Zap } from 'lucide-react';
+import { User, Coins, CreditCard, School, Calendar, Zap, GraduationCap } from 'lucide-react';
 
 const Profile = () => {
   const { userId, loading } = useAnonymousAuth();
@@ -59,11 +59,14 @@ const Profile = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button asChild variant="outline">
-              <Link to="/">Generator</Link>
+            <Button asChild>
+              <Link to="/">Generate Worksheet</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link to="/dashboard">Dashboard</Link>
+              <Link to="/dashboard">
+                <GraduationCap className="h-4 w-4 mr-2" />
+                Dashboard
+              </Link>
             </Button>
           </div>
         </div>
@@ -197,7 +200,8 @@ const Profile = () => {
                   variant="outline"
                   onClick={() => navigate('/dashboard')}
                 >
-                  View Dashboard
+                  <GraduationCap className="h-4 w-4 mr-2" />
+                  Dashboard
                 </Button>
                 <Button 
                   className="w-full" 

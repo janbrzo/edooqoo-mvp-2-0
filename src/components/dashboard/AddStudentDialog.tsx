@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -46,7 +47,8 @@ export const AddStudentDialog = () => {
     setLoading(true);
     try {
       await addStudent(name, englishLevel, finalGoal);
-      await refetch(); // Refresh the students list immediately
+      // FIXED: Wait for refetch to complete before closing dialog
+      await refetch();
       setOpen(false);
       setName('');
       setEnglishLevel('');

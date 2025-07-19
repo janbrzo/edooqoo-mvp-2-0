@@ -11,7 +11,7 @@ import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { AddStudentDialog } from '@/components/dashboard/AddStudentDialog';
 import { StudentCard } from '@/components/dashboard/StudentCard';
 import { toast } from '@/hooks/use-toast';
-import { FileText, Calendar } from 'lucide-react';
+import { FileText, Calendar, User } from 'lucide-react';
 import { format } from 'date-fns';
 
 const Dashboard = () => {
@@ -74,11 +74,14 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button asChild variant="outline">
-              <Link to="/">Generator</Link>
+            <Button asChild>
+              <Link to="/">Generate Worksheet</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link to="/profile">Profile</Link>
+              <Link to="/profile">
+                <User className="h-4 w-4 mr-2" />
+                Profile
+              </Link>
             </Button>
           </div>
         </div>
