@@ -41,8 +41,17 @@ const Dashboard = () => {
   };
 
   const handleOpenWorksheet = (worksheet: any) => {
-    // Store worksheet data in sessionStorage and navigate
-    sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheet));
+    // Store worksheet data with student information in sessionStorage
+    const worksheetWithStudentInfo = {
+      ...worksheet,
+      // Find student name if worksheet has student_id
+      studentName: worksheet.student_id 
+        ? students.find(s => s.id === worksheet.student_id)?.name 
+        : undefined
+    };
+    
+    sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheetWithStudentInfo));
+    sessionStorage.setItem('worksheetStudentName', worksheetWithStudentInfo.studentName || '');
     navigate('/');
   };
 

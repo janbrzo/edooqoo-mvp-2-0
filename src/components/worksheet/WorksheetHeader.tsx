@@ -18,6 +18,11 @@ function WorksheetHeader({
   inputParams,
   studentName
 }: WorksheetHeaderProps) {
+  // Try to get student name from multiple sources
+  const displayStudentName = studentName || 
+    inputParams?.studentName || 
+    (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('worksheetStudentName') : null);
+
   return (
     <>
       <Button variant="ghost" onClick={onBack} className="mb-4">
@@ -28,8 +33,8 @@ function WorksheetHeader({
           <div>
             <h1 className="mb-1 font-bald text-white text-2xl font-semibold">
               Your Generated Worksheet
-              {studentName && (
-                <span className="text-yellow-300 ml-2">for {studentName}</span>
+              {displayStudentName && (
+                <span className="text-yellow-300 ml-2">for {displayStudentName}</span>
               )}
             </h1>
           </div>

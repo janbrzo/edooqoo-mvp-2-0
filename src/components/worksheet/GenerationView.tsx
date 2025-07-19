@@ -79,10 +79,9 @@ export default function GenerationView({
           </Button>
         ) : (
           <>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" size="icon">
               <Link to="/profile">
-                <User className="h-4 w-4 mr-2" />
-                Profile
+                <User className="h-4 w-4" />
               </Link>
             </Button>
             <Button asChild>

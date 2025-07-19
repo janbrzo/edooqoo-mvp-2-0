@@ -89,9 +89,10 @@ const Profile = () => {
             <Button asChild>
               <Link to="/">Generate Worksheet</Link>
             </Button>
-            <Button asChild variant="outline" size="icon">
+            <Button asChild variant="outline">
               <Link to="/dashboard">
-                <GraduationCap className="h-4 w-4" />
+                <GraduationCap className="h-4 w-4 mr-2" />
+                Dashboard
               </Link>
             </Button>
           </div>

@@ -47,12 +47,12 @@ export const AddStudentDialog = () => {
     setLoading(true);
     try {
       await addStudent(name, englishLevel, finalGoal);
-      // Close dialog and reset form immediately after successful addition
-      setOpen(false);
+      // Reset form and close dialog
       setName('');
       setEnglishLevel('');
       setMainGoal('');
       setCustomGoal('');
+      setOpen(false);
     } catch (error) {
       // Error handled in hook
     } finally {

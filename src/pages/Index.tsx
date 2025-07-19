@@ -24,14 +24,12 @@ const Index = () => {
   // Check for restored worksheet from dashboard
   useEffect(() => {
     const restoredWorksheet = sessionStorage.getItem('restoredWorksheet');
+    const studentName = sessionStorage.getItem('worksheetStudentName');
+    
     if (restoredWorksheet) {
       try {
         const worksheet = JSON.parse(restoredWorksheet);
         console.log('🔄 Restoring worksheet from dashboard:', worksheet);
-        
-        // FIXED: Map database format to frontend format
-        // Database has: form_data, ai_response (JSON string)
-        // Frontend expects: inputParams, generatedWorksheet/editableWorksheet (objects)
         
         // Parse ai_response from JSON string to object
         let parsedWorksheet = null;
@@ -40,14 +38,13 @@ const Index = () => {
             parsedWorksheet = JSON.parse(worksheet.ai_response);
             console.log('✅ Successfully parsed ai_response:', parsedWorksheet);
             
-            // CRITICAL FIX: Apply deepFixTextObjects to fix {text: "..."} objects
+            // Apply deepFixTextObjects to fix {text: "..."} objects
             console.log('🔧 Applying deepFixTextObjects to fix {text} objects...');
             parsedWorksheet = deepFixTextObjects(parsedWorksheet, 'restoredWorksheet');
             console.log('✅ Successfully fixed {text} objects in restored worksheet');
             
           } catch (parseError) {
             console.error('❌ Failed to parse ai_response:', parseError);
-            console.log('Raw ai_response:', worksheet.ai_response);
           }
         }
         
@@ -57,25 +54,30 @@ const Index = () => {
           worksheetState.setGeneratedWorksheet(parsedWorksheet);
           worksheetState.setEditableWorksheet(parsedWorksheet);
           
-          // Map form_data to inputParams (database format -> frontend format)
+          // Map form_data to inputParams and add student info
           if (worksheet.form_data) {
-            worksheetState.setInputParams(worksheet.form_data);
-            console.log('✅ Successfully mapped form_data to inputParams:', worksheet.form_data);
+            const inputParamsWithStudent = {
+              ...worksheet.form_data,
+              studentId: worksheet.student_id,
+              studentName: studentName || worksheet.studentName
+            };
+            worksheetState.setInputParams(inputParamsWithStudent);
+            console.log('✅ Successfully mapped form_data with student info:', inputParamsWithStudent);
           }
           
           worksheetState.setWorksheetId(worksheet.id);
           worksheetState.setGenerationTime(worksheet.generation_time_seconds || 5);
-          worksheetState.setSourceCount(75); // Default value
+          worksheetState.setSourceCount(75);
           
-          console.log('🎉 Worksheet fully restored with content');
-        } else {
-          console.warn('⚠️ Could not parse worksheet content, removing from storage');
+          console.log('🎉 Worksheet fully restored with student information');
         }
         
         sessionStorage.removeItem('restoredWorksheet');
+        sessionStorage.removeItem('worksheetStudentName');
       } catch (error) {
         console.error('💥 Error restoring worksheet:', error);
         sessionStorage.removeItem('restoredWorksheet');
+        sessionStorage.removeItem('worksheetStudentName');
       }
     }
   }, []);
@@ -126,7 +128,6 @@ const Index = () => {
         onClose={() => setShowTokenModal(false)}
         tokenBalance={tokenBalance}
         onUpgrade={() => {
-          // TODO: Implement subscription upgrade
           console.log('Upgrade plan clicked');
           setShowTokenModal(false);
         }}
