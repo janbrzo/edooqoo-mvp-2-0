@@ -40,7 +40,7 @@ export default function FormView({ onSubmit, userId }: FormViewProps) {
         )}
       </div>
 
-      <WorksheetForm onSubmit={onSubmit} userId={userId} />
+      <WorksheetForm onSubmit={onSubmit} />
     </div>
   );
 }

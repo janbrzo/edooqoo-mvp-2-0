@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,22 +14,6 @@ const Profile = () => {
   const { userId, loading } = useAnonymousAuth();
   const { profile, loading: profileLoading, updateProfile } = useProfile();
   const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedProfile, setEditedProfile] = useState({
-    first_name: '',
-    last_name: '',
-    school_institution: ''
-  });
-
-  React.useEffect(() => {
-    if (profile) {
-      setEditedProfile({
-        first_name: profile.first_name || '',
-        last_name: profile.last_name || '',
-        school_institution: profile.school_institution || ''
-      });
-    }
-  }, [profile]);
 
   const handleSignOut = async () => {
     try {
@@ -47,10 +32,9 @@ const Profile = () => {
     }
   };
 
-  const handleSaveProfile = async () => {
+  const handleUpdateField = async (field: string, value: string) => {
     try {
-      await updateProfile(editedProfile);
-      setIsEditing(false);
+      await updateProfile({ [field]: value });
       toast({
         title: "Profile updated",
         description: "Your profile has been successfully updated.",
@@ -62,15 +46,6 @@ const Profile = () => {
         variant: "destructive"
       });
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditedProfile({
-      first_name: profile?.first_name || '',
-      last_name: profile?.last_name || '',
-      school_institution: profile?.school_institution || ''
-    });
-    setIsEditing(false);
   };
 
   if (loading || profileLoading) {
@@ -116,42 +91,22 @@ const Profile = () => {
             <CardContent className="space-y-4">
               <EditableProfileField
                 label="First Name"
-                value={editedProfile.first_name}
-                isEditing={isEditing}
-                onChange={(value) => setEditedProfile(prev => ({ ...prev, first_name: value }))}
+                value={profile?.first_name}
                 placeholder="Enter your first name"
+                onSave={(value) => handleUpdateField('first_name', value)}
               />
               <EditableProfileField
                 label="Last Name"
-                value={editedProfile.last_name}
-                isEditing={isEditing}
-                onChange={(value) => setEditedProfile(prev => ({ ...prev, last_name: value }))}
+                value={profile?.last_name}
                 placeholder="Enter your last name"
+                onSave={(value) => handleUpdateField('last_name', value)}
               />
               <EditableProfileField
                 label="School/Institution"
-                value={editedProfile.school_institution}
-                isEditing={isEditing}
-                onChange={(value) => setEditedProfile(prev => ({ ...prev, school_institution: value }))}
+                value={profile?.school_institution}
                 placeholder="Enter your school or institution"
+                onSave={(value) => handleUpdateField('school_institution', value)}
               />
-              
-              <div className="flex gap-2 pt-4">
-                {!isEditing ? (
-                  <Button onClick={() => setIsEditing(true)}>
-                    Edit Profile
-                  </Button>
-                ) : (
-                  <>
-                    <Button onClick={handleSaveProfile}>
-                      Save Changes
-                    </Button>
-                    <Button variant="outline" onClick={handleCancelEdit}>
-                      Cancel
-                    </Button>
-                  </>
-                )}
-              </div>
             </CardContent>
           </Card>
 
