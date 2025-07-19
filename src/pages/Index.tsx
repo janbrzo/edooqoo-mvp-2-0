@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
@@ -10,6 +9,7 @@ import GeneratingModal from "@/components/GeneratingModal";
 import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";
 import { TokenPaywallModal } from "@/components/TokenPaywallModal";
+import { deepFixTextObjects } from "@/utils/textObjectFixer";
 
 /**
  * Main Index page component that handles worksheet generation and display
@@ -39,6 +39,12 @@ const Index = () => {
           try {
             parsedWorksheet = JSON.parse(worksheet.ai_response);
             console.log('✅ Successfully parsed ai_response:', parsedWorksheet);
+            
+            // CRITICAL FIX: Apply deepFixTextObjects to fix {text: "..."} objects
+            console.log('🔧 Applying deepFixTextObjects to fix {text} objects...');
+            parsedWorksheet = deepFixTextObjects(parsedWorksheet, 'restoredWorksheet');
+            console.log('✅ Successfully fixed {text} objects in restored worksheet');
+            
           } catch (parseError) {
             console.error('❌ Failed to parse ai_response:', parseError);
             console.log('Raw ai_response:', worksheet.ai_response);
