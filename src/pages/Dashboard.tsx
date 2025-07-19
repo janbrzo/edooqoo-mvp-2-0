@@ -1,73 +1,91 @@
 
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useStudents } from '@/hooks/useStudents';
-import { useProfile } from '@/hooks/useProfile';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
-import { AddStudentDialog } from '@/components/dashboard/AddStudentDialog';
+import { useTokenSystem } from '@/hooks/useTokenSystem';
 import { StudentCard } from '@/components/dashboard/StudentCard';
-import { toast } from '@/hooks/use-toast';
-import { FileText, Calendar, User } from 'lucide-react';
+import { AddStudentDialog } from '@/components/dashboard/AddStudentDialog';
 import { format } from 'date-fns';
+import { 
+  User, 
+  FileText, 
+  Calendar, 
+  GraduationCap, 
+  Plus, 
+  TrendingUp,
+  Clock,
+  Target,
+  BookOpen,
+  Coins
+} from 'lucide-react';
+import { deepFixTextObjects } from '@/utils/textObjectFixer';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const { userId, loading } = useAnonymousAuth();
-  const { students, loading: studentsLoading, refetch: refetchStudents } = useStudents();
-  const { profile, loading: profileLoading } = useProfile();
-  const { worksheets, loading: worksheetsLoading, getRecentWorksheets } = useWorksheetHistory();
+  const { students, addStudent } = useStudents();
+  const { worksheets: allWorksheets, loading: worksheetsLoading } = useWorksheetHistory();
+  const { tokenBalance } = useTokenSystem(userId);
+  const [showAddStudent, setShowAddStudent] = useState(false);
   const navigate = useNavigate();
 
-  const recentWorksheets = getRecentWorksheets(5);
-
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out.",
-      });
-      navigate('/');
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleOpenWorksheet = (worksheet: any) => {
-    // Find student name if worksheet has student_id
-    const student = worksheet.student_id 
-      ? students.find(s => s.id === worksheet.student_id)
-      : null;
-    
-    // Store worksheet data with student information in sessionStorage
-    const worksheetWithStudentInfo = {
-      ...worksheet,
-      studentName: student?.name
-    };
-    
-    sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheetWithStudentInfo));
-    
-    // Store student name separately for easier access
-    if (student?.name) {
-      sessionStorage.setItem('worksheetStudentName', student.name);
-    }
-    
+  const handleForceNewWorksheet = () => {
+    sessionStorage.setItem('forceNewWorksheet', 'true');
     navigate('/');
   };
 
-  const handleStudentAdded = () => {
-    // Refresh the students list when a new student is added
-    refetchStudents();
+  const handleOpenWorksheet = (worksheet: any) => {
+    try {
+      // Parse the AI response to get the worksheet data  
+      const worksheetData = JSON.parse(worksheet.ai_response);
+      
+      // Apply deepFixTextObjects to fix {text: "..."} objects
+      const fixedWorksheetData = deepFixTextObjects(worksheetData, 'dashboard');
+      
+      // Find student name if available
+      const student = students.find(s => s.id === worksheet.student_id);
+      const studentName = student?.name;
+      
+      // Store worksheet data in sessionStorage for restoration
+      const restoredWorksheet = {
+        ...worksheet,
+        ai_response: JSON.stringify(fixedWorksheetData),
+        studentName: studentName
+      };
+      
+      sessionStorage.setItem('restoredWorksheet', JSON.stringify(restoredWorksheet));
+      if (studentName) {
+        sessionStorage.setItem('worksheetStudentName', studentName);
+      }
+      
+      console.log('📱 Navigating to Index with restored worksheet');
+      navigate('/');
+    } catch (error) {
+      console.error('Error opening worksheet:', error);
+    }
   };
 
-  if (loading || profileLoading) {
+  const recentWorksheets = allWorksheets
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
+
+  const stats = {
+    totalStudents: students.length,
+    totalWorksheets: allWorksheets.length,
+    thisWeekWorksheets: allWorksheets.filter(w => {
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return new Date(w.created_at) > weekAgo;
+    }).length
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -79,186 +97,202 @@ const Dashboard = () => {
   }
 
   if (!userId) {
-    navigate('/auth');
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-muted-foreground mb-4">Please sign in to access the dashboard.</p>
+          <Button asChild>
+            <Link to="/auth">Sign In</Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Teacher Dashboard</h1>
+            <h1 className="text-3xl font-bold flex items-center">
+              <GraduationCap className="h-8 w-8 mr-3" />
+              Teacher Dashboard
+            </h1>
             <p className="text-muted-foreground">
-              Welcome back, {profile?.first_name || 'Teacher'}! Manage your students and worksheets
+              Manage your students and track worksheet generation
             </p>
           </div>
           <div className="flex gap-2">
-            <Button asChild>
-              <Link to="/">Generate Worksheet</Link>
+            <Button onClick={handleForceNewWorksheet}>
+              Generate Worksheet
             </Button>
-            <Button asChild variant="outline" size="icon">
+            <Button asChild variant="outline">
               <Link to="/profile">
-                <User className="h-4 w-4" />
+                <User className="h-4 w-4 mr-2" />
+                Profile
               </Link>
             </Button>
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Students Section */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card data-section="students">
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>My Students ({students.length})</CardTitle>
-                    <CardDescription>Manage your student list</CardDescription>
-                  </div>
-                  <AddStudentDialog onStudentAdded={handleStudentAdded} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {studentsLoading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
-                ) : students.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p className="text-lg mb-2">No students added yet</p>
-                    <p className="text-sm">Add your first student to get started!</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {students.map((student) => (
-                      <StudentCard
-                        key={student.id}
-                        student={student}
-                        onViewHistory={(studentId) => {
-                          // TODO: Navigate to student history
-                          console.log('View all history for student:', studentId);
-                        }}
-                        onOpenWorksheet={handleOpenWorksheet}
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card data-section="worksheets">
-              <CardHeader>
-                <CardTitle>Recent Worksheets</CardTitle>
-                <CardDescription>Your latest generated worksheets</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {worksheetsLoading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
-                ) : recentWorksheets.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p className="text-lg mb-2">No worksheets generated yet</p>
-                    <p className="text-sm">Create your first worksheet from the generator!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {recentWorksheets.map((worksheet) => {
-                      const student = worksheet.student_id 
-                        ? students.find(s => s.id === worksheet.student_id)
-                        : null;
-                      
-                      return (
-                        <div
-                          key={worksheet.id}
-                          className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
-                          onClick={() => handleOpenWorksheet(worksheet)}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <p className="font-medium text-sm">
-                                {worksheet.title || 'Untitled Worksheet'}
-                                {student && (
-                                  <span className="text-muted-foreground ml-2">for {student.name}</span>
-                                )}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {worksheet.form_data?.lessonTime || 'Unknown duration'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            <span>{format(new Date(worksheet.created_at), 'MMM dd, yyyy')}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Account Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Available Tokens</span>
-                  <span className="font-semibold">{profile?.token_balance || 0}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Plan</span>
-                  <span className="font-semibold">{profile?.subscription_type || 'Free Demo'}</span>
-                </div>
-                <Button className="w-full" variant="outline">
-                  Upgrade Plan
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button 
-                  className="w-full" 
-                  onClick={() => navigate('/')}
-                >
-                  Generate Worksheet
-                </Button>
-                <Button 
-                  className="w-full" 
-                  variant="outline"
-                  onClick={() => {
-                    // Scroll to students section
-                    document.querySelector('[data-section="students"]')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  View All Students
-                </Button>
-                <Button 
-                  className="w-full" 
-                  variant="outline"
-                  onClick={() => {
-                    // Scroll to worksheets section
-                    document.querySelector('[data-section="worksheets"]')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  Worksheet History
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+              <User className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalStudents}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Worksheets</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalWorksheets}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">This Week</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.thisWeekWorksheets}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Token Balance</CardTitle>
+              <Coins className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{tokenBalance}</div>
+            </CardContent>
+          </Card>
         </div>
+
+        <Tabs defaultValue="students" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="students">Students</TabsTrigger>
+            <TabsTrigger value="recent">Recent Worksheets</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="students" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Your Students</h2>
+              <Button onClick={() => setShowAddStudent(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Student
+              </Button>
+            </div>
+
+            {students.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <User className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No students yet</h3>
+                  <p className="text-muted-foreground text-center mb-4">
+                    Add your first student to start creating personalized worksheets
+                  </p>
+                  <Button onClick={() => setShowAddStudent(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Student
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {students.map((student) => (
+                  <StudentCard
+                    key={student.id}
+                    student={student}
+                    onOpenWorksheet={handleOpenWorksheet}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="recent" className="space-y-6">
+            <h2 className="text-2xl font-bold">Recent Worksheets</h2>
+            
+            {worksheetsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4">Loading worksheets...</p>
+              </div>
+            ) : recentWorksheets.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No worksheets yet</h3>
+                  <p className="text-muted-foreground text-center mb-4">
+                    Generate your first worksheet to see it here
+                  </p>
+                  <Button onClick={handleForceNewWorksheet}>
+                    Generate First Worksheet
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {recentWorksheets.map((worksheet) => {
+                  const student = students.find(s => s.id === worksheet.student_id);
+                  return (
+                    <Card key={worksheet.id} className="cursor-pointer hover:shadow-md transition-shadow"
+                          onClick={() => handleOpenWorksheet(worksheet)}>
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="text-lg">
+                              {worksheet.title || 'Untitled Worksheet'}
+                              {student && (
+                                <span className="text-sm font-normal text-muted-foreground ml-2">
+                                  for {student.name}
+                                </span>
+                              )}
+                            </CardTitle>
+                            <CardDescription>
+                              {worksheet.form_data?.lessonTopic && `Topic: ${worksheet.form_data.lessonTopic}`}
+                              {worksheet.form_data?.lessonGoal && ` • Goal: ${worksheet.form_data.lessonGoal}`}
+                            </CardDescription>
+                          </div>
+                          <Badge variant="outline">
+                            {worksheet.form_data?.englishLevel || 'Unknown Level'}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          {format(new Date(worksheet.created_at), 'PPP')} at {format(new Date(worksheet.created_at), 'p')}
+                          {worksheet.generation_time_seconds && (
+                            <>
+                              <Clock className="h-4 w-4 ml-4 mr-2" />
+                              Generated in {worksheet.generation_time_seconds}s
+                            </>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <AddStudentDialog
+          open={showAddStudent}
+          onOpenChange={setShowAddStudent}
+          onAddStudent={addStudent}
+        />
       </div>
     </div>
   );

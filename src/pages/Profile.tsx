@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { EditableProfileField } from '@/components/profile/EditableProfileField';
@@ -58,6 +59,11 @@ const Profile = () => {
     }
   };
 
+  const handleForceNewWorksheet = () => {
+    sessionStorage.setItem('forceNewWorksheet', 'true');
+    navigate('/');
+  };
+
   if (loading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -76,20 +82,20 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Compact Header */}
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Teacher Profile</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl font-bold">Teacher Profile</h1>
+            <p className="text-sm text-muted-foreground">
               Manage your account settings and subscription
             </p>
           </div>
           <div className="flex gap-2">
-            <Button asChild>
-              <Link to="/">Generate Worksheet</Link>
+            <Button onClick={handleForceNewWorksheet} size="sm">
+              Generate Worksheet
             </Button>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" size="sm">
               <Link to="/dashboard">
                 <GraduationCap className="h-4 w-4 mr-2" />
                 Dashboard
@@ -98,115 +104,29 @@ const Profile = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Personal Information */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Personal Information
-                </CardTitle>
-                <CardDescription>Your account details</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <EditableProfileField
-                    label="First Name"
-                    value={profile?.first_name}
-                    placeholder="Not set"
-                    onSave={(value) => handleUpdateProfile('first_name', value)}
-                  />
-                  <EditableProfileField
-                    label="Last Name"
-                    value={profile?.last_name}
-                    placeholder="Not set"
-                    onSave={(value) => handleUpdateProfile('last_name', value)}
-                  />
-                </div>
-                <EditableProfileField
-                  label="School/Institution"
-                  value={profile?.school_institution}
-                  placeholder="Not set"
-                  onSave={(value) => handleUpdateProfile('school_institution', value)}
-                />
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Member Since</label>
-                  <p className="text-lg flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'Unknown'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Subscription & Billing
-                </CardTitle>
-                <CardDescription>Manage your subscription plan</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Current Plan</span>
-                  <Badge variant="secondary">
-                    {profile?.subscription_type || 'Free Demo'}
-                  </Badge>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-secondary/50 p-4 rounded-lg text-center">
-                    <CreditCard className="w-8 h-8 mx-auto mb-2 text-primary" />
-                    <h4 className="font-semibold">Side-Gig Plan</h4>
-                    <p className="text-2xl font-bold">$9.99</p>
-                    <p className="text-sm text-muted-foreground">50 worksheets/month</p>
-                  </div>
-                  <div className="bg-secondary/50 p-4 rounded-lg text-center">
-                    <Zap className="w-8 h-8 mx-auto mb-2 text-primary" />
-                    <h4 className="font-semibold">Full-Time Plan</h4>
-                    <p className="text-2xl font-bold">$19.99</p>
-                    <p className="text-sm text-muted-foreground">200 worksheets/month</p>
-                  </div>
-                </div>
-
-                <Button className="w-full">
-                  Upgrade Plan
-                </Button>
-
-                <div className="border-t pt-4">
-                  <p className="text-sm text-muted-foreground mb-3">Or buy individual tokens:</p>
-                  <Button variant="outline" className="w-full">
-                    Buy 10 Tokens - $4.99
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {/* Token Balance Card - Top Right */}
+          <div className="lg:col-span-1 lg:order-2">
+            <Card className="mb-4">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <Coins className="h-5 w-5" />
                   Token Balance
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-primary mb-2">
+                  <div className="text-2xl font-bold text-primary mb-2">
                     {profile?.token_balance || 0}
                   </div>
-                  <p className="text-sm text-muted-foreground">Available tokens</p>
+                  <p className="text-xs text-muted-foreground mb-3">Available tokens</p>
                 </div>
-                <div className="mt-4 space-y-2">
-                  <div className="flex justify-between text-sm">
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">This month used</span>
                     <span>{profile?.monthly_worksheets_used || 0}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Monthly limit</span>
                     <span>{profile?.monthly_worksheet_limit || 'Unlimited'}</span>
                   </div>
@@ -214,14 +134,16 @@ const Profile = () => {
               </CardContent>
             </Card>
 
+            {/* Quick Actions */}
             <Card>
-              <CardHeader>
-                <CardTitle>Account Actions</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Quick Actions</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="pt-0 space-y-2">
                 <Button 
                   className="w-full" 
-                  onClick={() => navigate('/')}
+                  onClick={handleForceNewWorksheet}
+                  size="sm"
                 >
                   Generate Worksheet
                 </Button>
@@ -229,6 +151,7 @@ const Profile = () => {
                   className="w-full" 
                   variant="outline"
                   onClick={() => navigate('/dashboard')}
+                  size="sm"
                 >
                   <GraduationCap className="h-4 w-4 mr-2" />
                   Dashboard
@@ -237,11 +160,109 @@ const Profile = () => {
                   className="w-full" 
                   variant="destructive"
                   onClick={handleSignOut}
+                  size="sm"
                 >
                   Sign Out
                 </Button>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3 lg:order-1">
+            <Tabs defaultValue="personal" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="personal">Personal Info</TabsTrigger>
+                <TabsTrigger value="subscription">Subscription</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="personal" className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Personal Information
+                    </CardTitle>
+                    <CardDescription>Your account details</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <EditableProfileField
+                        label="First Name"
+                        value={profile?.first_name}
+                        placeholder="Not set"
+                        onSave={(value) => handleUpdateProfile('first_name', value)}
+                      />
+                      <EditableProfileField
+                        label="Last Name"
+                        value={profile?.last_name}
+                        placeholder="Not set"
+                        onSave={(value) => handleUpdateProfile('last_name', value)}
+                      />
+                    </div>
+                    <EditableProfileField
+                      label="School/Institution"
+                      value={profile?.school_institution}
+                      placeholder="Not set"
+                      onSave={(value) => handleUpdateProfile('school_institution', value)}
+                    />
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Member Since</label>
+                      <p className="text-base flex items-center gap-2 mt-1">
+                        <Calendar className="h-4 w-4" />
+                        {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'Unknown'}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="subscription" className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCard className="h-5 w-5" />
+                      Subscription & Billing
+                    </CardTitle>
+                    <CardDescription>Manage your subscription plan</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Current Plan</span>
+                      <Badge variant="secondary">
+                        {profile?.subscription_type || 'Free Demo'}
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-secondary/50 p-4 rounded-lg text-center">
+                        <CreditCard className="w-6 h-6 mx-auto mb-2 text-primary" />
+                        <h4 className="font-semibold text-sm">Side-Gig Plan</h4>
+                        <p className="text-xl font-bold">$9.99</p>
+                        <p className="text-xs text-muted-foreground">50 worksheets/month</p>
+                      </div>
+                      <div className="bg-secondary/50 p-4 rounded-lg text-center">
+                        <Zap className="w-6 h-6 mx-auto mb-2 text-primary" />
+                        <h4 className="font-semibold text-sm">Full-Time Plan</h4>
+                        <p className="text-xl font-bold">$19.99</p>
+                        <p className="text-xs text-muted-foreground">200 worksheets/month</p>
+                      </div>
+                    </div>
+
+                    <Button className="w-full" size="sm">
+                      Upgrade Plan
+                    </Button>
+
+                    <div className="border-t pt-3">
+                      <p className="text-sm text-muted-foreground mb-2">Or buy individual tokens:</p>
+                      <Button variant="outline" className="w-full" size="sm">
+                        Buy 10 Tokens - $4.99
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>

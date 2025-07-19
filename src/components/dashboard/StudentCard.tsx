@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tables } from '@/integrations/supabase/types';
-import { User, BookOpen, ChevronDown, ChevronRight, FileText, Calendar } from 'lucide-react';
+import { User, BookOpen, ChevronDown, ChevronRight, FileText, Calendar, ExternalLink } from 'lucide-react';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 type Student = Tables<'students'>;
 
@@ -51,7 +52,11 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <User className="h-4 w-4 text-muted-foreground" />
-            <CardTitle className="text-lg">{student.name}</CardTitle>
+            <Link to={`/student/${student.id}`} className="hover:underline">
+              <CardTitle className="text-lg hover:text-primary transition-colors cursor-pointer">
+                {student.name}
+              </CardTitle>
+            </Link>
           </div>
           <Badge variant="secondary">{student.english_level}</Badge>
         </div>
@@ -65,56 +70,64 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
             <BookOpen className="h-4 w-4" />
             <span>{worksheets.length} worksheets</span>
           </div>
-          <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" size="sm">
-                {isOpen ? <ChevronDown className="h-4 w-4 mr-1" /> : <ChevronRight className="h-4 w-4 mr-1" />}
-                View History
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-3">
-              {loading ? (
-                <div className="text-center py-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto"></div>
-                </div>
-              ) : recentWorksheets.length > 0 ? (
-                <div className="space-y-2">
-                  {recentWorksheets.map((worksheet) => (
-                    <div
-                      key={worksheet.id}
-                      className="flex items-center justify-between p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted"
-                      onClick={() => handleWorksheetClick(worksheet)}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <FileText className="h-3 w-3" />
-                        <span className="text-xs font-medium truncate max-w-[120px]">
-                          {worksheet.title || 'Untitled Worksheet'}
-                        </span>
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/student/${student.id}`}>
+                <ExternalLink className="h-4 w-4 mr-1" />
+                View Profile
+              </Link>
+            </Button>
+            <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" size="sm">
+                  {isOpen ? <ChevronDown className="h-4 w-4 mr-1" /> : <ChevronRight className="h-4 w-4 mr-1" />}
+                  Recent
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-3">
+                {loading ? (
+                  <div className="text-center py-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto"></div>
+                  </div>
+                ) : recentWorksheets.length > 0 ? (
+                  <div className="space-y-2">
+                    {recentWorksheets.map((worksheet) => (
+                      <div
+                        key={worksheet.id}
+                        className="flex items-center justify-between p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted"
+                        onClick={() => handleWorksheetClick(worksheet)}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <FileText className="h-3 w-3" />
+                          <span className="text-xs font-medium truncate max-w-[120px]">
+                            {worksheet.title || 'Untitled Worksheet'}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          <span>{format(new Date(worksheet.created_at), 'MMM dd')}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        <span>{format(new Date(worksheet.created_at), 'MMM dd')}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {worksheets.length > 3 && (
+                    ))}
                     <Button
                       variant="link"
                       size="sm"
                       className="w-full text-xs"
-                      onClick={() => onViewHistory?.(student.id)}
+                      asChild
                     >
-                      View All History ({worksheets.length} total)
+                      <Link to={`/student/${student.id}`}>
+                        View All ({worksheets.length} total)
+                      </Link>
                     </Button>
-                  )}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground text-center py-2">
-                  No worksheets generated yet
-                </p>
-              )}
-            </CollapsibleContent>
-          </Collapsible>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    No worksheets generated yet
+                  </p>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
         </div>
       </CardContent>
     </Card>

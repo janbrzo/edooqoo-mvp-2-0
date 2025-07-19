@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { FormData } from "@/components/WorksheetForm";
@@ -15,6 +16,15 @@ export const useWorksheetState = (authLoading: boolean) => {
   useEffect(() => {
     const restoreWorksheetState = () => {
       try {
+        // Check if user wants to force new worksheet generation
+        const forceNewWorksheet = sessionStorage.getItem('forceNewWorksheet');
+        if (forceNewWorksheet) {
+          console.log('Force new worksheet flag detected - clearing all state');
+          sessionStorage.removeItem('forceNewWorksheet');
+          clearWorksheetStorage();
+          return;
+        }
+
         // Check if user is returning from payment - if so, don't show restore message
         const returningFromPayment = sessionStorage.getItem('returningFromPayment');
         if (returningFromPayment) {
@@ -97,8 +107,6 @@ export const useWorksheetState = (authLoading: boolean) => {
     }
   }, [editableWorksheet]);
 
-  // REMOVED THE PROBLEMATIC useEffect that was causing re-renders (lines 83-87)
-
   const clearWorksheetStorage = () => {
     sessionStorage.removeItem('currentWorksheet');
     sessionStorage.removeItem('currentEditableWorksheet');
@@ -123,6 +131,12 @@ export const useWorksheetState = (authLoading: boolean) => {
     clearPaymentStorage(); // Clear payment tokens when creating new worksheet
   };
 
+  const forceNewWorksheet = () => {
+    console.log('Setting force new worksheet flag');
+    sessionStorage.setItem('forceNewWorksheet', 'true');
+    resetWorksheetState();
+  };
+
   return {
     generatedWorksheet,
     setGeneratedWorksheet,
@@ -137,6 +151,7 @@ export const useWorksheetState = (authLoading: boolean) => {
     worksheetId,
     setWorksheetId,
     clearWorksheetStorage,
-    resetWorksheetState
+    resetWorksheetState,
+    forceNewWorksheet
   };
 };
