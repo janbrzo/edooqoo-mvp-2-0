@@ -37,30 +37,10 @@ export default function GenerationView({
   const { userId: authUserId } = useAnonymousAuth();
   const isLoggedIn = !!authUserId;
 
-  // Enhanced student name lookup - check multiple possible locations
-  const findStudentName = () => {
-    // First check direct inputParams.studentId
-    if (inputParams?.studentId) {
-      const student = students.find(s => s.id === inputParams.studentId);
-      if (student) return student.name;
-    }
-    
-    // Then check form_data.studentId if it exists
-    if (inputParams?.form_data?.studentId) {
-      const student = students.find(s => s.id === inputParams.form_data.studentId);
-      if (student) return student.name;
-    }
-    
-    // Also check if studentId is stored differently in inputParams structure
-    if (inputParams?.studentId) {
-      const student = students.find(s => s.id === inputParams.studentId);
-      if (student) return student.name;
-    }
-    
-    return undefined;
-  };
-
-  const studentName = findStudentName();
+  // Find student name if studentId is provided in inputParams
+  const studentName = inputParams?.studentId 
+    ? students.find(s => s.id === inputParams.studentId)?.name 
+    : undefined;
 
   const handleFeedbackSubmit = async (rating: number, feedback: string) => {
     if (!worksheetId) {
@@ -101,7 +81,8 @@ export default function GenerationView({
           <>
             <Button asChild variant="outline">
               <Link to="/profile">
-                <User className="h-4 w-4" />
+                <User className="h-4 w-4 mr-2" />
+                Profile
               </Link>
             </Button>
             <Button asChild>

@@ -50,15 +50,10 @@ export const useWorksheetHistory = (studentId?: string) => {
     return worksheets.slice(0, limit);
   };
 
-  const getStudentWorksheetCount = (studentId: string) => {
-    return worksheets.filter(w => w.student_id === studentId).length;
-  };
-
   return {
     worksheets,
     loading,
     getRecentWorksheets,
-    getStudentWorksheetCount,
     refetch: fetchWorksheets
   };
 };

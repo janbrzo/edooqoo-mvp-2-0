@@ -11,7 +11,7 @@ import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { AddStudentDialog } from '@/components/dashboard/AddStudentDialog';
 import { StudentCard } from '@/components/dashboard/StudentCard';
 import { toast } from '@/hooks/use-toast';
-import { FileText, Calendar, User, GraduationCap } from 'lucide-react';
+import { FileText, Calendar, User } from 'lucide-react';
 import { format } from 'date-fns';
 
 const Dashboard = () => {
@@ -74,12 +74,13 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button asChild className="bg-primary hover:bg-primary/90">
+            <Button asChild>
               <Link to="/">Generate Worksheet</Link>
             </Button>
             <Button asChild variant="outline">
               <Link to="/profile">
-                <User className="h-4 w-4" />
+                <User className="h-4 w-4 mr-2" />
+                Profile
               </Link>
             </Button>
           </div>
@@ -200,7 +201,7 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button 
-                  className="w-full bg-primary hover:bg-primary/90" 
+                  className="w-full" 
                   onClick={() => navigate('/')}
                 >
                   Generate Worksheet
