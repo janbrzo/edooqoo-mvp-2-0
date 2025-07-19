@@ -37,7 +37,7 @@ export const AddStudentDialog = () => {
   const [mainGoal, setMainGoal] = useState('');
   const [customGoal, setCustomGoal] = useState('');
   const [loading, setLoading] = useState(false);
-  const { addStudent, refetch } = useStudents();
+  const { addStudent } = useStudents();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,8 +47,7 @@ export const AddStudentDialog = () => {
     setLoading(true);
     try {
       await addStudent(name, englishLevel, finalGoal);
-      // FIXED: Wait for refetch to complete before closing dialog
-      await refetch();
+      // Close dialog and reset form immediately - no need for refetch as the hook handles state updates
       setOpen(false);
       setName('');
       setEnglishLevel('');

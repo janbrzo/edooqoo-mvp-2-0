@@ -1,7 +1,9 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
@@ -11,8 +13,27 @@ import { User, Coins, CreditCard, School, Calendar, Zap, GraduationCap } from 'l
 
 const Profile = () => {
   const { userId, loading } = useAnonymousAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { profile, loading: profileLoading, updateProfile } = useProfile();
   const navigate = useNavigate();
+  
+  // Editable form state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    first_name: '',
+    last_name: '',
+    school_institution: ''
+  });
+
+  // Initialize form when profile loads
+  React.useEffect(() => {
+    if (profile) {
+      setEditForm({
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        school_institution: profile.school_institution || ''
+      });
+    }
+  }, [profile]);
 
   const handleSignOut = async () => {
     try {
@@ -29,6 +50,27 @@ const Profile = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      await updateProfile(editForm);
+      setIsEditing(false);
+    } catch (error) {
+      // Error handled in hook
+    }
+  };
+
+  const handleCancelEdit = () => {
+    // Reset form to current profile values
+    if (profile) {
+      setEditForm({
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        school_institution: profile.school_institution || ''
+      });
+    }
+    setIsEditing(false);
   };
 
   if (loading || profileLoading) {
@@ -59,7 +101,7 @@ const Profile = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button asChild>
+            <Button asChild className="bg-primary hover:bg-primary/90">
               <Link to="/">Generate Worksheet</Link>
             </Button>
             <Button asChild variant="outline">
@@ -76,30 +118,81 @@ const Profile = () => {
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Personal Information
-                </CardTitle>
-                <CardDescription>Your account details</CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Personal Information
+                    </CardTitle>
+                    <CardDescription>Your account details</CardDescription>
+                  </div>
+                  {!isEditing ? (
+                    <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
+                      Edit
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button onClick={handleSaveProfile} size="sm">
+                        Save Changes
+                      </Button>
+                      <Button onClick={handleCancelEdit} variant="outline" size="sm">
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">First Name</label>
-                    <p className="text-lg">{profile?.first_name || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Last Name</label>
-                    <p className="text-lg">{profile?.last_name || 'Not set'}</p>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">School/Institution</label>
-                  <p className="text-lg flex items-center gap-2">
-                    <School className="h-4 w-4" />
-                    {profile?.school_institution || 'Not set'}
-                  </p>
-                </div>
+                {!isEditing ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">First Name</label>
+                        <p className="text-lg">{profile?.first_name || 'Not set'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Last Name</label>
+                        <p className="text-lg">{profile?.last_name || 'Not set'}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">School/Institution</label>
+                      <p className="text-lg flex items-center gap-2">
+                        <School className="h-4 w-4" />
+                        {profile?.school_institution || 'Not set'}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">First Name</label>
+                        <Input
+                          value={editForm.first_name}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, first_name: e.target.value }))}
+                          placeholder="Enter your first name"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Last Name</label>
+                        <Input
+                          value={editForm.last_name}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, last_name: e.target.value }))}
+                          placeholder="Enter your last name"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">School/Institution</label>
+                      <Input
+                        value={editForm.school_institution}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, school_institution: e.target.value }))}
+                        placeholder="Enter your school or institution"
+                      />
+                    </div>
+                  </>
+                )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Member Since</label>
                   <p className="text-lg flex items-center gap-2">
@@ -190,7 +283,7 @@ const Profile = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button 
-                  className="w-full" 
+                  className="w-full bg-primary hover:bg-primary/90" 
                   onClick={() => navigate('/')}
                 >
                   Generate Worksheet

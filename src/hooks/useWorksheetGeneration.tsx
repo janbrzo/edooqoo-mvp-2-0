@@ -28,7 +28,8 @@ export const useWorksheetGeneration = (
     console.log('🔧 Form data received:', { 
       lessonTime: data.lessonTime, 
       grammarFocus: data.teachingPreferences,
-      hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim())
+      hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim()),
+      studentId: studentId
     });
 
     // Check token requirements for authenticated users
@@ -58,7 +59,8 @@ export const useWorksheetGeneration = (
       eventType: 'worksheet_generation_start',
       eventData: {
         worksheetId: newWorksheetId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        studentId: studentId
       }
     });
     
@@ -69,7 +71,12 @@ export const useWorksheetGeneration = (
       const fullPrompt = formatPromptForAI(data);
       const formDataForStorage = createFormDataForStorage(data);
       
-      // Pass the full prompt to the API
+      // FIXED: Add studentId to formDataForStorage if provided
+      if (studentId) {
+        formDataForStorage.studentId = studentId;
+      }
+      
+      // Pass the full prompt AND studentId to the API
       const worksheetData = await generateWorksheet({ 
         ...data, 
         fullPrompt,
@@ -146,7 +153,8 @@ export const useWorksheetGeneration = (
             worksheetId: newWorksheetId,
             success: true,
             generationTimeSeconds: actualGenerationTime,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            studentId: studentId
           }
         });
         
@@ -170,7 +178,8 @@ export const useWorksheetGeneration = (
           worksheetId: newWorksheetId,
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          studentId: studentId
         }
       });
       
