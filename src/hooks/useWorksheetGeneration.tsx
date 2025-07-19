@@ -29,7 +29,7 @@ export const useWorksheetGeneration = (
       lessonTime: data.lessonTime, 
       grammarFocus: data.teachingPreferences,
       hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim()),
-      studentId: studentId // FIXED: Use studentId from hook parameter, not from data
+      studentId: studentId // Use studentId from hook parameter
     });
 
     // Check token requirements for authenticated users
@@ -67,11 +67,11 @@ export const useWorksheetGeneration = (
     try {
       console.log('📡 Calling generateWorksheet API...');
       
-      // NEW: Create full prompt for ChatGPT and save it to database
+      // Create full prompt for ChatGPT and save it to database
       const fullPrompt = formatPromptForAI(data);
       const formDataForStorage = createFormDataForStorage(data);
       
-      // FIXED: Add studentId to formDataForStorage if provided (using hook parameter)
+      // Add studentId to formDataForStorage if provided (using hook parameter)
       if (studentId) {
         formDataForStorage.studentId = studentId;
         console.log('✅ Added studentId to formDataForStorage:', studentId);
@@ -82,7 +82,7 @@ export const useWorksheetGeneration = (
         ...data, 
         fullPrompt,
         formDataForStorage,
-        studentId // FIXED: Use studentId from hook parameter
+        studentId // Use studentId from hook parameter
       }, userId || 'anonymous');
 
       // Consume token for authenticated users AFTER successful generation
@@ -124,7 +124,7 @@ export const useWorksheetGeneration = (
           deepFixedWorksheet.exercises = deepFixedWorksheet.exercises.slice(0, expectedExerciseCount);
         }
         
-        // FIXED: Pass correct lessonTime and hasGrammar parameters
+        // Process exercises with correct parameters
         const hasGrammar = !!(data.teachingPreferences && data.teachingPreferences.trim());
         console.log('🔧 Processing exercises with parameters:', { 
           lessonTime: data.lessonTime, 
@@ -143,7 +143,7 @@ export const useWorksheetGeneration = (
         console.log('💾 Setting both worksheets in state ATOMICALLY...');
         console.log('💾 Final worksheet before setState:', deepFixedWorksheet);
         
-        // CRITICAL FIX: Set both states atomically in the same synchronous operation
+        // Set both states atomically in the same synchronous operation
         worksheetState.setGeneratedWorksheet(deepFixedWorksheet);
         worksheetState.setEditableWorksheet(deepFixedWorksheet);
         
@@ -189,7 +189,7 @@ export const useWorksheetGeneration = (
       
       fallbackWorksheet.exercises = fallbackWorksheet.exercises.slice(0, expectedExerciseCount);
       
-      // FIXED: Pass correct parameters to fallback processExercises too
+      // Process fallback exercises with correct parameters
       const hasGrammar = !!(data?.teachingPreferences && data.teachingPreferences.trim());
       console.log('🔧 Processing fallback exercises with parameters:', { 
         lessonTime: data?.lessonTime || '60min', 
@@ -200,7 +200,7 @@ export const useWorksheetGeneration = (
       fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises, data?.lessonTime || '60min', hasGrammar);
       fallbackWorksheet.id = newWorksheetId;
       
-      // CRITICAL FIX: Set both states atomically for fallback case too
+      // Set both states atomically for fallback case too
       worksheetState.setGeneratedWorksheet(fallbackWorksheet);
       worksheetState.setEditableWorksheet(fallbackWorksheet);
       
