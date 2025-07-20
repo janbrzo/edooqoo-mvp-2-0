@@ -5,18 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Check, ArrowLeft, Zap, Users } from 'lucide-react';
+import { Check, User, Briefcase, Zap, Users } from 'lucide-react';
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { PricingCalculator } from '@/components/PricingCalculator';
 
 const Pricing = () => {
   const { userId } = useAnonymousAuth();
   const { tokenBalance } = useTokenSystem(userId);
   const { toast } = useToast();
-  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
+  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('60');
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('full-time');
+  const [recommendedWorksheets, setRecommendedWorksheets] = useState(60);
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -26,6 +29,19 @@ const Pricing = () => {
   ];
 
   const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
+
+  const handleRecommendation = (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => {
+    setRecommendedPlan(plan);
+    setRecommendedWorksheets(worksheetsNeeded);
+    
+    // Auto-select the recommended Full-Time plan
+    if (plan === 'full-time') {
+      const recommendedPlanOption = fullTimePlans.find(p => parseInt(p.tokens) >= worksheetsNeeded);
+      if (recommendedPlanOption) {
+        setSelectedFullTimePlan(recommendedPlanOption.tokens);
+      }
+    }
+  };
 
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
     if (!userId) {
@@ -92,37 +108,51 @@ const Pricing = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <Button asChild variant="ghost" className="mb-6">
-            <Link to="/dashboard" className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Link>
-          </Button>
-          
-          <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Unlock unlimited worksheet generation with our affordable subscription plans
-          </p>
+        {/* Header Navigation */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex gap-3">
+            <Button asChild variant="outline">
+              <Link to="/dashboard" className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/profile" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Profile
+              </Link>
+            </Button>
+          </div>
           
           {userId && (
-            <div className="mt-6 flex items-center justify-center gap-4">
-              <Badge variant="outline" className="text-lg px-4 py-2">
-                Current Balance: {tokenBalance} tokens
+            <div className="flex items-center gap-4">
+              <Badge variant="outline" className="text-sm px-3 py-1">
+                Balance: {tokenBalance} tokens
               </Badge>
-              <Button variant="outline" onClick={handleManageSubscription}>
+              <Button variant="outline" size="sm" onClick={handleManageSubscription}>
                 Manage Subscription
               </Button>
             </div>
           )}
         </div>
 
+        {/* Pricing Calculator */}
+        <PricingCalculator onRecommendation={handleRecommendation} />
+
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           
           {/* Side-Gig Plan */}
-          <Card className="relative">
+          <Card className={`relative ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
+            {recommendedPlan === 'side-gig' && (
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <Badge className="bg-primary text-primary-foreground px-4 py-1 text-sm font-semibold">
+                  RECOMMENDED FOR YOU
+                </Badge>
+              </div>
+            )}
+            
             <CardHeader className="text-center pb-8">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Users className="h-6 w-6 text-primary" />
@@ -175,14 +205,16 @@ const Pricing = () => {
           </Card>
 
           {/* Full-Time Plan */}
-          <Card className="relative border-primary shadow-lg">
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-              <Badge className="bg-primary text-primary-foreground px-4 py-1 text-sm font-semibold">
-                MOST POPULAR
-              </Badge>
-            </div>
+          <Card className={`relative ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : ''}`}>
+            {recommendedPlan === 'full-time' && (
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <Badge className="bg-primary text-primary-foreground px-4 py-1 text-sm font-semibold">
+                  RECOMMENDED FOR YOU
+                </Badge>
+              </div>
+            )}
             
-            <CardHeader className="text-center pb-8 pt-8">
+            <CardHeader className="text-center pb-8">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Zap className="h-6 w-6 text-primary" />
                 <CardTitle className="text-2xl">Full-Time Plan</CardTitle>
@@ -200,7 +232,7 @@ const Pricing = () => {
                   <SelectContent>
                     {fullTimePlans.map((plan) => (
                       <SelectItem key={plan.tokens} value={plan.tokens}>
-                        {plan.tokens} worksheets/month - ${plan.price}/month
+                        {plan.tokens} worksheets/month
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -255,7 +287,7 @@ const Pricing = () => {
           </Card>
         </div>
 
-        {/* FAQ or Additional Info */}
+        {/* FAQ Section */}
         <div className="mt-16 text-center max-w-2xl mx-auto">
           <h3 className="text-2xl font-bold mb-4">Frequently Asked Questions</h3>
           <div className="space-y-4 text-left">
