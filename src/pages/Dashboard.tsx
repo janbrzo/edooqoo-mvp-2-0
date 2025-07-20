@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -32,7 +31,6 @@ const Dashboard = () => {
   const { students, addStudent } = useStudents();
   const { worksheets: allWorksheets, loading: worksheetsLoading } = useWorksheetHistory();
   const { tokenBalance } = useTokenSystem(userId);
-  const [showAddStudent, setShowAddStudent] = useState(false);
   const navigate = useNavigate();
 
   const handleForceNewWorksheet = () => {
@@ -186,10 +184,7 @@ const Dashboard = () => {
           <TabsContent value="students" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Your Students</h2>
-              <Button onClick={() => setShowAddStudent(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Student
-              </Button>
+              <AddStudentDialog />
             </div>
 
             {students.length === 0 ? (
@@ -200,10 +195,7 @@ const Dashboard = () => {
                   <p className="text-muted-foreground text-center mb-4">
                     Add your first student to start creating personalized worksheets
                   </p>
-                  <Button onClick={() => setShowAddStudent(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Your First Student
-                  </Button>
+                  <AddStudentDialog />
                 </CardContent>
               </Card>
             ) : (
@@ -287,12 +279,6 @@ const Dashboard = () => {
             )}
           </TabsContent>
         </Tabs>
-
-        <AddStudentDialog
-          open={showAddStudent}
-          onOpenChange={setShowAddStudent}
-          onAddStudent={addStudent}
-        />
       </div>
     </div>
   );
