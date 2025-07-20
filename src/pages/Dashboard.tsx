@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useStudents } from '@/hooks/useStudents';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
@@ -16,11 +16,8 @@ import {
   FileText, 
   Calendar, 
   GraduationCap, 
-  Plus, 
   TrendingUp,
   Clock,
-  Target,
-  BookOpen,
   Coins
 } from 'lucide-react';
 import { deepFixTextObjects } from '@/utils/textObjectFixer';
@@ -175,13 +172,10 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="students" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="students">Students</TabsTrigger>
-            <TabsTrigger value="recent">Recent Worksheets</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="students" className="space-y-6">
+        {/* Two Column Layout - Students and Recent Worksheets */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Students Section */}
+          <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Your Students</h2>
               <AddStudentDialog />
@@ -199,7 +193,7 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="space-y-4">
                 {students.map((student) => (
                   <StudentCard
                     key={student.id}
@@ -209,9 +203,10 @@ const Dashboard = () => {
                 ))}
               </div>
             )}
-          </TabsContent>
+          </div>
 
-          <TabsContent value="recent" className="space-y-6">
+          {/* Recent Worksheets Section */}
+          <div className="space-y-6">
             <h2 className="text-2xl font-bold">Recent Worksheets</h2>
             
             {worksheetsLoading ? (
@@ -277,8 +272,8 @@ const Dashboard = () => {
                 })}
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </div>
     </div>
   );

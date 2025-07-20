@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -65,7 +64,9 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
         <div className="text-sm text-muted-foreground">
           <strong>Goal:</strong> {formatGoal(student.main_goal)}
         </div>
-        <div className="flex items-center justify-between">
+        
+        {/* Fixed layout: keep elements aligned even when expanded */}
+        <div className="flex items-start justify-between">
           <div className="flex items-center space-x-1 text-sm text-muted-foreground">
             <BookOpen className="h-4 w-4" />
             <span>{worksheets.length} worksheets</span>
@@ -84,51 +85,55 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
                   Recent
                 </Button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="mt-3">
-                {loading ? (
-                  <div className="text-center py-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto"></div>
-                  </div>
-                ) : recentWorksheets.length > 0 ? (
-                  <div className="space-y-2">
-                    {recentWorksheets.map((worksheet) => (
-                      <div
-                        key={worksheet.id}
-                        className="flex items-center justify-between p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted"
-                        onClick={() => handleWorksheetClick(worksheet)}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <FileText className="h-3 w-3" />
-                          <span className="text-xs font-medium truncate max-w-[120px]">
-                            {worksheet.title || 'Untitled Worksheet'}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          <span>{format(new Date(worksheet.created_at), 'MMM dd')}</span>
-                        </div>
-                      </div>
-                    ))}
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="w-full text-xs"
-                      asChild
-                    >
-                      <Link to={`/student/${student.id}`}>
-                        View All ({worksheets.length} total)
-                      </Link>
-                    </Button>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground text-center py-2">
-                    No worksheets generated yet
-                  </p>
-                )}
-              </CollapsibleContent>
             </Collapsible>
           </div>
         </div>
+        
+        {/* Collapsible content placed outside the flex container */}
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          <CollapsibleContent className="mt-3">
+            {loading ? (
+              <div className="text-center py-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto"></div>
+              </div>
+            ) : recentWorksheets.length > 0 ? (
+              <div className="space-y-2">
+                {recentWorksheets.map((worksheet) => (
+                  <div
+                    key={worksheet.id}
+                    className="flex items-center justify-between p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted"
+                    onClick={() => handleWorksheetClick(worksheet)}
+                  >
+                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                      <FileText className="h-3 w-3 flex-shrink-0" />
+                      <span className="text-xs font-medium truncate">
+                        {worksheet.title || 'Untitled Worksheet'}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-1 text-xs text-muted-foreground flex-shrink-0 ml-2">
+                      <Calendar className="h-3 w-3" />
+                      <span>{format(new Date(worksheet.created_at), 'MMM dd')}</span>
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="w-full text-xs"
+                  asChild
+                >
+                  <Link to={`/student/${student.id}`}>
+                    View All ({worksheets.length} total)
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-2">
+                No worksheets generated yet
+              </p>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );

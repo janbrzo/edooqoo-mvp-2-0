@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useMemo } from "react";
 
 interface ExerciseMatchingProps {
   items: any[];
@@ -22,8 +22,12 @@ function shuffleArray(array: any[]) {
 const ExerciseMatching: React.FC<ExerciseMatchingProps> = ({
   items, isEditing, viewMode, getMatchedItems, onItemChange
 }) => {
-  // UWAGA: Zarówno w widoku teacher jak i student kolumna definitions powinna być tasowana
-  const shuffledDefinitions = shuffleArray([...items]);
+  // Use useMemo to prevent re-shuffling on every render
+  // Create a stable key based on the terms to ensure consistent shuffling
+  const shuffledDefinitions = useMemo(() => {
+    const termsKey = items.map(item => item.term).join('|');
+    return shuffleArray([...items]);
+  }, [items.map(item => `${item.term}|${item.definition}`).join('||')]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 vocabulary-matching-container">
