@@ -50,22 +50,56 @@ const Pricing = () => {
     setHasManuallyChanged(true);
   };
 
-  const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
-    if (!userId) {
+  // Check if user has proper authentication for subscription
+  const checkUserForSubscription = async () => {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error || !user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to subscribe to a plan.",
+          variant: "destructive"
+        });
+        navigate('/auth');
+        return false;
+      }
+
+      if (!user.email) {
+        toast({
+          title: "Email Required",
+          description: "Please complete your registration with a valid email address to subscribe.",
+          variant: "destructive"
+        });
+        navigate('/auth');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error checking user authentication:', error);
       toast({
-        title: "Authentication Required",
-        description: "Please sign in to subscribe to a plan.",
+        title: "Authentication Error",
+        description: "Please sign in again to continue.",
         variant: "destructive"
       });
       navigate('/auth');
-      return;
+      return false;
     }
+  };
+
+  const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
+    // Check user authentication first
+    const canSubscribe = await checkUserForSubscription();
+    if (!canSubscribe) return;
 
     setIsLoading(planType);
     try {
       const planData = planType === 'side-gig' 
         ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
         : { name: `Full-Time Plan (${selectedFullTimePlan} worksheets)`, price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
+
+      console.log('Attempting to create subscription:', { planType, planData });
 
       const { data, error } = await supabase.functions.invoke('create-subscription', {
         body: {
@@ -76,33 +110,73 @@ const Pricing = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Subscription error details:', error);
+        
+        // Handle specific error types
+        if (error.message?.includes('requiresRegistration') || error.message?.includes('Email required')) {
+          toast({
+            title: "Registration Required",
+            description: "Please complete your registration with a valid email address to subscribe.",
+            variant: "destructive"
+          });
+          navigate('/auth');
+          return;
+        }
+        
+        if (error.message?.includes('Authentication')) {
+          toast({
+            title: "Authentication Required",
+            description: "Please sign in to subscribe to a plan.",
+            variant: "destructive"
+          });
+          navigate('/auth');
+          return;
+        }
+
+        throw error;
+      }
 
       if (data?.url) {
+        console.log('Redirecting to Stripe checkout:', data.url);
         window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received from server');
       }
     } catch (error: any) {
       console.error('Subscription error:', error);
+      
+      let errorMessage = "Failed to create subscription. Please try again.";
+      let shouldRedirectToAuth = false;
+
+      if (error.message?.includes('Authentication') || error.message?.includes('sign in')) {
+        errorMessage = "Please sign in to subscribe to a plan.";
+        shouldRedirectToAuth = true;
+      } else if (error.message?.includes('Email required') || error.message?.includes('registration')) {
+        errorMessage = "Please complete your registration with a valid email address.";
+        shouldRedirectToAuth = true;
+      } else if (error.message?.includes('Payment service not configured')) {
+        errorMessage = "Payment service is currently unavailable. Please contact support.";
+      }
+
       toast({
         title: "Subscription Error",
-        description: error.message || "Failed to create subscription. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
+
+      if (shouldRedirectToAuth) {
+        navigate('/auth');
+      }
     } finally {
       setIsLoading(null);
     }
   };
 
   const handleManageSubscription = async () => {
-    if (!userId) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to manage subscription.",
-        variant: "destructive"
-      });
-      navigate('/auth');
-      return;
-    }
+    // Check user authentication first
+    const canManage = await checkUserForSubscription();
+    if (!canManage) return;
 
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
