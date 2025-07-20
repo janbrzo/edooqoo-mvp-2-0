@@ -11,6 +11,7 @@ import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";
 import { TokenPaywallModal } from "@/components/TokenPaywallModal";
 import { deepFixTextObjects } from "@/utils/textObjectFixer";
+import { ArrowLeft } from "lucide-react";
 
 /**
  * Main Index page component that handles worksheet generation and display
@@ -105,8 +106,32 @@ const Index = () => {
     generateWorksheetHandler(data);
   };
 
+  // Show back button when viewing a historical worksheet
+  const showBackButton = bothWorksheetsReady && worksheetState.worksheetId;
+
   return (
     <div className="min-h-screen bg-gray-100">
+      {showBackButton && (
+        <div className="bg-white border-b px-4 py-2">
+          <div className="max-w-6xl mx-auto flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={worksheetState.resetWorksheetState}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+            <Button asChild>
+              <Link to="/" onClick={() => sessionStorage.setItem('forceNewWorksheet', 'true')}>
+                Create New Worksheet
+              </Link>
+            </Button>
+          </div>
+        </div>
+      )}
+      
       {!bothWorksheetsReady ? (
         <FormView 
           onSubmit={handleGenerateWorksheet} 

@@ -6,14 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useStudents } from '@/hooks/useStudents';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
-import { ArrowLeft, FileText, Calendar, User, BookOpen, Target } from 'lucide-react';
+import { StudentEditDialog } from '@/components/StudentEditDialog';
+import { ArrowLeft, FileText, Calendar, User, BookOpen, Target, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { deepFixTextObjects } from '@/utils/textObjectFixer';
 
 const StudentPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { students } = useStudents();
+  const { students, refetch: refetchStudents } = useStudents();
   const { worksheets, loading } = useWorksheetHistory(id || '');
 
   const student = students.find(s => s.id === id);
@@ -57,6 +58,18 @@ const StudentPage = () => {
     }
   };
 
+  const handleGenerateWorksheet = () => {
+    // Store student information for pre-selection in the form
+    sessionStorage.setItem('preSelectedStudent', JSON.stringify({
+      id: student.id,
+      name: student.name,
+      english_level: student.english_level,
+      main_goal: student.main_goal
+    }));
+    sessionStorage.setItem('forceNewWorksheet', 'true');
+    navigate('/');
+  };
+
   const formatGoal = (goal: string) => {
     const goalMap: Record<string, string> = {
       'work': 'Work/Business',
@@ -88,10 +101,8 @@ const StudentPage = () => {
               <p className="text-muted-foreground">Student Profile & Worksheets</p>
             </div>
           </div>
-          <Button asChild>
-            <Link to="/" onClick={() => sessionStorage.setItem('forceNewWorksheet', 'true')}>
-              Generate New Worksheet
-            </Link>
+          <Button onClick={handleGenerateWorksheet}>
+            Generate New Worksheet
           </Button>
         </div>
 
@@ -100,10 +111,13 @@ const StudentPage = () => {
           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <User className="h-5 w-5 mr-2" />
-                  Student Details
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <User className="h-5 w-5 mr-2" />
+                    Student Details
+                  </CardTitle>
+                  <StudentEditDialog student={student} onUpdate={refetchStudents} />
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -139,10 +153,18 @@ const StudentPage = () => {
           <div className="lg:col-span-3">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FileText className="h-5 w-5 mr-2" />
-                  All Worksheets ({worksheets.length})
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <FileText className="h-5 w-5 mr-2" />
+                    All Worksheets ({worksheets.length})
+                  </CardTitle>
+                  {worksheets.length > 0 && (
+                    <Button onClick={handleGenerateWorksheet} size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Generate Another Worksheet
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -185,10 +207,8 @@ const StudentPage = () => {
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
                     <p className="text-muted-foreground">No worksheets generated yet</p>
-                    <Button asChild className="mt-4">
-                      <Link to="/" onClick={() => sessionStorage.setItem('forceNewWorksheet', 'true')}>
-                        Generate First Worksheet
-                      </Link>
+                    <Button onClick={handleGenerateWorksheet} className="mt-4">
+                      Generate First Worksheet
                     </Button>
                   </div>
                 )}

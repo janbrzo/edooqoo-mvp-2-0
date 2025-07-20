@@ -17,11 +17,10 @@ const Pricing = () => {
   const { tokenBalance } = useTokenSystem(userId);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('60');
+  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
-  const [manualOverride, setManualOverride] = useState(false);
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -36,18 +35,13 @@ const Pricing = () => {
     setRecommendedPlan(plan);
     setRecommendedWorksheets(worksheetsNeeded);
     
-    // Auto-select the recommended Full-Time plan only if not manually overridden
-    if (plan === 'full-time' && !manualOverride) {
+    // Auto-select the recommended Full-Time plan
+    if (plan === 'full-time') {
       const recommendedPlanOption = fullTimePlans.find(p => parseInt(p.tokens) >= worksheetsNeeded);
       if (recommendedPlanOption) {
         setSelectedFullTimePlan(recommendedPlanOption.tokens);
       }
     }
-  };
-
-  const handleManualPlanChange = (value: string) => {
-    setSelectedFullTimePlan(value);
-    setManualOverride(true);
   };
 
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
@@ -241,7 +235,7 @@ const Pricing = () => {
               
               {/* Dropdown for token selection */}
               <div className="mt-4 space-y-3">
-                <Select value={selectedFullTimePlan} onValueChange={handleManualPlanChange}>
+                <Select value={selectedFullTimePlan} onValueChange={setSelectedFullTimePlan}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
