@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,7 @@ const Pricing = () => {
   const { tokenBalance } = useTokenSystem(userId);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('60');
+  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
@@ -36,8 +35,9 @@ const Pricing = () => {
     setRecommendedPlan(plan);
     setRecommendedWorksheets(worksheetsNeeded);
     
-    // Auto-select the recommended Full-Time plan only if not manually overridden
-    if (plan === 'full-time' && !manualOverride) {
+    // Reset manual override and auto-select the recommended Full-Time plan
+    setManualOverride(false);
+    if (plan === 'full-time') {
       const recommendedPlanOption = fullTimePlans.find(p => parseInt(p.tokens) >= worksheetsNeeded);
       if (recommendedPlanOption) {
         setSelectedFullTimePlan(recommendedPlanOption.tokens);
