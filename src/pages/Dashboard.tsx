@@ -27,8 +27,8 @@ import { useNavigate } from 'react-router-dom';
 const Dashboard = () => {
   const { userId, loading } = useAnonymousAuth();
   const { profile } = useProfile();
-  const { students, addStudent } = useStudents();
-  const { worksheets: allWorksheets, loading: worksheetsLoading } = useWorksheetHistory();
+  const { students, addStudent, refetch: refetchStudents } = useStudents();
+  const { worksheets: allWorksheets, loading: worksheetsLoading, refetch: refetchWorksheets } = useWorksheetHistory();
   const { tokenBalance } = useTokenSystem(userId);
   const navigate = useNavigate();
 
@@ -68,6 +68,39 @@ const Dashboard = () => {
     }
   };
 
+  // Enhanced student refresh handler
+  const handleStudentAdded = async () => {
+    console.log('🔄 Student added, refreshing data...');
+    await Promise.all([
+      refetchStudents(),
+      refetchWorksheets()
+    ]);
+  };
+
+  // Sort students by latest worksheet creation date
+  const sortedStudents = [...students].sort((a, b) => {
+    const aLatestWorksheet = allWorksheets
+      .filter(w => w.student_id === a.id)
+      .sort((x, y) => new Date(y.created_at).getTime() - new Date(x.created_at).getTime())[0];
+    
+    const bLatestWorksheet = allWorksheets
+      .filter(w => w.student_id === b.id)
+      .sort((x, y) => new Date(y.created_at).getTime() - new Date(x.created_at).getTime())[0];
+    
+    // If both have worksheets, sort by latest worksheet date
+    if (aLatestWorksheet && bLatestWorksheet) {
+      return new Date(bLatestWorksheet.created_at).getTime() - new Date(aLatestWorksheet.created_at).getTime();
+    }
+    
+    // If only one has worksheets, prioritize the one with worksheets
+    if (aLatestWorksheet && !bLatestWorksheet) return -1;
+    if (!aLatestWorksheet && bLatestWorksheet) return 1;
+    
+    // If neither has worksheets, sort by student creation date (newest first)
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  // Sort recent worksheets properly (newest first)
   const recentWorksheets = allWorksheets
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
@@ -117,9 +150,14 @@ const Dashboard = () => {
           <div>
             <h1 className="text-3xl font-bold flex items-center">
               <GraduationCap className="h-8 w-8 mr-3" />
-              <span className={profile?.first_name ? "text-primary" : ""}>{displayName}</span>
-              {profile?.first_name && <span className="ml-2">Dashboard</span>}
-              {!profile?.first_name && <span className="ml-2">Dashboard</span>}
+              {profile?.first_name ? (
+                <>
+                  <span className="text-primary">{profile.first_name}</span>
+                  <span className="ml-2">Dashboard</span>
+                </>
+              ) : (
+                <span>Teacher Dashboard</span>
+              )}
             </h1>
             <p className="text-muted-foreground">
               Manage your students and track worksheet generation
@@ -184,10 +222,10 @@ const Dashboard = () => {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Your Students</h2>
-              <AddStudentDialog />
+              <AddStudentDialog onStudentAdded={handleStudentAdded} />
             </div>
 
-            {students.length === 0 ? (
+            {sortedStudents.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <User className="h-12 w-12 text-muted-foreground mb-4" />
@@ -195,12 +233,12 @@ const Dashboard = () => {
                   <p className="text-muted-foreground text-center mb-4">
                     Add your first student to start creating personalized worksheets
                   </p>
-                  <AddStudentDialog />
+                  <AddStudentDialog onStudentAdded={handleStudentAdded} />
                 </CardContent>
               </Card>
             ) : (
               <div className="space-y-4">
-                {students.map((student) => (
+                {sortedStudents.map((student) => (
                   <StudentCard
                     key={student.id}
                     student={student}
@@ -231,7 +269,7 @@ const Dashboard = () => {
                   <Button onClick={handleForceNewWorksheet}>
                     Generate First Worksheet
                   </Button>
-                </CardContent>
+                </Card>
               </Card>
             ) : (
               <div className="space-y-4">

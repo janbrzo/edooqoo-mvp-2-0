@@ -60,6 +60,7 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
       
       // Notify parent component that student was added
       if (onStudentAdded) {
+        console.log('🔄 Calling onStudentAdded callback...');
         onStudentAdded();
       }
     } catch (error) {
