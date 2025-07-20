@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 import { useWorksheetState } from "@/hooks/useWorksheetState";
 import { useWorksheetGeneration } from "@/hooks/useWorksheetGeneration";
@@ -11,7 +11,6 @@ import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";
 import { TokenPaywallModal } from "@/components/TokenPaywallModal";
 import { deepFixTextObjects } from "@/utils/textObjectFixer";
-import { ArrowLeft, GraduationCap } from "lucide-react";
 
 /**
  * Main Index page component that handles worksheet generation and display
@@ -20,18 +19,14 @@ const Index = () => {
   const { userId, loading: authLoading } = useAnonymousAuth();
   const worksheetState = useWorksheetState(authLoading);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [preSelectedStudent, setPreSelectedStudent] = useState<{id: string; name: string} | null>(null);
   const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(userId, worksheetState, selectedStudentId);
   const { tokenBalance, hasTokens, isDemo } = useTokenSystem(userId);
   const [showTokenModal, setShowTokenModal] = useState(false);
-  const [isHistoricalWorksheet, setIsHistoricalWorksheet] = useState(false);
-  const navigate = useNavigate();
 
-  // Check for restored worksheet from dashboard or pre-selected student
+  // Check for restored worksheet from dashboard
   useEffect(() => {
     const restoredWorksheet = sessionStorage.getItem('restoredWorksheet');
     const studentName = sessionStorage.getItem('worksheetStudentName');
-    const preSelected = sessionStorage.getItem('preSelectedStudent');
     
     if (restoredWorksheet) {
       try {
@@ -75,7 +70,6 @@ const Index = () => {
           worksheetState.setWorksheetId(worksheet.id);
           worksheetState.setGenerationTime(worksheet.generation_time_seconds || 5);
           worksheetState.setSourceCount(75);
-          setIsHistoricalWorksheet(true);
           
           console.log('🎉 Worksheet fully restored with student information');
         }
@@ -86,16 +80,6 @@ const Index = () => {
         console.error('💥 Error restoring worksheet:', error);
         sessionStorage.removeItem('restoredWorksheet');
         sessionStorage.removeItem('worksheetStudentName');
-      }
-    } else if (preSelected) {
-      try {
-        const student = JSON.parse(preSelected);
-        setPreSelectedStudent(student);
-        sessionStorage.removeItem('preSelectedStudent');
-        console.log('🎯 Pre-selected student:', student);
-      } catch (error) {
-        console.error('Error parsing pre-selected student:', error);
-        sessionStorage.removeItem('preSelectedStudent');
       }
     }
   }, []);
@@ -121,14 +105,6 @@ const Index = () => {
     generateWorksheetHandler(data);
   };
 
-  const handleBackNavigation = () => {
-    if (isHistoricalWorksheet) {
-      navigate(-1); // Go back to previous page
-    } else {
-      worksheetState.resetWorksheetState();
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-100">
       {!bothWorksheetsReady ? (
@@ -136,38 +112,19 @@ const Index = () => {
           onSubmit={handleGenerateWorksheet} 
           userId={userId} 
           onStudentChange={setSelectedStudentId}
-          preSelectedStudent={preSelectedStudent}
         />
       ) : (
-        <div>
-          {isHistoricalWorksheet && (
-            <div className="bg-white border-b p-4">
-              <div className="max-w-6xl mx-auto flex items-center justify-between">
-                <Button variant="outline" onClick={handleBackNavigation}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
-                </Button>
-                <Button asChild variant="outline">
-                  <Link to="/dashboard">
-                    <GraduationCap className="h-4 w-4 mr-2" />
-                    Dashboard
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          )}
-          <GenerationView 
-            worksheetId={worksheetState.worksheetId}
-            generatedWorksheet={worksheetState.generatedWorksheet}
-            editableWorksheet={worksheetState.editableWorksheet}
-            setEditableWorksheet={worksheetState.setEditableWorksheet}
-            inputParams={worksheetState.inputParams}
-            generationTime={worksheetState.generationTime}
-            sourceCount={worksheetState.sourceCount}
-            onBack={isHistoricalWorksheet ? handleBackNavigation : worksheetState.resetWorksheetState}
-            userId={userId || 'anonymous'}
-          />
-        </div>
+        <GenerationView 
+          worksheetId={worksheetState.worksheetId}
+          generatedWorksheet={worksheetState.generatedWorksheet}
+          editableWorksheet={worksheetState.editableWorksheet}
+          setEditableWorksheet={worksheetState.setEditableWorksheet}
+          inputParams={worksheetState.inputParams}
+          generationTime={worksheetState.generationTime}
+          sourceCount={worksheetState.sourceCount}
+          onBack={worksheetState.resetWorksheetState}
+          userId={userId || 'anonymous'}
+        />
       )}
       
       <GeneratingModal isOpen={isGenerating} />

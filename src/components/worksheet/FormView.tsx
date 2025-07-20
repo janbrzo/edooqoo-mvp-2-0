@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
@@ -13,10 +14,9 @@ interface FormViewProps {
   onSubmit: (data: FormData) => void;
   userId?: string;
   onStudentChange?: (studentId: string | null) => void;
-  preSelectedStudent?: {id: string; name: string} | null;
 }
 
-const FormView: React.FC<FormViewProps> = ({ onSubmit, userId, onStudentChange, preSelectedStudent }) => {
+const FormView: React.FC<FormViewProps> = ({ onSubmit, userId, onStudentChange }) => {
   const isMobile = useIsMobile();
   const { userId: authUserId } = useAnonymousAuth();
   const isLoggedIn = !!authUserId;
