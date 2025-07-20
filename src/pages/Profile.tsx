@@ -16,7 +16,7 @@ const Profile = () => {
   const { userId, loading } = useAnonymousAuth();
   const { profile, loading: profileLoading, refetch } = useProfile();
   const navigate = useNavigate();
-  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('60');
+  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
   const fullTimePlans = [
@@ -171,6 +171,12 @@ const Profile = () => {
     return monthlyLimit || 'Not set';
   };
 
+  const getRenewalInfo = () => {
+    if (subscriptionType === 'Free Demo') return null;
+    // This would normally come from Stripe subscription data
+    return 'Next renewal: January 15, 2024';
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <div className="max-w-7xl mx-auto">
@@ -318,75 +324,86 @@ const Profile = () => {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Current Plan</span>
-                  <Badge variant="secondary">
+                  <Badge variant="outline" className="font-medium text-sm px-3 py-1">
                     {subscriptionType}
                   </Badge>
                 </div>
                 
+                {getRenewalInfo() && (
+                  <div className="text-sm text-muted-foreground">
+                    {getRenewalInfo()}
+                  </div>
+                )}
+                
                 {/* Upgrade Buttons Side by Side */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="bg-secondary/50 p-4 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
+                  <div className="bg-secondary/50 p-4 rounded-lg h-full">
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-center gap-2 mb-2">
                         <Users className="w-5 h-5 text-primary" />
                         <div>
                           <h4 className="font-semibold text-sm">Side-Gig Plan</h4>
                           <p className="text-xs text-muted-foreground">15 worksheets/month</p>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="mb-3">
                         <p className="text-lg font-bold">$9</p>
                         <p className="text-xs text-muted-foreground">/month</p>
                       </div>
+                      <div className="mt-auto">
+                        <Button 
+                          className="w-full" 
+                          size="sm"
+                          onClick={() => handleSubscribe('side-gig')}
+                          disabled={isLoading === 'side-gig'}
+                        >
+                          {isLoading === 'side-gig' ? 'Processing...' : 'Upgrade to Side-Gig'}
+                        </Button>
+                      </div>
                     </div>
-                    <Button 
-                      className="w-full" 
-                      size="sm"
-                      onClick={() => handleSubscribe('side-gig')}
-                      disabled={isLoading === 'side-gig'}
-                    >
-                      {isLoading === 'side-gig' ? 'Processing...' : 'Upgrade to Side-Gig'}
-                    </Button>
                   </div>
 
-                  <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
+                  <div className="bg-primary/10 p-4 rounded-lg border border-primary/20 h-full">
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-center gap-2 mb-2">
                         <Zap className="w-5 h-5 text-primary" />
                         <div>
                           <h4 className="font-semibold text-sm">Full-Time Plan</h4>
                           <p className="text-xs text-muted-foreground">Choose worksheets/month</p>
                         </div>
                       </div>
-                      <div className="text-right">
+                      
+                      <div className="mb-2">
+                        <Select value={selectedFullTimePlan} onValueChange={setSelectedFullTimePlan}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {fullTimePlans.map((plan) => (
+                              <SelectItem key={plan.tokens} value={plan.tokens}>
+                                {plan.tokens} worksheets/month
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="mb-3">
                         <p className="text-lg font-bold">${selectedPlan?.price}</p>
                         <p className="text-xs text-muted-foreground">/month</p>
                       </div>
+                      
+                      <div className="mt-auto">
+                        <Button 
+                          className="w-full" 
+                          size="sm"
+                          onClick={() => handleSubscribe('full-time')}
+                          disabled={isLoading === 'full-time'}
+                        >
+                          {isLoading === 'full-time' ? 'Processing...' : 'Upgrade to Full-Time'}
+                        </Button>
+                      </div>
                     </div>
-                    
-                    <div className="mb-3">
-                      <Select value={selectedFullTimePlan} onValueChange={setSelectedFullTimePlan}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {fullTimePlans.map((plan) => (
-                            <SelectItem key={plan.tokens} value={plan.tokens}>
-                              {plan.tokens} worksheets/month
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <Button 
-                      className="w-full" 
-                      size="sm"
-                      onClick={() => handleSubscribe('full-time')}
-                      disabled={isLoading === 'full-time'}
-                    >
-                      {isLoading === 'full-time' ? 'Processing...' : 'Upgrade to Full-Time'}
-                    </Button>
                   </div>
                 </div>
 

@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Calculator, TrendingUp, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calculator, TrendingUp, Clock, Plus, Minus } from 'lucide-react';
 
 interface PricingCalculatorProps {
   onRecommendation: (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => void;
@@ -56,18 +56,45 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
     setRecommendedPlan(planType);
     setRecommendedWorksheets(recommendedWorksheetCount);
     
+    // Always trigger recommendation when calculator values change
     onRecommendation(planType, recommendedWorksheetCount);
   }, [prepTime, lessonPrice, lessonsPerWeek, onRecommendation]);
+
+  const handleIncrement = (field: 'prepTime' | 'lessonPrice' | 'lessonsPerWeek') => {
+    switch (field) {
+      case 'prepTime':
+        setPrepTime(prev => Math.min(prev + 5, 120));
+        break;
+      case 'lessonPrice':
+        setLessonPrice(prev => Math.min(prev + 5, 200));
+        break;
+      case 'lessonsPerWeek':
+        setLessonsPerWeek(prev => Math.min(prev + 1, 50));
+        break;
+    }
+  };
+
+  const handleDecrement = (field: 'prepTime' | 'lessonPrice' | 'lessonsPerWeek') => {
+    switch (field) {
+      case 'prepTime':
+        setPrepTime(prev => Math.max(prev - 5, 1));
+        break;
+      case 'lessonPrice':
+        setLessonPrice(prev => Math.max(prev - 5, 1));
+        break;
+      case 'lessonsPerWeek':
+        setLessonsPerWeek(prev => Math.max(prev - 1, 1));
+        break;
+    }
+  };
 
   return (
     <Card className="mb-6">
       <CardHeader className="text-center pb-3">
-        <div className="flex items-center justify-center gap-4 mb-2">
-          <div className="flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">Calculate Your Savings</CardTitle>
-          </div>
-          <p className="text-muted-foreground text-sm">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Calculator className="h-5 w-5 text-primary" />
+          <CardTitle className="text-lg">Calculate Your Savings</CardTitle>
+          <p className="text-muted-foreground text-sm ml-4">
             See how much time and money you'll save with our worksheet generator
           </p>
         </div>
@@ -75,67 +102,131 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
       
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1">
               <Label htmlFor="prep-time" className="text-sm">
                 Prep Time (minutes)
               </Label>
-              <Input
-                id="prep-time"
-                type="number"
-                value={prepTime}
-                onChange={(e) => setPrepTime(Number(e.target.value))}
-                min="1"
-                max="120"
-                className="h-9"
-              />
+              <div className="relative group">
+                <Input
+                  id="prep-time"
+                  type="number"
+                  value={prepTime}
+                  onChange={(e) => setPrepTime(Number(e.target.value))}
+                  min="1"
+                  max="120"
+                  className="h-9 w-20 text-center pr-8"
+                />
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-4 w-6 p-0"
+                    onClick={() => handleIncrement('prepTime')}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-4 w-6 p-0"
+                    onClick={() => handleDecrement('prepTime')}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
             </div>
             
             <div className="space-y-1">
               <Label htmlFor="lesson-price" className="text-sm">
                 Lesson Price ($)
               </Label>
-              <Input
-                id="lesson-price"
-                type="number"
-                value={lessonPrice}
-                onChange={(e) => setLessonPrice(Number(e.target.value))}
-                min="1"
-                max="200"
-                className="h-9"
-              />
+              <div className="relative group">
+                <Input
+                  id="lesson-price"
+                  type="number"
+                  value={lessonPrice}
+                  onChange={(e) => setLessonPrice(Number(e.target.value))}
+                  min="1"
+                  max="200"
+                  className="h-9 w-20 text-center pr-8"
+                />
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-4 w-6 p-0"
+                    onClick={() => handleIncrement('lessonPrice')}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-4 w-6 p-0"
+                    onClick={() => handleDecrement('lessonPrice')}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
             </div>
             
             <div className="space-y-1">
               <Label htmlFor="lessons-week" className="text-sm">
                 Lessons per Week
               </Label>
-              <Input
-                id="lessons-week"
-                type="number"
-                value={lessonsPerWeek}
-                onChange={(e) => setLessonsPerWeek(Number(e.target.value))}
-                min="1"
-                max="50"
-                className="h-9"
-              />
+              <div className="relative group">
+                <Input
+                  id="lessons-week"
+                  type="number"
+                  value={lessonsPerWeek}
+                  onChange={(e) => setLessonsPerWeek(Number(e.target.value))}
+                  min="1"
+                  max="50"
+                  className="h-9 w-20 text-center pr-8"
+                />
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-4 w-6 p-0"
+                    onClick={() => handleIncrement('lessonsPerWeek')}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-4 w-6 p-0"
+                    onClick={() => handleDecrement('lessonsPerWeek')}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
           
           {monthlySavings > 0 && (
             <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="h-4 w-4 text-green-600" />
-                <span className="font-medium text-green-800 dark:text-green-200 text-sm">
-                  Monthly Savings
-                </span>
-              </div>
-              <div className="text-2xl font-bold text-green-600 mb-2">
-                ${monthlySavings.toFixed(0)}
-              </div>
-              <div className="flex items-center gap-1 text-green-700 dark:text-green-300">
-                <Clock className="h-3 w-3" />
-                <span className="text-sm">{timeSavings}min saved</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                  <span className="font-medium text-green-800 dark:text-green-200 text-sm">
+                    Monthly Savings
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-green-600">
+                  <div className="text-lg font-bold">
+                    ${monthlySavings.toFixed(0)}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    <span className="text-sm font-bold">{timeSavings}min</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
