@@ -17,10 +17,11 @@ export type { FormData };
 
 interface ExtendedWorksheetFormProps extends WorksheetFormProps {
   onStudentChange?: (studentId: string | null) => void;
+  preSelectedStudent?: { id: string; name: string } | null;
 }
 
-export default function WorksheetForm({ onSubmit, onStudentChange }: ExtendedWorksheetFormProps) {
-  const [lessonTime, setLessonTime] = useState<LessonTime>("60min"); // Changed from "60 min" to "60min"
+export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedStudent }: ExtendedWorksheetFormProps) {
+  const [lessonTime, setLessonTime] = useState<LessonTime>("60min");
   const [lessonTopic, setLessonTopic] = useState("");
   const [lessonGoal, setLessonGoal] = useState("");
   const [grammarFocus, setGrammarFocus] = useState("");
@@ -38,6 +39,13 @@ export default function WorksheetForm({ onSubmit, onStudentChange }: ExtendedWor
   const { trackEvent } = useEventTracking();
   const { userId } = useAnonymousAuth();
   const { students } = useStudents();
+
+  // Handle preSelectedStudent
+  useEffect(() => {
+    if (preSelectedStudent) {
+      setSelectedStudentId(preSelectedStudent.id);
+    }
+  }, [preSelectedStudent]);
 
   // Auto-adjust English level when student is selected
   useEffect(() => {
