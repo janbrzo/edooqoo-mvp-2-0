@@ -62,97 +62,84 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
   return (
     <Card className="mb-6">
       <CardHeader className="text-center pb-3">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Calculator className="h-5 w-5 text-primary" />
-          <CardTitle className="text-lg">Calculate Your Savings</CardTitle>
+        <div className="flex items-center justify-center gap-4 mb-2">
+          <div className="flex items-center gap-2">
+            <Calculator className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Calculate Your Savings</CardTitle>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            See how much time and money you'll save with our worksheet generator
+          </p>
         </div>
-        <p className="text-muted-foreground text-sm">
-          See how much time and money you'll save with our worksheet generator
-        </p>
       </CardHeader>
       
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-1">
-            <Label htmlFor="prep-time" className="text-sm">
-              Prep Time (minutes)
-            </Label>
-            <Input
-              id="prep-time"
-              type="number"
-              value={prepTime}
-              onChange={(e) => setPrepTime(Number(e.target.value))}
-              min="1"
-              max="120"
-              className="h-9"
-            />
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="prep-time" className="text-sm">
+                Prep Time (minutes)
+              </Label>
+              <Input
+                id="prep-time"
+                type="number"
+                value={prepTime}
+                onChange={(e) => setPrepTime(Number(e.target.value))}
+                min="1"
+                max="120"
+                className="h-9"
+              />
+            </div>
+            
+            <div className="space-y-1">
+              <Label htmlFor="lesson-price" className="text-sm">
+                Lesson Price ($)
+              </Label>
+              <Input
+                id="lesson-price"
+                type="number"
+                value={lessonPrice}
+                onChange={(e) => setLessonPrice(Number(e.target.value))}
+                min="1"
+                max="200"
+                className="h-9"
+              />
+            </div>
+            
+            <div className="space-y-1">
+              <Label htmlFor="lessons-week" className="text-sm">
+                Lessons per Week
+              </Label>
+              <Input
+                id="lessons-week"
+                type="number"
+                value={lessonsPerWeek}
+                onChange={(e) => setLessonsPerWeek(Number(e.target.value))}
+                min="1"
+                max="50"
+                className="h-9"
+              />
+            </div>
           </div>
           
-          <div className="space-y-1">
-            <Label htmlFor="lesson-price" className="text-sm">
-              Lesson Price ($)
-            </Label>
-            <Input
-              id="lesson-price"
-              type="number"
-              value={lessonPrice}
-              onChange={(e) => setLessonPrice(Number(e.target.value))}
-              min="1"
-              max="200"
-              className="h-9"
-            />
-          </div>
-          
-          <div className="space-y-1">
-            <Label htmlFor="lessons-week" className="text-sm">
-              Lessons per Week
-            </Label>
-            <Input
-              id="lessons-week"
-              type="number"
-              value={lessonsPerWeek}
-              onChange={(e) => setLessonsPerWeek(Number(e.target.value))}
-              min="1"
-              max="50"
-              className="h-9"
-            />
-          </div>
-        </div>
-        
-        {monthlySavings > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-2 mb-1">
+          {monthlySavings > 0 && (
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+              <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="h-4 w-4 text-green-600" />
                 <span className="font-medium text-green-800 dark:text-green-200 text-sm">
                   Monthly Savings
                 </span>
               </div>
-              <div className="text-xl font-bold text-green-600 mb-1">
+              <div className="text-2xl font-bold text-green-600 mb-2">
                 ${monthlySavings.toFixed(0)}
               </div>
               <div className="flex items-center gap-1 text-green-700 dark:text-green-300">
                 <Clock className="h-3 w-3" />
-                <span className="text-xs">{timeSavings}min saved</span>
+                <span className="text-sm">{timeSavings}min saved</span>
               </div>
             </div>
-            
-            <div className="bg-primary/10 p-3 rounded-lg border border-primary/20">
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="secondary" className="text-xs">
-                  Recommended Plan
-                </Badge>
-              </div>
-              <div className="font-semibold text-sm">
-                {recommendedPlan === 'side-gig' ? 'Side-Gig Plan' : 
-                  `Full-Time Plan (${recommendedWorksheets} worksheets)`}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Perfect for your needs
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </CardContent>
     </Card>
   );

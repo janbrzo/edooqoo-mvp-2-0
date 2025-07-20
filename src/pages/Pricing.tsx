@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,10 +16,12 @@ const Pricing = () => {
   const { userId } = useAnonymousAuth();
   const { tokenBalance } = useTokenSystem(userId);
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('60');
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
+  const [manualOverride, setManualOverride] = useState(false);
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -34,13 +36,18 @@ const Pricing = () => {
     setRecommendedPlan(plan);
     setRecommendedWorksheets(worksheetsNeeded);
     
-    // Auto-select the recommended Full-Time plan but allow manual override
-    if (plan === 'full-time') {
+    // Auto-select the recommended Full-Time plan only if not manually overridden
+    if (plan === 'full-time' && !manualOverride) {
       const recommendedPlanOption = fullTimePlans.find(p => parseInt(p.tokens) >= worksheetsNeeded);
       if (recommendedPlanOption) {
         setSelectedFullTimePlan(recommendedPlanOption.tokens);
       }
     }
+  };
+
+  const handleManualPlanChange = (value: string) => {
+    setSelectedFullTimePlan(value);
+    setManualOverride(true);
   };
 
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
@@ -50,6 +57,7 @@ const Pricing = () => {
         description: "Please sign in to subscribe to a plan.",
         variant: "destructive"
       });
+      navigate('/auth');
       return;
     }
 
@@ -86,7 +94,15 @@ const Pricing = () => {
   };
 
   const handleManageSubscription = async () => {
-    if (!userId) return;
+    if (!userId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to manage subscription.",
+        variant: "destructive"
+      });
+      navigate('/auth');
+      return;
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
@@ -225,7 +241,7 @@ const Pricing = () => {
               
               {/* Dropdown for token selection */}
               <div className="mt-4 space-y-3">
-                <Select value={selectedFullTimePlan} onValueChange={setSelectedFullTimePlan}>
+                <Select value={selectedFullTimePlan} onValueChange={handleManualPlanChange}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>

@@ -82,6 +82,7 @@ const Profile = () => {
         description: "Please sign in to subscribe to a plan.",
         variant: "destructive"
       });
+      navigate('/auth');
       return;
     }
 
@@ -118,7 +119,15 @@ const Profile = () => {
   };
 
   const handleManageSubscription = async () => {
-    if (!userId) return;
+    if (!userId) {
+      toast({
+        title: "Authentication Required", 
+        description: "Please sign in to manage subscription.",
+        variant: "destructive"
+      });
+      navigate('/auth');
+      return;
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
@@ -302,7 +311,7 @@ const Profile = () => {
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2">
                   <CreditCard className="h-5 w-5" />
-                  Subscription & Billing
+                  Plan & Billing
                 </CardTitle>
                 <CardDescription>Manage your subscription plan</CardDescription>
               </CardHeader>
@@ -314,8 +323,8 @@ const Profile = () => {
                   </Badge>
                 </div>
                 
-                {/* Upgrade Buttons */}
-                <div className="space-y-3">
+                {/* Upgrade Buttons Side by Side */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="bg-secondary/50 p-4 rounded-lg">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
@@ -336,7 +345,7 @@ const Profile = () => {
                       onClick={() => handleSubscribe('side-gig')}
                       disabled={isLoading === 'side-gig'}
                     >
-                      {isLoading === 'side-gig' ? 'Processing...' : 'Upgrade to Side-Gig Plan'}
+                      {isLoading === 'side-gig' ? 'Processing...' : 'Upgrade to Side-Gig'}
                     </Button>
                   </div>
 
@@ -376,7 +385,7 @@ const Profile = () => {
                       onClick={() => handleSubscribe('full-time')}
                       disabled={isLoading === 'full-time'}
                     >
-                      {isLoading === 'full-time' ? 'Processing...' : 'Upgrade to Full-Time Plan'}
+                      {isLoading === 'full-time' ? 'Processing...' : 'Upgrade to Full-Time'}
                     </Button>
                   </div>
                 </div>
