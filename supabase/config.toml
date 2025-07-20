@@ -1,7 +1,5 @@
+
 project_id = "cdoyjgiyrfziejbrcvpx"
-
-
-
 
 [functions.generateWorksheet]
 verify_jwt = false
@@ -16,4 +14,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.track-user-event]
+verify_jwt = false
+
+[functions.create-subscription]
+verify_jwt = false
+
+[functions.customer-portal]
 verify_jwt = false
