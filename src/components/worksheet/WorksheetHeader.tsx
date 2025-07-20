@@ -30,9 +30,14 @@ function WorksheetHeader({
 
   return (
     <div className="mb-6">
-      <Button variant="ghost" onClick={handleBack} className="mb-4">
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back
-      </Button>
+      <div className="flex gap-2 mb-4">
+        <Button variant="ghost" onClick={onBack}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Generate New Worksheet
+        </Button>
+        <Button variant="ghost" onClick={handleBack}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back
+        </Button>
+      </div>
       <div className="bg-worksheet-purple rounded-lg p-6">
         <div className="flex flex-col md:flex-row justify-between">
           <div>

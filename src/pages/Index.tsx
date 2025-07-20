@@ -131,31 +131,17 @@ const Index = () => {
           preSelectedStudent={preSelectedStudent}
         />
       ) : (
-        <div>
-          {/* Back button for historical worksheets */}
-          <div className="bg-white border-b px-4 py-2">
-            <div className="max-w-7xl mx-auto flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={worksheetState.resetWorksheetState}>
-                Back
-              </Button>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/dashboard">Dashboard</Link>
-              </Button>
-            </div>
-          </div>
-          
-          <GenerationView 
-            worksheetId={worksheetState.worksheetId}
-            generatedWorksheet={worksheetState.generatedWorksheet}
-            editableWorksheet={worksheetState.editableWorksheet}
-            setEditableWorksheet={worksheetState.setEditableWorksheet}
-            inputParams={worksheetState.inputParams}
-            generationTime={worksheetState.generationTime}
-            sourceCount={worksheetState.sourceCount}
-            onBack={worksheetState.resetWorksheetState}
-            userId={userId || 'anonymous'}
-          />
-        </div>
+        <GenerationView 
+          worksheetId={worksheetState.worksheetId}
+          generatedWorksheet={worksheetState.generatedWorksheet}
+          editableWorksheet={worksheetState.editableWorksheet}
+          setEditableWorksheet={worksheetState.setEditableWorksheet}
+          inputParams={worksheetState.inputParams}
+          generationTime={worksheetState.generationTime}
+          sourceCount={worksheetState.sourceCount}
+          onBack={worksheetState.resetWorksheetState}
+          userId={userId || 'anonymous'}
+        />
       )}
       
       <GeneratingModal isOpen={isGenerating} />
