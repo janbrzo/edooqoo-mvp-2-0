@@ -8,6 +8,7 @@ import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useStudents } from '@/hooks/useStudents';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
+import { useProfile } from '@/hooks/useProfile';
 import { StudentCard } from '@/components/dashboard/StudentCard';
 import { AddStudentDialog } from '@/components/dashboard/AddStudentDialog';
 import { format } from 'date-fns';
@@ -25,6 +26,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const { userId, loading } = useAnonymousAuth();
+  const { profile } = useProfile();
   const { students, addStudent } = useStudents();
   const { worksheets: allWorksheets, loading: worksheetsLoading } = useWorksheetHistory();
   const { tokenBalance } = useTokenSystem(userId);
@@ -105,6 +107,8 @@ const Dashboard = () => {
     );
   }
 
+  const displayName = profile?.first_name || 'Teacher';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <div className="max-w-7xl mx-auto">
@@ -113,7 +117,9 @@ const Dashboard = () => {
           <div>
             <h1 className="text-3xl font-bold flex items-center">
               <GraduationCap className="h-8 w-8 mr-3" />
-              Teacher Dashboard
+              <span className={profile?.first_name ? "text-primary" : ""}>{displayName}</span>
+              {profile?.first_name && <span className="ml-2">Dashboard</span>}
+              {!profile?.first_name && <span className="ml-2">Dashboard</span>}
             </h1>
             <p className="text-muted-foreground">
               Manage your students and track worksheet generation

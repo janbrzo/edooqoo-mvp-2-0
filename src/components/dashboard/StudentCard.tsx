@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,15 +34,10 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
     return goalMap[goal] || goal;
   };
 
-  const handleWorksheetClick = (worksheet: any) => {
+  const handleWorksheetClick = (worksheet: any, event: React.MouseEvent) => {
+    event.stopPropagation();
     if (onOpenWorksheet) {
-      // Parse the AI response to get the worksheet data
-      const worksheetData = JSON.parse(worksheet.ai_response);
-      onOpenWorksheet({
-        ...worksheetData,
-        id: worksheet.id,
-        inputParams: worksheet.form_data
-      });
+      onOpenWorksheet(worksheet);
     }
   };
 
@@ -65,8 +61,8 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
           <strong>Goal:</strong> {formatGoal(student.main_goal)}
         </div>
         
-        {/* Fixed layout: keep elements aligned even when expanded */}
-        <div className="flex items-start justify-between">
+        {/* Fixed layout with flex to maintain alignment */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1 text-sm text-muted-foreground">
             <BookOpen className="h-4 w-4" />
             <span>{worksheets.length} worksheets</span>
@@ -89,20 +85,20 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
           </div>
         </div>
         
-        {/* Collapsible content placed outside the flex container */}
+        {/* Collapsible content */}
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <CollapsibleContent className="mt-3">
+          <CollapsibleContent>
             {loading ? (
               <div className="text-center py-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto"></div>
               </div>
             ) : recentWorksheets.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-2 mt-3">
                 {recentWorksheets.map((worksheet) => (
                   <div
                     key={worksheet.id}
-                    className="flex items-center justify-between p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted"
-                    onClick={() => handleWorksheetClick(worksheet)}
+                    className="flex items-center justify-between p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors"
+                    onClick={(e) => handleWorksheetClick(worksheet, e)}
                   >
                     <div className="flex items-center space-x-2 flex-1 min-w-0">
                       <FileText className="h-3 w-3 flex-shrink-0" />
@@ -119,7 +115,7 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
                 <Button
                   variant="link"
                   size="sm"
-                  className="w-full text-xs"
+                  className="w-full text-xs mt-2"
                   asChild
                 >
                   <Link to={`/student/${student.id}`}>
@@ -128,7 +124,7 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
                 </Button>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-2">
+              <p className="text-xs text-muted-foreground text-center py-2 mt-3">
                 No worksheets generated yet
               </p>
             )}
