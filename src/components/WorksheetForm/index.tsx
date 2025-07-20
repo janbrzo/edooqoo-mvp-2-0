@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,9 +16,10 @@ export type { FormData };
 
 interface ExtendedWorksheetFormProps extends WorksheetFormProps {
   onStudentChange?: (studentId: string | null) => void;
+  preSelectedStudent?: { id: string; name: string } | null;
 }
 
-export default function WorksheetForm({ onSubmit, onStudentChange }: ExtendedWorksheetFormProps) {
+export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedStudent }: ExtendedWorksheetFormProps) {
   const [lessonTime, setLessonTime] = useState<LessonTime>("60min"); // Changed from "60 min" to "60min"
   const [lessonTopic, setLessonTopic] = useState("");
   const [lessonGoal, setLessonGoal] = useState("");
@@ -28,7 +28,6 @@ export default function WorksheetForm({ onSubmit, onStudentChange }: ExtendedWor
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
   const [selectedStudentId, setSelectedStudentId] = useState<string>("no-student");
 
-  
   const [currentPlaceholders, setCurrentPlaceholders] = useState<PlaceholderSet>(getRandomPlaceholderSet());
   const [currentSuggestions, setCurrentSuggestions] = useState<SuggestionSet[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -38,6 +37,13 @@ export default function WorksheetForm({ onSubmit, onStudentChange }: ExtendedWor
   const { trackEvent } = useEventTracking();
   const { userId } = useAnonymousAuth();
   const { students } = useStudents();
+
+  // Handle pre-selected student
+  useEffect(() => {
+    if (preSelectedStudent) {
+      setSelectedStudentId(preSelectedStudent.id);
+    }
+  }, [preSelectedStudent]);
 
   // Auto-adjust English level when student is selected
   useEffect(() => {
