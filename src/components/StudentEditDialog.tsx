@@ -16,7 +16,7 @@ interface Student {
 
 interface StudentEditDialogProps {
   student: Student;
-  onSave: (id: string, updates: Partial<Pick<Student, 'name' | 'english_level' | 'main_goal'>>) => Promise<void>;
+  onSave: (id: string, updates: Partial<Pick<Student, 'name' | 'english_level' | 'main_goal'>>) => Promise<any>;
 }
 
 export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({ student, onSave }) => {
