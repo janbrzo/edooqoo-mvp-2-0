@@ -269,7 +269,7 @@ const Dashboard = () => {
                   <Button onClick={handleForceNewWorksheet}>
                     Generate First Worksheet
                   </Button>
-                </Card>
+                </CardContent>
               </Card>
             ) : (
               <div className="space-y-4">
