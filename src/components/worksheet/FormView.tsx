@@ -14,9 +14,10 @@ interface FormViewProps {
   onSubmit: (data: FormData) => void;
   userId?: string;
   onStudentChange?: (studentId: string | null) => void;
+  preSelectedStudent?: { id: string; name: string } | null;
 }
 
-const FormView: React.FC<FormViewProps> = ({ onSubmit, userId, onStudentChange }) => {
+const FormView: React.FC<FormViewProps> = ({ onSubmit, userId, onStudentChange, preSelectedStudent }) => {
   const isMobile = useIsMobile();
   const { userId: authUserId } = useAnonymousAuth();
   const isLoggedIn = !!authUserId;
@@ -56,7 +57,11 @@ const FormView: React.FC<FormViewProps> = ({ onSubmit, userId, onStudentChange }
           </div>
         )}
         <div className={`${isMobile ? 'w-full px-2 py-2' : 'w-4/5 px-6 py-6'} form-container relative z-10`}>
-          <WorksheetForm onSubmit={onSubmit} onStudentChange={onStudentChange} />
+          <WorksheetForm 
+            onSubmit={onSubmit} 
+            onStudentChange={onStudentChange} 
+            preSelectedStudent={preSelectedStudent}
+          />
         </div>
       </div>
     </TrackingFormWrapper>
