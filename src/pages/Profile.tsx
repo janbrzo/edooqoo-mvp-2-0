@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +15,7 @@ const Profile = () => {
   const { userId, loading } = useAnonymousAuth();
   const { profile, loading: profileLoading, refetch } = useProfile();
   const navigate = useNavigate();
-  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('60');
+  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30'); // Default to cheapest plan
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
   const fullTimePlans = [
@@ -171,6 +170,15 @@ const Profile = () => {
     return monthlyLimit || 'Not set';
   };
 
+  const getRenewalInfo = () => {
+    if (subscriptionType === 'Free Demo') return null;
+    if (profile?.subscription_expires_at) {
+      const renewalDate = new Date(profile.subscription_expires_at);
+      return `Next renewal: ${renewalDate.toLocaleDateString()}`;
+    }
+    return 'Renewal date not available';
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <div className="max-w-7xl mx-auto">
@@ -318,26 +326,30 @@ const Profile = () => {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Current Plan</span>
-                  <Badge variant="secondary">
+                  <Badge variant="outline" className="font-semibold text-base px-3 py-1">
                     {subscriptionType}
                   </Badge>
                 </div>
                 
+                {getRenewalInfo() && (
+                  <div className="text-sm text-muted-foreground">
+                    {getRenewalInfo()}
+                  </div>
+                )}
+                
                 {/* Upgrade Buttons Side by Side */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="bg-secondary/50 p-4 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-5 h-5 text-primary" />
-                        <div>
-                          <h4 className="font-semibold text-sm">Side-Gig Plan</h4>
-                          <p className="text-xs text-muted-foreground">15 worksheets/month</p>
-                        </div>
+                  <div className="bg-secondary/50 p-4 rounded-lg text-center">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <Users className="w-5 h-5 text-primary" />
+                      <div>
+                        <h4 className="font-semibold text-sm">Side-Gig Plan</h4>
                       </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold">$9</p>
-                        <p className="text-xs text-muted-foreground">/month</p>
-                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">15 worksheets/month</p>
+                    <div className="mb-3">
+                      <p className="text-2xl font-bold">$9</p>
+                      <p className="text-xs text-muted-foreground">/month</p>
                     </div>
                     <Button 
                       className="w-full" 
@@ -349,20 +361,14 @@ const Profile = () => {
                     </Button>
                   </div>
 
-                  <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-5 h-5 text-primary" />
-                        <div>
-                          <h4 className="font-semibold text-sm">Full-Time Plan</h4>
-                          <p className="text-xs text-muted-foreground">Choose worksheets/month</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold">${selectedPlan?.price}</p>
-                        <p className="text-xs text-muted-foreground">/month</p>
+                  <div className="bg-primary/10 p-4 rounded-lg border border-primary/20 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <Zap className="w-5 h-5 text-primary" />
+                      <div>
+                        <h4 className="font-semibold text-sm">Full-Time Plan</h4>
                       </div>
                     </div>
+                    <p className="text-xs text-muted-foreground mb-3">Choose worksheets/month</p>
                     
                     <div className="mb-3">
                       <Select value={selectedFullTimePlan} onValueChange={setSelectedFullTimePlan}>
@@ -377,6 +383,11 @@ const Profile = () => {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <p className="text-2xl font-bold">${selectedPlan?.price}</p>
+                      <p className="text-xs text-muted-foreground">/month</p>
                     </div>
                     
                     <Button 

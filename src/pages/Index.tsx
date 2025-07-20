@@ -19,9 +19,25 @@ const Index = () => {
   const { userId, loading: authLoading } = useAnonymousAuth();
   const worksheetState = useWorksheetState(authLoading);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [preSelectedStudent, setPreSelectedStudent] = useState<{id: string, name: string} | null>(null);
   const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(userId, worksheetState, selectedStudentId);
   const { tokenBalance, hasTokens, isDemo } = useTokenSystem(userId);
   const [showTokenModal, setShowTokenModal] = useState(false);
+
+  // Check for pre-selected student from student page
+  useEffect(() => {
+    const preSelected = sessionStorage.getItem('preSelectedStudent');
+    if (preSelected) {
+      try {
+        const studentData = JSON.parse(preSelected);
+        setPreSelectedStudent(studentData);
+        setSelectedStudentId(studentData.id);
+        sessionStorage.removeItem('preSelectedStudent');
+      } catch (error) {
+        console.error('Error parsing pre-selected student:', error);
+      }
+    }
+  }, []);
 
   // Check for restored worksheet from dashboard
   useEffect(() => {
@@ -112,19 +128,34 @@ const Index = () => {
           onSubmit={handleGenerateWorksheet} 
           userId={userId} 
           onStudentChange={setSelectedStudentId}
+          preSelectedStudent={preSelectedStudent}
         />
       ) : (
-        <GenerationView 
-          worksheetId={worksheetState.worksheetId}
-          generatedWorksheet={worksheetState.generatedWorksheet}
-          editableWorksheet={worksheetState.editableWorksheet}
-          setEditableWorksheet={worksheetState.setEditableWorksheet}
-          inputParams={worksheetState.inputParams}
-          generationTime={worksheetState.generationTime}
-          sourceCount={worksheetState.sourceCount}
-          onBack={worksheetState.resetWorksheetState}
-          userId={userId || 'anonymous'}
-        />
+        <div>
+          {/* Back button for historical worksheets */}
+          <div className="bg-white border-b px-4 py-2">
+            <div className="max-w-7xl mx-auto flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={worksheetState.resetWorksheetState}>
+                Back
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/dashboard">Dashboard</Link>
+              </Button>
+            </div>
+          </div>
+          
+          <GenerationView 
+            worksheetId={worksheetState.worksheetId}
+            generatedWorksheet={worksheetState.generatedWorksheet}
+            editableWorksheet={worksheetState.editableWorksheet}
+            setEditableWorksheet={worksheetState.setEditableWorksheet}
+            inputParams={worksheetState.inputParams}
+            generationTime={worksheetState.generationTime}
+            sourceCount={worksheetState.sourceCount}
+            onBack={worksheetState.resetWorksheetState}
+            userId={userId || 'anonymous'}
+          />
+        </div>
       )}
       
       <GeneratingModal isOpen={isGenerating} />
