@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Calculator, TrendingUp, Clock, Plus, Minus } from 'lucide-react';
+import { Calculator, TrendingUp, Clock } from 'lucide-react';
 
 interface PricingCalculatorProps {
   onRecommendation: (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => void;
@@ -60,17 +59,10 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
     onRecommendation(planType, recommendedWorksheetCount);
   }, [prepTime, lessonPrice, lessonsPerWeek, onRecommendation]);
 
-  const handleInputChange = (setter: (value: number) => void, currentValue: number, change: number, min: number = 1, max: number = 200) => {
-    const newValue = currentValue + change;
-    if (newValue >= min && newValue <= max) {
-      setter(newValue);
-    }
-  };
-
   return (
     <Card className="mb-6">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+      <CardHeader className="text-center pb-3">
+        <div className="flex items-center justify-center gap-4 mb-2">
           <div className="flex items-center gap-2">
             <Calculator className="h-5 w-5 text-primary" />
             <CardTitle className="text-lg">Calculate Your Savings</CardTitle>
@@ -83,125 +75,67 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
       
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1">
               <Label htmlFor="prep-time" className="text-sm">
                 Prep Time (minutes)
               </Label>
-              <div className="flex items-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-8 p-0 opacity-50 hover:opacity-100"
-                  onClick={() => handleInputChange(setPrepTime, prepTime, -1, 1, 120)}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <Input
-                  id="prep-time"
-                  type="number"
-                  value={prepTime}
-                  onChange={(e) => setPrepTime(Number(e.target.value))}
-                  min="1"
-                  max="120"
-                  className="h-9 w-16 text-center mx-1"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-8 p-0 opacity-50 hover:opacity-100"
-                  onClick={() => handleInputChange(setPrepTime, prepTime, 1, 1, 120)}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
+              <Input
+                id="prep-time"
+                type="number"
+                value={prepTime}
+                onChange={(e) => setPrepTime(Number(e.target.value))}
+                min="1"
+                max="120"
+                className="h-9"
+              />
             </div>
             
             <div className="space-y-1">
               <Label htmlFor="lesson-price" className="text-sm">
                 Lesson Price ($)
               </Label>
-              <div className="flex items-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-8 p-0 opacity-50 hover:opacity-100"
-                  onClick={() => handleInputChange(setLessonPrice, lessonPrice, -1, 1, 200)}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <Input
-                  id="lesson-price"
-                  type="number"
-                  value={lessonPrice}
-                  onChange={(e) => setLessonPrice(Number(e.target.value))}
-                  min="1"
-                  max="200"
-                  className="h-9 w-16 text-center mx-1"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-8 p-0 opacity-50 hover:opacity-100"
-                  onClick={() => handleInputChange(setLessonPrice, lessonPrice, 1, 1, 200)}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
+              <Input
+                id="lesson-price"
+                type="number"
+                value={lessonPrice}
+                onChange={(e) => setLessonPrice(Number(e.target.value))}
+                min="1"
+                max="200"
+                className="h-9"
+              />
             </div>
             
             <div className="space-y-1">
               <Label htmlFor="lessons-week" className="text-sm">
                 Lessons per Week
               </Label>
-              <div className="flex items-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-8 p-0 opacity-50 hover:opacity-100"
-                  onClick={() => handleInputChange(setLessonsPerWeek, lessonsPerWeek, -1, 1, 50)}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <Input
-                  id="lessons-week"
-                  type="number"
-                  value={lessonsPerWeek}
-                  onChange={(e) => setLessonsPerWeek(Number(e.target.value))}
-                  min="1"
-                  max="50"
-                  className="h-9 w-16 text-center mx-1"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-8 p-0 opacity-50 hover:opacity-100"
-                  onClick={() => handleInputChange(setLessonsPerWeek, lessonsPerWeek, 1, 1, 50)}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
+              <Input
+                id="lessons-week"
+                type="number"
+                value={lessonsPerWeek}
+                onChange={(e) => setLessonsPerWeek(Number(e.target.value))}
+                min="1"
+                max="50"
+                className="h-9"
+              />
             </div>
           </div>
           
           {monthlySavings > 0 && (
             <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                  <span className="font-medium text-green-800 dark:text-green-200 text-sm">
-                    Monthly Savings
-                  </span>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-green-600">
-                    ${monthlySavings.toFixed(0)}
-                  </div>
-                  <div className="flex items-center gap-1 text-green-700 dark:text-green-300 text-sm">
-                    <Clock className="h-3 w-3" />
-                    <span>{timeSavings}min saved</span>
-                  </div>
-                </div>
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="h-4 w-4 text-green-600" />
+                <span className="font-medium text-green-800 dark:text-green-200 text-sm">
+                  Monthly Savings
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-green-600 mb-2">
+                ${monthlySavings.toFixed(0)}
+              </div>
+              <div className="flex items-center gap-1 text-green-700 dark:text-green-300">
+                <Clock className="h-3 w-3" />
+                <span className="text-sm">{timeSavings}min saved</span>
               </div>
             </div>
           )}

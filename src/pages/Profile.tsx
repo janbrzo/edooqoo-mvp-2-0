@@ -16,7 +16,7 @@ const Profile = () => {
   const { userId, loading } = useAnonymousAuth();
   const { profile, loading: profileLoading, refetch } = useProfile();
   const navigate = useNavigate();
-  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
+  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('60');
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
   const fullTimePlans = [
@@ -171,12 +171,6 @@ const Profile = () => {
     return monthlyLimit || 'Not set';
   };
 
-  const getRenewalInfo = () => {
-    if (subscriptionType === 'Free Demo') return null;
-    // This would need to come from actual subscription data
-    return 'Next billing: Jan 15, 2024';
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <div className="max-w-7xl mx-auto">
@@ -324,17 +318,10 @@ const Profile = () => {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Current Plan</span>
-                  <Badge variant="secondary" className="text-base px-3 py-1">
+                  <Badge variant="secondary">
                     {subscriptionType}
                   </Badge>
                 </div>
-                
-                {getRenewalInfo() && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Next Renewal</span>
-                    <span>{getRenewalInfo()}</span>
-                  </div>
-                )}
                 
                 {/* Upgrade Buttons Side by Side */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -347,10 +334,10 @@ const Profile = () => {
                           <p className="text-xs text-muted-foreground">15 worksheets/month</p>
                         </div>
                       </div>
-                    </div>
-                    <div className="text-center mb-3">
-                      <p className="text-lg font-bold">$9</p>
-                      <p className="text-xs text-muted-foreground">/month</p>
+                      <div className="text-right">
+                        <p className="text-lg font-bold">$9</p>
+                        <p className="text-xs text-muted-foreground">/month</p>
+                      </div>
                     </div>
                     <Button 
                       className="w-full" 
@@ -371,6 +358,10 @@ const Profile = () => {
                           <p className="text-xs text-muted-foreground">Choose worksheets/month</p>
                         </div>
                       </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold">${selectedPlan?.price}</p>
+                        <p className="text-xs text-muted-foreground">/month</p>
+                      </div>
                     </div>
                     
                     <div className="mb-3">
@@ -386,11 +377,6 @@ const Profile = () => {
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                    
-                    <div className="text-center mb-3">
-                      <p className="text-lg font-bold">${selectedPlan?.price}</p>
-                      <p className="text-xs text-muted-foreground">/month</p>
                     </div>
                     
                     <Button 
