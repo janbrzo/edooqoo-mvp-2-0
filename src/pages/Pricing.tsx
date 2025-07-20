@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -16,10 +17,11 @@ const Pricing = () => {
   const { tokenBalance } = useTokenSystem(userId);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30'); // Default to cheapest plan
+  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
+  const [hasManuallyChanged, setHasManuallyChanged] = useState(false);
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -34,8 +36,8 @@ const Pricing = () => {
     setRecommendedPlan(plan);
     setRecommendedWorksheets(worksheetsNeeded);
     
-    // Always auto-select the recommended Full-Time plan based on calculator
-    if (plan === 'full-time') {
+    // Only auto-select if user hasn't manually changed the plan
+    if (plan === 'full-time' && !hasManuallyChanged) {
       const recommendedPlanOption = fullTimePlans.find(p => parseInt(p.tokens) >= worksheetsNeeded);
       if (recommendedPlanOption) {
         setSelectedFullTimePlan(recommendedPlanOption.tokens);
@@ -45,6 +47,7 @@ const Pricing = () => {
 
   const handleManualPlanChange = (value: string) => {
     setSelectedFullTimePlan(value);
+    setHasManuallyChanged(true);
   };
 
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {

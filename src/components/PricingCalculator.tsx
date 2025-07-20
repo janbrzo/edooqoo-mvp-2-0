@@ -111,9 +111,9 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
               </Label>
               <div className="flex items-center gap-1">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="h-9 w-8 p-0 hover:bg-secondary"
+                  className="h-9 w-8 p-0 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
                   onClick={() => handleDecrement('prepTime')}
                 >
                   <Minus className="h-3 w-3" />
@@ -125,12 +125,12 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
                   onChange={(e) => setPrepTime(Math.max(1, Math.min(120, Number(e.target.value))))}
                   min="1"
                   max="120"
-                  className="h-9 w-16 text-center"
+                  className="h-9 w-14 text-center [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                 />
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="h-9 w-8 p-0 hover:bg-secondary"
+                  className="h-9 w-8 p-0 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
                   onClick={() => handleIncrement('prepTime')}
                 >
                   <Plus className="h-3 w-3" />
@@ -144,9 +144,9 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
               </Label>
               <div className="flex items-center gap-1">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="h-9 w-8 p-0 hover:bg-secondary"
+                  className="h-9 w-8 p-0 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
                   onClick={() => handleDecrement('lessonPrice')}
                 >
                   <Minus className="h-3 w-3" />
@@ -158,12 +158,12 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
                   onChange={(e) => setLessonPrice(Math.max(1, Math.min(200, Number(e.target.value))))}
                   min="1"
                   max="200"
-                  className="h-9 w-16 text-center"
+                  className="h-9 w-14 text-center [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                 />
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="h-9 w-8 p-0 hover:bg-secondary"
+                  className="h-9 w-8 p-0 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
                   onClick={() => handleIncrement('lessonPrice')}
                 >
                   <Plus className="h-3 w-3" />
@@ -177,9 +177,9 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
               </Label>
               <div className="flex items-center gap-1">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="h-9 w-8 p-0 hover:bg-secondary"
+                  className="h-9 w-8 p-0 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
                   onClick={() => handleDecrement('lessonsPerWeek')}
                 >
                   <Minus className="h-3 w-3" />
@@ -191,12 +191,12 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
                   onChange={(e) => setLessonsPerWeek(Math.max(1, Math.min(50, Number(e.target.value))))}
                   min="1"
                   max="50"
-                  className="h-9 w-16 text-center"
+                  className="h-9 w-14 text-center [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                 />
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="h-9 w-8 p-0 hover:bg-secondary"
+                  className="h-9 w-8 p-0 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
                   onClick={() => handleIncrement('lessonsPerWeek')}
                 >
                   <Plus className="h-3 w-3" />
@@ -215,12 +215,12 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="text-xl font-bold text-green-600">
+                  <div className="text-lg font-bold text-green-600">
                     ${monthlySavings.toFixed(0)}
                   </div>
                   <div className="flex items-center gap-1 text-green-700 dark:text-green-300">
                     <Clock className="h-3 w-3" />
-                    <span className="text-xl font-bold">{timeSavings}min</span>
+                    <span className="text-lg font-bold">{timeSavings}min</span>
                   </div>
                 </div>
               </div>

@@ -23,12 +23,17 @@ function WorksheetHeader({
     inputParams?.studentName || 
     (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('worksheetStudentName') : null);
 
+  const handleBack = () => {
+    // Use browser's back function instead of custom navigation
+    window.history.back();
+  };
+
   return (
-    <>
-      <Button variant="ghost" onClick={onBack} className="mb-4">
-        <ArrowLeft className="mr-2 h-4 w-4" /> Create New Worksheet
+    <div className="mb-6">
+      <Button variant="ghost" onClick={handleBack} className="mb-4">
+        <ArrowLeft className="mr-2 h-4 w-4" /> Back
       </Button>
-      <div className="bg-worksheet-purple rounded-lg p-6 mb-6">
+      <div className="bg-worksheet-purple rounded-lg p-6">
         <div className="flex flex-col md:flex-row justify-between">
           <div>
             <h1 className="mb-1 font-bald text-white text-2xl font-semibold">
@@ -54,7 +59,7 @@ function WorksheetHeader({
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
