@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -146,8 +145,8 @@ const Pricing = () => {
           <Card className={`relative ${recommendedPlan === 'demo' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'demo' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
-                  RECOMMENDED FOR YOU
+                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold whitespace-nowrap">
+                  RECOMMENDED
                 </Badge>
               </div>
             )}
@@ -198,8 +197,8 @@ const Pricing = () => {
           <Card className={`relative ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'side-gig' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
-                  RECOMMENDED FOR YOU
+                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold whitespace-nowrap">
+                  RECOMMENDED
                 </Badge>
               </div>
             )}
@@ -259,8 +258,8 @@ const Pricing = () => {
           <Card className={`relative ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'full-time' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
-                  RECOMMENDED FOR YOU
+                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold whitespace-nowrap">
+                  RECOMMENDED
                 </Badge>
               </div>
             )}
