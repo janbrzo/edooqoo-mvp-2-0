@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -31,16 +32,22 @@ const Dashboard = () => {
   const { tokenBalance } = useTokenSystem(userId);
   const navigate = useNavigate();
 
-  // Redirect to home if user is not authenticated
+  // Check if user is properly authenticated (not anonymous)
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!loading && !user) {
+      // Only redirect if completely unauthenticated (no user at all)
+      // Allow anonymous users to stay (they should have userId from useAnonymousAuth)
+      if (!loading && !user && !userId) {
+        navigate('/');
+      }
+      // If user exists but is anonymous and tries to access dashboard, redirect to home
+      else if (!loading && user?.is_anonymous) {
         navigate('/');
       }
     };
     checkAuth();
-  }, [loading, navigate]);
+  }, [loading, userId, navigate]);
 
   const handleForceNewWorksheet = () => {
     sessionStorage.setItem('forceNewWorksheet', 'true');
@@ -136,23 +143,9 @@ const Dashboard = () => {
     );
   }
 
-  // Check if user is authenticated via supabase auth
-  const checkAuthenticatedUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
-  };
-
-  // If no authenticated user, don't render dashboard content
-  React.useEffect(() => {
-    checkAuthenticatedUser().then(user => {
-      if (!user) {
-        navigate('/');
-      }
-    });
-  }, [navigate]);
-
+  // Don't render if user should be redirected
   if (!userId) {
-    return null; // Will redirect to home
+    return null;
   }
 
   const displayName = profile?.first_name || 'Teacher';

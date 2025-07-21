@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -23,11 +24,12 @@ const Pricing = () => {
   const [hasManuallyChanged, setHasManuallyChanged] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Check if user is authenticated
+  // Check if user is authenticated (not anonymous)
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      setIsAuthenticated(!!user);
+      // User is properly authenticated if they exist and are not anonymous
+      setIsAuthenticated(!!user && !user.is_anonymous);
     };
     checkAuth();
   }, []);
