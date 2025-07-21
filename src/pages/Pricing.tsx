@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -22,6 +21,16 @@ const Pricing = () => {
   const [recommendedPlan, setRecommendedPlan] = useState<'demo' | 'side-gig' | 'full-time'>('side-gig');
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
   const [hasManuallyChanged, setHasManuallyChanged] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Check if user is authenticated
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsAuthenticated(!!user);
+    };
+    checkAuth();
+  }, []);
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -86,27 +95,40 @@ const Pricing = () => {
                 Generator
               </Link>
             </Button>
-            <Button asChild variant="outline">
-              <Link to="/dashboard" className="flex items-center gap-2">
-                <GraduationCap className="h-4 w-4" />
-                Dashboard
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link to="/profile" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Profile
-              </Link>
-            </Button>
+            {isAuthenticated && (
+              <>
+                <Button asChild variant="outline">
+                  <Link to="/dashboard" className="flex items-center gap-2">
+                    <GraduationCap className="h-4 w-4" />
+                    Dashboard
+                  </Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link to="/profile" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Profile
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
           
-          {userId && (
+          {isAuthenticated ? (
             <div className="flex items-center gap-4">
               <Badge variant="outline" className="text-sm px-3 py-1">
                 Balance: {tokenBalance} tokens
               </Badge>
               <Button variant="outline" size="sm" onClick={handleManageSubscription}>
                 Manage Subscription
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button asChild variant="outline">
+                <Link to="/login">Log in</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/signup">Get Started</Link>
               </Button>
             </div>
           )}

@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +22,7 @@ import {
 } from 'lucide-react';
 import { deepFixTextObjects } from '@/utils/textObjectFixer';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { userId, loading } = useAnonymousAuth();
@@ -31,6 +31,17 @@ const Dashboard = () => {
   const { worksheets: allWorksheets, loading: worksheetsLoading, refetch: refetchWorksheets } = useWorksheetHistory();
   const { tokenBalance } = useTokenSystem(userId);
   const navigate = useNavigate();
+
+  // Redirect to home if user is not authenticated
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!loading && !user) {
+        navigate('/');
+      }
+    };
+    checkAuth();
+  }, [loading, navigate]);
 
   const handleForceNewWorksheet = () => {
     sessionStorage.setItem('forceNewWorksheet', 'true');
@@ -126,18 +137,23 @@ const Dashboard = () => {
     );
   }
 
+  // Check if user is authenticated via supabase auth
+  const checkAuthenticatedUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
+  };
+
+  // If no authenticated user, don't render dashboard content
+  React.useEffect(() => {
+    checkAuthenticatedUser().then(user => {
+      if (!user) {
+        navigate('/');
+      }
+    });
+  }, [navigate]);
+
   if (!userId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">Please sign in to access the dashboard.</p>
-          <Button asChild>
-            <Link to="/auth">Sign In</Link>
-          </Button>
-        </div>
-      </div>
-    );
+    return null; // Will redirect to home
   }
 
   const displayName = profile?.first_name || 'Teacher';

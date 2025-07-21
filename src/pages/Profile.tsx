@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,17 @@ const Profile = () => {
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
+
+  // Redirect to home if user is not authenticated
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!loading && !user) {
+        navigate('/');
+      }
+    };
+    checkAuth();
+  }, [loading, navigate]);
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -230,9 +241,22 @@ const Profile = () => {
     );
   }
 
+  // Additional check for authenticated user
+  const checkAuthenticatedUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
+  };
+
+  React.useEffect(() => {
+    checkAuthenticatedUser().then(user => {
+      if (!user) {
+        navigate('/');
+      }
+    });
+  }, [navigate]);
+
   if (!userId) {
-    navigate('/auth');
-    return null;
+    return null; // Will redirect to home
   }
 
   const displayName = profile?.first_name || 'Teacher';

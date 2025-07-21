@@ -30,7 +30,8 @@ const mainGoals = [
   { value: 'exam', label: 'Exam Preparation' },
   { value: 'general', label: 'General English' },
   { value: 'travel', label: 'Travel' },
-  { value: 'academic', label: 'Academic' }
+  { value: 'academic', label: 'Academic' },
+  { value: 'custom', label: 'Custom' }
 ];
 
 export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({
@@ -42,15 +43,19 @@ export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({
   const [name, setName] = useState(student.name);
   const [englishLevel, setEnglishLevel] = useState(student.english_level);
   const [mainGoal, setMainGoal] = useState(student.main_goal);
+  const [customGoal, setCustomGoal] = useState(
+    mainGoals.find(goal => goal.value === student.main_goal) ? '' : student.main_goal
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSave = async () => {
     setIsLoading(true);
     try {
+      const goalToSave = mainGoal === 'custom' ? customGoal : mainGoal;
       await onSave(student.id, {
         name,
         english_level: englishLevel,
-        main_goal: mainGoal
+        main_goal: goalToSave
       });
       onClose();
     } catch (error) {
@@ -65,6 +70,7 @@ export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({
     setName(student.name);
     setEnglishLevel(student.english_level);
     setMainGoal(student.main_goal);
+    setCustomGoal(mainGoals.find(goal => goal.value === student.main_goal) ? '' : student.main_goal);
     onClose();
   };
 
@@ -120,6 +126,18 @@ export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({
               </SelectContent>
             </Select>
           </div>
+
+          {mainGoal === 'custom' && (
+            <div className="grid gap-2">
+              <Label htmlFor="custom-goal">Custom Goal</Label>
+              <Input
+                id="custom-goal"
+                value={customGoal}
+                onChange={(e) => setCustomGoal(e.target.value)}
+                placeholder="Enter custom goal"
+              />
+            </div>
+          )}
         </div>
         
         <DialogFooter>
