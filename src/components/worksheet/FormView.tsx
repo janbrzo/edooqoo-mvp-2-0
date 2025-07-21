@@ -28,34 +28,6 @@ const FormView: React.FC<FormViewProps> = ({
 
   return (
     <TrackingFormWrapper userId={userId}>
-      {/* Header with auth buttons */}
-      <div className="absolute top-4 right-4 z-20 flex gap-2">
-        {!isRegisteredUser ? (
-          <>
-            <Button asChild variant="outline">
-              <Link to="/auth">Sign In</Link>
-            </Button>
-            <Button asChild>
-              <Link to="/auth">Register</Link>
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button asChild variant="outline" size="icon">
-              <Link to="/profile">
-                <User className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link to="/dashboard">
-                <GraduationCap className="h-4 w-4 mr-2" />
-                Dashboard
-              </Link>
-            </Button>
-          </>
-        )}
-      </div>
-      
       <div className={`${isMobile ? 'w-full min-h-screen' : 'container mx-auto'} flex main-container relative`}>
         {/* Izometryczne tło - tylko na desktop */}
         {!isMobile && <IsometricBackground />}

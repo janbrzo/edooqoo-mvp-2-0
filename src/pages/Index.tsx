@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuthFlow } from "@/hooks/useAuthFlow";
@@ -7,6 +8,7 @@ import { useTokenSystem } from "@/hooks/useTokenSystem";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import GeneratingModal from "@/components/GeneratingModal";
 import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";
@@ -26,6 +28,9 @@ const Index = () => {
   const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(user?.id || null, worksheetState, selectedStudentId);
   const { tokenBalance, hasTokens, isDemo } = useTokenSystem(user?.id || null);
   const [showTokenModal, setShowTokenModal] = useState(false);
+  const [recommendedPlan, setRecommendedPlan] = useState<'demo' | 'side-gig' | 'full-time'>('side-gig');
+  const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
+  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
 
   // Check for pre-selected student from student page
   useEffect(() => {
@@ -117,18 +122,57 @@ const Index = () => {
     generateWorksheetHandler(data);
   };
 
+  const handleRecommendation = (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => {
+    const finalPlan = worksheetsNeeded <= 2 ? 'demo' : plan;
+    setRecommendedPlan(finalPlan);
+    setRecommendedWorksheets(worksheetsNeeded);
+    
+    // Auto-select appropriate full-time plan based on recommendation
+    if (plan === 'full-time') {
+      if (worksheetsNeeded <= 30) {
+        setSelectedFullTimePlan('30');
+      } else if (worksheetsNeeded <= 60) {
+        setSelectedFullTimePlan('60');
+      } else if (worksheetsNeeded <= 90) {
+        setSelectedFullTimePlan('90');
+      } else {
+        setSelectedFullTimePlan('120');
+      }
+    }
+  };
+
+  const fullTimePlans = [
+    { tokens: '30', price: 19 },
+    { tokens: '60', price: 39 },
+    { tokens: '90', price: 59 },
+    { tokens: '120', price: 79 }
+  ];
+
+  const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
+
+  const handleFullTimePlanSelection = () => {
+    window.location.href = `/auth?plan=full-time-${selectedFullTimePlan}`;
+  };
+
   // For Teachers section with integrated pricing calculator
   const ForTeachersSection = () => (
     <div className="bg-gradient-to-br from-primary/5 to-secondary/10 py-16 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Pricing Calculator with solid white background */}
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 mb-8">
-          <PricingCalculator onRecommendation={() => {}} />
+          <PricingCalculator onRecommendation={handleRecommendation} />
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {/* Free Demo */}
-          <Card className="relative border-2 hover:border-primary/50 transition-colors">
+          <Card className={`relative border-2 hover:border-primary/50 transition-colors ${recommendedPlan === 'demo' ? 'border-primary shadow-lg' : ''}`}>
+            {recommendedPlan === 'demo' && (
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
+                  RECOMMENDED FOR YOU
+                </Badge>
+              </div>
+            )}
             <CardHeader className="text-center pb-6">
               <CardTitle className="flex items-center justify-center gap-2 mb-2">
                 <CheckCircle className="h-5 w-5 text-green-500" />
@@ -148,7 +192,14 @@ const Index = () => {
           </Card>
 
           {/* Side-Gig Plan */}
-          <Card className="relative border-2 hover:border-primary/50 transition-colors">
+          <Card className={`relative border-2 hover:border-primary/50 transition-colors ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
+            {recommendedPlan === 'side-gig' && (
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
+                  RECOMMENDED FOR YOU
+                </Badge>
+              </div>
+            )}
             <CardHeader className="text-center pb-6">
               <CardTitle className="flex items-center justify-center gap-2 mb-2">
                 <Users className="h-5 w-5 text-primary" />
@@ -169,12 +220,14 @@ const Index = () => {
           </Card>
 
           {/* Full-Time Plan with dropdown */}
-          <Card className="relative border-2 border-primary shadow-lg">
-            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-              <Badge className="bg-primary text-primary-foreground px-3 py-1">
-                MOST POPULAR
-              </Badge>
-            </div>
+          <Card className={`relative border-2 ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : 'hover:border-primary/50 transition-colors'}`}>
+            {recommendedPlan === 'full-time' && (
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
+                  RECOMMENDED FOR YOU
+                </Badge>
+              </div>
+            )}
             <CardHeader className="text-center pb-6">
               <CardTitle className="flex items-center justify-center gap-2 mb-2">
                 <Zap className="h-5 w-5 text-primary" />
@@ -188,30 +241,23 @@ const Index = () => {
               
               {/* Dropdown selection */}
               <div className="mt-4">
-                <select 
-                  className="w-full p-2 border rounded-lg bg-background"
-                  defaultValue="30"
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    const plans = {
-                      '30': 'full-time-30',
-                      '60': 'full-time-60', 
-                      '90': 'full-time-90',
-                      '120': 'full-time-120'
-                    };
-                    window.location.href = `/auth?plan=${plans[value as keyof typeof plans]}`;
-                  }}
-                >
-                  <option value="30">30 worksheets/month - $19</option>
-                  <option value="60">60 worksheets/month - $39</option>
-                  <option value="90">90 worksheets/month - $59</option>
-                  <option value="120">120 worksheets/month - $79</option>
-                </select>
+                <Select value={selectedFullTimePlan} onValueChange={setSelectedFullTimePlan}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-800 z-50">
+                    {fullTimePlans.map((plan) => (
+                      <SelectItem key={plan.tokens} value={plan.tokens}>
+                        {plan.tokens} worksheets/month - ${plan.price}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </CardHeader>
             <CardContent className="text-center">
-              <Button asChild className="w-full">
-                <Link to="/auth?plan=full-time">Choose Full-Time</Link>
+              <Button className="w-full" onClick={handleFullTimePlanSelection}>
+                Choose Full-Time
               </Button>
             </CardContent>
           </Card>
