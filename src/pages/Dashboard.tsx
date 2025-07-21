@@ -21,7 +21,6 @@ import {
   Coins
 } from 'lucide-react';
 import { deepFixTextObjects } from '@/utils/textObjectFixer';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
