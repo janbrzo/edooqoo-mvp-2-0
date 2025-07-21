@@ -1,11 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
+import { CheckCircle, Users, Zap, ArrowLeft } from 'lucide-react';
+
+type PlanType = 'demo' | 'side-gig' | 'full-time' | null;
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -13,29 +18,107 @@ const Auth = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [schoolInstitution, setSchoolInstitution] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>(null);
+  const [step, setStep] = useState<'plan' | 'auth'>('plan');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     // Check if user is already logged in
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+      if (session && !session.user.is_anonymous) {
         navigate('/dashboard');
       }
     };
     checkUser();
 
+    // Check for plan from URL params
+    const planFromUrl = searchParams.get('plan') as PlanType;
+    if (planFromUrl) {
+      setSelectedPlan(planFromUrl);
+      setStep('auth');
+    }
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
+      if (session && !session.user.is_anonymous) {
+        // Add tokens for demo users after successful registration
+        if (selectedPlan === 'demo' && event === 'SIGNED_UP') {
+          setTimeout(async () => {
+            try {
+              const { error } = await supabase.functions.invoke('add-tokens', {
+                body: { amount: 2, description: 'Welcome bonus for Free Demo account' }
+              });
+              if (error) {
+                console.error('Error adding welcome tokens:', error);
+              } else {
+                toast({
+                  title: "Welcome!",
+                  description: "Your account has been created and you've received 2 free tokens to get started.",
+                });
+              }
+            } catch (error) {
+              console.error('Error adding welcome tokens:', error);
+            }
+          }, 1000);
+        }
         navigate('/dashboard');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, selectedPlan]);
+
+  const handlePlanSelection = async (plan: PlanType) => {
+    setSelectedPlan(plan);
+    
+    if (plan === 'demo') {
+      setStep('auth');
+    } else {
+      // For paid plans, redirect to Stripe first
+      try {
+        setLoading(true);
+        const planData = plan === 'side-gig' 
+          ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
+          : { name: 'Full-Time Plan (30 worksheets)', price: 19, tokens: 30 };
+
+        const { data, error } = await supabase.functions.invoke('create-subscription', {
+          body: {
+            planType: plan,
+            monthlyLimit: planData.tokens,
+            price: planData.price,
+            planName: planData.name,
+            redirectToRegistration: true
+          }
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        if (data?.url) {
+          // Store plan info for after payment
+          sessionStorage.setItem('pendingPlan', plan);
+          window.location.href = data.url;
+        }
+      } catch (error: any) {
+        console.error('Payment initiation error:', error);
+        toast({
+          title: "Payment Error",
+          description: "There was an issue setting up your subscription. You can still register for Free Demo.",
+          variant: "destructive"
+        });
+        // Fallback to demo plan
+        setSelectedPlan('demo');
+        setStep('auth');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +135,8 @@ const Auth = () => {
           data: {
             first_name: firstName,
             last_name: lastName,
-            school_institution: schoolInstitution
+            school_institution: schoolInstitution,
+            account_type: selectedPlan
           }
         }
       });
@@ -64,6 +148,7 @@ const Auth = () => {
             description: "This email is already registered. Please sign in instead.",
             variant: "destructive"
           });
+          setIsSignUp(false);
         } else {
           throw error;
         }
@@ -116,14 +201,142 @@ const Auth = () => {
     }
   };
 
+  const PlanSelection = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold mb-2">Choose Your Plan</h2>
+        <p className="text-muted-foreground">Select the plan that works best for you</p>
+      </div>
+
+      <div className="grid gap-4">
+        {/* Free Demo */}
+        <Card 
+          className={`cursor-pointer transition-all hover:border-primary/50 ${
+            selectedPlan === 'demo' ? 'border-primary shadow-lg' : ''
+          }`}
+          onClick={() => handlePlanSelection('demo')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <CardTitle className="text-lg">Free Demo</CardTitle>
+            </div>
+            <Badge variant="secondary">2 worksheets</Badge>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-2xl font-bold">Free</p>
+                <p className="text-sm text-muted-foreground">Try it out</p>
+              </div>
+              <Button variant="outline" disabled={loading}>
+                {loading && selectedPlan === 'demo' ? 'Loading...' : 'Start Free'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Side-Gig Plan */}
+        <Card 
+          className={`cursor-pointer transition-all hover:border-primary/50 ${
+            selectedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''
+          }`}
+          onClick={() => handlePlanSelection('side-gig')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Side-Gig Plan</CardTitle>
+            </div>
+            <Badge variant="secondary">15 worksheets/month</Badge>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-2xl font-bold">$9<span className="text-lg text-muted-foreground">/month</span></p>
+                <p className="text-sm text-muted-foreground">Part-time teaching</p>
+              </div>
+              <Button disabled={loading}>
+                {loading && selectedPlan === 'side-gig' ? 'Processing...' : 'Choose Plan'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Full-Time Plan */}
+        <Card 
+          className={`cursor-pointer transition-all hover:border-primary/50 ${
+            selectedPlan === 'full-time' ? 'border-primary shadow-lg' : ''
+          }`}
+          onClick={() => handlePlanSelection('full-time')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Full-Time Plan</CardTitle>
+              <Badge className="ml-2">Popular</Badge>
+            </div>
+            <Badge variant="secondary">30+ worksheets/month</Badge>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-2xl font-bold">From $19<span className="text-lg text-muted-foreground">/month</span></p>
+                <p className="text-sm text-muted-foreground">Professional teaching</p>
+              </div>
+              <Button disabled={loading}>
+                {loading && selectedPlan === 'full-time' ? 'Processing...' : 'Choose Plan'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="text-center">
+        <Button variant="ghost" onClick={() => navigate('/')}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Generator
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (step === 'plan') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 p-4">
+        <Card className="w-full max-w-2xl">
+          <CardContent className="p-6">
+            <PlanSelection />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>{isSignUp ? 'Create Account' : 'Sign In'}</CardTitle>
-          <CardDescription>
-            {isSignUp ? 'Register for your teacher account' : 'Welcome back! Please sign in to continue.'}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>{isSignUp ? 'Create Account' : 'Sign In'}</CardTitle>
+              <CardDescription>
+                {selectedPlan && (
+                  <Badge variant="outline" className="mt-2">
+                    {selectedPlan === 'demo' ? 'Free Demo' : 
+                     selectedPlan === 'side-gig' ? 'Side-Gig Plan' : 'Full-Time Plan'}
+                  </Badge>
+                )}
+              </CardDescription>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setStep('plan')}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-4">
