@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuthFlow } from "@/hooks/useAuthFlow";
@@ -14,7 +15,7 @@ import GenerationView from "@/components/worksheet/GenerationView";
 import { TokenPaywallModal } from "@/components/TokenPaywallModal";
 import { PricingCalculator } from "@/components/PricingCalculator";
 import { deepFixTextObjects } from "@/utils/textObjectFixer";
-import { User, GraduationCap, Zap, Users, CheckCircle, Check } from "lucide-react";
+import { User, GraduationCap, Zap, Users, CheckCircle } from "lucide-react";
 
 /**
  * Main Index page component that handles worksheet generation and display
@@ -30,7 +31,6 @@ const Index = () => {
   const [recommendedPlan, setRecommendedPlan] = useState<'demo' | 'side-gig' | 'full-time'>('side-gig');
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
-  const [hasManuallyChanged, setHasManuallyChanged] = useState(false);
 
   // Check for pre-selected student from student page
   useEffect(() => {
@@ -127,24 +127,18 @@ const Index = () => {
     setRecommendedPlan(finalPlan);
     setRecommendedWorksheets(worksheetsNeeded);
     
-    // Only auto-select if user hasn't manually changed the plan
-    if (plan === 'full-time' && !hasManuallyChanged) {
-      const fullTimePlans = [
-        { tokens: '30', price: 19 },
-        { tokens: '60', price: 39 },
-        { tokens: '90', price: 59 },
-        { tokens: '120', price: 79 }
-      ];
-      const recommendedPlanOption = fullTimePlans.find(p => parseInt(p.tokens) >= worksheetsNeeded);
-      if (recommendedPlanOption) {
-        setSelectedFullTimePlan(recommendedPlanOption.tokens);
+    // Auto-select appropriate full-time plan based on recommendation
+    if (plan === 'full-time') {
+      if (worksheetsNeeded <= 30) {
+        setSelectedFullTimePlan('30');
+      } else if (worksheetsNeeded <= 60) {
+        setSelectedFullTimePlan('60');
+      } else if (worksheetsNeeded <= 90) {
+        setSelectedFullTimePlan('90');
+      } else {
+        setSelectedFullTimePlan('120');
       }
     }
-  };
-
-  const handleManualPlanChange = (value: string) => {
-    setSelectedFullTimePlan(value);
-    setHasManuallyChanged(true);
   };
 
   const fullTimePlans = [
@@ -160,18 +154,18 @@ const Index = () => {
     window.location.href = `/auth?plan=full-time-${selectedFullTimePlan}`;
   };
 
-  // For Teachers section with integrated pricing calculator (same as /pricing page)
+  // For Teachers section with integrated pricing calculator
   const ForTeachersSection = () => (
     <div className="bg-gradient-to-br from-primary/5 to-secondary/10 py-16 px-4">
       <div className="max-w-6xl mx-auto">
-        {/* Pricing Calculator */}
-        <PricingCalculator onRecommendation={handleRecommendation} />
+        {/* Pricing Calculator with solid white background */}
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 mb-8">
+          <PricingCalculator onRecommendation={handleRecommendation} />
+        </div>
 
-        {/* Pricing Cards - identical to /pricing page */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          
-          {/* Free Demo Plan */}
-          <Card className={`relative ${recommendedPlan === 'demo' ? 'border-primary shadow-lg' : ''}`}>
+        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          {/* Free Demo */}
+          <Card className={`relative border-2 hover:border-primary/50 transition-colors ${recommendedPlan === 'demo' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'demo' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
@@ -179,47 +173,26 @@ const Index = () => {
                 </Badge>
               </div>
             )}
-            
             <CardHeader className="text-center pb-6">
-              <div className="flex items-center justify-center gap-2 mb-2">
+              <CardTitle className="flex items-center justify-center gap-2 mb-2">
                 <CheckCircle className="h-5 w-5 text-green-500" />
-                <CardTitle className="text-xl">Free Demo</CardTitle>
-              </div>
-              <CardDescription className="text-base">
-                Try it out with limited features
-              </CardDescription>
+                Free Demo
+              </CardTitle>
+              <CardDescription>Try it out with limited features</CardDescription>
               <div className="mt-4">
-                <span className="text-4xl font-bold">Free</span>
+                <span className="text-3xl font-bold">Free</span>
               </div>
-              <div className="mt-2">
-                <Badge variant="secondary">2 worksheets to try</Badge>
-              </div>
+              <Badge variant="secondary">2 worksheets to try</Badge>
             </CardHeader>
-            
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">2 worksheet credits</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Basic features</span>
-                </div>
-              </div>
-              
-              <Button asChild className="w-full h-10">
+            <CardContent className="text-center">
+              <Button asChild className="w-full">
                 <Link to="/auth?plan=demo">Start Free Demo</Link>
               </Button>
             </CardContent>
           </Card>
-          
+
           {/* Side-Gig Plan */}
-          <Card className={`relative ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
+          <Card className={`relative border-2 hover:border-primary/50 transition-colors ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'side-gig' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
@@ -227,56 +200,27 @@ const Index = () => {
                 </Badge>
               </div>
             )}
-            
             <CardHeader className="text-center pb-6">
-              <div className="flex items-center justify-center gap-2 mb-2">
+              <CardTitle className="flex items-center justify-center gap-2 mb-2">
                 <Users className="h-5 w-5 text-primary" />
-                <CardTitle className="text-xl">Side-Gig Plan</CardTitle>
-              </div>
-              <CardDescription className="text-base">
-                Perfect for part-time English teachers
-              </CardDescription>
+                Side-Gig Plan
+              </CardTitle>
+              <CardDescription>Perfect for part-time teachers</CardDescription>
               <div className="mt-4">
-                <span className="text-4xl font-bold">$9</span>
+                <span className="text-3xl font-bold">$9</span>
                 <span className="text-lg text-muted-foreground">/month</span>
               </div>
-              <div className="mt-2">
-                <Badge variant="secondary">15 worksheets / month</Badge>
-              </div>
+              <Badge variant="secondary">15 worksheets/month</Badge>
             </CardHeader>
-            
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">15 monthly worksheet credits</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Student management</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Export to HTML & PDF</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Email support</span>
-                </div>
-              </div>
-              
-              <Button asChild className="w-full h-10">
+            <CardContent className="text-center">
+              <Button asChild className="w-full">
                 <Link to="/auth?plan=side-gig">Choose Side-Gig</Link>
               </Button>
             </CardContent>
           </Card>
 
-          {/* Full-Time Plan */}
-          <Card className={`relative ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : ''}`}>
+          {/* Full-Time Plan with dropdown */}
+          <Card className={`relative border-2 ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : 'hover:border-primary/50 transition-colors'}`}>
             {recommendedPlan === 'full-time' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
@@ -284,73 +228,35 @@ const Index = () => {
                 </Badge>
               </div>
             )}
-            
             <CardHeader className="text-center pb-6">
-              <div className="flex items-center justify-center gap-2 mb-2">
+              <CardTitle className="flex items-center justify-center gap-2 mb-2">
                 <Zap className="h-5 w-5 text-primary" />
-                <CardTitle className="text-xl">Full-Time Plan</CardTitle>
+                Full-Time Plan
+              </CardTitle>
+              <CardDescription>For professional teachers</CardDescription>
+              <div className="mt-4">
+                <span className="text-3xl font-bold">From $19</span>
+                <span className="text-lg text-muted-foreground">/month</span>
               </div>
-              <CardDescription className="text-base">
-                For professional English teachers
-              </CardDescription>
               
-              {/* Dropdown for token selection */}
-              <div className="mt-4 space-y-3">
-                <Select value={selectedFullTimePlan} onValueChange={handleManualPlanChange}>
+              {/* Dropdown selection */}
+              <div className="mt-4">
+                <Select value={selectedFullTimePlan} onValueChange={setSelectedFullTimePlan}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-800 z-50">
                     {fullTimePlans.map((plan) => (
                       <SelectItem key={plan.tokens} value={plan.tokens}>
-                        {plan.tokens} worksheets/month
+                        {plan.tokens} worksheets/month - ${plan.price}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                
-                <div className="text-center">
-                  <span className="text-4xl font-bold">${selectedPlan?.price}</span>
-                  <span className="text-lg text-muted-foreground">/month</span>
-                </div>
-                <div>
-                  <Badge variant="secondary">{selectedFullTimePlan} worksheets / month</Badge>
-                </div>
               </div>
             </CardHeader>
-            
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">{selectedFullTimePlan} monthly worksheet credits</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Unlimited student management</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Export to HTML & PDF</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Priority email support</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Advanced analytics</span>
-                </div>
-              </div>
-              
-              <Button 
-                className="w-full h-10 bg-primary hover:bg-primary/90" 
-                onClick={handleFullTimePlanSelection}
-              >
+            <CardContent className="text-center">
+              <Button className="w-full" onClick={handleFullTimePlanSelection}>
                 Choose Full-Time
               </Button>
             </CardContent>
