@@ -121,25 +121,21 @@ const Index = () => {
   // Navigation component for authenticated users
   const AuthenticatedNav = () => (
     <div className="fixed top-4 right-4 z-10 flex items-center gap-4">
-      {isRegisteredUser && (
-        <>
-          <Badge variant="outline" className="text-sm">
-            Balance: {tokenBalance} tokens
-          </Badge>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/dashboard">
-              <GraduationCap className="h-4 w-4 mr-2" />
-              Dashboard
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/profile">
-              <User className="h-4 w-4 mr-2" />
-              Profile
-            </Link>
-          </Button>
-        </>
-      )}
+      <Badge variant="outline" className="text-sm">
+        Balance: {tokenBalance} tokens
+      </Badge>
+      <Button asChild variant="outline" size="sm">
+        <Link to="/dashboard">
+          <GraduationCap className="h-4 w-4 mr-2" />
+          Dashboard
+        </Link>
+      </Button>
+      <Button asChild variant="outline" size="sm">
+        <Link to="/profile">
+          <User className="h-4 w-4 mr-2" />
+          Profile
+        </Link>
+      </Button>
     </div>
   );
 
@@ -159,17 +155,12 @@ const Index = () => {
   const ForTeachersSection = () => (
     <div className="bg-gradient-to-br from-primary/5 to-secondary/10 py-16 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">For Teachers</h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Calculate your savings and choose your perfect plan to start creating professional worksheets
-          </p>
+        {/* Pricing Calculator with solid background */}
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 mb-8">
+          <PricingCalculator onRecommendation={() => {}} />
         </div>
 
-        {/* Pricing Calculator */}
-        <PricingCalculator onRecommendation={() => {}} />
-
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mt-8">
+        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {/* Free Demo */}
           <Card className="relative border-2 hover:border-primary/50 transition-colors">
             <CardHeader className="text-center pb-6">
@@ -211,7 +202,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          {/* Full-Time Plan */}
+          {/* Full-Time Plan with dropdown */}
           <Card className="relative border-2 border-primary shadow-lg">
             <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
               <Badge className="bg-primary text-primary-foreground px-3 py-1">
@@ -228,7 +219,34 @@ const Index = () => {
                 <span className="text-3xl font-bold">From $19</span>
                 <span className="text-lg text-muted-foreground">/month</span>
               </div>
-              <Badge variant="secondary">30-120 worksheets/month</Badge>
+              
+              {/* Dropdown options */}
+              <div className="space-y-2 mt-4">
+                <div className="p-2 border rounded-lg hover:bg-primary/5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">30 worksheets/month</span>
+                    <span className="font-bold">$19</span>
+                  </div>
+                </div>
+                <div className="p-2 border rounded-lg hover:bg-primary/5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">60 worksheets/month</span>
+                    <span className="font-bold">$39</span>
+                  </div>
+                </div>
+                <div className="p-2 border rounded-lg hover:bg-primary/5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">90 worksheets/month</span>
+                    <span className="font-bold">$59</span>
+                  </div>
+                </div>
+                <div className="p-2 border rounded-lg hover:bg-primary/5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">120 worksheets/month</span>
+                    <span className="font-bold">$79</span>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="text-center">
               <Button asChild className="w-full">

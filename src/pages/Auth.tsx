@@ -201,6 +201,16 @@ const Auth = () => {
     }
   };
 
+  const handleBackClick = () => {
+    // If we came from a URL with a plan parameter, go back to previous page
+    if (searchParams.get('plan')) {
+      navigate(-1);
+    } else {
+      // Otherwise, show plan selection
+      setStep('plan');
+    }
+  };
+
   const PlanSelection = () => (
     <div className="space-y-6">
       <div className="text-center mb-8">
@@ -332,7 +342,7 @@ const Auth = () => {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => setStep('plan')}
+              onClick={handleBackClick}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
