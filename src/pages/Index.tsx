@@ -6,16 +6,13 @@ import { useWorksheetState } from "@/hooks/useWorksheetState";
 import { useWorksheetGeneration } from "@/hooks/useWorksheetGeneration";
 import { useTokenSystem } from "@/hooks/useTokenSystem";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import GeneratingModal from "@/components/GeneratingModal";
 import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";
 import { TokenPaywallModal } from "@/components/TokenPaywallModal";
-import { PricingCalculator } from "@/components/PricingCalculator";
 import { deepFixTextObjects } from "@/utils/textObjectFixer";
-import { User, GraduationCap, Zap, Users, CheckCircle } from "lucide-react";
+import { User, GraduationCap } from "lucide-react";
 
 /**
  * Main Index page component that handles worksheet generation and display
@@ -28,9 +25,6 @@ const Index = () => {
   const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(user?.id || null, worksheetState, selectedStudentId);
   const { tokenBalance, hasTokens, isDemo } = useTokenSystem(user?.id || null);
   const [showTokenModal, setShowTokenModal] = useState(false);
-  const [recommendedPlan, setRecommendedPlan] = useState<'demo' | 'side-gig' | 'full-time'>('side-gig');
-  const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
-  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
 
   // Check for pre-selected student from student page
   useEffect(() => {
@@ -108,7 +102,6 @@ const Index = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin h-8 w-8 border-4 border-worksheet-purple border-t-transparent rounded-full"></div>
-      </div>
     );
   }
 
@@ -122,153 +115,9 @@ const Index = () => {
     generateWorksheetHandler(data);
   };
 
-  const handleRecommendation = (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => {
-    const finalPlan = worksheetsNeeded <= 2 ? 'demo' : plan;
-    setRecommendedPlan(finalPlan);
-    setRecommendedWorksheets(worksheetsNeeded);
-    
-    // Auto-select appropriate full-time plan based on recommendation
-    if (plan === 'full-time') {
-      if (worksheetsNeeded <= 30) {
-        setSelectedFullTimePlan('30');
-      } else if (worksheetsNeeded <= 60) {
-        setSelectedFullTimePlan('60');
-      } else if (worksheetsNeeded <= 90) {
-        setSelectedFullTimePlan('90');
-      } else {
-        setSelectedFullTimePlan('120');
-      }
-    }
-  };
-
-  const fullTimePlans = [
-    { tokens: '30', price: 19 },
-    { tokens: '60', price: 39 },
-    { tokens: '90', price: 59 },
-    { tokens: '120', price: 79 }
-  ];
-
-  const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
-
-  const handleFullTimePlanSelection = () => {
-    window.location.href = `/auth?plan=full-time-${selectedFullTimePlan}`;
-  };
-
-  // For Teachers section with integrated pricing calculator
-  const ForTeachersSection = () => (
-    <div className="bg-gradient-to-br from-primary/5 to-secondary/10 py-16 px-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Pricing Calculator with solid white background */}
-        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 mb-8">
-          <PricingCalculator onRecommendation={handleRecommendation} />
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {/* Free Demo */}
-          <Card className={`relative border-2 hover:border-primary/50 transition-colors ${recommendedPlan === 'demo' ? 'border-primary shadow-lg' : ''}`}>
-            {recommendedPlan === 'demo' && (
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
-                  RECOMMENDED FOR YOU
-                </Badge>
-              </div>
-            )}
-            <CardHeader className="text-center pb-6">
-              <CardTitle className="flex items-center justify-center gap-2 mb-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                Free Demo
-              </CardTitle>
-              <CardDescription>Try it out with limited features</CardDescription>
-              <div className="mt-4">
-                <span className="text-3xl font-bold">Free</span>
-              </div>
-              <Badge variant="secondary">2 worksheets to try</Badge>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button asChild className="w-full">
-                <Link to="/auth?plan=demo">Start Free Demo</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Side-Gig Plan */}
-          <Card className={`relative border-2 hover:border-primary/50 transition-colors ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
-            {recommendedPlan === 'side-gig' && (
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
-                  RECOMMENDED FOR YOU
-                </Badge>
-              </div>
-            )}
-            <CardHeader className="text-center pb-6">
-              <CardTitle className="flex items-center justify-center gap-2 mb-2">
-                <Users className="h-5 w-5 text-primary" />
-                Side-Gig Plan
-              </CardTitle>
-              <CardDescription>Perfect for part-time teachers</CardDescription>
-              <div className="mt-4">
-                <span className="text-3xl font-bold">$9</span>
-                <span className="text-lg text-muted-foreground">/month</span>
-              </div>
-              <Badge variant="secondary">15 worksheets/month</Badge>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button asChild className="w-full">
-                <Link to="/auth?plan=side-gig">Choose Side-Gig</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Full-Time Plan with dropdown */}
-          <Card className={`relative border-2 ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : 'hover:border-primary/50 transition-colors'}`}>
-            {recommendedPlan === 'full-time' && (
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
-                  RECOMMENDED FOR YOU
-                </Badge>
-              </div>
-            )}
-            <CardHeader className="text-center pb-6">
-              <CardTitle className="flex items-center justify-center gap-2 mb-2">
-                <Zap className="h-5 w-5 text-primary" />
-                Full-Time Plan
-              </CardTitle>
-              <CardDescription>For professional teachers</CardDescription>
-              <div className="mt-4">
-                <span className="text-3xl font-bold">From $19</span>
-                <span className="text-lg text-muted-foreground">/month</span>
-              </div>
-              
-              {/* Dropdown selection */}
-              <div className="mt-4">
-                <Select value={selectedFullTimePlan} onValueChange={setSelectedFullTimePlan}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 z-50">
-                    {fullTimePlans.map((plan) => (
-                      <SelectItem key={plan.tokens} value={plan.tokens}>
-                        {plan.tokens} worksheets/month - ${plan.price}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button className="w-full" onClick={handleFullTimePlanSelection}>
-                Choose Full-Time
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-
   // Navigation component for authenticated users
   const AuthenticatedNav = () => (
-    <div className="fixed top-4 right-4 z-10 flex items-center gap-4">
+    <div className="fixed top-4 right-4 z-50 flex items-center gap-4">
       <Badge variant="outline" className="text-sm">
         Balance: {tokenBalance} tokens
       </Badge>
@@ -289,12 +138,12 @@ const Index = () => {
 
   // Navigation component for anonymous users
   const AnonymousNav = () => (
-    <div className="fixed top-4 right-4 z-10 flex items-center gap-2">
+    <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
       <Button asChild variant="outline" size="sm">
-        <Link to="/auth">Sign In</Link>
+        <Link to="/auth?mode=login">Log in</Link>
       </Button>
       <Button asChild size="sm">
-        <Link to="/auth">Register</Link>
+        <Link to="/auth">Get started</Link>
       </Button>
     </div>
   );
@@ -305,18 +154,13 @@ const Index = () => {
       {isRegisteredUser ? <AuthenticatedNav /> : <AnonymousNav />}
       
       {!bothWorksheetsReady ? (
-        <div className="space-y-0">
-          <FormView 
-            onSubmit={handleGenerateWorksheet} 
-            userId={user?.id || null} 
-            onStudentChange={setSelectedStudentId}
-            preSelectedStudent={preSelectedStudent}
-            isRegisteredUser={!!isRegisteredUser}
-          />
-          
-          {/* Show For Teachers section for anonymous users */}
-          {!isRegisteredUser && <ForTeachersSection />}
-        </div>
+        <FormView 
+          onSubmit={handleGenerateWorksheet} 
+          userId={user?.id || null} 
+          onStudentChange={setSelectedStudentId}
+          preSelectedStudent={preSelectedStudent}
+          isRegisteredUser={!!isRegisteredUser}
+        />
       ) : (
         <GenerationView 
           worksheetId={worksheetState.worksheetId}

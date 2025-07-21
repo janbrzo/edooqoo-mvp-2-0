@@ -39,6 +39,14 @@ const Auth = () => {
     if (planFromUrl) {
       setSelectedPlan(planFromUrl);
       setStep('auth');
+      setIsSignUp(true); // Default to sign up for plan selection
+    } else {
+      // If no plan specified, check if this is a login request
+      const isLogin = searchParams.get('mode') === 'login';
+      if (isLogin) {
+        setStep('auth');
+        setIsSignUp(false); // Show login form
+      }
     }
 
     // Listen for auth changes
@@ -49,7 +57,7 @@ const Auth = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, selectedPlan]);
+  }, [navigate, searchParams]);
 
   const handlePlanSelection = async (plan: PlanType) => {
     setSelectedPlan(plan);
@@ -329,7 +337,7 @@ const Auth = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>{isSignUp ? 'Create Account' : 'Sign In'}</CardTitle>
+              <CardTitle>{isSignUp ? 'Create Account' : 'Log In'}</CardTitle>
               <CardDescription>
                 {selectedPlan && (
                   <Badge variant="outline" className="mt-2">
@@ -408,7 +416,7 @@ const Auth = () => {
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
+              {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Log In')}
             </Button>
           </form>
 
@@ -418,7 +426,7 @@ const Auth = () => {
               className="text-sm text-primary hover:underline"
               onClick={() => setIsSignUp(!isSignUp)}
             >
-              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+              {isSignUp ? 'Already have an account? Log in' : "Don't have an account? Get started"}
             </button>
           </div>
         </CardContent>
