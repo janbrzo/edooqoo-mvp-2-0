@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Check, User, GraduationCap, Zap, Users } from 'lucide-react';
+import { Check, User, GraduationCap, Zap, Users, CheckCircle } from 'lucide-react';
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +19,7 @@ const Pricing = () => {
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
-  const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
+  const [recommendedPlan, setRecommendedPlan] = useState<'demo' | 'side-gig' | 'full-time'>('side-gig');
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
   const [hasManuallyChanged, setHasManuallyChanged] = useState(false);
 
@@ -33,7 +33,8 @@ const Pricing = () => {
   const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
 
   const handleRecommendation = (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => {
-    setRecommendedPlan(plan);
+    const finalPlan = worksheetsNeeded <= 2 ? 'demo' : plan;
+    setRecommendedPlan(finalPlan);
     setRecommendedWorksheets(worksheetsNeeded);
     
     // Only auto-select if user hasn't manually changed the plan
@@ -50,134 +51,12 @@ const Pricing = () => {
     setHasManuallyChanged(true);
   };
 
-  // Check if user has proper authentication for subscription
-  const checkUserForSubscription = async () => {
-    try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (error || !user) {
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in to subscribe to a plan.",
-          variant: "destructive"
-        });
-        navigate('/auth');
-        return false;
-      }
-
-      if (!user.email) {
-        toast({
-          title: "Email Required",
-          description: "Please complete your registration with a valid email address to subscribe.",
-          variant: "destructive"
-        });
-        navigate('/auth');
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error checking user authentication:', error);
-      toast({
-        title: "Authentication Error",
-        description: "Please sign in again to continue.",
-        variant: "destructive"
-      });
-      navigate('/auth');
-      return false;
-    }
-  };
-
-  const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
-    // Check user authentication first
-    const canSubscribe = await checkUserForSubscription();
-    if (!canSubscribe) return;
-
-    setIsLoading(planType);
-    try {
-      const planData = planType === 'side-gig' 
-        ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
-        : { name: `Full-Time Plan (${selectedFullTimePlan} worksheets)`, price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
-
-      console.log('Attempting to create subscription:', { planType, planData });
-
-      const { data, error } = await supabase.functions.invoke('create-subscription', {
-        body: {
-          planType: planType,
-          monthlyLimit: planData.tokens,
-          price: planData.price,
-          planName: planData.name
-        }
-      });
-
-      if (error) {
-        console.error('Subscription error details:', error);
-        
-        // Handle specific error types
-        if (error.message?.includes('requiresRegistration') || error.message?.includes('Email required')) {
-          toast({
-            title: "Registration Required",
-            description: "Please complete your registration with a valid email address to subscribe.",
-            variant: "destructive"
-          });
-          navigate('/auth');
-          return;
-        }
-        
-        if (error.message?.includes('Authentication')) {
-          toast({
-            title: "Authentication Required",
-            description: "Please sign in to subscribe to a plan.",
-            variant: "destructive"
-          });
-          navigate('/auth');
-          return;
-        }
-
-        throw error;
-      }
-
-      if (data?.url) {
-        console.log('Redirecting to Stripe checkout:', data.url);
-        window.location.href = data.url;
-      } else {
-        throw new Error('No checkout URL received from server');
-      }
-    } catch (error: any) {
-      console.error('Subscription error:', error);
-      
-      let errorMessage = "Failed to create subscription. Please try again.";
-      let shouldRedirectToAuth = false;
-
-      if (error.message?.includes('Authentication') || error.message?.includes('sign in')) {
-        errorMessage = "Please sign in to subscribe to a plan.";
-        shouldRedirectToAuth = true;
-      } else if (error.message?.includes('Email required') || error.message?.includes('registration')) {
-        errorMessage = "Please complete your registration with a valid email address.";
-        shouldRedirectToAuth = true;
-      } else if (error.message?.includes('Payment service not configured')) {
-        errorMessage = "Payment service is currently unavailable. Please contact support.";
-      }
-
-      toast({
-        title: "Subscription Error",
-        description: errorMessage,
-        variant: "destructive"
-      });
-
-      if (shouldRedirectToAuth) {
-        navigate('/auth');
-      }
-    } finally {
-      setIsLoading(null);
-    }
+  // Navigate to auth with selected plan
+  const handlePlanSelection = (planType: 'demo' | 'side-gig' | 'full-time') => {
+    navigate(`/auth?plan=${planType}`);
   };
 
   const handleManageSubscription = async () => {
-    // Check user authentication first
-    const canManage = await checkUserForSubscription();
-    if (!canManage) return;
-
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
       if (error) throw error;
@@ -201,6 +80,12 @@ const Pricing = () => {
         {/* Header Navigation */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex gap-3">
+            <Button asChild variant="outline">
+              <Link to="/" className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4" />
+                Generator
+              </Link>
+            </Button>
             <Button asChild variant="outline">
               <Link to="/dashboard" className="flex items-center gap-2">
                 <GraduationCap className="h-4 w-4" />
@@ -231,7 +116,59 @@ const Pricing = () => {
         <PricingCalculator onRecommendation={handleRecommendation} />
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          
+          {/* Free Demo Plan */}
+          <Card className={`relative ${recommendedPlan === 'demo' ? 'border-primary shadow-lg' : ''}`}>
+            {recommendedPlan === 'demo' && (
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
+                  RECOMMENDED FOR YOU
+                </Badge>
+              </div>
+            )}
+            
+            <CardHeader className="text-center pb-6">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <CardTitle className="text-xl">Free Demo</CardTitle>
+              </div>
+              <CardDescription className="text-base">
+                Try it out with limited features
+              </CardDescription>
+              <div className="mt-4">
+                <span className="text-4xl font-bold">Free</span>
+              </div>
+              <div className="mt-2">
+                <Badge variant="secondary">2 worksheets to try</Badge>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">2 worksheet credits</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">All worksheet types</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Basic features</span>
+                </div>
+              </div>
+              
+              <Button 
+                className="w-full h-10" 
+                onClick={() => handlePlanSelection('demo')}
+                disabled={isLoading === 'demo'}
+              >
+                {isLoading === 'demo' ? 'Processing...' : 'Start Free Demo'}
+              </Button>
+            </CardContent>
+          </Card>
           
           {/* Side-Gig Plan */}
           <Card className={`relative ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
@@ -286,7 +223,7 @@ const Pricing = () => {
               
               <Button 
                 className="w-full h-10" 
-                onClick={() => handleSubscribe('side-gig')}
+                onClick={() => handlePlanSelection('side-gig')}
                 disabled={isLoading === 'side-gig'}
               >
                 {isLoading === 'side-gig' ? 'Processing...' : 'Choose Side-Gig'}
@@ -368,7 +305,7 @@ const Pricing = () => {
               
               <Button 
                 className="w-full h-10 bg-primary hover:bg-primary/90" 
-                onClick={() => handleSubscribe('full-time')}
+                onClick={() => handlePlanSelection('full-time')}
                 disabled={isLoading === 'full-time'}
               >
                 {isLoading === 'full-time' ? 'Processing...' : 'Choose Full-Time'}

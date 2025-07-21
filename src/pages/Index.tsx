@@ -12,6 +12,7 @@ import GeneratingModal from "@/components/GeneratingModal";
 import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";
 import { TokenPaywallModal } from "@/components/TokenPaywallModal";
+import { PricingCalculator } from "@/components/PricingCalculator";
 import { deepFixTextObjects } from "@/utils/textObjectFixer";
 import { User, GraduationCap, Zap, Users, CheckCircle } from "lucide-react";
 
@@ -19,20 +20,13 @@ import { User, GraduationCap, Zap, Users, CheckCircle } from "lucide-react";
  * Main Index page component that handles worksheet generation and display
  */
 const Index = () => {
-  const { user, loading: authLoading, isRegisteredUser, isAnonymous, signInAnonymously } = useAuthFlow();
+  const { user, loading: authLoading, isRegisteredUser, isAnonymous } = useAuthFlow();
   const worksheetState = useWorksheetState(authLoading);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [preSelectedStudent, setPreSelectedStudent] = useState<{id: string, name: string} | null>(null);
   const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(user?.id || null, worksheetState, selectedStudentId);
   const { tokenBalance, hasTokens, isDemo } = useTokenSystem(user?.id || null);
   const [showTokenModal, setShowTokenModal] = useState(false);
-
-  // Auto sign-in anonymously for demo users if not already signed in
-  useEffect(() => {
-    if (!authLoading && !user) {
-      signInAnonymously();
-    }
-  }, [authLoading, user]);
 
   // Check for pre-selected student from student page
   useEffect(() => {
@@ -124,58 +118,58 @@ const Index = () => {
     generateWorksheetHandler(data);
   };
 
-  // Header component
-  const Header = () => (
-    <div className="bg-white border-b border-gray-200 px-4 py-3">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <GraduationCap className="h-6 w-6 text-primary" />
-          <span className="font-semibold text-lg">Worksheet Generator</span>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          {isRegisteredUser && (
-            <>
-              <Badge variant="outline" className="text-sm">
-                Balance: {tokenBalance} tokens
-              </Badge>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/dashboard">
-                  <GraduationCap className="h-4 w-4 mr-2" />
-                  Dashboard
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/profile">
-                  <User className="h-4 w-4 mr-2" />
-                  Profile
-                </Link>
-              </Button>
-            </>
-          )}
-          
-          {!isRegisteredUser && (
-            <Button asChild>
-              <Link to="/auth">Sign In / Register</Link>
-            </Button>
-          )}
-        </div>
-      </div>
+  // Navigation component for authenticated users
+  const AuthenticatedNav = () => (
+    <div className="fixed top-4 right-4 z-10 flex items-center gap-4">
+      {isRegisteredUser && (
+        <>
+          <Badge variant="outline" className="text-sm">
+            Balance: {tokenBalance} tokens
+          </Badge>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/dashboard">
+              <GraduationCap className="h-4 w-4 mr-2" />
+              Dashboard
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/profile">
+              <User className="h-4 w-4 mr-2" />
+              Profile
+            </Link>
+          </Button>
+        </>
+      )}
     </div>
   );
 
-  // For Teachers section
+  // Navigation component for anonymous users
+  const AnonymousNav = () => (
+    <div className="fixed top-4 right-4 z-10 flex items-center gap-2">
+      <Button asChild variant="outline" size="sm">
+        <Link to="/auth">Sign In</Link>
+      </Button>
+      <Button asChild size="sm">
+        <Link to="/auth">Register</Link>
+      </Button>
+    </div>
+  );
+
+  // For Teachers section with integrated pricing calculator
   const ForTeachersSection = () => (
     <div className="bg-gradient-to-br from-primary/5 to-secondary/10 py-16 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">For Teachers</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Choose your perfect plan and start creating professional worksheets for your students
+            Calculate your savings and choose your perfect plan to start creating professional worksheets
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        {/* Pricing Calculator */}
+        <PricingCalculator onRecommendation={() => {}} />
+
+        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mt-8">
           {/* Free Demo */}
           <Card className="relative border-2 hover:border-primary/50 transition-colors">
             <CardHeader className="text-center pb-6">
@@ -249,7 +243,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header />
+      {/* Navigation based on auth status */}
+      {isRegisteredUser ? <AuthenticatedNav /> : <AnonymousNav />}
       
       {!bothWorksheetsReady ? (
         <div className="space-y-0">
@@ -260,8 +255,8 @@ const Index = () => {
             preSelectedStudent={preSelectedStudent}
           />
           
-          {/* Show For Teachers section only for anonymous users */}
-          {isAnonymous && <ForTeachersSection />}
+          {/* Show For Teachers section for anonymous users */}
+          {!isRegisteredUser && <ForTeachersSection />}
         </div>
       ) : (
         <GenerationView 
