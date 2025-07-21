@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -15,14 +15,6 @@ const Profile = () => {
   const { userId, loading } = useAnonymousAuth();
   const { profile, loading: profileLoading, refetch } = useProfile();
   const navigate = useNavigate();
-
-  // Redirect unauthenticated users to home page
-  useEffect(() => {
-    if (!loading && !userId) {
-      navigate('/');
-    }
-  }, [loading, userId, navigate]);
-
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
@@ -238,8 +230,8 @@ const Profile = () => {
     );
   }
 
-  // Don't render anything if not authenticated (will redirect)
   if (!userId) {
+    navigate('/auth');
     return null;
   }
 

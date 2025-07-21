@@ -259,21 +259,19 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Select Student (optional):
                   </label>
-                  <div className={`${isMobile ? 'w-full' : 'w-1/2'}`}>
-                    <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Choose a student or leave empty for general worksheet" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="no-student">No specific student</SelectItem>
-                        {students.map((student) => (
-                          <SelectItem key={student.id} value={student.id}>
-                            {student.name} ({student.english_level})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose a student or leave empty for general worksheet" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no-student">No specific student</SelectItem>
+                      {students.map((student) => (
+                        <SelectItem key={student.id} value={student.id}>
+                          {student.name} ({student.english_level})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
