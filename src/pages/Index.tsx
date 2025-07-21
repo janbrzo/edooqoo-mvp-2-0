@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuthFlow } from "@/hooks/useAuthFlow";
@@ -118,44 +117,11 @@ const Index = () => {
     generateWorksheetHandler(data);
   };
 
-  // Navigation component for authenticated users
-  const AuthenticatedNav = () => (
-    <div className="fixed top-4 right-4 z-10 flex items-center gap-4">
-      <Badge variant="outline" className="text-sm">
-        Balance: {tokenBalance} tokens
-      </Badge>
-      <Button asChild variant="outline" size="sm">
-        <Link to="/dashboard">
-          <GraduationCap className="h-4 w-4 mr-2" />
-          Dashboard
-        </Link>
-      </Button>
-      <Button asChild variant="outline" size="sm">
-        <Link to="/profile">
-          <User className="h-4 w-4 mr-2" />
-          Profile
-        </Link>
-      </Button>
-    </div>
-  );
-
-  // Navigation component for anonymous users
-  const AnonymousNav = () => (
-    <div className="fixed top-4 right-4 z-10 flex items-center gap-2">
-      <Button asChild variant="outline" size="sm">
-        <Link to="/auth">Sign In</Link>
-      </Button>
-      <Button asChild size="sm">
-        <Link to="/auth">Register</Link>
-      </Button>
-    </div>
-  );
-
   // For Teachers section with integrated pricing calculator
   const ForTeachersSection = () => (
     <div className="bg-gradient-to-br from-primary/5 to-secondary/10 py-16 px-4">
       <div className="max-w-6xl mx-auto">
-        {/* Pricing Calculator with solid background */}
+        {/* Pricing Calculator with solid white background */}
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 mb-8">
           <PricingCalculator onRecommendation={() => {}} />
         </div>
@@ -220,32 +186,27 @@ const Index = () => {
                 <span className="text-lg text-muted-foreground">/month</span>
               </div>
               
-              {/* Dropdown options */}
-              <div className="space-y-2 mt-4">
-                <div className="p-2 border rounded-lg hover:bg-primary/5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">30 worksheets/month</span>
-                    <span className="font-bold">$19</span>
-                  </div>
-                </div>
-                <div className="p-2 border rounded-lg hover:bg-primary/5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">60 worksheets/month</span>
-                    <span className="font-bold">$39</span>
-                  </div>
-                </div>
-                <div className="p-2 border rounded-lg hover:bg-primary/5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">90 worksheets/month</span>
-                    <span className="font-bold">$59</span>
-                  </div>
-                </div>
-                <div className="p-2 border rounded-lg hover:bg-primary/5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">120 worksheets/month</span>
-                    <span className="font-bold">$79</span>
-                  </div>
-                </div>
+              {/* Dropdown selection */}
+              <div className="mt-4">
+                <select 
+                  className="w-full p-2 border rounded-lg bg-background"
+                  defaultValue="30"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const plans = {
+                      '30': 'full-time-30',
+                      '60': 'full-time-60', 
+                      '90': 'full-time-90',
+                      '120': 'full-time-120'
+                    };
+                    window.location.href = `/auth?plan=${plans[value as keyof typeof plans]}`;
+                  }}
+                >
+                  <option value="30">30 worksheets/month - $19</option>
+                  <option value="60">60 worksheets/month - $39</option>
+                  <option value="90">90 worksheets/month - $59</option>
+                  <option value="120">120 worksheets/month - $79</option>
+                </select>
               </div>
             </CardHeader>
             <CardContent className="text-center">
@@ -256,6 +217,39 @@ const Index = () => {
           </Card>
         </div>
       </div>
+    </div>
+  );
+
+  // Navigation component for authenticated users
+  const AuthenticatedNav = () => (
+    <div className="fixed top-4 right-4 z-10 flex items-center gap-4">
+      <Badge variant="outline" className="text-sm">
+        Balance: {tokenBalance} tokens
+      </Badge>
+      <Button asChild variant="outline" size="sm">
+        <Link to="/dashboard">
+          <GraduationCap className="h-4 w-4 mr-2" />
+          Dashboard
+        </Link>
+      </Button>
+      <Button asChild variant="outline" size="sm">
+        <Link to="/profile">
+          <User className="h-4 w-4 mr-2" />
+          Profile
+        </Link>
+      </Button>
+    </div>
+  );
+
+  // Navigation component for anonymous users
+  const AnonymousNav = () => (
+    <div className="fixed top-4 right-4 z-10 flex items-center gap-2">
+      <Button asChild variant="outline" size="sm">
+        <Link to="/auth">Sign In</Link>
+      </Button>
+      <Button asChild size="sm">
+        <Link to="/auth">Register</Link>
+      </Button>
     </div>
   );
 
@@ -271,6 +265,7 @@ const Index = () => {
             userId={user?.id || null} 
             onStudentChange={setSelectedStudentId}
             preSelectedStudent={preSelectedStudent}
+            isRegisteredUser={!!isRegisteredUser}
           />
           
           {/* Show For Teachers section for anonymous users */}

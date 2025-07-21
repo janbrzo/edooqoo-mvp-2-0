@@ -8,28 +8,37 @@ import IsometricBackground from "@/components/IsometricBackground";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { User, GraduationCap } from "lucide-react";
-import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 
 interface FormViewProps {
   onSubmit: (data: FormData) => void;
   userId?: string;
   onStudentChange?: (studentId: string | null) => void;
   preSelectedStudent?: { id: string; name: string } | null;
+  isRegisteredUser?: boolean;
 }
 
-const FormView: React.FC<FormViewProps> = ({ onSubmit, userId, onStudentChange, preSelectedStudent }) => {
+const FormView: React.FC<FormViewProps> = ({ 
+  onSubmit, 
+  userId, 
+  onStudentChange, 
+  preSelectedStudent,
+  isRegisteredUser = false
+}) => {
   const isMobile = useIsMobile();
-  const { userId: authUserId } = useAnonymousAuth();
-  const isLoggedIn = !!authUserId;
 
   return (
     <TrackingFormWrapper userId={userId}>
       {/* Header with auth buttons */}
       <div className="absolute top-4 right-4 z-20 flex gap-2">
-        {!isLoggedIn ? (
-          <Button asChild variant="outline">
-            <Link to="/auth">Sign In</Link>
-          </Button>
+        {!isRegisteredUser ? (
+          <>
+            <Button asChild variant="outline">
+              <Link to="/auth">Sign In</Link>
+            </Button>
+            <Button asChild>
+              <Link to="/auth">Register</Link>
+            </Button>
+          </>
         ) : (
           <>
             <Button asChild variant="outline" size="icon">
