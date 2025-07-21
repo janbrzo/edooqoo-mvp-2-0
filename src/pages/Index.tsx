@@ -141,10 +141,10 @@ const Index = () => {
   const AnonymousNav = () => (
     <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
       <Button asChild variant="outline" size="sm">
-        <Link to="/auth?mode=login">Log in</Link>
+        <Link to="/login">Log in</Link>
       </Button>
       <Button asChild size="sm">
-        <Link to="/auth">Get started</Link>
+        <Link to="/signup">Get started</Link>
       </Button>
     </div>
   );

@@ -23,8 +23,8 @@ serve(async (req) => {
   try {
     logStep("Function started");
     
-    const { planType, monthlyLimit, price, planName } = await req.json();
-    logStep("Request data received", { planType, monthlyLimit, price, planName });
+    const { planType, monthlyLimit, price, planName, discountCode } = await req.json();
+    logStep("Request data received", { planType, monthlyLimit, price, planName, discountCode });
 
     // Validate input data
     if (!planType || !monthlyLimit || !price || !planName) {
@@ -141,7 +141,8 @@ serve(async (req) => {
     const origin = req.headers.get('origin') || 'https://localhost:3000';
     logStep("Creating checkout session", { origin, customerId });
 
-    const session = await stripe.checkout.sessions.create({
+    // Prepare checkout session configuration
+    const sessionConfig: any = {
       customer: customerId,
       payment_method_types: ['card'],
       mode: 'subscription',
@@ -169,11 +170,40 @@ serve(async (req) => {
         monthly_limit: monthlyLimit.toString(),
         price: price.toString()
       },
-    });
+      // Enable discount codes in Stripe Checkout
+      allow_promotion_codes: true,
+    };
+
+    // If a specific discount code is provided, validate and apply it
+    if (discountCode) {
+      try {
+        // Find the promotion code in Stripe
+        const promoCodes = await stripe.promotionCodes.list({
+          code: discountCode,
+          active: true,
+          limit: 1,
+        });
+
+        if (promoCodes.data.length > 0) {
+          const promoCode = promoCodes.data[0];
+          sessionConfig.discounts = [{ promotion_code: promoCode.id }];
+          logStep("Discount code applied", { discountCode, promoCodeId: promoCode.id });
+        } else {
+          logStep("WARNING: Invalid discount code provided", { discountCode });
+          // Don't fail the request, just log the warning
+        }
+      } catch (discountError) {
+        logStep("ERROR: Failed to apply discount code", { discountCode, error: discountError });
+        // Don't fail the request, continue without discount
+      }
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     logStep("Checkout session created successfully", { 
       sessionId: session.id, 
-      url: session.url?.substring(0, 50) + '...' 
+      url: session.url?.substring(0, 50) + '...',
+      discountApplied: !!discountCode 
     });
 
     return new Response(
