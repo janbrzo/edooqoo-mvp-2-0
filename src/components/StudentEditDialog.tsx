@@ -30,7 +30,8 @@ const mainGoals = [
   { value: 'exam', label: 'Exam Preparation' },
   { value: 'general', label: 'General English' },
   { value: 'travel', label: 'Travel' },
-  { value: 'academic', label: 'Academic' }
+  { value: 'academic', label: 'Academic' },
+  { value: 'custom', label: 'Custom' }
 ];
 
 export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({
@@ -42,15 +43,39 @@ export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({
   const [name, setName] = useState(student.name);
   const [englishLevel, setEnglishLevel] = useState(student.english_level);
   const [mainGoal, setMainGoal] = useState(student.main_goal);
+  const [customGoal, setCustomGoal] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Check if current goal is one of the predefined options
+  const isCustomGoal = !mainGoals.some(goal => goal.value === student.main_goal);
+  const [showCustomInput, setShowCustomInput] = useState(isCustomGoal);
+
+  React.useEffect(() => {
+    if (isCustomGoal) {
+      setCustomGoal(student.main_goal);
+      setMainGoal('custom');
+      setShowCustomInput(true);
+    }
+  }, [student.main_goal, isCustomGoal]);
+
+  const handleMainGoalChange = (value: string) => {
+    setMainGoal(value);
+    if (value === 'custom') {
+      setShowCustomInput(true);
+    } else {
+      setShowCustomInput(false);
+      setCustomGoal('');
+    }
+  };
 
   const handleSave = async () => {
     setIsLoading(true);
     try {
+      const finalMainGoal = showCustomInput ? customGoal : mainGoal;
       await onSave(student.id, {
         name,
         english_level: englishLevel,
-        main_goal: mainGoal
+        main_goal: finalMainGoal
       });
       onClose();
     } catch (error) {
@@ -64,7 +89,15 @@ export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({
     // Reset form to original values
     setName(student.name);
     setEnglishLevel(student.english_level);
-    setMainGoal(student.main_goal);
+    if (isCustomGoal) {
+      setMainGoal('custom');
+      setCustomGoal(student.main_goal);
+      setShowCustomInput(true);
+    } else {
+      setMainGoal(student.main_goal);
+      setCustomGoal('');
+      setShowCustomInput(false);
+    }
     onClose();
   };
 
@@ -107,7 +140,7 @@ export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({
           
           <div className="grid gap-2">
             <Label htmlFor="main-goal">Main Goal</Label>
-            <Select value={mainGoal} onValueChange={setMainGoal}>
+            <Select value={mainGoal} onValueChange={handleMainGoalChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select main goal" />
               </SelectTrigger>
@@ -119,6 +152,15 @@ export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({
                 ))}
               </SelectContent>
             </Select>
+            
+            {showCustomInput && (
+              <Input
+                value={customGoal}
+                onChange={(e) => setCustomGoal(e.target.value)}
+                placeholder="Enter custom goal"
+                className="mt-2"
+              />
+            )}
           </div>
         </div>
         

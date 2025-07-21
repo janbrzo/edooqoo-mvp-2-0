@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,15 +21,22 @@ import {
   Coins
 } from 'lucide-react';
 import { deepFixTextObjects } from '@/utils/textObjectFixer';
-import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const { userId, loading } = useAnonymousAuth();
+  const navigate = useNavigate();
+
+  // Redirect unauthenticated users to home page
+  useEffect(() => {
+    if (!loading && !userId) {
+      navigate('/');
+    }
+  }, [loading, userId, navigate]);
+
   const { profile } = useProfile();
   const { students, addStudent, refetch: refetchStudents } = useStudents();
   const { worksheets: allWorksheets, loading: worksheetsLoading, refetch: refetchWorksheets } = useWorksheetHistory();
   const { tokenBalance } = useTokenSystem(userId);
-  const navigate = useNavigate();
 
   const handleForceNewWorksheet = () => {
     sessionStorage.setItem('forceNewWorksheet', 'true');
