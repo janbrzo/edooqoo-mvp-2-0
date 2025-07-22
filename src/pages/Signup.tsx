@@ -263,9 +263,9 @@ const Signup = () => {
       </div>
 
       <div className="text-center">
-        <Button variant="ghost" onClick={() => navigate('/')}>
+        <Button variant="ghost" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Generator
+          Back
         </Button>
       </div>
     </div>
@@ -289,20 +289,15 @@ const Signup = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Create Account</CardTitle>
+              <CardTitle>Create Your Account</CardTitle>
               <CardDescription>
-                {selectedPlan && (
-                  <Badge variant="outline" className="mt-2">
-                    {selectedPlan === 'demo' ? 'Free Demo' : 
-                     selectedPlan === 'side-gig' ? 'Side-Gig Plan' : 'Full-Time Plan'}
-                  </Badge>
-                )}
+                Start generating personalized worksheets
               </CardDescription>
             </div>
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => navigate('/')}
+              onClick={() => navigate(-1)}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>

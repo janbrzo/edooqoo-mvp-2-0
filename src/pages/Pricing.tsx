@@ -1,18 +1,20 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Check, User, GraduationCap, Zap, Users, CheckCircle } from 'lucide-react';
-import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
+import { Check, User, GraduationCap, Zap, Users, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { useConditionalAuth } from '@/hooks/useConditionalAuth';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PricingCalculator } from '@/components/PricingCalculator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const Pricing = () => {
-  const { userId } = useAnonymousAuth();
+  const { userId, isAuthenticated } = useConditionalAuth();
   const { tokenBalance } = useTokenSystem(userId);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -21,17 +23,6 @@ const Pricing = () => {
   const [recommendedPlan, setRecommendedPlan] = useState<'demo' | 'side-gig' | 'full-time'>('side-gig');
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
   const [hasManuallyChanged, setHasManuallyChanged] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Check if user is authenticated (not anonymous)
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      // User is properly authenticated if they exist and are not anonymous
-      setIsAuthenticated(!!user && !user.is_anonymous);
-    };
-    checkAuth();
-  }, []);
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -83,6 +74,50 @@ const Pricing = () => {
       });
     }
   };
+
+  // FAQ data
+  const faqData = [
+    {
+      question: "What is a worksheet credit?",
+      answer: "A worksheet credit allows you to generate one personalized English worksheet. Each plan includes a specific number of credits that reset monthly."
+    },
+    {
+      question: "Can I upgrade or downgrade my plan?",
+      answer: "Yes, you can change your plan at any time. Upgrades take effect immediately, while downgrades take effect at the end of your current billing period."
+    },
+    {
+      question: "What happens if I exceed my monthly limit?",
+      answer: "If you reach your monthly worksheet limit, you can either upgrade your plan or wait until the next month when your credits reset."
+    },
+    {
+      question: "Do unused credits roll over to the next month?",
+      answer: "No, unused worksheet credits expire at the end of each month and don't roll over to the following month."
+    },
+    {
+      question: "Can I cancel my subscription at any time?",
+      answer: "Yes, you can cancel your subscription at any time. You'll continue to have access to your plan features until the end of your current billing period."
+    },
+    {
+      question: "What types of worksheets can I generate?",
+      answer: "You can generate various types of English worksheets including vocabulary exercises, grammar practice, reading comprehension, fill-in-the-blanks, multiple choice questions, and more."
+    },
+    {
+      question: "How does the Free Demo work?",
+      answer: "The Free Demo gives you 2 worksheet credits to try our service. It includes access to all worksheet types with basic features so you can experience the quality of our generated content."
+    },
+    {
+      question: "Is there a setup fee?",
+      answer: "No, there are no setup fees or hidden costs. You only pay the monthly subscription fee for your chosen plan."
+    },
+    {
+      question: "Can I export worksheets to PDF?",
+      answer: "Yes, all paid plans include the ability to export your worksheets to PDF format for easy printing and sharing with students."
+    },
+    {
+      question: "Do you offer educational discounts?",
+      answer: "We're committed to supporting education. Please contact our support team to discuss potential discounts for educational institutions."
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
@@ -139,7 +174,7 @@ const Pricing = () => {
         <PricingCalculator onRecommendation={handleRecommendation} />
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
           
           {/* Free Demo Plan */}
           <Card className={`relative ${recommendedPlan === 'demo' ? 'border-primary shadow-lg' : ''}`}>
@@ -165,6 +200,9 @@ const Pricing = () => {
               <div className="mt-2">
                 <Badge variant="secondary">2 worksheets to try</Badge>
               </div>
+              <div className="mt-1">
+                <span className="text-sm text-muted-foreground">$1/worksheet</span>
+              </div>
             </CardHeader>
             
             <CardContent className="space-y-4">
@@ -175,11 +213,11 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
+                  <span className="text-sm">Demo features</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Basic features</span>
+                  <span className="text-sm">Student management</span>
                 </div>
               </div>
               
@@ -218,6 +256,9 @@ const Pricing = () => {
               <div className="mt-2">
                 <Badge variant="secondary">15 worksheets / month</Badge>
               </div>
+              <div className="mt-1">
+                <span className="text-sm text-muted-foreground">$0.6/worksheet</span>
+              </div>
             </CardHeader>
             
             <CardContent className="space-y-4">
@@ -228,19 +269,11 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Student management</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Export to HTML & PDF</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Email support</span>
                 </div>
               </div>
               
@@ -295,6 +328,11 @@ const Pricing = () => {
                 <div>
                   <Badge variant="secondary">{selectedFullTimePlan} worksheets / month</Badge>
                 </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">
+                    ${((selectedPlan?.price || 19) / parseInt(selectedFullTimePlan)).toFixed(2)}/worksheet
+                  </span>
+                </div>
               </div>
             </CardHeader>
             
@@ -306,23 +344,11 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Unlimited student management</span>
+                  <span className="text-sm">Student management</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Export to HTML & PDF</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Priority email support</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Advanced analytics</span>
                 </div>
               </div>
               
@@ -336,6 +362,31 @@ const Pricing = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* FAQ Section */}
+        <Card className="max-w-4xl mx-auto">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">Frequently Asked Questions</CardTitle>
+            <CardDescription className="text-center">
+              Everything you need to know about our worksheet generator
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {faqData.map((faq, index) => (
+                <Collapsible key={index}>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full p-4 text-left bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors">
+                    <span className="font-medium">{faq.question}</span>
+                    <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="px-4 py-3 text-muted-foreground">
+                    {faq.answer}
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
