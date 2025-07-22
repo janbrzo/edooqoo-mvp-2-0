@@ -162,7 +162,7 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      success_url: `${origin}/dashboard?subscription=success`,
+      success_url: `${origin}/profile?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/pricing`,
       metadata: {
         user_id: user.id,
