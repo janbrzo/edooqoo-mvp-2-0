@@ -215,12 +215,12 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="text-lg font-bold text-green-600">
+                  <div className="text-2xl font-bold text-green-600">
                     ${monthlySavings.toFixed(0)}
                   </div>
-                  <div className="flex items-center gap-1 text-green-700 dark:text-green-300">
-                    <Clock className="h-3 w-3" />
-                    <span className="text-lg font-bold">{timeSavings}min</span>
+                  <div className="flex items-center gap-1 text-green-600">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-2xl font-bold">{timeSavings}min</span>
                   </div>
                 </div>
               </div>

@@ -1,136 +1,53 @@
-import React, { useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useStudents } from '@/hooks/useStudents';
-import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
-import { useTokenSystem } from '@/hooks/useTokenSystem';
-import { useProfile } from '@/hooks/useProfile';
-import { StudentCard } from '@/components/dashboard/StudentCard';
 import { AddStudentDialog } from '@/components/dashboard/AddStudentDialog';
-import { format } from 'date-fns';
-import { 
-  User, 
-  FileText, 
-  Calendar, 
-  GraduationCap, 
-  TrendingUp,
-  Clock,
-  Coins
-} from 'lucide-react';
-import { deepFixTextObjects } from '@/utils/textObjectFixer';
-import { supabase } from '@/integrations/supabase/client';
+import { StudentCard } from '@/components/dashboard/StudentCard';
+import { toast } from '@/hooks/use-toast';
+import { GraduationCap, Plus, User, Users } from 'lucide-react';
 
 const Dashboard = () => {
-  const { userId, loading } = useAnonymousAuth();
-  const { profile } = useProfile();
-  const { students, addStudent, refetch: refetchStudents } = useStudents();
-  const { worksheets: allWorksheets, loading: worksheetsLoading, refetch: refetchWorksheets } = useWorksheetHistory();
-  const { tokenBalance } = useTokenSystem(userId);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
+  const { students, addStudent, updateStudent, deleteStudent, loading: studentsLoading } = useStudents();
 
-  // Check if user is properly authenticated (not anonymous) and redirect immediately
+  // Check if user is properly authenticated (not anonymous)
   useEffect(() => {
     const checkAuth = async () => {
-      if (loading) return; // Wait for auth to load
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // If no user at all or user is anonymous, redirect immediately
-      if (!user || user.is_anonymous) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // If no user at all or user is anonymous, redirect immediately
+        if (!user || user.is_anonymous) {
+          navigate('/');
+          return;
+        }
+        
+        // User is properly authenticated
+        setIsAuthenticated(!!user && !user.is_anonymous);
+      } catch (error) {
+        console.error('Auth check error:', error);
         navigate('/');
-        return;
+      } finally {
+        setLoading(false);
       }
     };
     
     checkAuth();
-  }, [loading, navigate]);
+  }, [navigate]);
 
   const handleForceNewWorksheet = () => {
     sessionStorage.setItem('forceNewWorksheet', 'true');
     navigate('/');
   };
 
-  const handleOpenWorksheet = (worksheet: any) => {
-    try {
-      // Parse the AI response to get the worksheet data  
-      const worksheetData = JSON.parse(worksheet.ai_response);
-      
-      // Apply deepFixTextObjects to fix {text: "..."} objects
-      const fixedWorksheetData = deepFixTextObjects(worksheetData, 'dashboard');
-      
-      // Find student name if available
-      const student = students.find(s => s.id === worksheet.student_id);
-      const studentName = student?.name;
-      
-      // Store worksheet data in sessionStorage for restoration
-      const restoredWorksheet = {
-        ...worksheet,
-        ai_response: JSON.stringify(fixedWorksheetData),
-        studentName: studentName
-      };
-      
-      sessionStorage.setItem('restoredWorksheet', JSON.stringify(restoredWorksheet));
-      if (studentName) {
-        sessionStorage.setItem('worksheetStudentName', studentName);
-      }
-      
-      console.log('📱 Navigating to Index with restored worksheet');
-      navigate('/');
-    } catch (error) {
-      console.error('Error opening worksheet:', error);
-    }
-  };
-
-  // Enhanced student refresh handler
-  const handleStudentAdded = async () => {
-    console.log('🔄 Student added, refreshing data...');
-    await Promise.all([
-      refetchStudents(),
-      refetchWorksheets()
-    ]);
-  };
-
-  // Sort students by latest worksheet creation date
-  const sortedStudents = [...students].sort((a, b) => {
-    const aLatestWorksheet = allWorksheets
-      .filter(w => w.student_id === a.id)
-      .sort((x, y) => new Date(y.created_at).getTime() - new Date(x.created_at).getTime())[0];
-    
-    const bLatestWorksheet = allWorksheets
-      .filter(w => w.student_id === b.id)
-      .sort((x, y) => new Date(y.created_at).getTime() - new Date(x.created_at).getTime())[0];
-    
-    // If both have worksheets, sort by latest worksheet date
-    if (aLatestWorksheet && bLatestWorksheet) {
-      return new Date(bLatestWorksheet.created_at).getTime() - new Date(aLatestWorksheet.created_at).getTime();
-    }
-    
-    // If only one has worksheets, prioritize the one with worksheets
-    if (aLatestWorksheet && !bLatestWorksheet) return -1;
-    if (!aLatestWorksheet && bLatestWorksheet) return 1;
-    
-    // If neither has worksheets, sort by student creation date (newest first)
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
-
-  // Sort recent worksheets properly (newest first)
-  const recentWorksheets = allWorksheets
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5);
-
-  const stats = {
-    totalStudents: students.length,
-    totalWorksheets: allWorksheets.length,
-    thisWeekWorksheets: allWorksheets.filter(w => {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return new Date(w.created_at) > weekAgo;
-    }).length
-  };
-
+  // Show loading while checking auth
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -142,37 +59,23 @@ const Dashboard = () => {
     );
   }
 
-  // Early return if not authenticated - don't render dashboard content at all
-  const checkAuthSync = () => {
-    if (!userId) return false;
-    return true;
-  };
-
-  if (!checkAuthSync()) {
+  // Don't render anything if not authenticated - user will be redirected
+  if (!isAuthenticated) {
     return null;
   }
 
-  const displayName = profile?.first_name || 'Teacher';
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold flex items-center">
               <GraduationCap className="h-8 w-8 mr-3" />
-              {profile?.first_name ? (
-                <>
-                  <span className="text-primary">{profile.first_name}</span>
-                  <span className="ml-2">Dashboard</span>
-                </>
-              ) : (
-                <span>Teacher Dashboard</span>
-              )}
+              Teacher Dashboard
             </h1>
             <p className="text-muted-foreground">
-              Manage your students and track worksheet generation
+              Manage your students and create personalized worksheets
             </p>
           </div>
           <div className="flex gap-2">
@@ -188,147 +91,95 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalStudents}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Worksheets</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalWorksheets}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">This Week</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.thisWeekWorksheets}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Token Balance</CardTitle>
-              <Coins className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{tokenBalance}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Two Column Layout - Students and Recent Worksheets */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Students Section */}
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Your Students</h2>
-              <AddStudentDialog onStudentAdded={handleStudentAdded} />
+        {/* Students Section */}
+        <Card className="mb-6">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                My Students
+              </CardTitle>
+              <CardDescription>
+                Add and manage your students to create personalized worksheets
+              </CardDescription>
             </div>
-
-            {sortedStudents.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <User className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No students yet</h3>
-                  <p className="text-muted-foreground text-center mb-4">
-                    Add your first student to start creating personalized worksheets
-                  </p>
-                  <AddStudentDialog onStudentAdded={handleStudentAdded} />
-                </CardContent>
-              </Card>
+            <AddStudentDialog onAddStudent={addStudent} />
+          </CardHeader>
+          
+          <CardContent>
+            {studentsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground mt-2">Loading students...</p>
+              </div>
+            ) : students.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No students yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Add your first student to start creating personalized worksheets
+                </p>
+                <AddStudentDialog onAddStudent={addStudent} />
+              </div>
             ) : (
-              <div className="space-y-4">
-                {sortedStudents.map((student) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {students.map((student) => (
                   <StudentCard
                     key={student.id}
                     student={student}
-                    onOpenWorksheet={handleOpenWorksheet}
+                    onUpdate={updateStudent}
+                    onDelete={deleteStudent}
                   />
                 ))}
               </div>
             )}
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Recent Worksheets Section */}
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Recent Worksheets</h2>
-            
-            {worksheetsLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="mt-4">Loading worksheets...</p>
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Quick Generate</CardTitle>
+              <CardDescription>Create a new worksheet instantly</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full" onClick={handleForceNewWorksheet}>
+                <Plus className="h-4 w-4 mr-2" />
+                Generate Worksheet
+              </Button>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Students</CardTitle>
+              <CardDescription>Manage your student roster</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <Badge variant="secondary" className="text-lg px-3 py-1">
+                  {students.length} Students
+                </Badge>
+                <AddStudentDialog onAddStudent={addStudent} />
               </div>
-            ) : recentWorksheets.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No worksheets yet</h3>
-                  <p className="text-muted-foreground text-center mb-4">
-                    Generate your first worksheet to see it here
-                  </p>
-                  <Button onClick={handleForceNewWorksheet}>
-                    Generate First Worksheet
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {recentWorksheets.map((worksheet) => {
-                  const student = students.find(s => s.id === worksheet.student_id);
-                  return (
-                    <Card key={worksheet.id} className="cursor-pointer hover:shadow-md transition-shadow"
-                          onClick={() => handleOpenWorksheet(worksheet)}>
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle className="text-lg">
-                              {worksheet.title || 'Untitled Worksheet'}
-                              {student && (
-                                <span className="text-sm font-normal text-muted-foreground ml-2">
-                                  for {student.name}
-                                </span>
-                              )}
-                            </CardTitle>
-                            <CardDescription>
-                              {worksheet.form_data?.lessonTopic && `Topic: ${worksheet.form_data.lessonTopic}`}
-                              {worksheet.form_data?.lessonGoal && ` • Goal: ${worksheet.form_data.lessonGoal}`}
-                            </CardDescription>
-                          </div>
-                          <Badge variant="outline">
-                            {worksheet.form_data?.englishLevel || 'Unknown Level'}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          {format(new Date(worksheet.created_at), 'PPP')} at {format(new Date(worksheet.created_at), 'p')}
-                          {worksheet.generation_time_seconds && (
-                            <>
-                              <Clock className="h-4 w-4 ml-4 mr-2" />
-                              Generated in {worksheet.generation_time_seconds}s
-                            </>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Account</CardTitle>
+              <CardDescription>View your profile settings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild variant="outline" className="w-full">
+                <Link to="/profile">
+                  <User className="h-4 w-4 mr-2" />
+                  View Profile
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
