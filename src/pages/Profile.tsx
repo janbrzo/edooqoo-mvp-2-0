@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useProfile } from '@/hooks/useProfile';
-import { useSubscriptionVerification } from '@/hooks/useSubscriptionVerification';
 import { EditableProfileField } from '@/components/profile/EditableProfileField';
 import { toast } from '@/hooks/use-toast';
 import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail, Settings } from 'lucide-react';
@@ -15,38 +15,9 @@ import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail, Set
 const Profile = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
   const { profile, loading: profileLoading, refetch } = useProfile();
-  const { verifySubscriptionPayment, isVerifying } = useSubscriptionVerification();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
-
-  // Handle subscription success callback
-  useEffect(() => {
-    const handleSubscriptionSuccess = async () => {
-      const subscriptionSuccess = searchParams.get('subscription');
-      const sessionId = searchParams.get('session_id');
-      
-      if (subscriptionSuccess === 'success' && sessionId && isRegisteredUser) {
-        console.log('Processing subscription success callback:', { sessionId });
-        
-        const result = await verifySubscriptionPayment(sessionId);
-        
-        if (result.success) {
-          // Refresh profile data after successful verification
-          await refetch();
-        }
-        
-        // Clean up URL parameters
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, '', newUrl);
-      }
-    };
-
-    if (!loading && !profileLoading && isRegisteredUser) {
-      handleSubscriptionSuccess();
-    }
-  }, [searchParams, isRegisteredUser, loading, profileLoading, verifySubscriptionPayment, refetch]);
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
@@ -256,15 +227,13 @@ const Profile = () => {
     }
   };
 
-  // Show loading spinner while checking auth or verifying subscription
-  if (loading || profileLoading || isVerifying) {
+  // Show loading spinner while checking auth
+  if (loading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4">
-            {isVerifying ? 'Verifying your subscription...' : 'Loading...'}
-          </p>
+          <p className="mt-4">Loading...</p>
         </div>
       </div>
     );
