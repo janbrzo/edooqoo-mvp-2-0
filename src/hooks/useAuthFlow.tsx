@@ -21,7 +21,7 @@ export function useAuthFlow() {
       setLoading(false);
     });
 
-    // Check for existing session
+    // Check for existing session without creating anonymous account
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);

@@ -1,9 +1,10 @@
+
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
+import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useStudents } from '@/hooks/useStudents';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
@@ -21,32 +22,21 @@ import {
   Coins
 } from 'lucide-react';
 import { deepFixTextObjects } from '@/utils/textObjectFixer';
-import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
-  const { userId, loading } = useAnonymousAuth();
+  const { user, loading, isRegisteredUser } = useAuthFlow();
   const { profile } = useProfile();
   const { students, addStudent, refetch: refetchStudents } = useStudents();
   const { worksheets: allWorksheets, loading: worksheetsLoading, refetch: refetchWorksheets } = useWorksheetHistory();
-  const { tokenBalance } = useTokenSystem(userId);
+  const { tokenBalance } = useTokenSystem(user?.id);
   const navigate = useNavigate();
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
-    const checkAuth = async () => {
-      if (loading) return; // Wait for auth to load
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // If no user at all or user is anonymous, redirect immediately
-      if (!user || user.is_anonymous) {
-        navigate('/');
-        return;
-      }
-    };
-    
-    checkAuth();
-  }, [loading, navigate]);
+    if (!loading && !isRegisteredUser) {
+      navigate('/');
+    }
+  }, [loading, isRegisteredUser, navigate]);
 
   const handleForceNewWorksheet = () => {
     sessionStorage.setItem('forceNewWorksheet', 'true');
@@ -93,6 +83,23 @@ const Dashboard = () => {
     ]);
   };
 
+  // Show loading spinner while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render anything if not authenticated - user will be redirected
+  if (!isRegisteredUser) {
+    return null;
+  }
+
   // Sort students by latest worksheet creation date
   const sortedStudents = [...students].sort((a, b) => {
     const aLatestWorksheet = allWorksheets
@@ -130,27 +137,6 @@ const Dashboard = () => {
       return new Date(w.created_at) > weekAgo;
     }).length
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Early return if not authenticated - don't render dashboard content at all
-  const checkAuthSync = () => {
-    if (!userId) return false;
-    return true;
-  };
-
-  if (!checkAuthSync()) {
-    return null;
-  }
 
   const displayName = profile?.first_name || 'Teacher';
 

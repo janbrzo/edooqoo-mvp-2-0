@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -5,14 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
+import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useProfile } from '@/hooks/useProfile';
 import { EditableProfileField } from '@/components/profile/EditableProfileField';
 import { toast } from '@/hooks/use-toast';
-import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users } from 'lucide-react';
+import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail, Settings } from 'lucide-react';
 
 const Profile = () => {
-  const { userId, loading } = useAnonymousAuth();
+  const { user, loading, isRegisteredUser } = useAuthFlow();
   const { profile, loading: profileLoading, refetch } = useProfile();
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
@@ -20,20 +21,10 @@ const Profile = () => {
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
-    const checkAuth = async () => {
-      if (loading) return; // Wait for auth to load
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // If no user at all or user is anonymous, redirect immediately
-      if (!user || user.is_anonymous) {
-        navigate('/');
-        return;
-      }
-    };
-    
-    checkAuth();
-  }, [loading, navigate]);
+    if (!loading && !isRegisteredUser) {
+      navigate('/');
+    }
+  }, [loading, isRegisteredUser, navigate]);
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -100,13 +91,13 @@ const Profile = () => {
   };
 
   const handleUpdateProfile = async (field: string, value: string) => {
-    if (!userId) return;
+    if (!user?.id) return;
 
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ [field]: value })
-        .eq('id', userId);
+        .eq('id', user.id);
 
       if (error) throw error;
 
@@ -236,6 +227,7 @@ const Profile = () => {
     }
   };
 
+  // Show loading spinner while checking auth
   if (loading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -247,13 +239,8 @@ const Profile = () => {
     );
   }
 
-  // Early return if not authenticated - don't render profile content at all
-  const checkAuthSync = () => {
-    if (!userId) return false;
-    return true;
-  };
-
-  if (!checkAuthSync()) {
+  // Don't render anything if not authenticated - user will be redirected
+  if (!isRegisteredUser) {
     return null;
   }
 
@@ -270,9 +257,9 @@ const Profile = () => {
     if (subscriptionType === 'Free Demo') return null;
     if (profile?.subscription_expires_at) {
       const renewalDate = new Date(profile.subscription_expires_at);
-      return `Next renewal: ${renewalDate.toLocaleDateString()}`;
+      return renewalDate.toLocaleDateString();
     }
-    return 'Renewal date not available';
+    return null;
   };
 
   return (
@@ -329,6 +316,16 @@ const Profile = () => {
                     placeholder="Not set"
                     onSave={(value) => handleUpdateProfile('last_name', value)}
                   />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Email</label>
+                  <p className="text-base flex items-center gap-2 mt-1">
+                    <Mail className="h-4 w-4" />
+                    {user?.email || 'Not available'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your email address associated with your account.
+                  </p>
                 </div>
                 <EditableProfileField
                   label="School/Institution"
@@ -427,9 +424,25 @@ const Profile = () => {
                   </Badge>
                 </div>
                 
-                {getRenewalInfo() && (
-                  <div className="text-sm text-muted-foreground">
-                    {getRenewalInfo()}
+                {subscriptionType !== 'Free Demo' && (
+                  <div className="space-y-2">
+                    {getRenewalInfo() && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Renews</span>
+                        <span className="text-sm font-medium">{getRenewalInfo()}</span>
+                      </div>
+                    )}
+                    <div className="pt-2">
+                      <Button 
+                        variant="outline" 
+                        className="w-full" 
+                        size="sm" 
+                        onClick={handleManageSubscription}
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Manage Plan
+                      </Button>
+                    </div>
                   </div>
                 )}
                 
@@ -496,19 +509,6 @@ const Profile = () => {
                     </Button>
                   </div>
                 </div>
-
-                {subscriptionType !== 'Free Demo' && (
-                  <div className="border-t pt-3">
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
-                      size="sm" 
-                      onClick={handleManageSubscription}
-                    >
-                      Manage Subscription
-                    </Button>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
