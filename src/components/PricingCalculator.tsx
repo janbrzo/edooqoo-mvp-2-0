@@ -12,9 +12,9 @@ interface PricingCalculatorProps {
 }
 
 export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommendation }) => {
-  const [prepTime, setPrepTime] = useState(20);
-  const [lessonPrice, setLessonPrice] = useState(20);
-  const [lessonsPerWeek, setLessonsPerWeek] = useState(15);
+  const [prepTime, setPrepTime] = useState(25);
+  const [lessonPrice, setLessonPrice] = useState(25);
+  const [lessonsPerWeek, setLessonsPerWeek] = useState(7);
   const [monthlySavings, setMonthlySavings] = useState(0);
   const [timeSavings, setTimeSavings] = useState(0);
   const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
@@ -207,20 +207,30 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
           
           {monthlySavings > 0 && (
             <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-green-600" />
                   <span className="font-medium text-green-800 dark:text-green-200 text-sm">
                     Monthly Savings
                   </span>
                 </div>
-                <div className="flex items-center gap-4">
+              </div>
+              <div className="flex items-center justify-center gap-6">
+                <div className="text-center">
                   <div className="text-2xl font-bold text-green-600">
                     ${monthlySavings.toFixed(0)}
                   </div>
-                  <div className="flex items-center gap-1 text-green-600">
+                  <div className="text-xs text-green-700 dark:text-green-300">
+                    Money saved
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1 text-green-600">
                     <Clock className="h-4 w-4" />
                     <span className="text-2xl font-bold">{timeSavings}min</span>
+                  </div>
+                  <div className="text-xs text-green-700 dark:text-green-300">
+                    Time saved
                   </div>
                 </div>
               </div>

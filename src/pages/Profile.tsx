@@ -5,35 +5,37 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
+import { useConditionalAuth } from '@/hooks/useConditionalAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { EditableProfileField } from '@/components/profile/EditableProfileField';
 import { toast } from '@/hooks/use-toast';
 import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users } from 'lucide-react';
 
 const Profile = () => {
-  const { userId, loading } = useAnonymousAuth();
+  const { userId, loading, isAuthenticated } = useConditionalAuth();
   const { profile, loading: profileLoading, refetch } = useProfile();
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
-  // Check if user is properly authenticated (not anonymous) and redirect immediately
+  // Redirect if not authenticated
   useEffect(() => {
-    const checkAuth = async () => {
-      if (loading) return; // Wait for auth to load
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // If no user at all or user is anonymous, redirect immediately
-      if (!user || user.is_anonymous) {
-        navigate('/');
-        return;
-      }
-    };
-    
-    checkAuth();
-  }, [loading, navigate]);
+    if (!loading && !isAuthenticated) {
+      navigate('/');
+    }
+  }, [loading, isAuthenticated, navigate]);
+
+  // Show loading while checking authentication
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -44,7 +46,6 @@ const Profile = () => {
 
   const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
 
-  // Check if user has proper authentication for subscription
   const checkUserForSubscription = async () => {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -130,7 +131,6 @@ const Profile = () => {
   };
 
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
-    // Check user authentication first
     const canSubscribe = await checkUserForSubscription();
     if (!canSubscribe) return;
 
@@ -154,7 +154,6 @@ const Profile = () => {
       if (error) {
         console.error('Subscription error details:', error);
         
-        // Handle specific error types
         if (error.message?.includes('requiresRegistration') || error.message?.includes('Email required')) {
           toast({
             title: "Registration Required",
@@ -215,7 +214,6 @@ const Profile = () => {
   };
 
   const handleManageSubscription = async () => {
-    // Check user authentication first
     const canManage = await checkUserForSubscription();
     if (!canManage) return;
 
@@ -236,7 +234,7 @@ const Profile = () => {
     }
   };
 
-  if (loading || profileLoading) {
+  if (profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -245,16 +243,6 @@ const Profile = () => {
         </div>
       </div>
     );
-  }
-
-  // Early return if not authenticated - don't render profile content at all
-  const checkAuthSync = () => {
-    if (!userId) return false;
-    return true;
-  };
-
-  if (!checkAuthSync()) {
-    return null;
   }
 
   const displayName = profile?.first_name || 'Teacher';
@@ -270,7 +258,7 @@ const Profile = () => {
     if (subscriptionType === 'Free Demo') return null;
     if (profile?.subscription_expires_at) {
       const renewalDate = new Date(profile.subscription_expires_at);
-      return `Renews ${renewalDate.toLocaleDateString()}`;
+      return `Next renewal: ${renewalDate.toLocaleDateString()}`;
     }
     return 'Renewal date not available';
   };
@@ -336,19 +324,6 @@ const Profile = () => {
                   placeholder="Not set"
                   onSave={(value) => handleUpdateProfile('school_institution', value)}
                 />
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Email</label>
-                  <p className="text-base mt-1 p-2 bg-muted/30 rounded">
-                    {profile?.id ? (
-                      <span className="text-muted-foreground">Loading...</span>
-                    ) : (
-                      'Not available'
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Your email address associated with your account
-                  </p>
-                </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Member Since</label>
                   <p className="text-base flex items-center gap-2 mt-1">
@@ -441,15 +416,8 @@ const Profile = () => {
                 </div>
                 
                 {getRenewalInfo() && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">{getRenewalInfo()}</span>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleManageSubscription}
-                    >
-                      Manage
-                    </Button>
+                  <div className="text-sm text-muted-foreground">
+                    {getRenewalInfo()}
                   </div>
                 )}
                 

@@ -1,65 +1,73 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useConditionalAuth } from '@/hooks/useConditionalAuth';
 import { useStudents } from '@/hooks/useStudents';
+import { useTokenSystem } from '@/hooks/useTokenSystem';
 import { AddStudentDialog } from '@/components/dashboard/AddStudentDialog';
 import { StudentCard } from '@/components/dashboard/StudentCard';
 import { toast } from '@/hooks/use-toast';
-import { GraduationCap, Plus, User, Users } from 'lucide-react';
+import { User, GraduationCap, Users, Plus, Coins, FileText, TrendingUp, Calendar } from 'lucide-react';
 
 const Dashboard = () => {
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { userId, loading, isAuthenticated } = useConditionalAuth();
+  const { students, loading: studentsLoading, addStudent, refetch } = useStudents();
+  const { tokenBalance, monthlyUsage, monthlyLimit } = useTokenSystem(userId);
   const navigate = useNavigate();
-  const { students, addStudent, updateStudent, deleteStudent, loading: studentsLoading, refetch } = useStudents();
 
-  // Check if user is properly authenticated (not anonymous)
+  // Redirect if not authenticated
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        // If no user at all or user is anonymous, redirect immediately
-        if (!user || user.is_anonymous) {
-          navigate('/');
-          return;
-        }
-        
-        // User is properly authenticated
-        setIsAuthenticated(!!user && !user.is_anonymous);
-      } catch (error) {
-        console.error('Auth check error:', error);
-        navigate('/');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    checkAuth();
-  }, [navigate]);
+    if (!loading && !isAuthenticated) {
+      navigate('/');
+    }
+  }, [loading, isAuthenticated, navigate]);
+
+  // Show loading while checking authentication
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleStudentAdded = () => {
+    refetch();
+  };
 
   const handleForceNewWorksheet = () => {
     sessionStorage.setItem('forceNewWorksheet', 'true');
     navigate('/');
   };
 
-  const handleStudentAdded = () => {
-    console.log('🔄 Student added, refreshing list...');
-    refetch();
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out.",
+      });
+      navigate('/');
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   };
-
-  // Don't render anything if loading or not authenticated - user will be redirected
-  if (loading || !isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -68,7 +76,7 @@ const Dashboard = () => {
               Teacher Dashboard
             </h1>
             <p className="text-muted-foreground">
-              Manage your students and create personalized worksheets
+              Manage your students and worksheet generation
             </p>
           </div>
           <div className="flex gap-2">
@@ -84,31 +92,86 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Available Tokens</CardTitle>
+              <Coins className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{tokenBalance}</div>
+              <p className="text-xs text-muted-foreground">
+                Worksheets you can generate
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">This Month</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{monthlyUsage}</div>
+              <p className="text-xs text-muted-foreground">
+                Worksheets generated
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Monthly Limit</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{monthlyLimit || 'Unlimited'}</div>
+              <p className="text-xs text-muted-foreground">
+                Maximum per month
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Students</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{students.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Total students managed
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Students Section */}
-        <Card className="mb-6">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                My Students
-              </CardTitle>
-              <CardDescription>
-                Add and manage your students to create personalized worksheets
-              </CardDescription>
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Your Students
+                </CardTitle>
+                <CardDescription>
+                  Manage your student profiles for personalized worksheets
+                </CardDescription>
+              </div>
+              <AddStudentDialog onStudentAdded={handleStudentAdded} />
             </div>
-            <AddStudentDialog onStudentAdded={handleStudentAdded} />
           </CardHeader>
-          
           <CardContent>
             {studentsLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="text-muted-foreground mt-2">Loading students...</p>
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : students.length === 0 ? (
               <div className="text-center py-8">
-                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No students yet</h3>
+                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No students yet</h3>
                 <p className="text-muted-foreground mb-4">
                   Add your first student to start creating personalized worksheets
                 </p>
@@ -128,46 +191,50 @@ const Dashboard = () => {
         </Card>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Quick Generate</CardTitle>
-              <CardDescription>Create a new worksheet instantly</CardDescription>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Quick Actions
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               <Button className="w-full" onClick={handleForceNewWorksheet}>
-                <Plus className="h-4 w-4 mr-2" />
-                Generate Worksheet
+                Generate New Worksheet
+              </Button>
+              <AddStudentDialog onStudentAdded={handleStudentAdded} />
+              <Button className="w-full" variant="outline" asChild>
+                <Link to="/profile">
+                  <User className="h-4 w-4 mr-2" />
+                  Manage Profile
+                </Link>
               </Button>
             </CardContent>
           </Card>
-          
+
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Students</CardTitle>
-              <CardDescription>Manage your student roster</CardDescription>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Account Summary
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="text-lg px-3 py-1">
-                  {students.length} Students
-                </Badge>
-                <AddStudentDialog onStudentAdded={handleStudentAdded} />
+            <CardContent className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Available Tokens</span>
+                <Badge variant="outline">{tokenBalance}</Badge>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Account</CardTitle>
-              <CardDescription>View your profile settings</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild variant="outline" className="w-full">
-                <Link to="/profile">
-                  <User className="h-4 w-4 mr-2" />
-                  View Profile
-                </Link>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Students</span>
+                <Badge variant="outline">{students.length}</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">This Month Used</span>
+                <Badge variant="outline">{monthlyUsage}</Badge>
+              </div>
+              <Button className="w-full" variant="destructive" onClick={handleSignOut}>
+                Sign Out
               </Button>
             </CardContent>
           </Card>
@@ -178,3 +245,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

@@ -291,12 +291,7 @@ const Signup = () => {
             <div>
               <CardTitle>Create Your Account</CardTitle>
               <CardDescription>
-                {selectedPlan && (
-                  <Badge variant="outline" className="mt-2">
-                    {selectedPlan === 'demo' ? 'Free Demo' : 
-                     selectedPlan === 'side-gig' ? 'Side-Gig Plan' : 'Full-Time Plan'}
-                  </Badge>
-                )}
+                Start generating personalized worksheets
               </CardDescription>
             </div>
             <Button 
