@@ -15,7 +15,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
-  const { students, addStudent, updateStudent, deleteStudent, loading: studentsLoading } = useStudents();
+  const { students, addStudent, updateStudent, deleteStudent, loading: studentsLoading, refetch } = useStudents();
 
   // Check if user is properly authenticated (not anonymous)
   useEffect(() => {
@@ -47,20 +47,13 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  // Show loading while checking auth
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleStudentAdded = () => {
+    console.log('🔄 Student added, refreshing list...');
+    refetch();
+  };
 
-  // Don't render anything if not authenticated - user will be redirected
-  if (!isAuthenticated) {
+  // Don't render anything if loading or not authenticated - user will be redirected
+  if (loading || !isAuthenticated) {
     return null;
   }
 
@@ -103,7 +96,7 @@ const Dashboard = () => {
                 Add and manage your students to create personalized worksheets
               </CardDescription>
             </div>
-            <AddStudentDialog onAddStudent={addStudent} />
+            <AddStudentDialog onStudentAdded={handleStudentAdded} />
           </CardHeader>
           
           <CardContent>
@@ -119,7 +112,7 @@ const Dashboard = () => {
                 <p className="text-muted-foreground mb-4">
                   Add your first student to start creating personalized worksheets
                 </p>
-                <AddStudentDialog onAddStudent={addStudent} />
+                <AddStudentDialog onStudentAdded={handleStudentAdded} />
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -127,8 +120,6 @@ const Dashboard = () => {
                   <StudentCard
                     key={student.id}
                     student={student}
-                    onUpdate={updateStudent}
-                    onDelete={deleteStudent}
                   />
                 ))}
               </div>
@@ -161,7 +152,7 @@ const Dashboard = () => {
                 <Badge variant="secondary" className="text-lg px-3 py-1">
                   {students.length} Students
                 </Badge>
-                <AddStudentDialog onAddStudent={addStudent} />
+                <AddStudentDialog onStudentAdded={handleStudentAdded} />
               </div>
             </CardContent>
           </Card>
