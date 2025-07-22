@@ -67,10 +67,6 @@ const Login = () => {
     }
   };
 
-  const handleGoBack = () => {
-    navigate(-1);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 p-4">
       <Card className="w-full max-w-md">
@@ -83,7 +79,7 @@ const Login = () => {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={handleGoBack}
+              onClick={() => navigate('/')}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
