@@ -190,12 +190,7 @@ const Dashboard = () => {
                     Manage your students and create personalized worksheets
                   </CardDescription>
                 </div>
-                <AddStudentDialog>
-                  <Button size="sm">
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add Student
-                  </Button>
-                </AddStudentDialog>
+                <AddStudentDialog />
               </div>
             </CardHeader>
             <CardContent>
@@ -207,12 +202,7 @@ const Dashboard = () => {
                 <div className="text-center py-8">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">No students added yet</p>
-                  <AddStudentDialog>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Your First Student
-                    </Button>
-                  </AddStudentDialog>
+                  <AddStudentDialog />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
