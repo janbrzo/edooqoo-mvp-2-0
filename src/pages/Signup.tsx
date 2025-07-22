@@ -263,9 +263,9 @@ const Signup = () => {
       </div>
 
       <div className="text-center">
-        <Button variant="ghost" onClick={() => navigate(-1)}>
+        <Button variant="ghost" onClick={() => navigate('/')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          Back to Generator
         </Button>
       </div>
     </div>
@@ -302,7 +302,7 @@ const Signup = () => {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/')}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
