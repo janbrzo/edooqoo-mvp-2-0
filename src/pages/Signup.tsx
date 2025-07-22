@@ -289,7 +289,7 @@ const Signup = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Create Your Account</CardTitle>
+              <CardTitle>Create Account</CardTitle>
               <CardDescription>
                 {selectedPlan && (
                   <Badge variant="outline" className="mt-2">
