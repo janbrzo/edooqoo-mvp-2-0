@@ -270,7 +270,7 @@ const Profile = () => {
     if (subscriptionType === 'Free Demo') return null;
     if (profile?.subscription_expires_at) {
       const renewalDate = new Date(profile.subscription_expires_at);
-      return `Next renewal: ${renewalDate.toLocaleDateString()}`;
+      return `Renews ${renewalDate.toLocaleDateString()}`;
     }
     return 'Renewal date not available';
   };
@@ -336,6 +336,19 @@ const Profile = () => {
                   placeholder="Not set"
                   onSave={(value) => handleUpdateProfile('school_institution', value)}
                 />
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Email</label>
+                  <p className="text-base mt-1 p-2 bg-muted/30 rounded">
+                    {profile?.id ? (
+                      <span className="text-muted-foreground">Loading...</span>
+                    ) : (
+                      'Not available'
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your email address associated with your account
+                  </p>
+                </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Member Since</label>
                   <p className="text-base flex items-center gap-2 mt-1">
@@ -428,8 +441,15 @@ const Profile = () => {
                 </div>
                 
                 {getRenewalInfo() && (
-                  <div className="text-sm text-muted-foreground">
-                    {getRenewalInfo()}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">{getRenewalInfo()}</span>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleManageSubscription}
+                    >
+                      Manage
+                    </Button>
                   </div>
                 )}
                 
