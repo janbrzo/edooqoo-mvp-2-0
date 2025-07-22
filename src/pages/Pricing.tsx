@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Check, User, GraduationCap, Zap, Users, CheckCircle } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Check, User, GraduationCap, Zap, Users, CheckCircle, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +24,7 @@ const Pricing = () => {
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
   const [hasManuallyChanged, setHasManuallyChanged] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
   // Check if user is authenticated (not anonymous)
   useEffect(() => {
@@ -85,6 +87,60 @@ const Pricing = () => {
     }
   };
 
+  const getWorksheetPrice = (planType: 'demo' | 'side-gig' | 'full-time', worksheetCount?: number) => {
+    switch (planType) {
+      case 'demo':
+        return '$1.00';
+      case 'side-gig':
+        return '$0.60';
+      case 'full-time':
+        if (!worksheetCount) return '$0.63';
+        const planPrice = fullTimePlans.find(p => p.tokens === worksheetCount.toString())?.price || 19;
+        return `$${(planPrice / worksheetCount).toFixed(2)}`;
+      default:
+        return '';
+    }
+  };
+
+  const faqData = [
+    {
+      question: "What is included in each plan?",
+      answer: "All plans include access to our AI-powered worksheet generator with different monthly limits. Free Demo gives you 2 worksheets to try, Side-Gig Plan includes 15 worksheets per month, and Full-Time Plans range from 30-120 worksheets per month with additional features."
+    },
+    {
+      question: "Can I change my plan at any time?",
+      answer: "Yes! You can upgrade or downgrade your plan at any time through your account settings. Changes will be reflected in your next billing cycle."
+    },
+    {
+      question: "What happens if I exceed my monthly worksheet limit?",
+      answer: "If you reach your monthly limit, you can either wait for the next billing cycle or upgrade to a higher plan to continue generating worksheets immediately."
+    },
+    {
+      question: "Are there any setup fees or long-term commitments?",
+      answer: "No setup fees and no long-term commitments. All plans are month-to-month and you can cancel anytime."
+    },
+    {
+      question: "Can I export worksheets to different formats?",
+      answer: "Yes, all paid plans include the ability to export worksheets to HTML and PDF formats for easy printing and sharing."
+    },
+    {
+      question: "Is there a free trial available?",
+      answer: "Yes! Our Free Demo plan gives you 2 worksheet credits to try out all features with no payment required."
+    },
+    {
+      question: "How do I manage my students?",
+      answer: "Side-Gig and Full-Time plans include student management features where you can add student profiles, track their progress, and create personalized worksheets."
+    },
+    {
+      question: "What types of worksheets can I create?",
+      answer: "You can create various types of English learning worksheets including vocabulary exercises, grammar practice, reading comprehension, fill-in-the-blanks, multiple choice questions, and more."
+    }
+  ];
+
+  const toggleFaq = (index: number) => {
+    setOpenFaqIndex(openFaqIndex === index ? null : index);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <div className="max-w-6xl mx-auto">
@@ -140,7 +196,7 @@ const Pricing = () => {
         <PricingCalculator onRecommendation={handleRecommendation} />
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
           
           {/* Free Demo Plan */}
           <Card className={`relative ${recommendedPlan === 'demo' ? 'border-primary shadow-lg' : ''}`}>
@@ -167,7 +223,7 @@ const Pricing = () => {
                 <Badge variant="secondary">2 worksheets to try</Badge>
               </div>
               <div className="mt-1">
-                <span className="text-sm text-muted-foreground">$1 per worksheet</span>
+                <span className="text-sm text-muted-foreground">{getWorksheetPrice('demo')}/worksheet</span>
               </div>
             </CardHeader>
             
@@ -219,7 +275,7 @@ const Pricing = () => {
                 <Badge variant="secondary">15 worksheets / month</Badge>
               </div>
               <div className="mt-1">
-                <span className="text-sm text-muted-foreground">$0.6 per worksheet</span>
+                <span className="text-sm text-muted-foreground">{getWorksheetPrice('side-gig')}/worksheet</span>
               </div>
             </CardHeader>
             
@@ -291,9 +347,7 @@ const Pricing = () => {
                   <Badge variant="secondary">{selectedFullTimePlan} worksheets / month</Badge>
                 </div>
                 <div>
-                  <span className="text-sm text-muted-foreground">
-                    ${selectedPlan ? (selectedPlan.price / parseInt(selectedFullTimePlan)).toFixed(2) : '0.63'} per worksheet
-                  </span>
+                  <span className="text-sm text-muted-foreground">{getWorksheetPrice('full-time', parseInt(selectedFullTimePlan))}/worksheet</span>
                 </div>
               </div>
             </CardHeader>
@@ -324,6 +378,44 @@ const Pricing = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* FAQ Section */}
+        <Card className="max-w-4xl mx-auto">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2 text-2xl">
+              <HelpCircle className="h-6 w-6" />
+              Frequently Asked Questions
+            </CardTitle>
+            <CardDescription>
+              Everything you need to know about our worksheet generator plans
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {faqData.map((faq, index) => (
+                <div key={index} className="border rounded-lg">
+                  <button
+                    className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-muted/50 transition-colors"
+                    onClick={() => toggleFaq(index)}
+                  >
+                    <span className="font-medium">{faq.question}</span>
+                    {openFaqIndex === index ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
+                  {openFaqIndex === index && (
+                    <div className="px-4 pb-3">
+                      <Separator className="mb-3" />
+                      <p className="text-muted-foreground">{faq.answer}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

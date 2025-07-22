@@ -263,7 +263,7 @@ const Signup = () => {
       </div>
 
       <div className="text-center">
-        <Button variant="ghost" onClick={() => window.history.back()}>
+        <Button variant="ghost" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
@@ -302,7 +302,7 @@ const Signup = () => {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => window.history.back()}
+              onClick={() => navigate(-1)}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
