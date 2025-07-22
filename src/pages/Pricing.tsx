@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -84,6 +85,20 @@ const Pricing = () => {
     }
   };
 
+  // Calculate per-worksheet price
+  const getPerWorksheetPrice = (planType: 'demo' | 'side-gig' | 'full-time', tokens?: string) => {
+    if (planType === 'demo') return '$1.00';
+    if (planType === 'side-gig') return '$0.60';
+    if (planType === 'full-time' && tokens) {
+      const plan = fullTimePlans.find(p => p.tokens === tokens);
+      if (plan) {
+        const pricePerWorksheet = plan.price / parseInt(plan.tokens);
+        return `$${pricePerWorksheet.toFixed(2)}`;
+      }
+    }
+    return '$0.63'; // Default for full-time
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <div className="max-w-6xl mx-auto">
@@ -162,8 +177,11 @@ const Pricing = () => {
               <div className="mt-4">
                 <span className="text-4xl font-bold">Free</span>
               </div>
-              <div className="mt-2">
+              <div className="mt-2 space-y-1">
                 <Badge variant="secondary">2 worksheets to try</Badge>
+                <div className="text-sm text-muted-foreground">
+                  {getPerWorksheetPrice('demo')}/worksheet
+                </div>
               </div>
             </CardHeader>
             
@@ -175,11 +193,7 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Basic features</span>
+                  <span className="text-sm">Demo features</span>
                 </div>
               </div>
               
@@ -215,8 +229,11 @@ const Pricing = () => {
                 <span className="text-4xl font-bold">$9</span>
                 <span className="text-lg text-muted-foreground">/month</span>
               </div>
-              <div className="mt-2">
+              <div className="mt-2 space-y-1">
                 <Badge variant="secondary">15 worksheets / month</Badge>
+                <div className="text-sm text-muted-foreground">
+                  {getPerWorksheetPrice('side-gig')}/worksheet
+                </div>
               </div>
             </CardHeader>
             
@@ -228,19 +245,11 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Student management</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Export to HTML & PDF</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Email support</span>
                 </div>
               </div>
               
@@ -292,8 +301,11 @@ const Pricing = () => {
                   <span className="text-4xl font-bold">${selectedPlan?.price}</span>
                   <span className="text-lg text-muted-foreground">/month</span>
                 </div>
-                <div>
+                <div className="space-y-1">
                   <Badge variant="secondary">{selectedFullTimePlan} worksheets / month</Badge>
+                  <div className="text-sm text-muted-foreground">
+                    {getPerWorksheetPrice('full-time', selectedFullTimePlan)}/worksheet
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -306,23 +318,11 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Unlimited student management</span>
+                  <span className="text-sm">Student management</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Export to HTML & PDF</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Priority email support</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Advanced analytics</span>
                 </div>
               </div>
               

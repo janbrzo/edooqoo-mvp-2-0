@@ -79,7 +79,7 @@ const Login = () => {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => navigate('/')}
+              onClick={() => navigate(-1)}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
