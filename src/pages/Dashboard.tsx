@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,7 +19,6 @@ const Dashboard = () => {
   const { students, loading: studentsLoading, addStudent, refetch } = useStudents();
   const { tokenBalance, monthlyUsage, monthlyLimit } = useTokenSystem(userId);
   const navigate = useNavigate();
-  const [addStudentOpen, setAddStudentOpen] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -38,25 +38,6 @@ const Dashboard = () => {
       </div>
     );
   }
-
-  const handleAddStudent = async (name: string, englishLevel: string, mainGoal: string) => {
-    try {
-      const newStudent = await addStudent(name, englishLevel, mainGoal);
-      setAddStudentOpen(false);
-      toast({
-        title: "Student added successfully",
-        description: `${name} has been added to your student list.`,
-      });
-      return newStudent;
-    } catch (error: any) {
-      toast({
-        title: "Error adding student",
-        description: error.message,
-        variant: "destructive"
-      });
-      throw error;
-    }
-  };
 
   const handleStudentAdded = () => {
     refetch();
@@ -179,10 +160,7 @@ const Dashboard = () => {
                   Manage your student profiles for personalized worksheets
                 </CardDescription>
               </div>
-              <Button onClick={() => setAddStudentOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Student
-              </Button>
+              <AddStudentDialog onStudentAdded={handleStudentAdded} />
             </div>
           </CardHeader>
           <CardContent>
@@ -197,10 +175,7 @@ const Dashboard = () => {
                 <p className="text-muted-foreground mb-4">
                   Add your first student to start creating personalized worksheets
                 </p>
-                <Button onClick={() => setAddStudentOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Student
-                </Button>
+                <AddStudentDialog onStudentAdded={handleStudentAdded} />
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -228,10 +203,7 @@ const Dashboard = () => {
               <Button className="w-full" onClick={handleForceNewWorksheet}>
                 Generate New Worksheet
               </Button>
-              <Button className="w-full" variant="outline" onClick={() => setAddStudentOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Student
-              </Button>
+              <AddStudentDialog onStudentAdded={handleStudentAdded} />
               <Button className="w-full" variant="outline" asChild>
                 <Link to="/profile">
                   <User className="h-4 w-4 mr-2" />
@@ -267,16 +239,10 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Add Student Dialog */}
-        <AddStudentDialog
-          open={addStudentOpen}
-          onOpenChange={setAddStudentOpen}
-          onStudentAdded={handleStudentAdded}
-        />
       </div>
     </div>
   );
 };
 
 export default Dashboard;
+

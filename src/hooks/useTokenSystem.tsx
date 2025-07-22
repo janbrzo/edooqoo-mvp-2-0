@@ -1,18 +1,24 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export const useTokenSystem = (userId?: string | null) => {
   const [tokenBalance, setTokenBalance] = useState<number>(0);
+  const [monthlyUsage, setMonthlyUsage] = useState<number>(0);
+  const [monthlyLimit, setMonthlyLimit] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     if (userId) {
       fetchTokenBalance();
+      fetchMonthlyData();
     } else {
       setLoading(false);
       setTokenBalance(0);
+      setMonthlyUsage(0);
+      setMonthlyLimit(null);
     }
   }, [userId]);
 
@@ -32,6 +38,18 @@ export const useTokenSystem = (userId?: string | null) => {
         description: "Failed to fetch token balance",
         variant: "destructive"
       });
+    }
+  };
+
+  const fetchMonthlyData = async () => {
+    if (!userId) return;
+    
+    try {
+      // For now, set default values - these can be fetched from database later
+      setMonthlyUsage(0);
+      setMonthlyLimit(null); // null means unlimited
+    } catch (error: any) {
+      console.error('Error fetching monthly data:', error);
     } finally {
       setLoading(false);
     }
@@ -51,6 +69,7 @@ export const useTokenSystem = (userId?: string | null) => {
       
       if (data) {
         setTokenBalance(prev => Math.max(0, prev - 1));
+        setMonthlyUsage(prev => prev + 1);
         return true;
       }
       
@@ -66,6 +85,8 @@ export const useTokenSystem = (userId?: string | null) => {
 
   return {
     tokenBalance,
+    monthlyUsage,
+    monthlyLimit,
     loading,
     hasTokens,
     isDemo,
