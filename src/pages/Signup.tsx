@@ -263,9 +263,9 @@ const Signup = () => {
       </div>
 
       <div className="text-center">
-        <Button variant="ghost" onClick={() => navigate('/')}>
+        <Button variant="ghost" onClick={() => window.history.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Generator
+          Back
         </Button>
       </div>
     </div>
@@ -289,7 +289,7 @@ const Signup = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Create Account</CardTitle>
+              <CardTitle>Create Your Account</CardTitle>
               <CardDescription>
                 {selectedPlan && (
                   <Badge variant="outline" className="mt-2">
@@ -302,7 +302,7 @@ const Signup = () => {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => navigate('/')}
+              onClick={() => window.history.back()}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>

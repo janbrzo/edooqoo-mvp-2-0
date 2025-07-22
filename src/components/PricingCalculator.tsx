@@ -12,9 +12,9 @@ interface PricingCalculatorProps {
 }
 
 export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommendation }) => {
-  const [prepTime, setPrepTime] = useState(20);
-  const [lessonPrice, setLessonPrice] = useState(20);
-  const [lessonsPerWeek, setLessonsPerWeek] = useState(15);
+  const [prepTime, setPrepTime] = useState(25);
+  const [lessonPrice, setLessonPrice] = useState(25);
+  const [lessonsPerWeek, setLessonsPerWeek] = useState(7);
   const [monthlySavings, setMonthlySavings] = useState(0);
   const [timeSavings, setTimeSavings] = useState(0);
   const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
@@ -207,21 +207,21 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
           
           {monthlySavings > 0 && (
             <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                  <span className="font-medium text-green-800 dark:text-green-200 text-sm">
-                    Monthly Savings
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp className="h-4 w-4 text-green-600" />
+                <span className="font-medium text-green-800 dark:text-green-200 text-sm">
+                  Monthly Savings
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <span className="text-2xl font-bold text-green-600">
+                    ${monthlySavings.toFixed(0)}
                   </span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-lg font-bold text-green-600">
-                    ${monthlySavings.toFixed(0)}
-                  </div>
-                  <div className="flex items-center gap-1 text-green-700 dark:text-green-300">
-                    <Clock className="h-3 w-3" />
-                    <span className="text-lg font-bold">{timeSavings}min</span>
-                  </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="h-4 w-4 text-green-600" />
+                  <span className="text-2xl font-bold text-green-600">{timeSavings}min</span>
                 </div>
               </div>
             </div>
