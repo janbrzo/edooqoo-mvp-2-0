@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,10 +16,9 @@ interface StudentCardProps {
   student: Student;
   onViewHistory?: (studentId: string) => void;
   onOpenWorksheet?: (worksheet: any) => void;
-  onUpdate?: () => void | Promise<void>;
 }
 
-export const StudentCard = ({ student, onViewHistory, onOpenWorksheet, onUpdate }: StudentCardProps) => {
+export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: StudentCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const { worksheets, loading, getRecentWorksheets } = useWorksheetHistory(student.id);
   const recentWorksheets = getRecentWorksheets(3);

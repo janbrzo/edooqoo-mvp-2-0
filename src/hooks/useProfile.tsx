@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
@@ -38,15 +37,9 @@ export const useProfile = () => {
     }
   };
 
-  const refreshProfile = async () => {
-    setLoading(true);
-    await fetchProfile();
-  };
-
   return {
     profile,
     loading,
-    refetch: fetchProfile,
-    refreshProfile
+    refetch: fetchProfile
   };
 };
