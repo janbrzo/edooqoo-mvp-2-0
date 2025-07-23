@@ -1,144 +1,87 @@
 
-import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuthFlow } from '@/hooks/useAuthFlow';
+import { useProfile } from '@/hooks/useProfile';
+import { useStudents } from '@/hooks/useStudents';
+import { useTokenSystem } from '@/hooks/useTokenSystem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useAuthFlow } from '@/hooks/useAuthFlow';
-import { useStudents } from '@/hooks/useStudents';
-import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
-import { useTokenSystem } from '@/hooks/useTokenSystem';
-import { useProfile } from '@/hooks/useProfile';
-import { StudentCard } from '@/components/dashboard/StudentCard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AddStudentDialog } from '@/components/dashboard/AddStudentDialog';
-import { format } from 'date-fns';
+import { StudentCard } from '@/components/dashboard/StudentCard';
+import { toast } from '@/hooks/use-toast';
 import { 
   User, 
-  FileText, 
-  Calendar, 
   GraduationCap, 
-  TrendingUp,
-  Clock,
-  Coins
+  BookOpen, 
+  Coins, 
+  TrendingUp, 
+  Calendar,
+  Users,
+  Plus,
+  FileText,
+  Settings,
+  Crown
 } from 'lucide-react';
-import { deepFixTextObjects } from '@/utils/textObjectFixer';
 
 const Dashboard = () => {
-  const { user, loading, isRegisteredUser } = useAuthFlow();
-  const { profile } = useProfile();
-  const { students, addStudent, refetch: refetchStudents } = useStudents();
-  const { worksheets: allWorksheets, loading: worksheetsLoading, refetch: refetchWorksheets } = useWorksheetHistory();
-  const { tokenBalance } = useTokenSystem(user?.id);
   const navigate = useNavigate();
+  const { user, loading: authLoading, isRegisteredUser } = useAuthFlow();
+  const { profile, loading: profileLoading } = useProfile();
+  const { students, loading: studentsLoading, refetch: refetchStudents } = useStudents();
+  const { tokenBalance, loading: tokenLoading, hasTokens, isDemo } = useTokenSystem(user?.id);
 
-  // Check if user is properly authenticated (not anonymous) and redirect immediately
+  // Check if user is properly authenticated and redirect if not
   useEffect(() => {
-    if (!loading && !isRegisteredUser) {
+    if (!authLoading && !isRegisteredUser) {
       navigate('/');
     }
-  }, [loading, isRegisteredUser, navigate]);
+  }, [authLoading, isRegisteredUser, navigate]);
 
   const handleForceNewWorksheet = () => {
     sessionStorage.setItem('forceNewWorksheet', 'true');
     navigate('/');
   };
 
-  const handleOpenWorksheet = (worksheet: any) => {
-    try {
-      // Parse the AI response to get the worksheet data  
-      const worksheetData = JSON.parse(worksheet.ai_response);
-      
-      // Apply deepFixTextObjects to fix {text: "..."} objects
-      const fixedWorksheetData = deepFixTextObjects(worksheetData, 'dashboard');
-      
-      // Find student name if available
-      const student = students.find(s => s.id === worksheet.student_id);
-      const studentName = student?.name;
-      
-      // Store worksheet data in sessionStorage for restoration
-      const restoredWorksheet = {
-        ...worksheet,
-        ai_response: JSON.stringify(fixedWorksheetData),
-        studentName: studentName
-      };
-      
-      sessionStorage.setItem('restoredWorksheet', JSON.stringify(restoredWorksheet));
-      if (studentName) {
-        sessionStorage.setItem('worksheetStudentName', studentName);
-      }
-      
-      console.log('📱 Navigating to Index with restored worksheet');
-      navigate('/');
-    } catch (error) {
-      console.error('Error opening worksheet:', error);
-    }
-  };
-
-  // Enhanced student refresh handler
-  const handleStudentAdded = async () => {
-    console.log('🔄 Student added, refreshing data...');
-    await Promise.all([
-      refetchStudents(),
-      refetchWorksheets()
-    ]);
-  };
-
-  // Show loading spinner while checking auth
-  if (loading) {
+  // Show loading state
+  if (authLoading || profileLoading || tokenLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4">Loading...</p>
+          <p className="mt-4">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
-  // Don't render anything if not authenticated - user will be redirected
-  if (!isRegisteredUser) {
+  // Don't render if user is not authenticated
+  if (!isRegisteredUser || !user) {
     return null;
   }
 
-  // Sort students by latest worksheet creation date
-  const sortedStudents = [...students].sort((a, b) => {
-    const aLatestWorksheet = allWorksheets
-      .filter(w => w.student_id === a.id)
-      .sort((x, y) => new Date(y.created_at).getTime() - new Date(x.created_at).getTime())[0];
-    
-    const bLatestWorksheet = allWorksheets
-      .filter(w => w.student_id === b.id)
-      .sort((x, y) => new Date(y.created_at).getTime() - new Date(x.created_at).getTime())[0];
-    
-    // If both have worksheets, sort by latest worksheet date
-    if (aLatestWorksheet && bLatestWorksheet) {
-      return new Date(bLatestWorksheet.created_at).getTime() - new Date(aLatestWorksheet.created_at).getTime();
+  const displayName = profile?.first_name || 'Teacher';
+  const subscriptionType = profile?.subscription_type || 'Free Demo';
+  const monthlyLimit = profile?.monthly_worksheet_limit;
+  const monthlyUsed = profile?.monthly_worksheets_used || 0;
+
+  const getSubscriptionBadgeVariant = () => {
+    switch (subscriptionType) {
+      case 'Side-Gig Plan':
+        return 'default';
+      case 'Full-Time Plan':
+        return 'default';
+      default:
+        return 'secondary';
     }
-    
-    // If only one has worksheets, prioritize the one with worksheets
-    if (aLatestWorksheet && !bLatestWorksheet) return -1;
-    if (!aLatestWorksheet && bLatestWorksheet) return 1;
-    
-    // If neither has worksheets, sort by student creation date (newest first)
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
-
-  // Sort recent worksheets properly (newest first)
-  const recentWorksheets = allWorksheets
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5);
-
-  const stats = {
-    totalStudents: students.length,
-    totalWorksheets: allWorksheets.length,
-    thisWeekWorksheets: allWorksheets.filter(w => {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return new Date(w.created_at) > weekAgo;
-    }).length
   };
 
-  const displayName = profile?.first_name || 'Teacher';
+  const getUsagePercentage = () => {
+    if (!monthlyLimit || monthlyLimit === 0) return 0;
+    return Math.min((monthlyUsed / monthlyLimit) * 100, 100);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
@@ -147,22 +90,17 @@ const Dashboard = () => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold flex items-center">
-              <GraduationCap className="h-8 w-8 mr-3" />
-              {profile?.first_name ? (
-                <>
-                  <span className="text-primary">{profile.first_name}</span>
-                  <span className="ml-2">Dashboard</span>
-                </>
-              ) : (
-                <span>Teacher Dashboard</span>
-              )}
+              <GraduationCap className="h-8 w-8 mr-3 text-primary" />
+              <span>Welcome back, </span>
+              <span className={profile?.first_name ? "text-primary ml-2" : "ml-2"}>{displayName}</span>
             </h1>
-            <p className="text-muted-foreground">
-              Manage your students and track worksheet generation
+            <p className="text-muted-foreground mt-1">
+              Here's your teaching dashboard overview
             </p>
           </div>
           <div className="flex gap-2">
             <Button onClick={handleForceNewWorksheet}>
+              <Plus className="h-4 w-4 mr-2" />
               Generate Worksheet
             </Button>
             <Button asChild variant="outline">
@@ -175,147 +113,239 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Current Plan Card */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Crown className="h-4 w-4" />
+                Current Plan
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalStudents}</div>
+            <CardContent className="pt-0">
+              <Badge variant={getSubscriptionBadgeVariant()} className="text-sm px-3 py-1">
+                {subscriptionType}
+              </Badge>
+              {subscriptionType !== 'Free Demo' && profile?.subscription_expires_at && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Renews: {new Date(profile.subscription_expires_at).toLocaleDateString()}
+                </p>
+              )}
             </CardContent>
           </Card>
+
+          {/* Available Tokens Card */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Worksheets</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Coins className="h-4 w-4" />
+                Available Tokens
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalWorksheets}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">This Week</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.thisWeekWorksheets}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Token Balance</CardTitle>
-              <Coins className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <div className="text-2xl font-bold">{tokenBalance}</div>
+              <p className="text-xs text-muted-foreground">
+                Tokens for worksheet generation
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Monthly Usage Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Monthly Usage
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="text-2xl font-bold">{monthlyUsed}</div>
+              {monthlyLimit && (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    of {monthlyLimit} worksheets
+                  </p>
+                  <div className="w-full bg-secondary rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-primary h-2 rounded-full transition-all" 
+                      style={{ width: `${getUsagePercentage()}%` }}
+                    ></div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Students Count Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                My Students
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="text-2xl font-bold">{students?.length || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Students managed
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Two Column Layout - Students and Recent Worksheets */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Students Section */}
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Your Students</h2>
-              <AddStudentDialog onStudentAdded={handleStudentAdded} />
-            </div>
+        {/* Main Content */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="students">Students</TabsTrigger>
+            <TabsTrigger value="worksheets">Recent Worksheets</TabsTrigger>
+          </TabsList>
 
-            {sortedStudents.length === 0 ? (
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Quick Actions */}
               <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <User className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No students yet</h3>
-                  <p className="text-muted-foreground text-center mb-4">
-                    Add your first student to start creating personalized worksheets
-                  </p>
-                  <AddStudentDialog onStudentAdded={handleStudentAdded} />
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {sortedStudents.map((student) => (
-                  <StudentCard
-                    key={student.id}
-                    student={student}
-                    onOpenWorksheet={handleOpenWorksheet}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Recent Worksheets Section */}
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Recent Worksheets</h2>
-            
-            {worksheetsLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="mt-4">Loading worksheets...</p>
-              </div>
-            ) : recentWorksheets.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No worksheets yet</h3>
-                  <p className="text-muted-foreground text-center mb-4">
-                    Generate your first worksheet to see it here
-                  </p>
-                  <Button onClick={handleForceNewWorksheet}>
-                    Generate First Worksheet
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Quick Actions
+                  </CardTitle>
+                  <CardDescription>
+                    Generate worksheets and manage your teaching materials
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button 
+                    className="w-full justify-start" 
+                    onClick={handleForceNewWorksheet}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Generate New Worksheet
+                  </Button>
+                  <AddStudentDialog />
+                  <Button asChild variant="outline" className="w-full justify-start">
+                    <Link to="/profile">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Manage Profile & Subscription
+                    </Link>
                   </Button>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="space-y-4">
-                {recentWorksheets.map((worksheet) => {
-                  const student = students.find(s => s.id === worksheet.student_id);
-                  return (
-                    <Card key={worksheet.id} className="cursor-pointer hover:shadow-md transition-shadow"
-                          onClick={() => handleOpenWorksheet(worksheet)}>
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle className="text-lg">
-                              {worksheet.title || 'Untitled Worksheet'}
-                              {student && (
-                                <span className="text-sm font-normal text-muted-foreground ml-2">
-                                  for {student.name}
-                                </span>
-                              )}
-                            </CardTitle>
-                            <CardDescription>
-                              {worksheet.form_data?.lessonTopic && `Topic: ${worksheet.form_data.lessonTopic}`}
-                              {worksheet.form_data?.lessonGoal && ` • Goal: ${worksheet.form_data.lessonGoal}`}
-                            </CardDescription>
-                          </div>
-                          <Badge variant="outline">
-                            {worksheet.form_data?.englishLevel || 'Unknown Level'}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          {format(new Date(worksheet.created_at), 'PPP')} at {format(new Date(worksheet.created_at), 'p')}
-                          {worksheet.generation_time_seconds && (
-                            <>
-                              <Clock className="h-4 w-4 ml-4 mr-2" />
-                              Generated in {worksheet.generation_time_seconds}s
-                            </>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+
+              {/* Account Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Account Status
+                  </CardTitle>
+                  <CardDescription>
+                    Your current subscription and usage details
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Plan</span>
+                    <Badge variant={getSubscriptionBadgeVariant()}>
+                      {subscriptionType}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Available Tokens</span>
+                    <span className="font-medium">{tokenBalance}</span>
+                  </div>
+
+                  {monthlyLimit && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Monthly Limit</span>
+                      <span className="font-medium">{monthlyLimit}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Used This Month</span>
+                    <span className="font-medium">{monthlyUsed}</span>
+                  </div>
+
+                  {subscriptionType === 'Free Demo' && (
+                    <div className="pt-2">
+                      <Button asChild size="sm" className="w-full">
+                        <Link to="/profile">
+                          <Crown className="h-4 w-4 mr-2" />
+                          Upgrade Plan
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="students" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-semibold">My Students</h3>
+                <p className="text-sm text-muted-foreground">
+                  Manage your students and track their progress
+                </p>
               </div>
+              <AddStudentDialog />
+            </div>
+
+            {studentsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-2 text-sm text-muted-foreground">Loading students...</p>
+              </div>
+            ) : students && students.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {students.map((student) => (
+                  <StudentCard
+                    key={student.id}
+                    student={student}
+                    onUpdate={refetchStudents}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No students yet</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Add your first student to start organizing your teaching materials.
+                  </p>
+                  <AddStudentDialog />
+                </CardContent>
+              </Card>
             )}
-          </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="worksheets" className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold">Recent Worksheets</h3>
+              <p className="text-sm text-muted-foreground">
+                Your recently generated worksheets and activities
+              </p>
+            </div>
+
+            <Card>
+              <CardContent className="text-center py-8">
+                <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Worksheet history coming soon</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  We're working on adding a feature to track and manage your worksheet history.
+                </p>
+                <Button onClick={handleForceNewWorksheet}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Generate Your First Worksheet
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

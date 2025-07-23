@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,16 +7,43 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useProfile } from '@/hooks/useProfile';
+import { useSubscriptionVerification } from '@/hooks/useSubscriptionVerification';
 import { EditableProfileField } from '@/components/profile/EditableProfileField';
 import { toast } from '@/hooks/use-toast';
 import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail, Settings } from 'lucide-react';
 
 const Profile = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
-  const { profile, loading: profileLoading, refetch } = useProfile();
+  const { profile, loading: profileLoading, refreshProfile } = useProfile();
+  const { verifySubscription, isVerifying } = useSubscriptionVerification();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
+
+  // Check for subscription success and verify
+  useEffect(() => {
+    const subscriptionStatus = searchParams.get('subscription');
+    const sessionId = searchParams.get('session_id');
+    
+    if (subscriptionStatus === 'success' && sessionId && isRegisteredUser) {
+      console.log('🔍 DETECTED SUBSCRIPTION SUCCESS RETURN:', { sessionId });
+      
+      const handleVerification = async () => {
+        const result = await verifySubscription(sessionId);
+        if (result.success) {
+          // Refresh profile data after successful verification
+          await refreshProfile();
+          
+          // Clean up URL parameters
+          const newUrl = window.location.pathname;
+          window.history.replaceState(null, '', newUrl);
+        }
+      };
+      
+      handleVerification();
+    }
+  }, [searchParams, isRegisteredUser, verifySubscription, refreshProfile]);
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
@@ -101,7 +127,7 @@ const Profile = () => {
 
       if (error) throw error;
 
-      await refetch();
+      await refreshProfile();
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
@@ -227,13 +253,15 @@ const Profile = () => {
     }
   };
 
-  // Show loading spinner while checking auth
-  if (loading || profileLoading) {
+  // Show loading spinner while checking auth or verifying subscription
+  if (loading || profileLoading || isVerifying) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4">Loading...</p>
+          <p className="mt-4">
+            {isVerifying ? 'Verifying your subscription...' : 'Loading...'}
+          </p>
         </div>
       </div>
     );
@@ -253,7 +281,7 @@ const Profile = () => {
     return monthlyLimit || 'Not set';
   };
 
-  const getRenewalInfo = () => {
+  const getRenevalInfo = () => {
     if (subscriptionType === 'Free Demo') return null;
     if (profile?.subscription_expires_at) {
       const renewalDate = new Date(profile.subscription_expires_at);
@@ -426,10 +454,10 @@ const Profile = () => {
                 
                 {subscriptionType !== 'Free Demo' && (
                   <div className="space-y-2">
-                    {getRenewalInfo() && (
+                    {getRenevalInfo() && (
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Renews</span>
-                        <span className="text-sm font-medium">{getRenewalInfo()}</span>
+                        <span className="text-sm font-medium">{getRenevalInfo()}</span>
                       </div>
                     )}
                     <div className="pt-2">
