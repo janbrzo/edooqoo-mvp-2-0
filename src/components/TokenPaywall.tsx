@@ -8,14 +8,18 @@ import { Coins, CreditCard, Zap, Users } from 'lucide-react';
 interface TokenPaywallProps {
   isDemo: boolean;
   tokenBalance: number;
+  profile?: any;
   onUpgrade?: () => void;
 }
 
 export const TokenPaywall: React.FC<TokenPaywallProps> = ({ 
   isDemo, 
-  tokenBalance, 
+  tokenBalance,
+  profile,
   onUpgrade 
 }) => {
+  const currentPlan = profile?.subscription_type;
+
   if (isDemo) {
     return (
       <Card className="max-w-md mx-auto mt-8">
@@ -47,33 +51,79 @@ export const TokenPaywall: React.FC<TokenPaywallProps> = ({
     );
   }
 
-  return (
-    <Card className="max-w-md mx-auto mt-8">
-      <CardHeader className="text-center">
-        <Coins className="w-12 h-12 mx-auto mb-4 text-primary" />
-        <CardTitle>No Tokens Remaining</CardTitle>
-        <CardDescription>
-          You have {tokenBalance} tokens left. Choose a subscription plan to continue generating worksheets.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+  const getUpgradeContent = () => {
+    if (!currentPlan || currentPlan === 'Free Demo') {
+      return (
         <div className="grid grid-cols-1 gap-4">
           <div className="bg-secondary/50 p-4 rounded-lg text-center">
             <Users className="w-8 h-8 mx-auto mb-2 text-primary" />
-            <h4 className="font-semibold">Side-Gig Plan</h4>
+            <h4 className="font-semibold">Side-Gig</h4>
             <p className="text-2xl font-bold">$9</p>
             <p className="text-sm text-muted-foreground">15 worksheets/month</p>
           </div>
           <div className="bg-primary/10 p-4 rounded-lg text-center border border-primary/20">
             <Zap className="w-8 h-8 mx-auto mb-2 text-primary" />
-            <h4 className="font-semibold">Full-Time Plan</h4>
+            <h4 className="font-semibold">Full-Time Plans</h4>
             <p className="text-2xl font-bold">From $19</p>
             <p className="text-sm text-muted-foreground">30-120 worksheets/month</p>
           </div>
         </div>
+      );
+    }
+
+    if (currentPlan === 'Side-Gig') {
+      return (
+        <div className="bg-primary/10 p-4 rounded-lg text-center border border-primary/20">
+          <Zap className="w-8 h-8 mx-auto mb-2 text-primary" />
+          <h4 className="font-semibold">Upgrade to Full-Time</h4>
+          <p className="text-2xl font-bold">From $19</p>
+          <p className="text-sm text-muted-foreground">30-120 worksheets/month</p>
+        </div>
+      );
+    }
+
+    if (currentPlan?.startsWith('Full-Time')) {
+      const currentLimit = profile?.monthly_worksheet_limit || 0;
+      if (currentLimit < 120) {
+        return (
+          <div className="bg-primary/10 p-4 rounded-lg text-center border border-primary/20">
+            <Zap className="w-8 h-8 mx-auto mb-2 text-primary" />
+            <h4 className="font-semibold">Upgrade Your Plan</h4>
+            <p className="text-sm text-muted-foreground mb-2">Get more worksheets per month</p>
+            <div className="text-xs space-y-1">
+              {currentLimit < 60 && <p>• 60 worksheets - $39/month</p>}
+              {currentLimit < 90 && <p>• 90 worksheets - $59/month</p>}
+              {currentLimit < 120 && <p>• 120 worksheets - $79/month</p>}
+            </div>
+          </div>
+        );
+      }
+    }
+
+    return null;
+  };
+
+  const upgradeContent = getUpgradeContent();
+
+  return (
+    <Card className="max-w-md mx-auto mt-8">
+      <CardHeader className="text-center">
+        <Coins className="w-12 h-12 mx-auto mb-4 text-primary" />
+        <CardTitle>
+          {currentPlan && currentPlan !== 'Free Demo' ? 'Upgrade Your Plan' : 'No Tokens Remaining'}
+        </CardTitle>
+        <CardDescription>
+          {currentPlan && currentPlan !== 'Free Demo' 
+            ? `You've reached your limit. Upgrade your ${currentPlan} to continue.`
+            : `You have ${tokenBalance} tokens left. Choose a subscription plan to continue generating worksheets.`
+          }
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {upgradeContent}
         <Button asChild className="w-full">
           <Link to="/pricing">
-            Choose Your Plan
+            {currentPlan && currentPlan !== 'Free Demo' ? 'Upgrade Plan' : 'Choose Your Plan'}
           </Link>
         </Button>
         <div className="flex gap-2 pt-4">

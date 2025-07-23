@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export const useTokenSystem = (userId?: string | null) => {
   const [tokenBalance, setTokenBalance] = useState<number>(0);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -13,6 +15,7 @@ export const useTokenSystem = (userId?: string | null) => {
     } else {
       setLoading(false);
       setTokenBalance(0);
+      setProfile(null);
     }
   }, [userId]);
 
@@ -20,11 +23,17 @@ export const useTokenSystem = (userId?: string | null) => {
     if (!userId) return;
     
     try {
-      const { data, error } = await supabase
-        .rpc('get_token_balance', { p_teacher_id: userId });
+      // Get both token balance and profile data
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('token_balance, monthly_worksheet_limit, subscription_type')
+        .eq('id', userId)
+        .single();
       
       if (error) throw error;
-      setTokenBalance(data || 0);
+      
+      setTokenBalance(profileData?.token_balance || 0);
+      setProfile(profileData);
     } catch (error: any) {
       console.error('Error fetching token balance:', error);
       toast({
@@ -61,13 +70,27 @@ export const useTokenSystem = (userId?: string | null) => {
     }
   };
 
-  const hasTokens = tokenBalance > 0;
+  // Check if user has tokens available (either from balance or monthly limit)
+  const hasTokens = () => {
+    if (!userId) return false; // Demo mode - no tokens
+    
+    // If user has token balance, they can generate
+    if (tokenBalance > 0) return true;
+    
+    // If user has active subscription with monthly limit, they can generate
+    const monthlyLimit = profile?.monthly_worksheet_limit || 0;
+    const subscriptionActive = profile?.subscription_type && profile?.subscription_type !== 'Free Demo';
+    
+    return subscriptionActive && monthlyLimit > 0;
+  };
+
   const isDemo = !userId; // Anonymous users are in demo mode
 
   return {
     tokenBalance,
+    profile,
     loading,
-    hasTokens,
+    hasTokens: hasTokens(),
     isDemo,
     consumeToken,
     refetchBalance: fetchTokenBalance

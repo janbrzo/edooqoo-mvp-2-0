@@ -176,23 +176,36 @@ async function processSubscription(supabaseClient: any, userId: string, customer
     let planType = 'unknown';
     let monthlyLimit = 0;
     let tokensToAdd = 0;
+    let subscriptionType = 'Unknown Plan';
 
-    // Determine plan based on amount
+    // Determine plan based on amount with detailed naming
     if (amount === 900) { // $9.00
       planType = 'side-gig';
       monthlyLimit = 15;
       tokensToAdd = 15;
+      subscriptionType = 'Side-Gig';
     } else if (amount >= 1900) { // $19.00+
       planType = 'full-time';
-      if (amount === 1900) monthlyLimit = 30;
-      else if (amount === 3900) monthlyLimit = 60;
-      else if (amount === 5900) monthlyLimit = 90;
-      else if (amount === 7900) monthlyLimit = 120;
-      else monthlyLimit = 30;
+      if (amount === 1900) {
+        monthlyLimit = 30;
+        subscriptionType = 'Full-Time 30';
+      } else if (amount === 3900) {
+        monthlyLimit = 60;
+        subscriptionType = 'Full-Time 60';
+      } else if (amount === 5900) {
+        monthlyLimit = 90;
+        subscriptionType = 'Full-Time 90';
+      } else if (amount === 7900) {
+        monthlyLimit = 120;
+        subscriptionType = 'Full-Time 120';
+      } else {
+        monthlyLimit = 30;
+        subscriptionType = 'Full-Time 30';
+      }
       tokensToAdd = monthlyLimit;
     }
 
-    console.log('[STRIPE-WEBHOOK] Plan details:', { planType, monthlyLimit, tokensToAdd });
+    console.log('[STRIPE-WEBHOOK] Plan details:', { planType, monthlyLimit, tokensToAdd, subscriptionType });
 
     // Upsert subscription record
     const { error: subError } = await supabaseClient
@@ -219,9 +232,17 @@ async function processSubscription(supabaseClient: any, userId: string, customer
 
     console.log('[STRIPE-WEBHOOK] Subscription record saved');
 
-    // Update user profile
-    const subscriptionType = planType === 'side-gig' ? 'Side-Gig Plan' : 'Full-Time Plan';
-    
+    // Get current token balance before updating
+    const { data: currentProfile } = await supabaseClient
+      .from('profiles')
+      .select('token_balance')
+      .eq('id', userId)
+      .single();
+
+    const currentTokens = currentProfile?.token_balance || 0;
+    const newTokenBalance = currentTokens + tokensToAdd;
+
+    // Update user profile with new token balance and subscription details
     const { error: profileError } = await supabaseClient
       .from('profiles')
       .update({
@@ -229,32 +250,34 @@ async function processSubscription(supabaseClient: any, userId: string, customer
         subscription_status: subscription.status,
         subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
         monthly_worksheet_limit: monthlyLimit,
-        token_balance: supabaseClient.rpc('get_token_balance', { p_teacher_id: userId }).then((result: any) => 
-          (result.data || 0) + tokensToAdd
-        ),
+        token_balance: newTokenBalance,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
 
     if (profileError) {
       console.error('[STRIPE-WEBHOOK] Error updating profile:', profileError);
-      // Don't throw here, try to add tokens separately
+      throw profileError;
     }
 
-    // Add tokens using the existing function
+    console.log('[STRIPE-WEBHOOK] Profile updated with token balance:', newTokenBalance);
+
+    // Add tokens transaction record
     if (tokensToAdd > 0) {
       const { error: tokenError } = await supabaseClient
-        .rpc('add_tokens', {
-          p_teacher_id: userId,
-          p_amount: tokensToAdd,
-          p_description: `${subscriptionType} subscription activation`,
-          p_reference_id: null
+        .from('token_transactions')
+        .insert({
+          teacher_id: userId,
+          transaction_type: 'purchase',
+          amount: tokensToAdd,
+          description: `${subscriptionType} subscription activation`,
+          reference_id: null
         });
 
       if (tokenError) {
-        console.error('[STRIPE-WEBHOOK] Error adding tokens:', tokenError);
+        console.error('[STRIPE-WEBHOOK] Error adding token transaction:', tokenError);
       } else {
-        console.log('[STRIPE-WEBHOOK] Added', tokensToAdd, 'tokens to user');
+        console.log('[STRIPE-WEBHOOK] Added token transaction for', tokensToAdd, 'tokens');
       }
     }
 

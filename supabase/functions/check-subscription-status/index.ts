@@ -90,16 +90,26 @@ serve(async (req) => {
 
     if (amount === 900) {
       planType = 'side-gig';
-      subscriptionType = 'Side-Gig Plan';
+      subscriptionType = 'Side-Gig';
       monthlyLimit = 15;
     } else if (amount >= 1900) {
       planType = 'full-time';
-      subscriptionType = 'Full-Time Plan';
-      if (amount === 1900) monthlyLimit = 30;
-      else if (amount === 3900) monthlyLimit = 60;
-      else if (amount === 5900) monthlyLimit = 90;
-      else if (amount === 7900) monthlyLimit = 120;
-      else monthlyLimit = 30;
+      if (amount === 1900) {
+        monthlyLimit = 30;
+        subscriptionType = 'Full-Time 30';
+      } else if (amount === 3900) {
+        monthlyLimit = 60;
+        subscriptionType = 'Full-Time 60';
+      } else if (amount === 5900) {
+        monthlyLimit = 90;
+        subscriptionType = 'Full-Time 90';
+      } else if (amount === 7900) {
+        monthlyLimit = 120;
+        subscriptionType = 'Full-Time 120';
+      } else {
+        monthlyLimit = 30;
+        subscriptionType = 'Full-Time 30';
+      }
     }
 
     // Use service role key to update data
@@ -131,7 +141,7 @@ serve(async (req) => {
       console.error('[CHECK-SUBSCRIPTION] Error updating subscription:', subError);
     }
 
-    // Update profile
+    // Update profile - bez dodawania tokenów, tylko synchronizacja danych
     const { error: profileError } = await supabaseService
       .from('profiles')
       .update({
