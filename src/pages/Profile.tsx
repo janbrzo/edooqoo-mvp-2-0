@@ -8,13 +8,15 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useProfile } from '@/hooks/useProfile';
+import { useSubscriptionSync } from '@/hooks/useSubscriptionSync';
 import { EditableProfileField } from '@/components/profile/EditableProfileField';
 import { toast } from '@/hooks/use-toast';
-import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail, Settings } from 'lucide-react';
+import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail, Settings, RefreshCw } from 'lucide-react';
 
 const Profile = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
   const { profile, loading: profileLoading, refetch } = useProfile();
+  const { syncSubscriptionStatus, loading: syncLoading } = useSubscriptionSync();
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
@@ -118,6 +120,14 @@ const Profile = () => {
   const handleForceNewWorksheet = () => {
     sessionStorage.setItem('forceNewWorksheet', 'true');
     navigate('/');
+  };
+
+  const handleSyncSubscription = async () => {
+    const result = await syncSubscriptionStatus();
+    if (result) {
+      // Refresh profile data after sync
+      await refetch();
+    }
   };
 
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
@@ -422,6 +432,20 @@ const Profile = () => {
                   <Badge variant="outline" className="font-semibold text-base px-3 py-1">
                     {subscriptionType}
                   </Badge>
+                </div>
+                
+                {/* Sync Subscription Button */}
+                <div className="pt-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    size="sm" 
+                    onClick={handleSyncSubscription}
+                    disabled={syncLoading}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${syncLoading ? 'animate-spin' : ''}`} />
+                    {syncLoading ? 'Syncing...' : 'Sync Subscription Status'}
+                  </Button>
                 </div>
                 
                 {subscriptionType !== 'Free Demo' && (
