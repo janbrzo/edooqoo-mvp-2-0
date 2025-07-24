@@ -9,7 +9,7 @@ import { Coins, CreditCard, Zap, Users } from 'lucide-react';
 interface TokenPaywallModalProps {
   isOpen: boolean;
   onClose: () => void;
-  tokenBalance: number;
+  availableTokens: number;
   profile?: any;
   onUpgrade?: () => void;
 }
@@ -17,7 +17,7 @@ interface TokenPaywallModalProps {
 export const TokenPaywallModal: React.FC<TokenPaywallModalProps> = ({ 
   isOpen,
   onClose,
-  tokenBalance, 
+  availableTokens, 
   profile,
   onUpgrade 
 }) => {
@@ -83,7 +83,7 @@ export const TokenPaywallModal: React.FC<TokenPaywallModalProps> = ({
 
   const getDescription = () => {
     if (isDemo) {
-      return `You have ${tokenBalance} tokens left. Choose a subscription plan to continue generating worksheets.`;
+      return `You have ${availableTokens} tokens left. Choose a subscription plan to continue generating worksheets.`;
     }
     
     const hasMonthlyLimit = profile?.monthly_worksheet_limit > 0;
@@ -91,7 +91,7 @@ export const TokenPaywallModal: React.FC<TokenPaywallModalProps> = ({
       return `You've reached your monthly limit. Upgrade your ${currentPlan} to get more worksheets.`;
     }
     
-    return `You have ${tokenBalance} tokens left. Upgrade your plan to continue generating worksheets.`;
+    return `You have ${availableTokens} tokens left. Upgrade your plan to continue generating worksheets.`;
   };
 
   const upgradeOptions = getUpgradeOptions();

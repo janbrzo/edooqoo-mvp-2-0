@@ -278,6 +278,11 @@ const Profile = () => {
   const subscriptionType = profile?.subscription_type || 'Free Demo';
   const monthlyLimit = profile?.monthly_worksheet_limit;
 
+  const tokenBalance = profile?.token_balance || 0;
+  const monthlyUsed = profile?.monthly_worksheets_used || 0;
+  const monthlyAvailable = monthlyLimit ? Math.max(0, monthlyLimit - monthlyUsed) : 0;
+  const totalAvailableTokens = tokenBalance + monthlyAvailable;
+
   const getMonthlyLimitDisplay = () => {
     if (subscriptionType === 'Free Demo') return 'Not applicable';
     return monthlyLimit || 'Not set';
@@ -420,11 +425,15 @@ const Profile = () => {
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Available tokens</span>
-                      <span className="font-medium">{profile?.token_balance || 0}</span>
+                      <span className="font-medium">{totalAvailableTokens}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Token balance</span>
+                      <span className="font-medium">{tokenBalance}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">This month used</span>
-                      <span className="font-medium">{profile?.monthly_worksheets_used || 0}</span>
+                      <span className="font-medium">{monthlyUsed}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Monthly limit</span>

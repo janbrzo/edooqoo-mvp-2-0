@@ -242,7 +242,7 @@ async function processSubscription(supabaseClient: any, userId: string, customer
     const currentTokens = currentProfile?.token_balance || 0;
     const newTokenBalance = currentTokens + tokensToAdd;
 
-    // Update user profile with new token balance and subscription details
+    // Update user profile with ALL subscription details and new token balance
     const { error: profileError } = await supabaseClient
       .from('profiles')
       .update({
@@ -250,6 +250,7 @@ async function processSubscription(supabaseClient: any, userId: string, customer
         subscription_status: subscription.status,
         subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
         monthly_worksheet_limit: monthlyLimit,
+        monthly_worksheets_used: 0, // Reset monthly usage for new subscription
         token_balance: newTokenBalance,
         updated_at: new Date().toISOString()
       })
@@ -260,7 +261,12 @@ async function processSubscription(supabaseClient: any, userId: string, customer
       throw profileError;
     }
 
-    console.log('[STRIPE-WEBHOOK] Profile updated with token balance:', newTokenBalance);
+    console.log('[STRIPE-WEBHOOK] Profile updated with:', {
+      subscriptionType,
+      monthlyLimit,
+      newTokenBalance,
+      monthlyWorksheetsUsed: 0
+    });
 
     // Add tokens transaction record
     if (tokensToAdd > 0) {

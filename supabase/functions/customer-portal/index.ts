@@ -58,29 +58,41 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length === 0) {
       console.error('[CUSTOMER-PORTAL] No Stripe customer found for:', user.email);
-      throw new Error('No Stripe customer found');
+      throw new Error('No Stripe customer found. Please contact support.');
     }
 
     const customerId = customers.data[0].id;
     console.log('[CUSTOMER-PORTAL] Found customer:', customerId);
 
-    // Create portal session
-    const origin = req.headers.get('origin') || 'http://localhost:3000';
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: customerId,
-      return_url: `${origin}/profile`,
-    });
+    // Create portal session with configuration
+    const origin = req.headers.get('origin') || 'https://cdoyjgiyrfziejbrcvpx.supabase.co';
+    
+    try {
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: `${origin}/profile`,
+        configuration: undefined // Let Stripe use default configuration
+      });
 
-    console.log('[CUSTOMER-PORTAL] Portal session created:', portalSession.id);
+      console.log('[CUSTOMER-PORTAL] Portal session created:', portalSession.id);
 
-    return new Response(
-      JSON.stringify({ url: portalSession.url }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(
+        JSON.stringify({ url: portalSession.url }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    } catch (stripeError: any) {
+      console.error('[CUSTOMER-PORTAL] Stripe portal error:', stripeError);
+      
+      if (stripeError.message?.includes('configuration')) {
+        throw new Error('Customer portal not configured. Please contact support to manage your subscription.');
       }
-    );
+      
+      throw new Error('Failed to create customer portal session. Please try again or contact support.');
+    }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[CUSTOMER-PORTAL] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),

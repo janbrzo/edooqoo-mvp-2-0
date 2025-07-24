@@ -59,13 +59,21 @@ export const useTokenSystem = (userId?: string | null) => {
       if (error) throw error;
       
       if (data) {
-        // Update local state
-        setTokenBalance(prev => Math.max(0, prev - 1));
-        setProfile(prev => prev ? {
-          ...prev,
-          token_balance: Math.max(0, (prev.token_balance || 0) - 1),
-          monthly_worksheets_used: (prev.monthly_worksheets_used || 0) + 1
-        } : null);
+        // Update local state based on what was consumed
+        const currentTokenBalance = tokenBalance;
+        const monthlyUsed = profile?.monthly_worksheets_used || 0;
+        
+        if (currentTokenBalance > 0) {
+          // Token was consumed from balance
+          setTokenBalance(prev => Math.max(0, prev - 1));
+        } else {
+          // Token was consumed from monthly limit
+          setProfile(prev => prev ? {
+            ...prev,
+            monthly_worksheets_used: monthlyUsed + 1
+          } : null);
+        }
+        
         return true;
       }
       
@@ -76,19 +84,21 @@ export const useTokenSystem = (userId?: string | null) => {
     }
   };
 
-  // Check if user has tokens available (either from balance or within monthly limit)
+  // Calculate total available tokens
+  const getAvailableTokens = () => {
+    const baseTokens = tokenBalance || 0;
+    const monthlyLimit = profile?.monthly_worksheet_limit || 0;
+    const monthlyUsed = profile?.monthly_worksheets_used || 0;
+    const monthlyAvailable = Math.max(0, monthlyLimit - monthlyUsed);
+    
+    return baseTokens + monthlyAvailable;
+  };
+
+  // Check if user has tokens available
   const hasTokens = () => {
     if (!userId) return false; // Demo mode - no tokens
     
-    // If user has token balance, they can generate
-    if (tokenBalance > 0) return true;
-    
-    // If user has active subscription with monthly limit, check if within limit
-    const monthlyLimit = profile?.monthly_worksheet_limit || 0;
-    const monthlyUsed = profile?.monthly_worksheets_used || 0;
-    const subscriptionActive = profile?.subscription_type && profile?.subscription_type !== 'Free Demo';
-    
-    return subscriptionActive && monthlyLimit > 0 && monthlyUsed < monthlyLimit;
+    return getAvailableTokens() > 0;
   };
 
   const isDemo = !userId; // Anonymous users are in demo mode
@@ -98,6 +108,7 @@ export const useTokenSystem = (userId?: string | null) => {
     profile,
     loading,
     hasTokens: hasTokens(),
+    availableTokens: getAvailableTokens(),
     isDemo,
     consumeToken,
     refetchBalance: fetchTokenBalance
