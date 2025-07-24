@@ -26,7 +26,7 @@ export const useTokenSystem = (userId?: string | null) => {
       // Get both token balance and profile data
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('token_balance, monthly_worksheet_limit, subscription_type')
+        .select('token_balance, monthly_worksheet_limit, subscription_type, monthly_worksheets_used')
         .eq('id', userId)
         .single();
       
@@ -59,7 +59,13 @@ export const useTokenSystem = (userId?: string | null) => {
       if (error) throw error;
       
       if (data) {
+        // Update local state
         setTokenBalance(prev => Math.max(0, prev - 1));
+        setProfile(prev => prev ? {
+          ...prev,
+          token_balance: Math.max(0, (prev.token_balance || 0) - 1),
+          monthly_worksheets_used: (prev.monthly_worksheets_used || 0) + 1
+        } : null);
         return true;
       }
       
@@ -70,18 +76,19 @@ export const useTokenSystem = (userId?: string | null) => {
     }
   };
 
-  // Check if user has tokens available (either from balance or monthly limit)
+  // Check if user has tokens available (either from balance or within monthly limit)
   const hasTokens = () => {
     if (!userId) return false; // Demo mode - no tokens
     
     // If user has token balance, they can generate
     if (tokenBalance > 0) return true;
     
-    // If user has active subscription with monthly limit, they can generate
+    // If user has active subscription with monthly limit, check if within limit
     const monthlyLimit = profile?.monthly_worksheet_limit || 0;
+    const monthlyUsed = profile?.monthly_worksheets_used || 0;
     const subscriptionActive = profile?.subscription_type && profile?.subscription_type !== 'Free Demo';
     
-    return subscriptionActive && monthlyLimit > 0;
+    return subscriptionActive && monthlyLimit > 0 && monthlyUsed < monthlyLimit;
   };
 
   const isDemo = !userId; // Anonymous users are in demo mode

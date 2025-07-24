@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
@@ -11,6 +12,20 @@ export const useProfile = () => {
 
   useEffect(() => {
     fetchProfile();
+    
+    // Listen for URL changes that might indicate return from payment
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Delay to ensure any webhook has time to process
+        setTimeout(fetchProfile, 2000);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const fetchProfile = async () => {
@@ -27,6 +42,7 @@ export const useProfile = () => {
       if (error) throw error;
       setProfile(data);
     } catch (error: any) {
+      console.error('Error fetching profile:', error);
       toast({
         title: "Error",
         description: error.message,

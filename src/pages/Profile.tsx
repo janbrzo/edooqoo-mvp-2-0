@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +26,17 @@ const Profile = () => {
       navigate('/');
     }
   }, [loading, isRegisteredUser, navigate]);
+
+  // Auto-refresh profile when returning from payment (e.g., URL contains success params)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true' || urlParams.get('session_id')) {
+      // User returned from successful payment, refresh after small delay
+      setTimeout(() => {
+        refetch();
+      }, 3000);
+    }
+  }, [refetch]);
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -181,7 +191,9 @@ const Profile = () => {
 
       if (data?.url) {
         console.log('Redirecting to Stripe checkout:', data.url);
-        window.location.href = data.url;
+        // Add success parameter to return URL for auto-refresh detection
+        const returnUrl = `${window.location.origin}/profile?success=true`;
+        window.location.href = data.url + `&success_url=${encodeURIComponent(returnUrl)}`;
       } else {
         throw new Error('No checkout URL received from server');
       }
@@ -221,11 +233,19 @@ const Profile = () => {
     if (!canManage) return;
 
     try {
+      console.log('Attempting to open customer portal...');
       const { data, error } = await supabase.functions.invoke('customer-portal');
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Portal error details:', error);
+        throw error;
+      }
 
       if (data?.url) {
+        console.log('Opening customer portal:', data.url);
         window.open(data.url, '_blank');
+      } else {
+        throw new Error('No portal URL received');
       }
     } catch (error: any) {
       console.error('Portal error:', error);
@@ -446,6 +466,9 @@ const Profile = () => {
                     <RefreshCw className={`h-4 w-4 mr-2 ${syncLoading ? 'animate-spin' : ''}`} />
                     {syncLoading ? 'Syncing...' : 'Sync Subscription Status'}
                   </Button>
+                  <p className="text-xs text-muted-foreground mt-1 text-center">
+                    Updates your subscription info from Stripe (doesn't add tokens)
+                  </p>
                 </div>
                 
                 {subscriptionType !== 'Free Demo' && (

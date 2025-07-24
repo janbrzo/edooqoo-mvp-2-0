@@ -14,6 +14,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('[CUSTOMER-PORTAL] Function started');
+
     // Initialize Supabase with anon key for user auth
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -22,34 +24,54 @@ serve(async (req) => {
 
     // Get authenticated user
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) throw new Error('No authorization header');
+    if (!authHeader) {
+      console.error('[CUSTOMER-PORTAL] No authorization header');
+      throw new Error('No authorization header');
+    }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw userError;
+    if (userError) {
+      console.error('[CUSTOMER-PORTAL] User error:', userError);
+      throw userError;
+    }
 
     const user = userData.user;
-    if (!user?.email) throw new Error('User not authenticated');
+    if (!user?.email) {
+      console.error('[CUSTOMER-PORTAL] User not authenticated');
+      throw new Error('User not authenticated');
+    }
+
+    console.log('[CUSTOMER-PORTAL] User authenticated:', user.email);
 
     // Initialize Stripe
     const stripeKey = Deno.env.get('Stripe_Secret_Key');
-    if (!stripeKey) throw new Error('Stripe key not configured');
+    if (!stripeKey) {
+      console.error('[CUSTOMER-PORTAL] Stripe key not configured');
+      throw new Error('Stripe key not configured');
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
     // Find customer
+    console.log('[CUSTOMER-PORTAL] Looking for customer:', user.email);
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length === 0) {
+      console.error('[CUSTOMER-PORTAL] No Stripe customer found for:', user.email);
       throw new Error('No Stripe customer found');
     }
 
     const customerId = customers.data[0].id;
+    console.log('[CUSTOMER-PORTAL] Found customer:', customerId);
 
     // Create portal session
+    const origin = req.headers.get('origin') || 'http://localhost:3000';
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${req.headers.get('origin') || 'https://localhost:3000'}/profile`,
+      return_url: `${origin}/profile`,
     });
+
+    console.log('[CUSTOMER-PORTAL] Portal session created:', portalSession.id);
 
     return new Response(
       JSON.stringify({ url: portalSession.url }),
@@ -59,7 +81,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error creating portal session:', error);
+    console.error('[CUSTOMER-PORTAL] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
