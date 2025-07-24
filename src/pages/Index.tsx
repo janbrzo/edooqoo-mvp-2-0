@@ -23,7 +23,7 @@ const Index = () => {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [preSelectedStudent, setPreSelectedStudent] = useState<{id: string, name: string} | null>(null);
   const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(user?.id || null, worksheetState, selectedStudentId);
-  const { tokenBalance, hasTokens, isDemo } = useTokenSystem(user?.id || null);
+  const { tokenBalance, availableTokens, hasTokens, isDemo, profile } = useTokenSystem(user?.id || null);
   const [showTokenModal, setShowTokenModal] = useState(false);
 
   // Check for pre-selected student from student page
@@ -181,7 +181,8 @@ const Index = () => {
       <TokenPaywallModal
         isOpen={showTokenModal}
         onClose={() => setShowTokenModal(false)}
-        tokenBalance={tokenBalance}
+        availableTokens={availableTokens}
+        profile={profile}
         onUpgrade={() => {
           console.log('Upgrade plan clicked');
           setShowTokenModal(false);
