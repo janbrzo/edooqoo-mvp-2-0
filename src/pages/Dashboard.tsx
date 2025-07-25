@@ -8,7 +8,7 @@ import { useAuthFlow } from "@/hooks/useAuthFlow";
 import { useTokenSystem } from "@/hooks/useTokenSystem";
 import { useStudents } from "@/hooks/useStudents";
 import { useWorksheetHistory } from "@/hooks/useWorksheetHistory";
-import { AddStudentDialog } from "@/components/dashboard/AddStudentDialog";
+import { AddStudentButton } from "@/components/dashboard/AddStudentButton";
 import { StudentCard } from "@/components/dashboard/StudentCard";
 import { useProfile } from "@/hooks/useProfile";
 import { 
@@ -28,11 +28,10 @@ import {
 const Dashboard = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
   const { tokenLeft, profile } = useTokenSystem(user?.id);
-  const { students, loading: studentsLoading, refreshStudents } = useStudents();
-  const { worksheetHistory, loading: historyLoading } = useWorksheetHistory();
+  const { students, loading: studentsLoading, refetch: refetchStudents } = useStudents();
+  const { worksheets, loading: historyLoading } = useWorksheetHistory();
   const { profile: userProfile } = useProfile();
   const navigate = useNavigate();
-  const [showAddStudentDialog, setShowAddStudentDialog] = useState(false);
   const [selectedTimeFrame, setSelectedTimeFrame] = useState("month");
 
   // Authentication check and redirection
@@ -41,55 +40,6 @@ const Dashboard = () => {
       navigate('/');
     }
   }, [loading, isRegisteredUser, navigate]);
-
-  // Fetch data and calculate stats
-  // useEffect(() => {
-  //   if (user) {
-  //     fetchData();
-  //   }
-  // }, [user]);
-
-  // const fetchData = async () => {
-  //   setIsLoading(true);
-  //   try {
-  //     // Fetch students
-  //     const { data: studentsData, error: studentsError } = await supabase
-  //       .from('students')
-  //       .select('*')
-  //       .eq('teacher_id', user?.id);
-
-  //     if (studentsError) {
-  //       console.error("Error fetching students:", studentsError);
-  //       toast({
-  //         title: "Error",
-  //         description: "Failed to fetch students.",
-  //         variant: "destructive"
-  //       });
-  //     } else {
-  //       setStudents(studentsData);
-  //     }
-
-  //     // Fetch worksheet history
-  //     const { data: historyData, error: historyError } = await supabase
-  //       .from('worksheets')
-  //       .select('*')
-  //       .eq('teacher_id', user?.id)
-  //       .order('created_at', { ascending: false });
-
-  //     if (historyError) {
-  //       console.error("Error fetching worksheet history:", historyError);
-  //       toast({
-  //         title: "Error",
-  //         description: "Failed to fetch worksheet history.",
-  //         variant: "destructive"
-  //       });
-  //     } else {
-  //       setWorksheetHistory(historyData);
-  //     }
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
   // Show loading state
   if (loading || studentsLoading || historyLoading) {
@@ -116,7 +66,7 @@ const Dashboard = () => {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   
-  const monthlyWorksheets = worksheetHistory.filter(w => {
+  const monthlyWorksheets = worksheets.filter(w => {
     const createdAt = new Date(w.created_at);
     return createdAt >= startOfMonth;
   });
@@ -131,11 +81,8 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  const handleStudentSelect = (student: any) => {
-    sessionStorage.setItem('preSelectedStudent', JSON.stringify({
-      id: student.id,
-      name: student.name
-    }));
+  const handleWorksheetOpen = (worksheet: any) => {
+    sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheet));
     navigate('/');
   };
 
@@ -235,14 +182,10 @@ const Dashboard = () => {
                   <Users className="h-5 w-5" />
                   Students ({students.length})
                 </CardTitle>
-                <Button 
+                <AddStudentButton 
                   size="sm" 
-                  onClick={() => setShowAddStudentDialog(true)}
-                  className="gap-1"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Student
-                </Button>
+                  onStudentAdded={refetchStudents}
+                />
               </div>
               <CardDescription>
                 Manage your students and generate worksheets for them
@@ -253,10 +196,7 @@ const Dashboard = () => {
                 <div className="text-center py-8">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">No students yet</p>
-                  <Button onClick={() => setShowAddStudentDialog(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Your First Student
-                  </Button>
+                  <AddStudentButton onStudentAdded={refetchStudents} />
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -264,9 +204,7 @@ const Dashboard = () => {
                     <StudentCard 
                       key={student.id} 
                       student={student}
-                      onSelect={() => handleStudentSelect(student)}
-                      onEdit={() => {}}
-                      onDelete={() => {}}
+                      onOpenWorksheet={handleWorksheetOpen}
                     />
                   ))}
                 </div>
@@ -296,7 +234,7 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {worksheetHistory.length === 0 ? (
+              {worksheets.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">No worksheets yet</p>
@@ -307,7 +245,7 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {worksheetHistory.slice(0, 5).map((worksheet) => (
+                  {worksheets.slice(0, 5).map((worksheet) => (
                     <div key={worksheet.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center gap-3">
                         <BookOpen className="h-5 w-5 text-muted-foreground" />
@@ -322,10 +260,7 @@ const Dashboard = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => {
-                          sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheet));
-                          navigate('/');
-                        }}
+                        onClick={() => handleWorksheetOpen(worksheet)}
                       >
                         Open
                       </Button>
@@ -337,12 +272,6 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
-
-      <AddStudentDialog 
-        open={showAddStudentDialog} 
-        onOpenChange={setShowAddStudentDialog}
-        onStudentAdded={refreshStudents}
-      />
     </div>
   );
 };

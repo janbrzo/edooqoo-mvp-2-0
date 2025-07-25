@@ -1,12 +1,13 @@
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useStudents } from '@/hooks/useStudents';
 import { Plus } from 'lucide-react';
+import { useState } from 'react';
 
 const ENGLISH_LEVELS = [
   { value: 'A1', label: 'A1 (Beginner)' },
@@ -30,11 +31,13 @@ const MAIN_GOALS = [
   { value: 'custom', label: 'Custom Goal (enter below)' }
 ];
 
-interface AddStudentDialogProps {
+interface AddStudentButtonProps {
   onStudentAdded?: () => void;
+  size?: 'sm' | 'default';
+  variant?: 'default' | 'outline';
 }
 
-export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
+export const AddStudentButton = ({ onStudentAdded, size = 'default', variant = 'default' }: AddStudentButtonProps) => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [englishLevel, setEnglishLevel] = useState('');
@@ -60,7 +63,6 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
       
       // Notify parent component that student was added
       if (onStudentAdded) {
-        console.log('🔄 Calling onStudentAdded callback...');
         onStudentAdded();
       }
     } catch (error) {
@@ -73,7 +75,7 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="hidden">
+        <Button size={size} variant={variant}>
           <Plus className="h-4 w-4 mr-2" />
           Add Student
         </Button>
