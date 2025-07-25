@@ -21,7 +21,7 @@ export const useWorksheetGeneration = (
   const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
   const { toast } = useToast();
   const { trackEvent } = useEventTracking(userId);
-  const { tokenBalance, hasTokens, isDemo, consumeToken } = useTokenSystem(userId);
+  const { tokenLeft, hasTokens, isDemo, consumeToken } = useTokenSystem(userId);
 
   const generateWorksheetHandler = async (data: FormData) => {
     console.log('🚀 Starting worksheet generation for:', data.lessonTime);
@@ -210,7 +210,7 @@ export const useWorksheetGeneration = (
   return {
     isGenerating,
     generateWorksheetHandler,
-    tokenBalance,
+    tokenLeft,
     hasTokens,
     isDemo
   };
