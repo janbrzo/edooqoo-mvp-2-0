@@ -7,14 +7,14 @@ import { Coins, CreditCard, Zap, Users } from 'lucide-react';
 
 interface TokenPaywallProps {
   isDemo: boolean;
-  tokenBalance: number;
+  tokenLeft: number;
   profile?: any;
   onUpgrade?: () => void;
 }
 
 export const TokenPaywall: React.FC<TokenPaywallProps> = ({ 
   isDemo, 
-  tokenBalance,
+  tokenLeft,
   profile,
   onUpgrade 
 }) => {
@@ -115,7 +115,7 @@ export const TokenPaywall: React.FC<TokenPaywallProps> = ({
         <CardDescription>
           {currentPlan && currentPlan !== 'Free Demo' 
             ? `You've reached your limit. Upgrade your ${currentPlan} to continue.`
-            : `You have ${tokenBalance} tokens left. Choose a subscription plan to continue generating worksheets.`
+            : `You have ${tokenLeft} tokens left. Choose a subscription plan to continue generating worksheets.`
           }
         </CardDescription>
       </CardHeader>

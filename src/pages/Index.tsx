@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuthFlow } from "@/hooks/useAuthFlow";
@@ -23,7 +22,7 @@ const Index = () => {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [preSelectedStudent, setPreSelectedStudent] = useState<{id: string, name: string} | null>(null);
   const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(user?.id || null, worksheetState, selectedStudentId);
-  const { tokenBalance, availableTokens, hasTokens, isDemo, profile } = useTokenSystem(user?.id || null);
+  const { tokenLeft, hasTokens, isDemo, profile } = useTokenSystem(user?.id || null);
   const [showTokenModal, setShowTokenModal] = useState(false);
 
   // Check for pre-selected student from student page
@@ -120,7 +119,7 @@ const Index = () => {
   const AuthenticatedNav = () => (
     <div className="fixed top-4 right-4 z-50 flex items-center gap-4">
       <Badge variant="outline" className="text-sm">
-        Balance: {tokenBalance} tokens
+        Token Left: {tokenLeft}
       </Badge>
       <Button asChild variant="outline" size="sm">
         <Link to="/dashboard">
@@ -181,7 +180,7 @@ const Index = () => {
       <TokenPaywallModal
         isOpen={showTokenModal}
         onClose={() => setShowTokenModal(false)}
-        availableTokens={availableTokens}
+        availableTokens={tokenLeft}
         profile={profile}
         onUpgrade={() => {
           console.log('Upgrade plan clicked');

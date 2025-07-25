@@ -281,7 +281,7 @@ const Profile = () => {
   const tokenBalance = profile?.token_balance || 0;
   const monthlyUsed = profile?.monthly_worksheets_used || 0;
   const monthlyAvailable = monthlyLimit ? Math.max(0, monthlyLimit - monthlyUsed) : 0;
-  const totalAvailableTokens = tokenBalance + monthlyAvailable;
+  const tokenLeft = tokenBalance + monthlyAvailable;
 
   const getMonthlyLimitDisplay = () => {
     if (subscriptionType === 'Free Demo') return 'Not applicable';
@@ -424,11 +424,11 @@ const Profile = () => {
                 <CardContent className="pt-0">
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Available tokens</span>
-                      <span className="font-medium">{totalAvailableTokens}</span>
+                      <span className="text-muted-foreground">Token Left</span>
+                      <span className="font-medium">{tokenLeft}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Token balance</span>
+                      <span className="text-muted-foreground">Purchased tokens</span>
                       <span className="font-medium">{tokenBalance}</span>
                     </div>
                     <div className="flex justify-between">
