@@ -9,17 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useProfile } from '@/hooks/useProfile';
 import { EditableProfileField } from '@/components/profile/EditableProfileField';
-import { DeleteAccountDialog } from '@/components/profile/DeleteAccountDialog';
 import { toast } from '@/hooks/use-toast';
-import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail, Trash2 } from 'lucide-react';
+import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail } from 'lucide-react';
 
 const Profile = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
-  const { profile, loading: profileLoading, refetch, deleteAccount } = useProfile();
+  const { profile, loading: profileLoading, refetch } = useProfile();
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
@@ -146,10 +144,6 @@ const Profile = () => {
   const handleForceNewWorksheet = () => {
     sessionStorage.setItem('forceNewWorksheet', 'true');
     navigate('/');
-  };
-
-  const handleDeleteAccount = async () => {
-    return await deleteAccount();
   };
 
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
@@ -367,7 +361,7 @@ const Profile = () => {
                   <label className="text-sm font-medium text-muted-foreground">Email</label>
                   <p className="text-base flex items-center gap-2 mt-1">
                     <Mail className="h-4 w-4" />
-                    {user?.email || 'Not available'}
+                    {user?.email || profile?.email || 'Not available'}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Your email address associated with your account.
@@ -420,15 +414,6 @@ const Profile = () => {
                     size="sm"
                   >
                     Sign Out
-                  </Button>
-                  <Button 
-                    className="w-full" 
-                    variant="destructive"
-                    onClick={() => setShowDeleteDialog(true)}
-                    size="sm"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Account
                   </Button>
                 </CardContent>
               </Card>
@@ -573,14 +558,6 @@ const Profile = () => {
           </div>
         </div>
       </div>
-
-      {/* Delete Account Dialog */}
-      <DeleteAccountDialog
-        isOpen={showDeleteDialog}
-        onClose={() => setShowDeleteDialog(false)}
-        onConfirm={handleDeleteAccount}
-        userEmail={user?.email || ''}
-      />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,12 +7,20 @@ import { Badge } from '@/components/ui/badge';
 import { Check, Star, Users, Zap, ArrowRight } from 'lucide-react';
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
+import { PricingCalculator } from '@/components/PricingCalculator';
 
 const Pricing = () => {
   const { user, isRegisteredUser } = useAuthFlow();
   const { tokenLeft, profile } = useTokenSystem(user?.id);
+  const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
+  const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
 
   const currentPlan = profile?.subscription_type || 'Free Demo';
+
+  const handleRecommendation = (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => {
+    setRecommendedPlan(plan);
+    setRecommendedWorksheets(worksheetsNeeded);
+  };
 
   const plans = [
     {
@@ -47,7 +55,7 @@ const Pricing = () => {
       buttonText: 'Upgrade to Side-Gig',
       buttonVariant: 'default' as const,
       isCurrentPlan: currentPlan === 'Side-Gig',
-      popular: false,
+      popular: recommendedPlan === 'side-gig',
       icon: Users
     },
     {
@@ -56,7 +64,7 @@ const Pricing = () => {
       period: 'month',
       description: 'Perfect for professional teachers',
       features: [
-        '30 worksheets per month',
+        `${recommendedWorksheets} worksheets per month`,
         'Advanced customization',
         'Priority support',
         'Bulk operations',
@@ -65,7 +73,7 @@ const Pricing = () => {
       buttonText: 'Upgrade to Full-Time',
       buttonVariant: 'default' as const,
       isCurrentPlan: currentPlan?.startsWith('Full-Time'),
-      popular: true,
+      popular: recommendedPlan === 'full-time',
       icon: Zap
     }
   ];
@@ -108,6 +116,9 @@ const Pricing = () => {
           )}
         </div>
 
+        {/* Pricing Calculator */}
+        <PricingCalculator onRecommendation={handleRecommendation} />
+
         {/* Main Plans */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           {plans.map((plan) => {
@@ -117,7 +128,7 @@ const Pricing = () => {
                 {plan.popular && (
                   <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-primary">
                     <Star className="h-3 w-3 mr-1" />
-                    Most Popular
+                    Recommended
                   </Badge>
                 )}
                 
