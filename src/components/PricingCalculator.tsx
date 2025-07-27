@@ -1,231 +1,159 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Calculator, TrendingUp, Clock, Plus, Minus } from 'lucide-react';
+import { Calculator, Info, DollarSign, Clock } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface PricingCalculatorProps {
-  onRecommendation: (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => void;
+  onRecommendation: (plan: 'side-gig' | 'full-time', worksheetsNeeded: number, savings: { money: number, time: number }) => void;
 }
 
-export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommendation }) => {
-  const [prepTime, setPrepTime] = useState(25);
+export const PricingCalculator = ({ onRecommendation }: PricingCalculatorProps) => {
+  const [prepTime, setPrepTime] = useState(30);
   const [lessonPrice, setLessonPrice] = useState(25);
-  const [lessonsPerWeek, setLessonsPerWeek] = useState(7);
-  const [monthlySavings, setMonthlySavings] = useState(0);
-  const [timeSavings, setTimeSavings] = useState(0);
-  const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
-  const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
+  const [lessonsPerWeek, setLessonsPerWeek] = useState(10);
 
-  useEffect(() => {
-    // Calculate monthly prep time and cost
-    const monthlyPrepHours = (prepTime * lessonsPerWeek * 4) / 60;
-    const monthlyCost = monthlyPrepHours * lessonPrice;
-    const monthlyPrepMinutes = prepTime * lessonsPerWeek * 4;
-    
-    // Determine recommended plan based on lessons per week
-    const worksheetsNeeded = lessonsPerWeek * 4; // Assume 1 worksheet per lesson
-    
-    let planType: 'side-gig' | 'full-time' = 'side-gig';
-    let planCost = 9;
-    let recommendedWorksheetCount = 15;
-    
-    if (worksheetsNeeded > 15) {
-      planType = 'full-time';
-      // Find the best Full-Time plan
-      if (worksheetsNeeded <= 30) {
-        planCost = 19;
-        recommendedWorksheetCount = 30;
-      } else if (worksheetsNeeded <= 60) {
-        planCost = 39;
-        recommendedWorksheetCount = 60;
-      } else if (worksheetsNeeded <= 90) {
-        planCost = 59;
-        recommendedWorksheetCount = 90;
-      } else {
-        planCost = 79;
-        recommendedWorksheetCount = 120;
-      }
-    }
-    
-    const savings = monthlyCost - planCost;
-    setMonthlySavings(savings);
-    setTimeSavings(monthlyPrepMinutes);
-    setRecommendedPlan(planType);
-    setRecommendedWorksheets(recommendedWorksheetCount);
-    
-    onRecommendation(planType, recommendedWorksheetCount);
-  }, [prepTime, lessonPrice, lessonsPerWeek, onRecommendation]);
+  const calculateRecommendation = () => {
+    const worksheetsNeeded = lessonsPerWeek * 4; // 4 weeks per month
+    const timePerWorksheet = prepTime;
+    const totalTimeSaved = worksheetsNeeded * timePerWorksheet;
+    const totalMoneySaved = (totalTimeSaved / 60) * lessonPrice;
 
-  const handleIncrement = (field: 'prepTime' | 'lessonPrice' | 'lessonsPerWeek') => {
-    switch (field) {
-      case 'prepTime':
-        setPrepTime(prev => Math.min(prev + 5, 120));
-        break;
-      case 'lessonPrice':
-        setLessonPrice(prev => Math.min(prev + 5, 200));
-        break;
-      case 'lessonsPerWeek':
-        setLessonsPerWeek(prev => Math.min(prev + 1, 50));
-        break;
-    }
+    const recommendedPlan = worksheetsNeeded <= 15 ? 'side-gig' : 'full-time';
+    
+    onRecommendation(recommendedPlan, worksheetsNeeded, {
+      money: totalMoneySaved,
+      time: totalTimeSaved
+    });
   };
 
-  const handleDecrement = (field: 'prepTime' | 'lessonPrice' | 'lessonsPerWeek') => {
-    switch (field) {
-      case 'prepTime':
-        setPrepTime(prev => Math.max(prev - 5, 1));
-        break;
-      case 'lessonPrice':
-        setLessonPrice(prev => Math.max(prev - 5, 1));
-        break;
-      case 'lessonsPerWeek':
-        setLessonsPerWeek(prev => Math.max(prev - 1, 1));
-        break;
-    }
-  };
+  const worksheetsNeeded = lessonsPerWeek * 4;
+  const timePerWorksheet = prepTime;
+  const totalTimeSaved = worksheetsNeeded * timePerWorksheet;
+  const totalMoneySaved = (totalTimeSaved / 60) * lessonPrice;
 
   return (
-    <Card className="mb-6 bg-white dark:bg-gray-900">
-      <CardHeader className="text-center pb-3">
-        <div className="flex items-center justify-center gap-4 mb-2">
-          <div className="flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">Calculate Your Savings</CardTitle>
-          </div>
-          <p className="text-muted-foreground text-sm">
-            See how much time and money you'll save with our worksheet generator
-          </p>
-        </div>
+    <Card className="max-w-4xl mx-auto mb-8">
+      <CardHeader className="text-center">
+        <CardTitle className="flex items-center justify-center gap-2">
+          <Calculator className="h-5 w-5" />
+          Find Your Perfect Plan
+        </CardTitle>
+        <CardDescription>
+          Calculate how much time and money you'll save with edooqoo
+        </CardDescription>
       </CardHeader>
-      
       <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <Label htmlFor="prep-time" className="text-sm">
-                Prep Time (minutes)
-              </Label>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-8 p-0 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
-                  onClick={() => handleDecrement('prepTime')}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <Input
-                  id="prep-time"
-                  type="number"
-                  value={prepTime}
-                  onChange={(e) => setPrepTime(Math.max(1, Math.min(120, Number(e.target.value))))}
-                  min="1"
-                  max="120"
-                  className="h-9 w-14 text-center [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-8 p-0 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
-                  onClick={() => handleIncrement('prepTime')}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="prepTime" className="text-sm font-medium">Prep Time</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>How many minutes do you currently spend preparing each worksheet?</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
-            
-            <div className="space-y-1">
-              <Label htmlFor="lesson-price" className="text-sm">
-                Lesson Price ($)
-              </Label>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-8 p-0 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
-                  onClick={() => handleDecrement('lessonPrice')}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <Input
-                  id="lesson-price"
-                  type="number"
-                  value={lessonPrice}
-                  onChange={(e) => setLessonPrice(Math.max(1, Math.min(200, Number(e.target.value))))}
-                  min="1"
-                  max="200"
-                  className="h-9 w-14 text-center [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-8 p-0 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
-                  onClick={() => handleIncrement('lessonPrice')}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-            
-            <div className="space-y-1">
-              <Label htmlFor="lessons-week" className="text-sm">
-                Lessons per Week
-              </Label>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-8 p-0 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
-                  onClick={() => handleDecrement('lessonsPerWeek')}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <Input
-                  id="lessons-week"
-                  type="number"
-                  value={lessonsPerWeek}
-                  onChange={(e) => setLessonsPerWeek(Math.max(1, Math.min(50, Number(e.target.value))))}
-                  min="1"
-                  max="50"
-                  className="h-9 w-14 text-center [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-8 p-0 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
-                  onClick={() => handleIncrement('lessonsPerWeek')}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
+            <Input
+              id="prepTime"
+              type="number"
+              value={prepTime}
+              onChange={(e) => setPrepTime(Number(e.target.value))}
+              className="w-full"
+              min="1"
+              max="180"
+            />
+            <p className="text-xs text-muted-foreground">minutes per worksheet</p>
           </div>
-          
-          {monthlySavings > 0 && (
-            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                  <span className="font-medium text-green-800 dark:text-green-200 text-sm">
-                    Monthly Savings
-                  </span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-2xl font-bold text-green-600">
-                    ${monthlySavings.toFixed(0)}
-                  </div>
-                  <div className="flex items-center gap-1 text-green-600">
-                    <Clock className="h-4 w-4" />
-                    <span className="text-2xl font-bold">{timeSavings}min</span>
-                  </div>
-                </div>
-              </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="lessonPrice" className="text-sm font-medium">Lesson Rate</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>How much do you charge per hour for your English lessons?</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
-          )}
+            <Input
+              id="lessonPrice"
+              type="number"
+              value={lessonPrice}
+              onChange={(e) => setLessonPrice(Number(e.target.value))}
+              className="w-full"
+              min="1"
+              max="200"
+            />
+            <p className="text-xs text-muted-foreground">$ per hour</p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="lessonsPerWeek" className="text-sm font-medium">Weekly Lessons</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>How many lessons do you teach per week on average?</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Input
+              id="lessonsPerWeek"
+              type="number"
+              value={lessonsPerWeek}
+              onChange={(e) => setLessonsPerWeek(Number(e.target.value))}
+              className="w-full"
+              min="1"
+              max="100"
+            />
+            <p className="text-xs text-muted-foreground">lessons per week</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="bg-green-50 p-4 rounded-lg text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <DollarSign className="h-5 w-5 text-green-600" />
+              <h3 className="font-semibold text-green-800">Money you will save with edooqoo</h3>
+            </div>
+            <p className="text-2xl font-bold text-green-700">${totalMoneySaved.toFixed(0)}</p>
+            <p className="text-sm text-green-600">per month</p>
+          </div>
+
+          <div className="bg-blue-50 p-4 rounded-lg text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              <h3 className="font-semibold text-blue-800">Time you will save with edooqoo</h3>
+            </div>
+            <p className="text-2xl font-bold text-blue-700">{(totalTimeSaved / 60).toFixed(1)}</p>
+            <p className="text-sm text-blue-600">hours per month</p>
+          </div>
+        </div>
+
+        <div className="text-center">
+          <Button onClick={calculateRecommendation} size="lg" className="px-8">
+            Find My Perfect Plan
+          </Button>
+          <p className="text-sm text-muted-foreground mt-2">
+            You'll need approximately {worksheetsNeeded} worksheets per month
+          </p>
         </div>
       </CardContent>
     </Card>

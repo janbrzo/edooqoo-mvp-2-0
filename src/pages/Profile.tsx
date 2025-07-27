@@ -184,9 +184,9 @@ const Profile = () => {
         body: {
           planType: planType,
           monthlyLimit: planData.tokens,
-          price: upgradePrice, // Use upgrade price instead of full price
+          price: upgradePrice,
           planName: planData.name,
-          upgradeTokens: upgradeTokens, // Pass upgrade tokens
+          upgradeTokens: upgradeTokens,
           isUpgrade: currentPlan.type !== 'free'
         }
       });

@@ -78,7 +78,7 @@ const Pricing = () => {
     }
   ];
 
-  const handleRecommendation = (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => {
+  const handleRecommendation = (plan: 'side-gig' | 'full-time', worksheetsNeeded: number, savings: { money: number, time: number }) => {
     setRecommendedPlan(plan);
     setRecommendedWorksheets(worksheetsNeeded);
     
@@ -129,9 +129,9 @@ const Pricing = () => {
         body: {
           planType: planType,
           monthlyLimit: planData.tokens,
-          price: upgradePrice, // Use upgrade price instead of full price
+          price: upgradePrice,
           planName: planData.name,
-          upgradeTokens: upgradeTokens, // Pass upgrade tokens
+          upgradeTokens: upgradeTokens,
           isUpgrade: currentPlan.type !== 'free'
         }
       });
@@ -174,6 +174,8 @@ const Pricing = () => {
 
   const getButtonText = (planType: 'free' | 'side-gig' | 'full-time') => {
     if (planType === 'free') {
+      // For non-registered users, always show "Get Started Free"
+      if (!isRegisteredUser) return 'Get Started Free';
       return currentPlan.type === 'free' ? 'Current Plan' : 'Get Started Free';
     }
     
@@ -193,6 +195,8 @@ const Pricing = () => {
 
   const isButtonDisabled = (planType: 'free' | 'side-gig' | 'full-time') => {
     if (planType === 'free') {
+      // For non-registered users, button should be active
+      if (!isRegisteredUser) return false;
       return currentPlan.type === 'free';
     }
     
@@ -287,15 +291,11 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Worksheets are editable</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Basic student management</span>
+                  <span className="text-sm">Student management</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
@@ -323,7 +323,7 @@ const Pricing = () => {
           <Card className={`relative ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'side-gig' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold whitespace-nowrap">
+                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold">
                   RECOMMENDED FOR YOU
                 </Badge>
               </div>
@@ -366,10 +366,6 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Worksheets are editable</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -379,10 +375,6 @@ const Pricing = () => {
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Export to HTML & PDF</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Email support</span>
                 </div>
               </div>
               
@@ -400,7 +392,7 @@ const Pricing = () => {
           <Card className={`relative ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'full-time' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold whitespace-nowrap">
+                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold">
                   RECOMMENDED FOR YOU
                 </Badge>
               </div>
@@ -463,27 +455,15 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Worksheets are editable</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Unlimited student management</span>
+                  <span className="text-sm">Student management</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Export to HTML & PDF</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Priority email support</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Advanced analytics</span>
                 </div>
               </div>
               

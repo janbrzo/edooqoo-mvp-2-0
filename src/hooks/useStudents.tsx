@@ -1,9 +1,12 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { toast } from '@/hooks/use-toast';
 
-type Student = Tables<'students'>;
+type Student = Tables<'students'> & {
+  last_worksheet_generated?: string;
+};
 
 export const useStudents = () => {
   const [students, setStudents] = useState<Student[]>([]);
@@ -18,14 +21,28 @@ export const useStudents = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Get students with their last worksheet generation time
       const { data, error } = await supabase
         .from('students')
-        .select('*')
+        .select(`
+          *,
+          worksheets(created_at)
+        `)
         .eq('teacher_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setStudents(data || []);
+      
+      // Process the data to include last worksheet generation time
+      const studentsWithLastWorksheet = data?.map(student => ({
+        ...student,
+        last_worksheet_generated: student.worksheets && student.worksheets.length > 0 
+          ? student.worksheets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
+          : null,
+        worksheets: undefined // Remove worksheets array to clean up the object
+      })) || [];
+
+      setStudents(studentsWithLastWorksheet);
     } catch (error: any) {
       toast({
         title: "Error",
