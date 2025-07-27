@@ -15,7 +15,7 @@ import { PricingCalculator } from '@/components/PricingCalculator';
 
 const Pricing = () => {
   const { user, isRegisteredUser } = useAuthFlow();
-  const { tokenLeft } = useTokenSystem(user?.id);
+  const { tokenLeft, profile } = useTokenSystem(user?.id);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
@@ -34,14 +34,96 @@ const Pricing = () => {
 
   const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
 
+  // Get current subscription details
+  const getCurrentSubscriptionInfo = () => {
+    if (!profile || !profile.subscription_type) {
+      return { type: 'free', plan: null, tokens: 0 };
+    }
+
+    const subscriptionType = profile.subscription_type;
+    
+    if (subscriptionType === 'Side-Gig Plan') {
+      return { type: 'side-gig', plan: 'side-gig', tokens: 15 };
+    }
+    
+    if (subscriptionType.includes('Full-Time Plan')) {
+      const match = subscriptionType.match(/\((\d+) worksheets\)/);
+      const tokens = match ? parseInt(match[1]) : 30;
+      return { type: 'full-time', plan: 'full-time', tokens };
+    }
+    
+    return { type: 'free', plan: null, tokens: 0 };
+  };
+
+  const currentSubscription = getCurrentSubscriptionInfo();
+
+  // Check if a plan button should be disabled
+  const isPlanDisabled = (planType: string, tokens?: number) => {
+    if (!isRegisteredUser) return false;
+    
+    const current = getCurrentSubscriptionInfo();
+    
+    if (planType === 'free') {
+      return current.type !== 'free'; // Disable if already has paid plan
+    }
+    
+    if (planType === 'side-gig') {
+      return current.type === 'side-gig' || current.type === 'full-time'; // Disable if has side-gig or full-time
+    }
+    
+    if (planType === 'full-time' && tokens) {
+      if (current.type === 'free') return false; // Can upgrade from free
+      if (current.type === 'side-gig') return false; // Can upgrade from side-gig
+      if (current.type === 'full-time') {
+        return tokens <= current.tokens; // Can only upgrade to higher token count
+      }
+    }
+    
+    return false;
+  };
+
+  // Calculate upgrade pricing
+  const calculateUpgradePricing = (targetPlan: string, targetTokens?: number) => {
+    const current = getCurrentSubscriptionInfo();
+    
+    if (current.type === 'free') {
+      // No prorating for free users
+      return null;
+    }
+
+    let currentPrice = 0;
+    let targetPrice = 0;
+
+    // Get current price
+    if (current.type === 'side-gig') {
+      currentPrice = 9;
+    } else if (current.type === 'full-time') {
+      const currentPlan = fullTimePlans.find(p => parseInt(p.tokens) === current.tokens);
+      currentPrice = currentPlan?.price || 19;
+    }
+
+    // Get target price
+    if (targetPlan === 'side-gig') {
+      targetPrice = 9;
+    } else if (targetPlan === 'full-time' && targetTokens) {
+      const targetPlanData = fullTimePlans.find(p => parseInt(p.tokens) === targetTokens);
+      targetPrice = targetPlanData?.price || 19;
+    }
+
+    const priceDifference = targetPrice - currentPrice;
+    const tokenDifference = (targetTokens || 15) - current.tokens;
+
+    return priceDifference > 0 ? { priceDifference, tokenDifference } : null;
+  };
+
   const faqItems = [
     {
       question: "What's the difference between tokens and monthly worksheets?",
-      answer: "Monthly worksheets are included in your subscription plan and reset each month. Tokens are purchased separately and never expire. The system uses purchased tokens first, then monthly worksheets. Your 'Token Left' shows both combined."
+      answer: "Monthly worksheets are included in your subscription plan and reset each month. Tokens are purchased separately and never expire. The system uses purchased tokens first, then monthly worksheets. Your 'Token Left' shows both combined. Unused monthly worksheets carry forward to the next month."
     },
     {
       question: "What happens to unused monthly worksheets?",
-      answer: "Currently, unused monthly worksheets don't carry over to the next month. However, any tokens you purchase separately remain in your account forever and can be used anytime."
+      answer: "Unused monthly worksheets automatically roll over to the next month and are added to your token balance. This means you never lose worksheets you've paid for - they carry forward as permanent tokens you can use anytime."
     },
     {
       question: "Can I use the app without a subscription?",
@@ -66,6 +148,14 @@ const Pricing = () => {
     {
       question: "How long does it take to generate a worksheet?",
       answer: "Worksheet generation typically takes 30-60 seconds. The system uses AI to create custom content based on your specifications like English level, lesson topic, and learning goals."
+    },
+    {
+      question: "Can I upgrade my plan during the month?",
+      answer: "Yes! When you upgrade during your billing period, you'll only pay the difference between your current plan and the new plan. The additional worksheets are added to your account immediately."
+    },
+    {
+      question: "What happens when I upgrade my subscription?",
+      answer: "When upgrading, you pay only the price difference between plans, and the additional worksheets are added to your monthly limit immediately. Your billing date remains the same."
     }
   ];
 
@@ -86,29 +176,39 @@ const Pricing = () => {
     setHasManuallyChanged(true);
   };
 
-  const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
+  const handleSubscribe = async (planType: 'side-gig' | 'full-time' | 'free') => {
     if (!isRegisteredUser) {
+      navigate('/login');
+      return;
+    }
+
+    if (planType === 'free') {
       toast({
-        title: "Authentication Required",
-        description: "Please sign in to subscribe to a plan.",
+        title: "Already registered",
+        description: "You already have a free demo account with 2 tokens.",
         variant: "destructive"
       });
-      navigate('/login');
       return;
     }
 
     setIsLoading(planType);
     try {
+      const targetTokens = planType === 'side-gig' ? 15 : parseInt(selectedFullTimePlan);
       const planData = planType === 'side-gig' 
         ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
         : { name: `Full-Time Plan (${selectedFullTimePlan} worksheets)`, price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
 
+      // Check for upgrade pricing
+      const upgradeInfo = calculateUpgradePricing(planType, targetTokens);
+      
       const { data, error } = await supabase.functions.invoke('create-subscription', {
         body: {
           planType: planType,
           monthlyLimit: planData.tokens,
-          price: planData.price,
-          planName: planData.name
+          price: upgradeInfo?.priceDifference || planData.price,
+          planName: planData.name,
+          isUpgrade: !!upgradeInfo,
+          additionalTokens: upgradeInfo?.tokenDifference || 0
         }
       });
 
@@ -135,6 +235,31 @@ const Pricing = () => {
         ? prev.filter(i => i !== index)
         : [...prev, index]
     );
+  };
+
+  const getButtonText = (planType: string, tokens?: number) => {
+    if (!isRegisteredUser) {
+      if (planType === 'free') return 'Get Started Free';
+      if (planType === 'side-gig') return 'Choose Side-Gig';
+      return 'Choose Full-Time';
+    }
+
+    const current = getCurrentSubscriptionInfo();
+    const upgradeInfo = calculateUpgradePricing(planType, tokens);
+
+    if (isPlanDisabled(planType, tokens)) {
+      if (planType === 'free') return 'Current Plan';
+      if (planType === 'side-gig') return 'Current Plan';
+      if (planType === 'full-time') return 'Current Plan';
+    }
+
+    if (upgradeInfo) {
+      return `Upgrade (+$${upgradeInfo.priceDifference})`;
+    }
+
+    if (planType === 'free') return 'Get Started Free';
+    if (planType === 'side-gig') return 'Choose Side-Gig';
+    return 'Choose Full-Time';
   };
 
   return (
@@ -223,8 +348,17 @@ const Pricing = () => {
                 </div>
               </div>
               
-              <Button className="w-full h-10" asChild>
-                <Link to="/signup">Get Started Free</Link>
+              <Button 
+                className="w-full h-10" 
+                onClick={() => handleSubscribe('free')}
+                disabled={isPlanDisabled('free')}
+                asChild={!isRegisteredUser}
+              >
+                {!isRegisteredUser ? (
+                  <Link to="/signup">Get Started Free</Link>
+                ) : (
+                  getButtonText('free')
+                )}
               </Button>
             </CardContent>
           </Card>
@@ -233,7 +367,7 @@ const Pricing = () => {
           <Card className={`relative ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'side-gig' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
+                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold whitespace-nowrap">
                   RECOMMENDED FOR YOU
                 </Badge>
               </div>
@@ -264,6 +398,10 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Unused credits roll over</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">All worksheet types</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -283,9 +421,9 @@ const Pricing = () => {
               <Button 
                 className="w-full h-10" 
                 onClick={() => handleSubscribe('side-gig')}
-                disabled={isLoading === 'side-gig'}
+                disabled={isLoading === 'side-gig' || isPlanDisabled('side-gig')}
               >
-                {isLoading === 'side-gig' ? 'Processing...' : 'Choose Side-Gig'}
+                {isLoading === 'side-gig' ? 'Processing...' : getButtonText('side-gig')}
               </Button>
             </CardContent>
           </Card>
@@ -294,7 +432,7 @@ const Pricing = () => {
           <Card className={`relative ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'full-time' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
+                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold whitespace-nowrap">
                   RECOMMENDED FOR YOU
                 </Badge>
               </div>
@@ -341,6 +479,10 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Unused credits roll over</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">All worksheet types</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -364,9 +506,9 @@ const Pricing = () => {
               <Button 
                 className="w-full h-10 bg-primary hover:bg-primary/90" 
                 onClick={() => handleSubscribe('full-time')}
-                disabled={isLoading === 'full-time'}
+                disabled={isLoading === 'full-time' || isPlanDisabled('full-time', parseInt(selectedFullTimePlan))}
               >
-                {isLoading === 'full-time' ? 'Processing...' : 'Choose Full-Time'}
+                {isLoading === 'full-time' ? 'Processing...' : getButtonText('full-time', parseInt(selectedFullTimePlan))}
               </Button>
             </CardContent>
           </Card>
