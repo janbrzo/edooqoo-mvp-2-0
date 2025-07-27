@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -328,7 +329,7 @@ const Profile = () => {
   const sideGigPlan = plans.find(p => p.id === 'side-gig');
   const canUpgradeToSideGig = sideGigPlan ? canUpgradeTo(sideGigPlan) : false;
   const sideGigUpgradePrice = sideGigPlan ? getUpgradePrice(sideGigPlan) : 0;
-  const isSideGigLowerPlan = currentPlan.type === 'full-time' && sideGigPlan;
+  const isSideGigLowerPlan = currentPlan.type === 'full-time' && !!sideGigPlan;
 
   // Get full-time plan from plans array
   const fullTimePlan = plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
@@ -551,6 +552,7 @@ const Profile = () => {
                     <div className="mb-3">
                       <p className="text-2xl font-bold">$9</p>
                       <p className="text-xs text-muted-foreground">/month</p>
+                      <p className="text-xs text-muted-foreground">$0.60 per worksheet</p>
                       {canUpgradeToSideGig && currentPlan.type !== 'free' && (
                         <p className="text-xs text-muted-foreground">
                           Upgrade now for ${sideGigUpgradePrice}
@@ -596,6 +598,9 @@ const Profile = () => {
                         ${selectedPlan?.price}
                       </p>
                       <p className="text-xs text-muted-foreground">/month</p>
+                      <p className="text-xs text-muted-foreground">
+                        ${((selectedPlan?.price || 19) / parseInt(selectedFullTimePlan)).toFixed(2)} per worksheet
+                      </p>
                       {canUpgradeToFullTime && currentPlan.type !== 'free' && (
                         <p className="text-xs text-muted-foreground">
                           Upgrade now for ${fullTimeUpgradePrice}

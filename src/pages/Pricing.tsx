@@ -102,7 +102,7 @@ const Pricing = () => {
         description: "Please sign up to subscribe to a plan.",
         variant: "destructive"
       });
-      navigate('/signup'); // Changed from '/login' to '/signup'
+      navigate('/signup');
       return;
     }
 
@@ -165,7 +165,7 @@ const Pricing = () => {
   const sideGigPlan = plans.find(p => p.id === 'side-gig');
   const canUpgradeToSideGig = sideGigPlan ? canUpgradeTo(sideGigPlan) : false;
   const sideGigUpgradePrice = sideGigPlan ? getUpgradePrice(sideGigPlan) : 0;
-  const isSideGigLowerPlan = currentPlan.type === 'full-time' && sideGigPlan;
+  const isSideGigLowerPlan = currentPlan.type === 'full-time' && !!sideGigPlan;
 
   // Get full-time plan from plans array
   const fullTimePlan = plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
@@ -305,12 +305,16 @@ const Pricing = () => {
               
               <Button 
                 className="w-full h-10" 
-                asChild
+                asChild={!isButtonDisabled('free')}
                 disabled={isButtonDisabled('free')}
               >
-                <Link to="/signup">
-                  {getButtonText('free')}
-                </Link>
+                {isButtonDisabled('free') ? (
+                  <span>{getButtonText('free')}</span>
+                ) : (
+                  <Link to="/signup">
+                    {getButtonText('free')}
+                  </Link>
+                )}
               </Button>
             </CardContent>
           </Card>
@@ -319,8 +323,8 @@ const Pricing = () => {
           <Card className={`relative ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'side-gig' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold">
-                  RECOMMENDED
+                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold whitespace-nowrap">
+                  RECOMMENDED FOR YOU
                 </Badge>
               </div>
             )}
@@ -396,8 +400,8 @@ const Pricing = () => {
           <Card className={`relative ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'full-time' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold">
-                  RECOMMENDED
+                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold whitespace-nowrap">
+                  RECOMMENDED FOR YOU
                 </Badge>
               </div>
             )}
@@ -441,7 +445,7 @@ const Pricing = () => {
                 </div>
                 <div className="mt-1">
                   <p className="text-xs text-muted-foreground">
-                    ${(selectedPlan?.price || 19) / parseInt(selectedFullTimePlan) * 1.00} per worksheet
+                    ${((selectedPlan?.price || 19) / parseInt(selectedFullTimePlan)).toFixed(2)} per worksheet
                   </p>
                 </div>
               </div>
