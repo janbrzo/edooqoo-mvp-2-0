@@ -279,39 +279,37 @@ const Pricing = () => {
         {/* Pricing Calculator */}
         <PricingCalculator onRecommendation={handleRecommendation} />
 
-        {/* Coupon Code Section */}
-        {isRegisteredUser && (
-          <div className="max-w-md mx-auto mb-6">
-            <div className="text-center mb-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowCouponField(!showCouponField)}
-                className="text-sm"
-              >
-                <Tag className="h-4 w-4 mr-2" />
-                {showCouponField ? 'Hide' : 'Have a'} Coupon Code?
-              </Button>
-            </div>
-            {showCouponField && (
-              <div className="space-y-2">
-                <Label htmlFor="couponCode" className="text-sm font-medium">
-                  Coupon Code
-                </Label>
-                <Input
-                  id="couponCode"
-                  type="text"
-                  placeholder="Enter your coupon code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  className="text-center"
-                />
-                <p className="text-xs text-muted-foreground text-center">
-                  Enter your coupon code to get a discount on your subscription
-                </p>
-              </div>
-            )}
+        {/* Coupon Code Section - Available for everyone who wants to subscribe */}
+        <div className="max-w-md mx-auto mb-6">
+          <div className="text-center mb-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowCouponField(!showCouponField)}
+              className="text-sm"
+            >
+              <Tag className="h-4 w-4 mr-2" />
+              {showCouponField ? 'Hide' : 'Have a'} Coupon Code?
+            </Button>
           </div>
-        )}
+          {showCouponField && (
+            <div className="space-y-2">
+              <Label htmlFor="couponCode" className="text-sm font-medium">
+                Coupon Code
+              </Label>
+              <Input
+                id="couponCode"
+                type="text"
+                placeholder="Enter your coupon code"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                className="text-center"
+              />
+              <p className="text-xs text-muted-foreground text-center">
+                Enter your coupon code to get a discount on your subscription
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Pricing Cards */}
         <div className="grid lg:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
