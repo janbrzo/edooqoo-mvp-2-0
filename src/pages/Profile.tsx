@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,18 +8,18 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useProfile } from '@/hooks/useProfile';
-import { useSubscriptionSync } from '@/hooks/useSubscriptionSync';
 import { EditableProfileField } from '@/components/profile/EditableProfileField';
+import { DeleteAccountDialog } from '@/components/profile/DeleteAccountDialog';
 import { toast } from '@/hooks/use-toast';
-import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail, Settings, RefreshCw } from 'lucide-react';
+import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail, Trash2 } from 'lucide-react';
 
 const Profile = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
-  const { profile, loading: profileLoading, refetch } = useProfile();
-  const { syncSubscriptionStatus, loading: syncLoading } = useSubscriptionSync();
+  const { profile, loading: profileLoading, refetch, deleteAccount } = useProfile();
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
@@ -31,10 +32,25 @@ const Profile = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('success') === 'true' || urlParams.get('session_id')) {
-      // User returned from successful payment, refresh after small delay
-      setTimeout(() => {
-        refetch();
+      // User returned from successful payment, show success message
+      toast({
+        title: "Payment successful!",
+        description: "Your subscription has been updated. It may take a few moments to reflect.",
+      });
+      
+      // Auto-sync subscription after payment
+      setTimeout(async () => {
+        try {
+          await supabase.functions.invoke('check-subscription-status');
+          await refetch();
+        } catch (error) {
+          console.error('Error auto-syncing subscription:', error);
+        }
       }, 3000);
+      
+      // Clean up URL parameters
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
     }
   }, [refetch]);
 
@@ -132,12 +148,8 @@ const Profile = () => {
     navigate('/');
   };
 
-  const handleSyncSubscription = async () => {
-    const result = await syncSubscriptionStatus();
-    if (result) {
-      // Refresh profile data after sync
-      await refetch();
-    }
+  const handleDeleteAccount = async () => {
+    return await deleteAccount();
   };
 
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
@@ -191,9 +203,8 @@ const Profile = () => {
 
       if (data?.url) {
         console.log('Redirecting to Stripe checkout:', data.url);
-        // Add success parameter to return URL for auto-refresh detection
-        const returnUrl = `${window.location.origin}/profile?success=true`;
-        window.location.href = data.url + `&success_url=${encodeURIComponent(returnUrl)}`;
+        // Redirect to Stripe checkout
+        window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received from server');
       }
@@ -404,11 +415,20 @@ const Profile = () => {
                   </Button>
                   <Button 
                     className="w-full" 
-                    variant="destructive"
+                    variant="outline"
                     onClick={handleSignOut}
                     size="sm"
                   >
                     Sign Out
+                  </Button>
+                  <Button 
+                    className="w-full" 
+                    variant="destructive"
+                    onClick={() => setShowDeleteDialog(true)}
+                    size="sm"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Account
                   </Button>
                 </CardContent>
               </Card>
@@ -463,23 +483,6 @@ const Profile = () => {
                   </Badge>
                 </div>
                 
-                {/* Sync Subscription Button */}
-                <div className="pt-2">
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    size="sm" 
-                    onClick={handleSyncSubscription}
-                    disabled={syncLoading}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${syncLoading ? 'animate-spin' : ''}`} />
-                    {syncLoading ? 'Syncing...' : 'Sync Subscription Status'}
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-1 text-center">
-                    Updates your subscription info from Stripe (doesn't add tokens)
-                  </p>
-                </div>
-                
                 {subscriptionType !== 'Free Demo' && (
                   <div className="space-y-2">
                     {getRenewalInfo() && (
@@ -495,7 +498,7 @@ const Profile = () => {
                         size="sm" 
                         onClick={handleManageSubscription}
                       >
-                        <Settings className="h-4 w-4 mr-2" />
+                        <CreditCard className="h-4 w-4 mr-2" />
                         Manage Plan
                       </Button>
                     </div>
@@ -570,6 +573,14 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Account Dialog */}
+      <DeleteAccountDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteAccount}
+        userEmail={user?.email || ''}
+      />
     </div>
   );
 };

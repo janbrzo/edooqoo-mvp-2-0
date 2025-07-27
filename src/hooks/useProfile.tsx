@@ -20,11 +20,30 @@ export const useProfile = () => {
         setTimeout(fetchProfile, 2000);
       }
     };
+
+    // Listen for window focus (when user returns from Stripe)
+    const handleWindowFocus = () => {
+      // Check if we're returning from successful payment
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('success') === 'true' || urlParams.get('session_id')) {
+        // Auto-sync subscription status after payment
+        setTimeout(async () => {
+          try {
+            await supabase.functions.invoke('check-subscription-status');
+            await fetchProfile();
+          } catch (error) {
+            console.error('Error auto-syncing subscription:', error);
+          }
+        }, 3000);
+      }
+    };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleWindowFocus);
     };
   }, []);
 
@@ -53,9 +72,36 @@ export const useProfile = () => {
     }
   };
 
+  const deleteAccount = async () => {
+    try {
+      const { error } = await supabase.functions.invoke('delete-account');
+      
+      if (error) throw error;
+
+      // Sign out user after successful deletion
+      await supabase.auth.signOut();
+      
+      toast({
+        title: "Account deleted",
+        description: "Your account has been deleted successfully.",
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   return {
     profile,
     loading,
-    refetch: fetchProfile
+    refetch: fetchProfile,
+    deleteAccount
   };
 };

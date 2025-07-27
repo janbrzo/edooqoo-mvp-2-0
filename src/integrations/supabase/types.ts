@@ -122,6 +122,8 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          deleted_at: string | null
+          email: string | null
           first_name: string | null
           id: string
           last_limit_reset: string | null
@@ -138,6 +140,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
+          email?: string | null
           first_name?: string | null
           id: string
           last_limit_reset?: string | null
@@ -154,6 +158,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
+          email?: string | null
           first_name?: string | null
           id?: string
           last_limit_reset?: string | null
@@ -514,6 +520,14 @@ export type Database = {
           created_at: string
           title: string
         }[]
+      }
+      reactivate_user_account: {
+        Args: { user_email: string }
+        Returns: boolean
+      }
+      soft_delete_user_account: {
+        Args: { user_id: string }
+        Returns: boolean
       }
       track_user_event: {
         Args: {
