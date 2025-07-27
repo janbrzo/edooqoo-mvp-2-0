@@ -91,6 +91,18 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
 
   return (
     <Card className="mb-6 bg-white dark:bg-gray-900">
+      <CardHeader className="text-center pb-3">
+        <div className="flex items-center justify-center gap-4 mb-2">
+          <div className="flex items-center gap-2">
+            <Calculator className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Calculate Your Savings</CardTitle>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            See how much time and money you'll save with our worksheet generator
+          </p>
+        </div>
+      </CardHeader>
+      
       <CardContent>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -105,7 +117,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
                       <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Prep Time? (minutes)</p>
+                      <p>How many minutes do you typically spend preparing materials for each lesson?</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -150,7 +162,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
                       <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Lesson Price? ($)</p>
+                      <p>What's your hourly rate for teaching? This helps calculate the cost of your preparation time.</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -195,7 +207,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
                       <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Lessons per Week?</p>
+                      <p>How many lessons do you teach per week on average?</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>

@@ -2,7 +2,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Zap, Database, Clock } from "lucide-react";
-import { Link } from "react-router-dom";
 
 interface WorksheetHeaderProps {
   onBack: () => void;
@@ -23,10 +22,6 @@ function WorksheetHeader({
   const displayStudentName = studentName || 
     inputParams?.studentName || 
     (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('worksheetStudentName') : null);
-
-  // Try to get student ID from inputParams
-  const studentId = inputParams?.studentId || 
-    (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('worksheetStudentId') : null);
 
   const handleBack = () => {
     // Use browser's back function instead of custom navigation
@@ -49,18 +44,7 @@ function WorksheetHeader({
             <h1 className="mb-1 font-bald text-white text-2xl font-semibold">
               Your Generated Worksheet
               {displayStudentName && (
-                <span className="text-yellow-300 ml-2">
-                  for {studentId ? (
-                    <Link 
-                      to={`/student/${studentId}`}
-                      className="hover:underline cursor-pointer"
-                    >
-                      {displayStudentName}
-                    </Link>
-                  ) : (
-                    displayStudentName
-                  )}
-                </span>
+                <span className="text-yellow-300 ml-2">for {displayStudentName}</span>
               )}
             </h1>
           </div>
