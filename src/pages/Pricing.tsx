@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,7 @@ import { PricingCalculator } from '@/components/PricingCalculator';
 const Pricing = () => {
   const { user, isRegisteredUser } = useAuthFlow();
   const { tokenLeft, profile } = useTokenSystem(user?.id);
-  const { currentPlan, canUpgradeTo, getUpgradePrice, getUpgradeTokens, getRecommendedFullTimePlan } = usePlanLogic(profile?.subscription_type);
+  const { currentPlan, plans, canUpgradeTo, getUpgradePrice, getUpgradeTokens, getRecommendedFullTimePlan } = usePlanLogic(profile?.subscription_type);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState(getRecommendedFullTimePlan());
@@ -112,8 +111,16 @@ const Pricing = () => {
         ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
         : { name: `Full-Time Plan (${selectedFullTimePlan} worksheets)`, price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
 
+      // Find the target plan from plans array
+      const targetPlan = planType === 'side-gig' 
+        ? plans.find(p => p.id === 'side-gig')
+        : plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
+
+      if (!targetPlan) {
+        throw new Error('Target plan not found');
+      }
+
       // Calculate upgrade pricing
-      const targetPlan = { price: planData.price, tokens: planData.tokens };
       const upgradePrice = getUpgradePrice(targetPlan);
       const upgradeTokens = getUpgradeTokens(targetPlan);
 
@@ -153,14 +160,15 @@ const Pricing = () => {
     );
   };
 
-  // Check if side-gig plan can be upgraded to
-  const canUpgradeToSideGig = canUpgradeTo({ type: 'side-gig', price: 9, tokens: 15 } as any);
-  const sideGigUpgradePrice = getUpgradePrice({ price: 9, tokens: 15 } as any);
+  // Get side-gig plan from plans array
+  const sideGigPlan = plans.find(p => p.id === 'side-gig');
+  const canUpgradeToSideGig = sideGigPlan ? canUpgradeTo(sideGigPlan) : false;
+  const sideGigUpgradePrice = sideGigPlan ? getUpgradePrice(sideGigPlan) : 0;
 
-  // Check if full-time plan can be upgraded to
-  const fullTimePlanData = { type: 'full-time', price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
-  const canUpgradeToFullTime = canUpgradeTo(fullTimePlanData as any);
-  const fullTimeUpgradePrice = getUpgradePrice(fullTimePlanData as any);
+  // Get full-time plan from plans array
+  const fullTimePlan = plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
+  const canUpgradeToFullTime = fullTimePlan ? canUpgradeTo(fullTimePlan) : false;
+  const fullTimeUpgradePrice = fullTimePlan ? getUpgradePrice(fullTimePlan) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">

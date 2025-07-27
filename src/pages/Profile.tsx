@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,7 +17,7 @@ const Profile = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
   const { profile, loading: profileLoading, refetch } = useProfile();
   const { tokenLeft } = useTokenSystem(user?.id);
-  const { currentPlan, canUpgradeTo, getUpgradePrice, getUpgradeTokens, getRecommendedFullTimePlan } = usePlanLogic(profile?.subscription_type);
+  const { currentPlan, plans, canUpgradeTo, getUpgradePrice, getUpgradeTokens, getRecommendedFullTimePlan } = usePlanLogic(profile?.subscription_type);
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
@@ -70,7 +69,6 @@ const Profile = () => {
 
   const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
 
-  // Check if user has proper authentication for subscription
   const checkUserForSubscription = async () => {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -166,8 +164,16 @@ const Profile = () => {
         ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
         : { name: `Full-Time Plan (${selectedFullTimePlan} worksheets)`, price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
 
+      // Find the target plan from plans array
+      const targetPlan = planType === 'side-gig' 
+        ? plans.find(p => p.id === 'side-gig')
+        : plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
+
+      if (!targetPlan) {
+        throw new Error('Target plan not found');
+      }
+
       // Calculate upgrade pricing
-      const targetPlan = { price: planData.price, tokens: planData.tokens };
       const upgradePrice = getUpgradePrice(targetPlan);
       const upgradeTokens = getUpgradeTokens(targetPlan);
 
@@ -318,14 +324,15 @@ const Profile = () => {
     return null;
   };
 
-  // Check if side-gig plan can be upgraded to
-  const canUpgradeToSideGig = canUpgradeTo({ type: 'side-gig', price: 9, tokens: 15 } as any);
-  const sideGigUpgradePrice = getUpgradePrice({ price: 9, tokens: 15 } as any);
+  // Get side-gig plan from plans array
+  const sideGigPlan = plans.find(p => p.id === 'side-gig');
+  const canUpgradeToSideGig = sideGigPlan ? canUpgradeTo(sideGigPlan) : false;
+  const sideGigUpgradePrice = sideGigPlan ? getUpgradePrice(sideGigPlan) : 0;
 
-  // Check if full-time plan can be upgraded to
-  const fullTimePlanData = { type: 'full-time', price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
-  const canUpgradeToFullTime = canUpgradeTo(fullTimePlanData as any);
-  const fullTimeUpgradePrice = getUpgradePrice(fullTimePlanData as any);
+  // Get full-time plan from plans array
+  const fullTimePlan = plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
+  const canUpgradeToFullTime = fullTimePlan ? canUpgradeTo(fullTimePlan) : false;
+  const fullTimeUpgradePrice = fullTimePlan ? getUpgradePrice(fullTimePlan) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
