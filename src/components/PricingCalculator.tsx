@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Calculator, DollarSign, Clock, Users, Info } from 'lucide-react';
+import { Calculator, DollarSign, Clock, Users, Info, Plus, Minus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface PricingCalculatorProps {
@@ -32,17 +32,38 @@ export const PricingCalculator = ({ onRecommendation }: PricingCalculatorProps) 
     }
   }, [lessonsPerWeek, onRecommendation]);
 
+  const handleIncrement = (field: 'prepTime' | 'lessonPrice' | 'lessonsPerWeek') => {
+    switch (field) {
+      case 'prepTime':
+        setPrepTime(prev => Math.min(180, prev + 5));
+        break;
+      case 'lessonPrice':
+        setLessonPrice(prev => Math.min(200, prev + 5));
+        break;
+      case 'lessonsPerWeek':
+        setLessonsPerWeek(prev => Math.min(50, prev + 1));
+        break;
+    }
+  };
+
+  const handleDecrement = (field: 'prepTime' | 'lessonPrice' | 'lessonsPerWeek') => {
+    switch (field) {
+      case 'prepTime':
+        setPrepTime(prev => Math.max(1, prev - 5));
+        break;
+      case 'lessonPrice':
+        setLessonPrice(prev => Math.max(1, prev - 5));
+        break;
+      case 'lessonsPerWeek':
+        setLessonsPerWeek(prev => Math.max(1, prev - 1));
+        break;
+    }
+  };
+
   return (
     <div className="bg-gradient-to-br from-background to-secondary/20 py-16">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Calculate Your Savings</h2>
-          <p className="text-lg text-muted-foreground">
-            See how much time and money you can save with our worksheet generator
-          </p>
-        </div>
-
-        <Card className="max-w-2xl mx-auto">
+        <Card className="max-w-4xl mx-auto">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calculator className="h-5 w-5" />
@@ -53,82 +74,135 @@ export const PricingCalculator = ({ onRecommendation }: PricingCalculatorProps) 
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="prepTime" className="flex items-center gap-2">
-                  Prep Time? (minutes)
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>How many minutes do you typically spend preparing for each lesson?</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </Label>
-                <Input
-                  id="prepTime"
-                  type="number"
-                  value={prepTime}
-                  onChange={(e) => setPrepTime(Number(e.target.value))}
-                  min="1"
-                  max="180"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Left side - Input fields */}
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="prepTime" className="flex items-center gap-2">
+                    Prep Time? (minutes)
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>How many minutes do you typically spend preparing for each lesson?</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDecrement('prepTime')}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      id="prepTime"
+                      type="number"
+                      value={prepTime}
+                      onChange={(e) => setPrepTime(Math.max(1, Math.min(180, Number(e.target.value))))}
+                      min="1"
+                      max="180"
+                      className="text-center"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleIncrement('prepTime')}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="lessonPrice" className="flex items-center gap-2">
+                    Lesson Price? ($)
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>What do you charge per hour for your English lessons?</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDecrement('lessonPrice')}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      id="lessonPrice"
+                      type="number"
+                      value={lessonPrice}
+                      onChange={(e) => setLessonPrice(Math.max(1, Math.min(200, Number(e.target.value))))}
+                      min="1"
+                      max="200"
+                      className="text-center"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleIncrement('lessonPrice')}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="lessonsPerWeek" className="flex items-center gap-2">
+                    Lessons per Week?
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>How many lessons do you teach per week on average?</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDecrement('lessonsPerWeek')}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      id="lessonsPerWeek"
+                      type="number"
+                      value={lessonsPerWeek}
+                      onChange={(e) => setLessonsPerWeek(Math.max(1, Math.min(50, Number(e.target.value))))}
+                      min="1"
+                      max="50"
+                      className="text-center"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleIncrement('lessonsPerWeek')}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="lessonPrice" className="flex items-center gap-2">
-                  Lesson Price? ($)
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>What do you charge per hour for your English lessons?</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </Label>
-                <Input
-                  id="lessonPrice"
-                  type="number"
-                  value={lessonPrice}
-                  onChange={(e) => setLessonPrice(Number(e.target.value))}
-                  min="1"
-                  max="200"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="lessonsPerWeek" className="flex items-center gap-2">
-                  Lessons per Week?
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>How many lessons do you teach per week on average?</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </Label>
-                <Input
-                  id="lessonsPerWeek"
-                  type="number"
-                  value={lessonsPerWeek}
-                  onChange={(e) => setLessonsPerWeek(Number(e.target.value))}
-                  min="1"
-                  max="50"
-                />
-              </div>
-            </div>
-
-            <div className="border-t pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Right side - Results */}
+              <div className="space-y-6">
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <DollarSign className="h-5 w-5 text-green-600" />
