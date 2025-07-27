@@ -18,14 +18,44 @@ export const useStudents = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      // Get students with their latest worksheet activity
+      const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select('*')
-        .eq('teacher_id', user.id)
-        .order('created_at', { ascending: false });
+        .eq('teacher_id', user.id);
 
-      if (error) throw error;
-      setStudents(data || []);
+      if (studentsError) throw studentsError;
+
+      if (studentsData) {
+        // For each student, get their latest worksheet
+        const studentsWithActivity = await Promise.all(
+          studentsData.map(async (student) => {
+            const { data: worksheetData } = await supabase
+              .from('worksheets')
+              .select('created_at')
+              .eq('student_id', student.id)
+              .order('created_at', { ascending: false })
+              .limit(1);
+
+            const latestWorksheetDate = worksheetData?.[0]?.created_at;
+            const lastActivity = latestWorksheetDate ? 
+              new Date(latestWorksheetDate) : 
+              new Date(student.created_at);
+
+            return {
+              ...student,
+              lastActivity
+            };
+          })
+        );
+
+        // Sort by last activity (most recent first)
+        const sortedStudents = studentsWithActivity.sort((a, b) => 
+          b.lastActivity.getTime() - a.lastActivity.getTime()
+        );
+
+        setStudents(sortedStudents);
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -55,7 +85,9 @@ export const useStudents = () => {
 
       if (error) throw error;
 
-      setStudents(prev => [data, ...prev]);
+      // Refresh the list to maintain proper sorting
+      await fetchStudents();
+      
       toast({
         title: "Success",
         description: "Student added successfully",
