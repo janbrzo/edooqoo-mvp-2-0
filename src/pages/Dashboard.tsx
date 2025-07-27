@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { useWorksheetHistory } from "@/hooks/useWorksheetHistory";
 import { AddStudentButton } from "@/components/dashboard/AddStudentButton";
 import { StudentCard } from "@/components/dashboard/StudentCard";
 import { useProfile } from "@/hooks/useProfile";
+import { format } from "date-fns";
 import { 
   User, 
   GraduationCap, 
@@ -41,7 +43,6 @@ const Dashboard = () => {
     }
   }, [loading, isRegisteredUser, navigate]);
 
-  // Show loading state
   if (loading || studentsLoading || historyLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -53,7 +54,6 @@ const Dashboard = () => {
     );
   }
 
-  // Redirect if not authenticated
   if (!isRegisteredUser) {
     navigate('/');
     return null;
@@ -62,7 +62,6 @@ const Dashboard = () => {
   const displayName = userProfile?.first_name || 'Teacher';
   const subscriptionType = profile?.subscription_type || 'Free Demo';
 
-  // Calculate monthly stats
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   
@@ -84,6 +83,22 @@ const Dashboard = () => {
   const handleWorksheetOpen = (worksheet: any) => {
     sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheet));
     navigate('/');
+  };
+
+  const getWorksheetTopic = (worksheet: any) => {
+    const formData = worksheet.form_data;
+    if (formData && typeof formData === 'object') {
+      return formData.lessonTopic || formData.lesson_topic || 'General Topic';
+    }
+    return 'General Topic';
+  };
+
+  const getWorksheetGoal = (worksheet: any) => {
+    const formData = worksheet.form_data;
+    if (formData && typeof formData === 'object') {
+      return formData.lessonGoal || formData.lesson_goal || 'General Goal';
+    }
+    return 'General Goal';
   };
 
   return (
@@ -246,24 +261,26 @@ const Dashboard = () => {
               ) : (
                 <div className="space-y-4">
                   {worksheets.slice(0, 5).map((worksheet) => (
-                    <div key={worksheet.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <BookOpen className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{worksheet.title || 'Worksheet'}</p>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {new Date(worksheet.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
+                    <div key={worksheet.id} className="space-y-2">
+                      <div 
+                        className="cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors"
                         onClick={() => handleWorksheetOpen(worksheet)}
                       >
-                        Open
-                      </Button>
+                        <h3 className="font-medium text-sm leading-tight mb-1">
+                          {worksheet.title || 'Untitled Worksheet'}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Topic: {getWorksheetTopic(worksheet)} • Goal: {getWorksheetGoal(worksheet)}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(worksheet.created_at), 'MMM dd, yyyy')}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(worksheet.created_at), 'HH:mm')}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
