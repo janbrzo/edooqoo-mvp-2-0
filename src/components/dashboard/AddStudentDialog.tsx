@@ -50,11 +50,7 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
 
     setLoading(true);
     try {
-      await addStudent({
-        name,
-        english_level: englishLevel,
-        main_goal: finalGoal
-      });
+      await addStudent(name, englishLevel, finalGoal);
       // Reset form and close dialog
       setName('');
       setEnglishLevel('');

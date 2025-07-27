@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuthFlow } from "@/hooks/useAuthFlow";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import GeneratingModal from "@/components/GeneratingModal";
 import FormView from "@/components/worksheet/FormView";
-import { GenerationView } from "@/components/worksheet/GenerationView";
+import GenerationView from "@/components/worksheet/GenerationView";
 import { TokenPaywallModal } from "@/components/TokenPaywallModal";
 import { deepFixTextObjects } from "@/utils/textObjectFixer";
 import { User, GraduationCap } from "lucide-react";
@@ -164,19 +163,15 @@ const Index = () => {
         />
       ) : (
         <GenerationView 
+          worksheetId={worksheetState.worksheetId}
+          generatedWorksheet={worksheetState.generatedWorksheet}
+          editableWorksheet={worksheetState.editableWorksheet}
+          setEditableWorksheet={worksheetState.setEditableWorksheet}
           inputParams={worksheetState.inputParams}
-          isGenerating={isGenerating}
           generationTime={worksheetState.generationTime}
           sourceCount={worksheetState.sourceCount}
-          generatedWorksheet={worksheetState.generatedWorksheet}
-          onStartEditing={() => {}}
-          onToggleView={() => {}}
-          viewMode="student"
-          onDownload={() => {}}
-          onSave={() => {}}
-          onReset={worksheetState.resetWorksheetState}
-          downloadStatus=""
-          isDownloadUnlocked={false}
+          onBack={worksheetState.resetWorksheetState}
+          userId={user?.id || 'anonymous'}
         />
       )}
       

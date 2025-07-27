@@ -150,7 +150,7 @@ export default function WorksheetContent({
           {!isDownloadUnlocked && <DemoWatermark />}
           <ExerciseSection
             exercise={exercise}
-            exerciseIndex={index}
+            index={index}
             isEditing={isEditing}
             viewMode={viewMode}
             editableWorksheet={editableWorksheet}

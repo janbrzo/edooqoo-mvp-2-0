@@ -21,11 +21,13 @@ serve(async (req) => {
   try {
     logStep('Function started');
 
+    // Initialize Supabase with anon key for user auth
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
+    // Get authenticated user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       logStep('No authorization header');
@@ -47,11 +49,13 @@ serve(async (req) => {
 
     logStep('User authenticated', { email: user.email });
 
+    // Parse request body
     const body = await req.json();
-    const { planType, monthlyLimit, price, planName, isUpgrade, additionalTokens } = body;
+    const { planType, monthlyLimit, price, planName, couponCode } = body;
 
-    logStep('Request body parsed', { planType, monthlyLimit, price, planName, isUpgrade, additionalTokens });
+    logStep('Request body parsed', { planType, monthlyLimit, price, planName, couponCode });
 
+    // Initialize Stripe
     const stripeKey = Deno.env.get('Stripe_Secret_Key');
     if (!stripeKey) {
       logStep('Stripe key not configured');
@@ -60,6 +64,7 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
+    // Find or create customer
     let customer;
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length > 0) {
@@ -75,10 +80,12 @@ serve(async (req) => {
       logStep('Created new customer', { customerId: customer.id });
     }
 
+    // Get the correct origin for redirect URLs
     const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://cdoyjgiyrfziejbrcvpx.supabase.co';
     logStep('Origin determined', { origin });
 
-    let sessionConfig: any = {
+    // Create checkout session configuration
+    const sessionConfig: any = {
       customer: customer.id,
       payment_method_types: ['card'],
       line_items: [
@@ -87,9 +94,9 @@ serve(async (req) => {
             currency: 'usd',
             product_data: {
               name: planName,
-              description: `${monthlyLimit} worksheets per month${isUpgrade ? ' (Upgrade)' : ''}`,
+              description: `${monthlyLimit} worksheets per month`,
             },
-            unit_amount: price * 100,
+            unit_amount: price * 100, // Convert to cents
             recurring: {
               interval: 'month',
             },
@@ -104,42 +111,34 @@ serve(async (req) => {
         supabase_user_id: user.id,
         plan_type: planType,
         monthly_limit: monthlyLimit.toString(),
-        is_upgrade: isUpgrade?.toString() || 'false',
-        additional_tokens: additionalTokens?.toString() || '0',
       },
     };
 
-    // If it's an upgrade, handle existing subscription
-    if (isUpgrade && additionalTokens > 0) {
-      // Add tokens immediately upon successful payment
-      const supabaseService = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-
-      // Add additional tokens to user's balance
-      await supabaseService
-        .from('profiles')
-        .update({
-          token_balance: supabaseService.sql`token_balance + ${additionalTokens}`,
-          monthly_worksheet_limit: monthlyLimit
-        })
-        .eq('id', user.id);
-
-      // Log the upgrade transaction
-      await supabaseService
-        .from('token_transactions')
-        .insert({
-          teacher_id: user.id,
-          transaction_type: 'upgrade',
-          amount: additionalTokens,
-          description: `Plan upgrade: ${additionalTokens} additional tokens added`
-        });
-
-      logStep('Upgrade tokens added', { userId: user.id, additionalTokens });
+    // Handle coupon code if provided
+    if (couponCode) {
+      logStep('Processing coupon code', { couponCode });
+      
+      try {
+        // Check if coupon exists and is valid
+        const coupon = await stripe.coupons.retrieve(couponCode);
+        logStep('Coupon found', { couponId: coupon.id, percentOff: coupon.percent_off, amountOff: coupon.amount_off });
+        
+        // Apply coupon to checkout session
+        sessionConfig.discounts = [{
+          coupon: couponCode
+        }];
+        
+        logStep('Coupon applied to session');
+      } catch (couponError) {
+        logStep('Coupon error', { error: couponError.message });
+        // Don't throw error, just proceed without coupon
+        logStep('Proceeding without coupon');
+      }
     }
 
+    // Create checkout session
     const session = await stripe.checkout.sessions.create(sessionConfig);
+
     logStep('Checkout session created', { sessionId: session.id, url: session.url });
 
     return new Response(

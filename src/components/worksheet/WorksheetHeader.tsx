@@ -1,93 +1,71 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
-import { User, Calendar, Clock, BarChart3 } from 'lucide-react';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Zap, Database, Clock } from "lucide-react";
 
 interface WorksheetHeaderProps {
-  formData: any;
-  createdAt: string;
-  generationTime?: number;
-  studentId?: string;
+  onBack: () => void;
+  generationTime: number;
+  sourceCount: number;
+  inputParams: any;
   studentName?: string;
 }
 
-export const WorksheetHeader: React.FC<WorksheetHeaderProps> = ({
-  formData,
-  createdAt,
+function WorksheetHeader({
+  onBack,
   generationTime,
-  studentId,
+  sourceCount,
+  inputParams,
   studentName
-}) => {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+}: WorksheetHeaderProps) {
+  // Try to get student name from multiple sources
+  const displayStudentName = studentName || 
+    inputParams?.studentName || 
+    (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('worksheetStudentName') : null);
 
-  const renderStudentName = () => {
-    if (!studentName) return null;
-    
-    if (studentId) {
-      return (
-        <Link 
-          to={`/student/${studentId}`} 
-          className="text-primary hover:text-primary/80 underline font-medium"
-        >
-          {studentName}
-        </Link>
-      );
-    }
-    
-    return <span className="font-medium">{studentName}</span>;
+  const handleBack = () => {
+    // Use browser's back function instead of custom navigation
+    window.history.back();
   };
 
   return (
-    <div className="border-b pb-4 mb-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Badge variant="outline" className="text-xs">
-              {formData.englishLevel || 'General'}
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              {formData.lessonTime || '60 min'}
-            </Badge>
+    <div className="mb-6">
+      <div className="flex gap-2 mb-4">
+        <Button variant="ghost" onClick={onBack}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Generate New Worksheet
+        </Button>
+        <Button variant="ghost" onClick={handleBack}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back
+        </Button>
+      </div>
+      <div className="bg-worksheet-purple rounded-lg p-6">
+        <div className="flex flex-col md:flex-row justify-between">
+          <div>
+            <h1 className="mb-1 font-bald text-white text-2xl font-semibold">
+              Your Generated Worksheet
+              {displayStudentName && (
+                <span className="text-yellow-300 ml-2">for {displayStudentName}</span>
+              )}
+            </h1>
           </div>
-          
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
-              {formatDate(createdAt)}
+          <div className="flex gap-4 mt-4 md:mt-0">
+            <div className="flex items-center gap-1 bg-white/20 px-4 py-2 rounded-md">
+              <Zap className="h-4 w-4 text-yellow-300" />
+              <span className="text-sm text-white">Generated in {generationTime}s</span>
             </div>
-            
-            {generationTime && (
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                {generationTime}s
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          {studentName && (
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              {renderStudentName()}
+            <div className="flex items-center gap-1 bg-white/20 px-4 py-2 rounded-md">
+              <Database className="h-4 w-4 text-blue-300" />
+              <span className="text-sm text-white">Based on {sourceCount} sources</span>
             </div>
-          )}
-          
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <BarChart3 className="h-4 w-4" />
-            Worksheet
+            <div className="flex items-center gap-1 bg-white/20 px-4 py-2 rounded-md">
+              <Clock className="h-4 w-4 text-green-300" />
+              <span className="text-sm text-white">{inputParams.lessonTime} lesson</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
-};
+}
+
+export default WorksheetHeader;

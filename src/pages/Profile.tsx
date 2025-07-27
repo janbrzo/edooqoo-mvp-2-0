@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,95 +60,6 @@ const Profile = () => {
   ];
 
   const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
-
-  // Get current subscription details
-  const getCurrentSubscriptionInfo = () => {
-    if (!profile || !profile.subscription_type) {
-      return { type: 'free', plan: null, tokens: 0 };
-    }
-
-    const subscriptionType = profile.subscription_type;
-    
-    if (subscriptionType === 'Side-Gig Plan') {
-      return { type: 'side-gig', plan: 'side-gig', tokens: 15 };
-    }
-    
-    if (subscriptionType.includes('Full-Time Plan')) {
-      const match = subscriptionType.match(/\((\d+) worksheets\)/);
-      const tokens = match ? parseInt(match[1]) : 30;
-      return { type: 'full-time', plan: 'full-time', tokens };
-    }
-    
-    return { type: 'free', plan: null, tokens: 0 };
-  };
-
-  const currentSubscription = getCurrentSubscriptionInfo();
-
-  // Check if a plan button should be disabled
-  const isPlanDisabled = (planType: string, tokens?: number) => {
-    const current = getCurrentSubscriptionInfo();
-    
-    if (planType === 'side-gig') {
-      return current.type === 'side-gig' || current.type === 'full-time'; // Disable if has side-gig or full-time
-    }
-    
-    if (planType === 'full-time' && tokens) {
-      if (current.type === 'free') return false; // Can upgrade from free
-      if (current.type === 'side-gig') return false; // Can upgrade from side-gig
-      if (current.type === 'full-time') {
-        return tokens <= current.tokens; // Can only upgrade to higher token count
-      }
-    }
-    
-    return false;
-  };
-
-  // Calculate upgrade pricing
-  const calculateUpgradePricing = (targetPlan: string, targetTokens?: number) => {
-    const current = getCurrentSubscriptionInfo();
-    
-    if (current.type === 'free') {
-      return null;
-    }
-
-    let currentPrice = 0;
-    let targetPrice = 0;
-
-    if (current.type === 'side-gig') {
-      currentPrice = 9;
-    } else if (current.type === 'full-time') {
-      const currentPlan = fullTimePlans.find(p => parseInt(p.tokens) === current.tokens);
-      currentPrice = currentPlan?.price || 19;
-    }
-
-    if (targetPlan === 'side-gig') {
-      targetPrice = 9;
-    } else if (targetPlan === 'full-time' && targetTokens) {
-      const targetPlanData = fullTimePlans.find(p => parseInt(p.tokens) === targetTokens);
-      targetPrice = targetPlanData?.price || 19;
-    }
-
-    const priceDifference = targetPrice - currentPrice;
-    const tokenDifference = (targetTokens || 15) - current.tokens;
-
-    return priceDifference > 0 ? { priceDifference, tokenDifference } : null;
-  };
-
-  const getButtonText = (planType: string, tokens?: number) => {
-    const current = getCurrentSubscriptionInfo();
-    const upgradeInfo = calculateUpgradePricing(planType, tokens);
-
-    if (isPlanDisabled(planType, tokens)) {
-      return 'Current Plan';
-    }
-
-    if (upgradeInfo) {
-      return `Upgrade (+$${upgradeInfo.priceDifference})`;
-    }
-
-    if (planType === 'side-gig') return 'Upgrade to Side-Gig';
-    return 'Upgrade to Full-Time';
-  };
 
   // Check if user has proper authentication for subscription
   const checkUserForSubscription = async () => {
@@ -235,32 +147,31 @@ const Profile = () => {
   };
 
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
+    // Check user authentication first
     const canSubscribe = await checkUserForSubscription();
     if (!canSubscribe) return;
 
     setIsLoading(planType);
     try {
-      const targetTokens = planType === 'side-gig' ? 15 : parseInt(selectedFullTimePlan);
       const planData = planType === 'side-gig' 
         ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
         : { name: `Full-Time Plan (${selectedFullTimePlan} worksheets)`, price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
 
-      const upgradeInfo = calculateUpgradePricing(planType, targetTokens);
-      
+      console.log('Attempting to create subscription:', { planType, planData });
+
       const { data, error } = await supabase.functions.invoke('create-subscription', {
         body: {
           planType: planType,
           monthlyLimit: planData.tokens,
-          price: upgradeInfo?.priceDifference || planData.price,
-          planName: planData.name,
-          isUpgrade: !!upgradeInfo,
-          additionalTokens: upgradeInfo?.tokenDifference || 0
+          price: planData.price,
+          planName: planData.name
         }
       });
 
       if (error) {
         console.error('Subscription error details:', error);
         
+        // Handle specific error types
         if (error.message?.includes('requiresRegistration') || error.message?.includes('Email required')) {
           toast({
             title: "Registration Required",
@@ -285,6 +196,8 @@ const Profile = () => {
       }
 
       if (data?.url) {
+        console.log('Redirecting to Stripe checkout:', data.url);
+        // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received from server');
@@ -571,7 +484,7 @@ const Profile = () => {
                         onClick={handleManageSubscription}
                       >
                         <CreditCard className="h-4 w-4 mr-2" />
-                        Manage Subscription
+                        Manage Plan
                       </Button>
                     </div>
                   </div>
@@ -595,9 +508,9 @@ const Profile = () => {
                       className="w-full" 
                       size="sm"
                       onClick={() => handleSubscribe('side-gig')}
-                      disabled={isLoading === 'side-gig' || isPlanDisabled('side-gig')}
+                      disabled={isLoading === 'side-gig'}
                     >
-                      {isLoading === 'side-gig' ? 'Processing...' : getButtonText('side-gig')}
+                      {isLoading === 'side-gig' ? 'Processing...' : 'Upgrade to Side-Gig'}
                     </Button>
                   </div>
 
@@ -634,9 +547,9 @@ const Profile = () => {
                       className="w-full" 
                       size="sm"
                       onClick={() => handleSubscribe('full-time')}
-                      disabled={isLoading === 'full-time' || isPlanDisabled('full-time', parseInt(selectedFullTimePlan))}
+                      disabled={isLoading === 'full-time'}
                     >
-                      {isLoading === 'full-time' ? 'Processing...' : getButtonText('full-time', parseInt(selectedFullTimePlan))}
+                      {isLoading === 'full-time' ? 'Processing...' : 'Upgrade to Full-Time'}
                     </Button>
                   </div>
                 </div>

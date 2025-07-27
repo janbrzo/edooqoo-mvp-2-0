@@ -1,39 +1,35 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
-import { useToast } from '@/hooks/use-toast';
-import { useAuthFlow } from '@/hooks/useAuthFlow';
+import { toast } from '@/hooks/use-toast';
 
 type Student = Tables<'students'>;
 
 export const useStudents = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuthFlow();
-  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchStudents();
+  }, []);
 
   const fetchStudents = async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
-
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data, error } = await supabase
         .from('students')
         .select('*')
         .eq('teacher_id', user.id)
-        .order('updated_at', { ascending: false }); // Sort by updated_at descending
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
       setStudents(data || []);
     } catch (error: any) {
-      console.error('Error fetching students:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch students",
+        description: error.message,
         variant: "destructive"
       });
     } finally {
@@ -41,94 +37,85 @@ export const useStudents = () => {
     }
   };
 
-  useEffect(() => {
-    fetchStudents();
-  }, [user?.id]);
-
-  const addStudent = async (studentData: { name: string; english_level: string; main_goal: string }) => {
-    if (!user?.id) return;
-
+  const addStudent = async (name: string, englishLevel: string, mainGoal: string) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { data, error } = await supabase
         .from('students')
-        .insert([{
-          ...studentData,
+        .insert({
+          name,
+          english_level: englishLevel,
+          main_goal: mainGoal,
           teacher_id: user.id
-        }])
+        })
         .select()
         .single();
 
       if (error) throw error;
 
-      setStudents(prev => [data, ...prev]); // Add to beginning since it's newest
+      setStudents(prev => [data, ...prev]);
       toast({
         title: "Success",
         description: "Student added successfully",
       });
-
       return data;
     } catch (error: any) {
-      console.error('Error adding student:', error);
       toast({
         title: "Error",
-        description: "Failed to add student",
+        description: error.message,
         variant: "destructive"
       });
       throw error;
     }
   };
 
-  const updateStudent = async (studentId: string, updates: Partial<Student>) => {
+  const updateStudent = async (id: string, updates: Partial<Pick<Student, 'name' | 'english_level' | 'main_goal'>>) => {
     try {
       const { data, error } = await supabase
         .from('students')
         .update(updates)
-        .eq('id', studentId)
+        .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
 
-      setStudents(prev => prev.map(student => 
-        student.id === studentId ? data : student
-      ).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())); // Re-sort after update
-      
+      setStudents(prev => prev.map(s => s.id === id ? data : s));
       toast({
         title: "Success",
         description: "Student updated successfully",
       });
-
       return data;
     } catch (error: any) {
-      console.error('Error updating student:', error);
       toast({
         title: "Error",
-        description: "Failed to update student",
+        description: error.message,
         variant: "destructive"
       });
       throw error;
     }
   };
 
-  const deleteStudent = async (studentId: string) => {
+  const deleteStudent = async (id: string) => {
     try {
       const { error } = await supabase
         .from('students')
         .delete()
-        .eq('id', studentId);
+        .eq('id', id);
 
       if (error) throw error;
 
-      setStudents(prev => prev.filter(student => student.id !== studentId));
+      setStudents(prev => prev.filter(s => s.id !== id));
       toast({
         title: "Success",
         description: "Student deleted successfully",
       });
     } catch (error: any) {
-      console.error('Error deleting student:', error);
       toast({
         title: "Error",
-        description: "Failed to delete student",
+        description: error.message,
         variant: "destructive"
       });
       throw error;
