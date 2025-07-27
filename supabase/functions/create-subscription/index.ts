@@ -51,9 +51,9 @@ serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { planType, monthlyLimit, price, planName, couponCode } = body;
+    const { planType, monthlyLimit, price, planName, couponCode, upgradeTokens, isUpgrade } = body;
 
-    logStep('Request body parsed', { planType, monthlyLimit, price, planName, couponCode });
+    logStep('Request body parsed', { planType, monthlyLimit, price, planName, couponCode, upgradeTokens, isUpgrade });
 
     // Initialize Stripe
     const stripeKey = Deno.env.get('Stripe_Secret_Key');
@@ -93,8 +93,10 @@ serve(async (req) => {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: planName,
-              description: `${monthlyLimit} worksheets per month`,
+              name: isUpgrade ? `${planName} (Upgrade)` : planName,
+              description: isUpgrade ? 
+                `Upgrade to ${monthlyLimit} worksheets per month (${upgradeTokens} additional tokens)` :
+                `${monthlyLimit} worksheets per month`,
             },
             unit_amount: price * 100, // Convert to cents
             recurring: {
@@ -111,6 +113,8 @@ serve(async (req) => {
         supabase_user_id: user.id,
         plan_type: planType,
         monthly_limit: monthlyLimit.toString(),
+        is_upgrade: isUpgrade ? 'true' : 'false',
+        upgrade_tokens: upgradeTokens ? upgradeTokens.toString() : '0',
       },
     };
 

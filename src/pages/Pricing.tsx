@@ -9,16 +9,18 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Check, User, GraduationCap, Zap, Users, Gift, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
+import { usePlanLogic } from '@/hooks/usePlanLogic';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PricingCalculator } from '@/components/PricingCalculator';
 
 const Pricing = () => {
   const { user, isRegisteredUser } = useAuthFlow();
-  const { tokenLeft } = useTokenSystem(user?.id);
+  const { tokenLeft, profile } = useTokenSystem(user?.id);
+  const { currentPlan, canUpgradeTo, getUpgradePrice, getUpgradeTokens, getRecommendedFullTimePlan } = usePlanLogic(profile?.subscription_type);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
+  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState(getRecommendedFullTimePlan());
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
@@ -34,14 +36,21 @@ const Pricing = () => {
 
   const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
 
+  // Update recommended plan when profile changes
+  useEffect(() => {
+    if (!hasManuallyChanged) {
+      setSelectedFullTimePlan(getRecommendedFullTimePlan());
+    }
+  }, [getRecommendedFullTimePlan, hasManuallyChanged]);
+
   const faqItems = [
     {
       question: "What's the difference between tokens and monthly worksheets?",
-      answer: "Monthly worksheets are included in your subscription plan and reset each month. Tokens are purchased separately and never expire. The system uses purchased tokens first, then monthly worksheets. Your 'Token Left' shows both combined."
+      answer: "Monthly worksheets are included in your subscription plan and reset each month. Unused monthly worksheets now carry forward as rollover tokens! Purchased tokens never expire. The system uses purchased tokens first, then rollover tokens, then monthly worksheets."
     },
     {
       question: "What happens to unused monthly worksheets?",
-      answer: "Currently, unused monthly worksheets don't carry over to the next month. However, any tokens you purchase separately remain in your account forever and can be used anytime."
+      answer: "Great news! Unused monthly worksheets now carry forward to the next month as rollover tokens. These rollover tokens are used after your purchased tokens but before your new monthly worksheets. This means you never lose unused worksheets!"
     },
     {
       question: "Can I use the app without a subscription?",
@@ -103,12 +112,19 @@ const Pricing = () => {
         ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
         : { name: `Full-Time Plan (${selectedFullTimePlan} worksheets)`, price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
 
+      // Calculate upgrade pricing
+      const targetPlan = { price: planData.price, tokens: planData.tokens };
+      const upgradePrice = getUpgradePrice(targetPlan);
+      const upgradeTokens = getUpgradeTokens(targetPlan);
+
       const { data, error } = await supabase.functions.invoke('create-subscription', {
         body: {
           planType: planType,
           monthlyLimit: planData.tokens,
-          price: planData.price,
-          planName: planData.name
+          price: upgradePrice, // Use upgrade price instead of full price
+          planName: planData.name,
+          upgradeTokens: upgradeTokens, // Pass upgrade tokens
+          isUpgrade: currentPlan.type !== 'free'
         }
       });
 
@@ -136,6 +152,15 @@ const Pricing = () => {
         : [...prev, index]
     );
   };
+
+  // Check if side-gig plan can be upgraded to
+  const canUpgradeToSideGig = canUpgradeTo({ type: 'side-gig', price: 9, tokens: 15 } as any);
+  const sideGigUpgradePrice = getUpgradePrice({ price: 9, tokens: 15 } as any);
+
+  // Check if full-time plan can be upgraded to
+  const fullTimePlanData = { type: 'full-time', price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
+  const canUpgradeToFullTime = canUpgradeTo(fullTimePlanData as any);
+  const fullTimeUpgradePrice = getUpgradePrice(fullTimePlanData as any);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
@@ -173,6 +198,9 @@ const Pricing = () => {
             <div className="flex items-center gap-4">
               <Badge variant="outline" className="text-sm px-3 py-1">
                 Balance: {tokenLeft} tokens
+              </Badge>
+              <Badge variant="secondary" className="text-sm px-3 py-1">
+                Current: {currentPlan.name}
               </Badge>
             </div>
           )}
@@ -223,8 +251,14 @@ const Pricing = () => {
                 </div>
               </div>
               
-              <Button className="w-full h-10" asChild>
-                <Link to="/signup">Get Started Free</Link>
+              <Button 
+                className="w-full h-10" 
+                asChild
+                disabled={currentPlan.type === 'free'}
+              >
+                <Link to="/signup">
+                  {currentPlan.type === 'free' ? 'Current Plan' : 'Get Started Free'}
+                </Link>
               </Button>
             </CardContent>
           </Card>
@@ -248,11 +282,18 @@ const Pricing = () => {
                 Perfect for part-time English teachers
               </CardDescription>
               <div className="mt-4">
-                <span className="text-4xl font-bold">$9</span>
+                <span className="text-4xl font-bold">
+                  ${currentPlan.type !== 'free' && canUpgradeToSideGig ? sideGigUpgradePrice : 9}
+                </span>
                 <span className="text-lg text-muted-foreground">/month</span>
               </div>
               <div className="mt-2">
                 <Badge variant="secondary">15 worksheets / month</Badge>
+                {currentPlan.type !== 'free' && canUpgradeToSideGig && (
+                  <Badge variant="outline" className="mt-1">
+                    Upgrade price (${9 - currentPlan.price} difference)
+                  </Badge>
+                )}
               </div>
             </CardHeader>
             
@@ -261,6 +302,10 @@ const Pricing = () => {
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">15 monthly worksheet credits</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Unused worksheets carry forward</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
@@ -283,9 +328,11 @@ const Pricing = () => {
               <Button 
                 className="w-full h-10" 
                 onClick={() => handleSubscribe('side-gig')}
-                disabled={isLoading === 'side-gig'}
+                disabled={isLoading === 'side-gig' || !canUpgradeToSideGig}
               >
-                {isLoading === 'side-gig' ? 'Processing...' : 'Choose Side-Gig'}
+                {isLoading === 'side-gig' ? 'Processing...' : 
+                 !canUpgradeToSideGig ? 'Current Plan' : 
+                 currentPlan.type === 'free' ? 'Choose Side-Gig' : 'Upgrade to Side-Gig'}
               </Button>
             </CardContent>
           </Card>
@@ -324,11 +371,18 @@ const Pricing = () => {
                 </Select>
                 
                 <div className="text-center">
-                  <span className="text-4xl font-bold">${selectedPlan?.price}</span>
+                  <span className="text-4xl font-bold">
+                    ${currentPlan.type !== 'free' && canUpgradeToFullTime ? fullTimeUpgradePrice : selectedPlan?.price}
+                  </span>
                   <span className="text-lg text-muted-foreground">/month</span>
                 </div>
                 <div>
                   <Badge variant="secondary">{selectedFullTimePlan} worksheets / month</Badge>
+                  {currentPlan.type !== 'free' && canUpgradeToFullTime && (
+                    <Badge variant="outline" className="mt-1">
+                      Upgrade price (${(selectedPlan?.price || 19) - currentPlan.price} difference)
+                    </Badge>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -338,6 +392,10 @@ const Pricing = () => {
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">{selectedFullTimePlan} monthly worksheet credits</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Unused worksheets carry forward</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
@@ -364,9 +422,11 @@ const Pricing = () => {
               <Button 
                 className="w-full h-10 bg-primary hover:bg-primary/90" 
                 onClick={() => handleSubscribe('full-time')}
-                disabled={isLoading === 'full-time'}
+                disabled={isLoading === 'full-time' || !canUpgradeToFullTime}
               >
-                {isLoading === 'full-time' ? 'Processing...' : 'Choose Full-Time'}
+                {isLoading === 'full-time' ? 'Processing...' : 
+                 !canUpgradeToFullTime ? 'Current Plan' : 
+                 currentPlan.type === 'free' ? 'Choose Full-Time' : 'Upgrade to Full-Time'}
               </Button>
             </CardContent>
           </Card>

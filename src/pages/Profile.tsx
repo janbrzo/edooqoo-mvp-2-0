@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useProfile } from '@/hooks/useProfile';
+import { useTokenSystem } from '@/hooks/useTokenSystem';
+import { usePlanLogic } from '@/hooks/usePlanLogic';
 import { EditableProfileField } from '@/components/profile/EditableProfileField';
 import { toast } from '@/hooks/use-toast';
 import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail } from 'lucide-react';
@@ -15,6 +17,8 @@ import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail } fr
 const Profile = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
   const { profile, loading: profileLoading, refetch } = useProfile();
+  const { tokenLeft } = useTokenSystem(user?.id);
+  const { currentPlan, canUpgradeTo, getUpgradePrice, getUpgradeTokens, getRecommendedFullTimePlan } = usePlanLogic(profile?.subscription_type);
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
@@ -25,6 +29,11 @@ const Profile = () => {
       navigate('/');
     }
   }, [loading, isRegisteredUser, navigate]);
+
+  // Update recommended plan when profile changes
+  useEffect(() => {
+    setSelectedFullTimePlan(getRecommendedFullTimePlan());
+  }, [getRecommendedFullTimePlan]);
 
   // Auto-refresh profile when returning from payment (e.g., URL contains success params)
   useEffect(() => {
@@ -157,14 +166,21 @@ const Profile = () => {
         ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
         : { name: `Full-Time Plan (${selectedFullTimePlan} worksheets)`, price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
 
-      console.log('Attempting to create subscription:', { planType, planData });
+      // Calculate upgrade pricing
+      const targetPlan = { price: planData.price, tokens: planData.tokens };
+      const upgradePrice = getUpgradePrice(targetPlan);
+      const upgradeTokens = getUpgradeTokens(targetPlan);
+
+      console.log('Attempting to create subscription:', { planType, planData, upgradePrice, upgradeTokens });
 
       const { data, error } = await supabase.functions.invoke('create-subscription', {
         body: {
           planType: planType,
           monthlyLimit: planData.tokens,
-          price: planData.price,
-          planName: planData.name
+          price: upgradePrice, // Use upgrade price instead of full price
+          planName: planData.name,
+          upgradeTokens: upgradeTokens, // Pass upgrade tokens
+          isUpgrade: currentPlan.type !== 'free'
         }
       });
 
@@ -284,9 +300,9 @@ const Profile = () => {
   const monthlyLimit = profile?.monthly_worksheet_limit;
 
   const tokenBalance = profile?.token_balance || 0;
+  const rolloverTokens = profile?.rollover_tokens || 0;
   const monthlyUsed = profile?.monthly_worksheets_used || 0;
   const monthlyAvailable = monthlyLimit ? Math.max(0, monthlyLimit - monthlyUsed) : 0;
-  const tokenLeft = tokenBalance + monthlyAvailable;
 
   const getMonthlyLimitDisplay = () => {
     if (subscriptionType === 'Free Demo') return 'Not applicable';
@@ -301,6 +317,15 @@ const Profile = () => {
     }
     return null;
   };
+
+  // Check if side-gig plan can be upgraded to
+  const canUpgradeToSideGig = canUpgradeTo({ type: 'side-gig', price: 9, tokens: 15 } as any);
+  const sideGigUpgradePrice = getUpgradePrice({ price: 9, tokens: 15 } as any);
+
+  // Check if full-time plan can be upgraded to
+  const fullTimePlanData = { type: 'full-time', price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
+  const canUpgradeToFullTime = canUpgradeTo(fullTimePlanData as any);
+  const fullTimeUpgradePrice = getUpgradePrice(fullTimePlanData as any);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
@@ -437,6 +462,10 @@ const Profile = () => {
                       <span className="font-medium">{tokenBalance}</span>
                     </div>
                     <div className="flex justify-between">
+                      <span className="text-muted-foreground">Rollover tokens</span>
+                      <span className="font-medium">{rolloverTokens}</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-muted-foreground">This month used</span>
                       <span className="font-medium">{monthlyUsed}</span>
                     </div>
@@ -501,16 +530,25 @@ const Profile = () => {
                     </div>
                     <p className="text-xs text-muted-foreground mb-3">15 worksheets/month</p>
                     <div className="mb-3">
-                      <p className="text-2xl font-bold">$9</p>
+                      <p className="text-2xl font-bold">
+                        ${canUpgradeToSideGig ? sideGigUpgradePrice : 9}
+                      </p>
                       <p className="text-xs text-muted-foreground">/month</p>
+                      {canUpgradeToSideGig && currentPlan.type !== 'free' && (
+                        <p className="text-xs text-muted-foreground">
+                          (Upgrade price)
+                        </p>
+                      )}
                     </div>
                     <Button 
                       className="w-full" 
                       size="sm"
                       onClick={() => handleSubscribe('side-gig')}
-                      disabled={isLoading === 'side-gig'}
+                      disabled={isLoading === 'side-gig' || !canUpgradeToSideGig}
                     >
-                      {isLoading === 'side-gig' ? 'Processing...' : 'Upgrade to Side-Gig'}
+                      {isLoading === 'side-gig' ? 'Processing...' : 
+                       !canUpgradeToSideGig ? 'Current Plan' : 
+                       currentPlan.type === 'free' ? 'Upgrade to Side-Gig' : 'Upgrade to Side-Gig'}
                     </Button>
                   </div>
 
@@ -539,17 +577,26 @@ const Profile = () => {
                     </div>
                     
                     <div className="mb-3">
-                      <p className="text-2xl font-bold">${selectedPlan?.price}</p>
+                      <p className="text-2xl font-bold">
+                        ${canUpgradeToFullTime ? fullTimeUpgradePrice : selectedPlan?.price}
+                      </p>
                       <p className="text-xs text-muted-foreground">/month</p>
+                      {canUpgradeToFullTime && currentPlan.type !== 'free' && (
+                        <p className="text-xs text-muted-foreground">
+                          (Upgrade price)
+                        </p>
+                      )}
                     </div>
                     
                     <Button 
                       className="w-full" 
                       size="sm"
                       onClick={() => handleSubscribe('full-time')}
-                      disabled={isLoading === 'full-time'}
+                      disabled={isLoading === 'full-time' || !canUpgradeToFullTime}
                     >
-                      {isLoading === 'full-time' ? 'Processing...' : 'Upgrade to Full-Time'}
+                      {isLoading === 'full-time' ? 'Processing...' : 
+                       !canUpgradeToFullTime ? 'Current Plan' : 
+                       currentPlan.type === 'free' ? 'Upgrade to Full-Time' : 'Upgrade to Full-Time'}
                     </Button>
                   </div>
                 </div>

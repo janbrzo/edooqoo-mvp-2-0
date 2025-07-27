@@ -23,23 +23,24 @@ export const useTokenSystem = (userId?: string | null) => {
     if (!userId) return;
     
     try {
-      // Get profile data with token and subscription info
+      // Get profile data with token and subscription info including rollover_tokens
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('token_balance, monthly_worksheet_limit, subscription_type, monthly_worksheets_used')
+        .select('token_balance, rollover_tokens, monthly_worksheet_limit, subscription_type, monthly_worksheets_used')
         .eq('id', userId)
         .single();
       
       if (error) throw error;
       
-      // Calculate Token Left according to new logic:
-      // Token Left = token_balance + (monthly_limit - monthly_used)
+      // Calculate Token Left with new logic:
+      // Token Left = token_balance + rollover_tokens + (monthly_limit - monthly_used)
       const tokenBalance = profileData?.token_balance || 0;
+      const rolloverTokens = profileData?.rollover_tokens || 0;
       const monthlyLimit = profileData?.monthly_worksheet_limit || 0;
       const monthlyUsed = profileData?.monthly_worksheets_used || 0;
       const monthlyAvailable = Math.max(0, monthlyLimit - monthlyUsed);
       
-      const calculatedTokenLeft = tokenBalance + monthlyAvailable;
+      const calculatedTokenLeft = tokenBalance + rolloverTokens + monthlyAvailable;
       
       setTokenLeft(calculatedTokenLeft);
       setProfile(profileData);
