@@ -290,7 +290,7 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Worksheets are editable</span>
+                  <span className="text-sm">Worksheets are EDITABLE</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
@@ -365,7 +365,7 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Worksheets are editable</span>
+                  <span className="text-sm">Worksheets are EDITABLE</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
@@ -450,11 +450,11 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Unused worksheets carry forward</span>
+                  <span className="text-sm">Unused tokens carry forward</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Worksheets are editable</span>
+                  <span className="text-sm">Worksheets are EDITABLE</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
