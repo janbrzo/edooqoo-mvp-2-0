@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,11 +25,12 @@ import {
   Target,
   Coins
 } from "lucide-react";
+import { format } from 'date-fns';
 
 const Dashboard = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
   const { tokenLeft, profile } = useTokenSystem(user?.id);
-  const { students, loading: studentsLoading, refetch: refetchStudents } = useStudents();
+  const { students, loading: studentsLoading, refetch: refetchStudents, updateStudentActivity } = useStudents();
   const { worksheets, loading: historyLoading } = useWorksheetHistory();
   const { profile: userProfile } = useProfile();
   const navigate = useNavigate();
@@ -81,9 +83,37 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  const handleWorksheetOpen = (worksheet: any) => {
+  const handleWorksheetOpen = async (worksheet: any) => {
+    // Update student activity when worksheet is opened
+    if (worksheet.student_id) {
+      await updateStudentActivity(worksheet.student_id);
+    }
     sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheet));
     navigate('/');
+  };
+
+  const formatWorksheetTitle = (worksheet: any) => {
+    const formData = worksheet.form_data;
+    if (!formData) return worksheet.title || 'Untitled Worksheet';
+    
+    const topic = formData.topic || formData.topicFocus;
+    const goal = formData.goal || formData.mainGoal;
+    
+    return topic || worksheet.title || 'Untitled Worksheet';
+  };
+
+  const formatWorksheetDescription = (worksheet: any) => {
+    const formData = worksheet.form_data;
+    if (!formData) return '';
+    
+    const topic = formData.topic || formData.topicFocus;
+    const goal = formData.goal || formData.mainGoal;
+    
+    const parts = [];
+    if (topic) parts.push(`Topic: ${topic}`);
+    if (goal) parts.push(`Goal: ${goal}`);
+    
+    return parts.join(' • ');
   };
 
   return (
@@ -246,24 +276,22 @@ const Dashboard = () => {
               ) : (
                 <div className="space-y-4">
                   {worksheets.slice(0, 5).map((worksheet) => (
-                    <div key={worksheet.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <BookOpen className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{worksheet.title || 'Worksheet'}</p>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {new Date(worksheet.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
+                    <div key={worksheet.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                         onClick={() => handleWorksheetOpen(worksheet)}>
+                      <h3 className="font-medium text-base mb-1">
+                        {formatWorksheetTitle(worksheet)}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {formatWorksheetDescription(worksheet)}
+                      </p>
+                      <div className="flex justify-between items-center text-xs text-muted-foreground">
+                        <span>
+                          {format(new Date(worksheet.created_at), 'MMM dd, yyyy')}
+                        </span>
+                        <span>
+                          {format(new Date(worksheet.created_at), 'HH:mm')}
+                        </span>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleWorksheetOpen(worksheet)}
-                      >
-                        Open
-                      </Button>
                     </div>
                   ))}
                 </div>
