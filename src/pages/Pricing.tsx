@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Check, User, GraduationCap, Zap, Users, Gift, ChevronDown, ChevronUp } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Check, User, GraduationCap, Zap, Users, Gift, ChevronDown, ChevronUp, Mail } from 'lucide-react';
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
 import { usePlanLogic } from '@/hooks/usePlanLogic';
@@ -25,6 +26,7 @@ const Pricing = () => {
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
   const [hasManuallyChanged, setHasManuallyChanged] = useState(false);
   const [openFaqItems, setOpenFaqItems] = useState<number[]>([]);
+  const [showEmailConfirmationModal, setShowEmailConfirmationModal] = useState(false);
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -56,6 +58,10 @@ const Pricing = () => {
       answer: "Yes! You get 2 free tokens when you sign up. You can also purchase additional tokens anytime without a subscription. Demo users (not logged in) have limited access to try the worksheet generator."
     },
     {
+      question: "Do I need to confirm my email after signing up?",
+      answer: "Yes, you need to confirm your email address by clicking the link sent to your email after registration. This is required for security and to access all features of your account."
+    },
+    {
       question: "How do I cancel my subscription?",
       answer: "You can cancel anytime through your profile page using the 'Manage Subscription' button, which opens the Stripe Customer Portal. Your subscription remains active until the end of your current billing period."
     },
@@ -74,6 +80,10 @@ const Pricing = () => {
     {
       question: "How long does it take to generate a worksheet?",
       answer: "Worksheet generation typically takes 30-60 seconds. The system uses AI to create custom content based on your specifications like English level, lesson topic, and learning goals."
+    },
+    {
+      question: "What happens if I run out of tokens?",
+      answer: "When you run out of tokens, you can either upgrade your subscription plan for more monthly worksheets or purchase additional tokens. Your account and saved data remain accessible regardless of your token balance."
     }
   ];
 
@@ -210,6 +220,13 @@ const Pricing = () => {
     return false;
   };
 
+  const handleFreeSignup = () => {
+    if (!isRegisteredUser) {
+      setShowEmailConfirmationModal(true);
+      navigate('/signup');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <div className="max-w-6xl mx-auto">
@@ -304,16 +321,10 @@ const Pricing = () => {
               
               <Button 
                 className="w-full h-10" 
-                asChild={!isButtonDisabled('free')}
+                onClick={handleFreeSignup}
                 disabled={isButtonDisabled('free')}
               >
-                {isButtonDisabled('free') ? (
-                  <span>{getButtonText('free')}</span>
-                ) : (
-                  <Link to="/signup">
-                    {getButtonText('free')}
-                  </Link>
-                )}
+                {getButtonText('free')}
               </Button>
             </CardContent>
           </Card>
@@ -508,6 +519,32 @@ const Pricing = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Email Confirmation Modal */}
+        <Dialog open={showEmailConfirmationModal} onOpenChange={setShowEmailConfirmationModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader className="text-center">
+              <Mail className="w-12 h-12 mx-auto mb-4 text-primary" />
+              <DialogTitle>Check Your Email</DialogTitle>
+              <DialogDescription>
+                We've sent you a confirmation email. Please click the link in your email to verify your account and complete your registration.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  <strong>Important:</strong> You need to confirm your email address to access all features and start using your free tokens.
+                </p>
+              </div>
+              <Button 
+                className="w-full" 
+                onClick={() => setShowEmailConfirmationModal(false)}
+              >
+                Got it, I'll check my email
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
