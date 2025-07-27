@@ -1,117 +1,154 @@
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Check, Star, Users, Zap, ArrowRight } from 'lucide-react';
-import { useAuthFlow } from '@/hooks/useAuthFlow';
+import { Check, User, GraduationCap, Zap, Users } from 'lucide-react';
+import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { PricingCalculator } from '@/components/PricingCalculator';
 
 const Pricing = () => {
-  const { user, isRegisteredUser } = useAuthFlow();
-  const { tokenLeft, profile } = useTokenSystem(user?.id);
+  const { userId } = useAnonymousAuth();
+  const { tokenBalance } = useTokenSystem(userId);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
+  const [isLoading, setIsLoading] = useState<string | null>(null);
   const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
+  const [hasManuallyChanged, setHasManuallyChanged] = useState(false);
 
-  const currentPlan = profile?.subscription_type || 'Free Demo';
+  const fullTimePlans = [
+    { tokens: '30', price: 19 },
+    { tokens: '60', price: 39 },
+    { tokens: '90', price: 59 },
+    { tokens: '120', price: 79 }
+  ];
+
+  const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
 
   const handleRecommendation = (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => {
     setRecommendedPlan(plan);
     setRecommendedWorksheets(worksheetsNeeded);
+    
+    // Only auto-select if user hasn't manually changed the plan
+    if (plan === 'full-time' && !hasManuallyChanged) {
+      const recommendedPlanOption = fullTimePlans.find(p => parseInt(p.tokens) >= worksheetsNeeded);
+      if (recommendedPlanOption) {
+        setSelectedFullTimePlan(recommendedPlanOption.tokens);
+      }
+    }
   };
 
-  const plans = [
-    {
-      name: 'Free Demo',
-      price: '$0',
-      period: 'forever',
-      description: 'Perfect for trying out the platform',
-      features: [
-        '2 free tokens to start',
-        'All worksheet types',
-        'Basic customization',
-        'Preview functionality'
-      ],
-      buttonText: 'Current Plan',
-      buttonVariant: 'outline' as const,
-      isCurrentPlan: currentPlan === 'Free Demo',
-      popular: false,
-      icon: Users
-    },
-    {
-      name: 'Side-Gig',
-      price: '$9',
-      period: 'month',
-      description: 'Great for part-time teachers',
-      features: [
-        '15 worksheets per month',
-        'Student management',
-        'All exercise types',
-        'Download & print',
-        'Email support'
-      ],
-      buttonText: 'Upgrade to Side-Gig',
-      buttonVariant: 'default' as const,
-      isCurrentPlan: currentPlan === 'Side-Gig',
-      popular: recommendedPlan === 'side-gig',
-      icon: Users
-    },
-    {
-      name: 'Full-Time',
-      price: '$19',
-      period: 'month',
-      description: 'Perfect for professional teachers',
-      features: [
-        `${recommendedWorksheets} worksheets per month`,
-        'Advanced customization',
-        'Priority support',
-        'Bulk operations',
-        'Analytics & insights'
-      ],
-      buttonText: 'Upgrade to Full-Time',
-      buttonVariant: 'default' as const,
-      isCurrentPlan: currentPlan?.startsWith('Full-Time'),
-      popular: recommendedPlan === 'full-time',
-      icon: Zap
-    }
-  ];
+  const handleManualPlanChange = (value: string) => {
+    setSelectedFullTimePlan(value);
+    setHasManuallyChanged(true);
+  };
 
-  const additionalPlans = [
-    { worksheets: 60, price: '$39' },
-    { worksheets: 90, price: '$59' },
-    { worksheets: 120, price: '$79' }
-  ];
+  const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
+    if (!userId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to subscribe to a plan.",
+        variant: "destructive"
+      });
+      navigate('/auth');
+      return;
+    }
+
+    setIsLoading(planType);
+    try {
+      const planData = planType === 'side-gig' 
+        ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
+        : { name: `Full-Time Plan (${selectedFullTimePlan} worksheets)`, price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
+
+      const { data, error } = await supabase.functions.invoke('create-subscription', {
+        body: {
+          planType: planType,
+          monthlyLimit: planData.tokens,
+          price: planData.price,
+          planName: planData.name
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      console.error('Subscription error:', error);
+      toast({
+        title: "Subscription Error",
+        description: error.message || "Failed to create subscription. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(null);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    if (!userId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to manage subscription.",
+        variant: "destructive"
+      });
+      navigate('/auth');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error: any) {
+      console.error('Portal error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to open subscription management. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
-      <div className="container mx-auto px-4 py-16">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold mb-4">
-            Choose Your Perfect Plan
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Generate unlimited worksheets for your English students with our flexible pricing plans
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header Navigation */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex gap-3">
+            <Button asChild variant="outline">
+              <Link to="/dashboard" className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/profile" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Profile
+              </Link>
+            </Button>
+          </div>
           
-          {isRegisteredUser && (
-            <div className="mt-8 flex justify-center">
-              <Card className="inline-block">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">{tokenLeft}</div>
-                      <div className="text-sm text-muted-foreground">Token Left</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{currentPlan}</div>
-                      <div className="text-sm text-muted-foreground">Current Plan</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          {userId && (
+            <div className="flex items-center gap-4">
+              <Badge variant="outline" className="text-sm px-3 py-1">
+                Balance: {tokenBalance} tokens
+              </Badge>
+              <Button variant="outline" size="sm" onClick={handleManageSubscription}>
+                Manage Subscription
+              </Button>
             </div>
           )}
         </div>
@@ -119,156 +156,151 @@ const Pricing = () => {
         {/* Pricing Calculator */}
         <PricingCalculator onRecommendation={handleRecommendation} />
 
-        {/* Main Plans */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          {plans.map((plan) => {
-            const Icon = plan.icon;
-            return (
-              <Card key={plan.name} className={`relative ${plan.popular ? 'border-primary shadow-lg' : ''}`}>
-                {plan.popular && (
-                  <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-primary">
-                    <Star className="h-3 w-3 mr-1" />
-                    Recommended
-                  </Badge>
-                )}
-                
-                <CardHeader className="text-center">
-                  <div className="flex justify-center mb-4">
-                    <Icon className="h-12 w-12 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
-                  <div className="mt-4">
-                    <span className="text-4xl font-bold">{plan.price}</span>
-                    <span className="text-muted-foreground">/{plan.period}</span>
-                  </div>
-                </CardHeader>
-                
-                <CardContent>
-                  <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature, index) => (
-                      <li key={index} className="flex items-center gap-3">
-                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                        <span className="text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  
-                  <Button 
-                    variant={plan.buttonVariant}
-                    className="w-full"
-                    disabled={plan.isCurrentPlan}
-                    asChild={!plan.isCurrentPlan}
-                  >
-                    {plan.isCurrentPlan ? (
-                      <span>Current Plan</span>
-                    ) : (
-                      <Link to="/profile">
-                        {plan.buttonText}
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Link>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* Additional Full-Time Plans */}
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold mb-4">Need More Worksheets?</h2>
-          <p className="text-muted-foreground">
-            Full-Time plans with higher monthly limits
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          {additionalPlans.map((plan) => (
-            <Card key={plan.worksheets} className="text-center">
-              <CardHeader>
-                <CardTitle className="text-xl">Full-Time {plan.worksheets}</CardTitle>
-                <CardDescription>{plan.worksheets} worksheets per month</CardDescription>
-                <div className="mt-4">
-                  <span className="text-3xl font-bold">{plan.price}</span>
-                  <span className="text-muted-foreground">/month</span>
+        {/* Pricing Cards */}
+        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          
+          {/* Side-Gig Plan */}
+          <Card className={`relative ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
+            {recommendedPlan === 'side-gig' && (
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
+                  RECOMMENDED FOR YOU
+                </Badge>
+              </div>
+            )}
+            
+            <CardHeader className="text-center pb-6">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Users className="h-5 w-5 text-primary" />
+                <CardTitle className="text-xl">Side-Gig Plan</CardTitle>
+              </div>
+              <CardDescription className="text-base">
+                Perfect for part-time English teachers
+              </CardDescription>
+              <div className="mt-4">
+                <span className="text-4xl font-bold">$9</span>
+                <span className="text-lg text-muted-foreground">/month</span>
+              </div>
+              <div className="mt-2">
+                <Badge variant="secondary">15 worksheets / month</Badge>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">15 monthly worksheet credits</span>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  asChild
-                  disabled={currentPlan === `Full-Time ${plan.worksheets}`}
-                >
-                  {currentPlan === `Full-Time ${plan.worksheets}` ? (
-                    <span>Current Plan</span>
-                  ) : (
-                    <Link to="/profile">
-                      Upgrade to {plan.worksheets}
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Link>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">All worksheet types</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Student management</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Export to HTML & PDF</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Email support</span>
+                </div>
+              </div>
+              
+              <Button 
+                className="w-full h-10" 
+                onClick={() => handleSubscribe('side-gig')}
+                disabled={isLoading === 'side-gig'}
+              >
+                {isLoading === 'side-gig' ? 'Processing...' : 'Choose Side-Gig'}
+              </Button>
+            </CardContent>
+          </Card>
 
-        {/* FAQ or Additional Info */}
-        <Card className="max-w-4xl mx-auto">
-          <CardHeader className="text-center">
-            <CardTitle>Why Choose Our Worksheet Generator?</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <h3 className="font-semibold mb-3">🎯 Tailored Content</h3>
-                <p className="text-sm text-muted-foreground">
-                  Every worksheet is customized to your student's level and needs
-                </p>
+          {/* Full-Time Plan */}
+          <Card className={`relative ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : ''}`}>
+            {recommendedPlan === 'full-time' && (
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
+                  RECOMMENDED FOR YOU
+                </Badge>
               </div>
-              <div>
-                <h3 className="font-semibold mb-3">⚡ Instant Generation</h3>
-                <p className="text-sm text-muted-foreground">
-                  Get professional worksheets in seconds, not hours
-                </p>
+            )}
+            
+            <CardHeader className="text-center pb-6">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Zap className="h-5 w-5 text-primary" />
+                <CardTitle className="text-xl">Full-Time Plan</CardTitle>
               </div>
-              <div>
-                <h3 className="font-semibold mb-3">📚 All Exercise Types</h3>
-                <p className="text-sm text-muted-foreground">
-                  Multiple choice, fill-in-the-blanks, matching, and more
-                </p>
+              <CardDescription className="text-base">
+                For professional English teachers
+              </CardDescription>
+              
+              {/* Dropdown for token selection */}
+              <div className="mt-4 space-y-3">
+                <Select value={selectedFullTimePlan} onValueChange={handleManualPlanChange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fullTimePlans.map((plan) => (
+                      <SelectItem key={plan.tokens} value={plan.tokens}>
+                        {plan.tokens} worksheets/month
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <div className="text-center">
+                  <span className="text-4xl font-bold">${selectedPlan?.price}</span>
+                  <span className="text-lg text-muted-foreground">/month</span>
+                </div>
+                <div>
+                  <Badge variant="secondary">{selectedFullTimePlan} worksheets / month</Badge>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold mb-3">👥 Student Management</h3>
-                <p className="text-sm text-muted-foreground">
-                  Keep track of your students and their progress
-                </p>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">{selectedFullTimePlan} monthly worksheet credits</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">All worksheet types</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Unlimited student management</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Export to HTML & PDF</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Priority email support</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Advanced analytics</span>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* CTA Section */}
-        <div className="text-center mt-16">
-          <h2 className="text-2xl font-bold mb-4">Ready to Get Started?</h2>
-          <p className="text-muted-foreground mb-8">
-            Join thousands of teachers who are already using our platform
-          </p>
-          <div className="flex justify-center gap-4">
-            <Button asChild size="lg">
-              <Link to="/profile">
-                Choose Your Plan
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Link>
-            </Button>
-            <Button variant="outline" size="lg" asChild>
-              <Link to="/">
-                Try Demo
-              </Link>
-            </Button>
-          </div>
+              
+              <Button 
+                className="w-full h-10 bg-primary hover:bg-primary/90" 
+                onClick={() => handleSubscribe('full-time')}
+                disabled={isLoading === 'full-time'}
+              >
+                {isLoading === 'full-time' ? 'Processing...' : 'Choose Full-Time'}
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
