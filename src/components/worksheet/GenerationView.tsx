@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { FormData } from '@/components/WorksheetForm';
-import { InputParamsCard } from './InputParamsCard';
+import InputParamsCard from './InputParamsCard';
 import { WorksheetDisplay } from '@/components/WorksheetDisplay';
 
 interface GenerationViewProps {
@@ -65,8 +66,6 @@ export const GenerationView: React.FC<GenerationViewProps> = ({
     <div className="space-y-6">
       <InputParamsCard
         inputParams={inputParams}
-        generationTime={generationTime}
-        sourceCount={sourceCount}
       />
 
       <div className="flex justify-between items-center">

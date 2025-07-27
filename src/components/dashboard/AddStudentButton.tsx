@@ -5,7 +5,11 @@ import { UserPlus } from 'lucide-react';
 import { AddStudentDialog } from './AddStudentDialog';
 import { useStudents } from '@/hooks/useStudents';
 
-export const AddStudentButton: React.FC = () => {
+interface AddStudentButtonProps {
+  onStudentAdded?: () => void;
+}
+
+export const AddStudentButton: React.FC<AddStudentButtonProps> = ({ onStudentAdded }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { addStudent } = useStudents();
 
@@ -13,6 +17,9 @@ export const AddStudentButton: React.FC = () => {
     try {
       await addStudent(studentData);
       setIsOpen(false);
+      if (onStudentAdded) {
+        onStudentAdded();
+      }
     } catch (error) {
       console.error('Error adding student:', error);
     }
@@ -29,9 +36,7 @@ export const AddStudentButton: React.FC = () => {
       </Button>
 
       <AddStudentDialog
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        onAddStudent={handleAddStudent}
+        onStudentAdded={onStudentAdded}
       />
     </>
   );

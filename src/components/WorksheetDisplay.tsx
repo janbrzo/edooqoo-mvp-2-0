@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { WorksheetHeader } from '@/components/worksheet/WorksheetHeader';
-import ExerciseSection from '@/components/worksheet/ExerciseSection';
+import { ExerciseSection } from '@/components/worksheet/ExerciseSection';
 import TeacherNotes from '@/components/worksheet/TeacherNotes';
 import WorksheetToolbar from '@/components/worksheet/WorksheetToolbar';
 import { Button } from '@/components/ui/button';
@@ -104,17 +104,18 @@ export const WorksheetDisplay: React.FC<WorksheetDisplayProps> = ({ viewMode }) 
 
       {teacher_notes && (
         <TeacherNotes
-          notes={teacher_notes}
           viewMode={viewMode}
         />
       )}
 
       <WorksheetToolbar
         worksheetId={id}
-        formData={form_data}
-        exercises={exercises}
-        teacherNotes={teacher_notes}
         viewMode={viewMode}
+        setViewMode={() => {}}
+        isEditing={false}
+        handleEdit={() => {}}
+        handleSave={() => {}}
+        editableWorksheet={parsedData}
       />
     </div>
   );
