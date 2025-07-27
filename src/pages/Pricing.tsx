@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -97,11 +98,11 @@ const Pricing = () => {
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
     if (!isRegisteredUser) {
       toast({
-        title: "Authentication Required",
-        description: "Please sign in to subscribe to a plan.",
+        title: "Registration Required",
+        description: "Please sign up to subscribe to a plan.",
         variant: "destructive"
       });
-      navigate('/login');
+      navigate('/signup'); // Changed from '/login' to '/signup'
       return;
     }
 
@@ -164,11 +165,47 @@ const Pricing = () => {
   const sideGigPlan = plans.find(p => p.id === 'side-gig');
   const canUpgradeToSideGig = sideGigPlan ? canUpgradeTo(sideGigPlan) : false;
   const sideGigUpgradePrice = sideGigPlan ? getUpgradePrice(sideGigPlan) : 0;
+  const isSideGigLowerPlan = currentPlan.type === 'full-time' && sideGigPlan;
 
   // Get full-time plan from plans array
   const fullTimePlan = plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
   const canUpgradeToFullTime = fullTimePlan ? canUpgradeTo(fullTimePlan) : false;
   const fullTimeUpgradePrice = fullTimePlan ? getUpgradePrice(fullTimePlan) : 0;
+
+  const getButtonText = (planType: 'free' | 'side-gig' | 'full-time') => {
+    if (planType === 'free') {
+      return currentPlan.type === 'free' ? 'Current Plan' : 'Get Started Free';
+    }
+    
+    if (planType === 'side-gig') {
+      if (isSideGigLowerPlan) return 'Lower Plan';
+      if (!canUpgradeToSideGig) return 'Current Plan';
+      return currentPlan.type === 'free' ? 'Choose Side-Gig' : 'Upgrade to Side-Gig';
+    }
+    
+    if (planType === 'full-time') {
+      if (!canUpgradeToFullTime) return 'Current Plan';
+      return currentPlan.type === 'free' ? 'Choose Full-Time' : 'Upgrade to Full-Time';
+    }
+    
+    return 'Choose Plan';
+  };
+
+  const isButtonDisabled = (planType: 'free' | 'side-gig' | 'full-time') => {
+    if (planType === 'free') {
+      return currentPlan.type === 'free';
+    }
+    
+    if (planType === 'side-gig') {
+      return isSideGigLowerPlan || !canUpgradeToSideGig;
+    }
+    
+    if (planType === 'full-time') {
+      return !canUpgradeToFullTime;
+    }
+    
+    return false;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
@@ -237,6 +274,9 @@ const Pricing = () => {
               <div className="mt-2">
                 <Badge variant="secondary">2 free tokens + limited access</Badge>
               </div>
+              <div className="mt-1">
+                <p className="text-xs text-muted-foreground">Free per worksheet</p>
+              </div>
             </CardHeader>
             
             <CardContent className="space-y-4">
@@ -251,6 +291,10 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Worksheets are editable</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Basic student management</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -262,10 +306,10 @@ const Pricing = () => {
               <Button 
                 className="w-full h-10" 
                 asChild
-                disabled={currentPlan.type === 'free'}
+                disabled={isButtonDisabled('free')}
               >
                 <Link to="/signup">
-                  {currentPlan.type === 'free' ? 'Current Plan' : 'Get Started Free'}
+                  {getButtonText('free')}
                 </Link>
               </Button>
             </CardContent>
@@ -275,8 +319,8 @@ const Pricing = () => {
           <Card className={`relative ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'side-gig' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
-                  RECOMMENDED FOR YOU
+                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold">
+                  RECOMMENDED
                 </Badge>
               </div>
             )}
@@ -290,18 +334,19 @@ const Pricing = () => {
                 Perfect for part-time English teachers
               </CardDescription>
               <div className="mt-4">
-                <span className="text-4xl font-bold">
-                  ${currentPlan.type !== 'free' && canUpgradeToSideGig ? sideGigUpgradePrice : 9}
-                </span>
+                <span className="text-4xl font-bold">$9</span>
                 <span className="text-lg text-muted-foreground">/month</span>
               </div>
               <div className="mt-2">
                 <Badge variant="secondary">15 worksheets / month</Badge>
                 {currentPlan.type !== 'free' && canUpgradeToSideGig && (
                   <Badge variant="outline" className="mt-1">
-                    Upgrade price (${9 - currentPlan.price} difference)
+                    Upgrade now for ${sideGigUpgradePrice}
                   </Badge>
                 )}
+              </div>
+              <div className="mt-1">
+                <p className="text-xs text-muted-foreground">$0.60 per worksheet</p>
               </div>
             </CardHeader>
             
@@ -321,6 +366,10 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Worksheets are editable</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Student management</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -336,11 +385,9 @@ const Pricing = () => {
               <Button 
                 className="w-full h-10" 
                 onClick={() => handleSubscribe('side-gig')}
-                disabled={isLoading === 'side-gig' || !canUpgradeToSideGig}
+                disabled={isLoading === 'side-gig' || isButtonDisabled('side-gig')}
               >
-                {isLoading === 'side-gig' ? 'Processing...' : 
-                 !canUpgradeToSideGig ? 'Current Plan' : 
-                 currentPlan.type === 'free' ? 'Choose Side-Gig' : 'Upgrade to Side-Gig'}
+                {isLoading === 'side-gig' ? 'Processing...' : getButtonText('side-gig')}
               </Button>
             </CardContent>
           </Card>
@@ -349,8 +396,8 @@ const Pricing = () => {
           <Card className={`relative ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'full-time' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
-                  RECOMMENDED FOR YOU
+                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold">
+                  RECOMMENDED
                 </Badge>
               </div>
             )}
@@ -380,7 +427,7 @@ const Pricing = () => {
                 
                 <div className="text-center">
                   <span className="text-4xl font-bold">
-                    ${currentPlan.type !== 'free' && canUpgradeToFullTime ? fullTimeUpgradePrice : selectedPlan?.price}
+                    ${selectedPlan?.price}
                   </span>
                   <span className="text-lg text-muted-foreground">/month</span>
                 </div>
@@ -388,9 +435,14 @@ const Pricing = () => {
                   <Badge variant="secondary">{selectedFullTimePlan} worksheets / month</Badge>
                   {currentPlan.type !== 'free' && canUpgradeToFullTime && (
                     <Badge variant="outline" className="mt-1">
-                      Upgrade price (${(selectedPlan?.price || 19) - currentPlan.price} difference)
+                      Upgrade now for ${fullTimeUpgradePrice}
                     </Badge>
                   )}
+                </div>
+                <div className="mt-1">
+                  <p className="text-xs text-muted-foreground">
+                    ${(selectedPlan?.price || 19) / parseInt(selectedFullTimePlan) * 1.00} per worksheet
+                  </p>
                 </div>
               </div>
             </CardHeader>
@@ -408,6 +460,10 @@ const Pricing = () => {
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">All worksheet types</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Worksheets are editable</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
@@ -430,11 +486,9 @@ const Pricing = () => {
               <Button 
                 className="w-full h-10 bg-primary hover:bg-primary/90" 
                 onClick={() => handleSubscribe('full-time')}
-                disabled={isLoading === 'full-time' || !canUpgradeToFullTime}
+                disabled={isLoading === 'full-time' || isButtonDisabled('full-time')}
               >
-                {isLoading === 'full-time' ? 'Processing...' : 
-                 !canUpgradeToFullTime ? 'Current Plan' : 
-                 currentPlan.type === 'free' ? 'Choose Full-Time' : 'Upgrade to Full-Time'}
+                {isLoading === 'full-time' ? 'Processing...' : getButtonText('full-time')}
               </Button>
             </CardContent>
           </Card>

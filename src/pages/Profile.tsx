@@ -328,11 +328,23 @@ const Profile = () => {
   const sideGigPlan = plans.find(p => p.id === 'side-gig');
   const canUpgradeToSideGig = sideGigPlan ? canUpgradeTo(sideGigPlan) : false;
   const sideGigUpgradePrice = sideGigPlan ? getUpgradePrice(sideGigPlan) : 0;
+  const isSideGigLowerPlan = currentPlan.type === 'full-time' && sideGigPlan;
 
   // Get full-time plan from plans array
   const fullTimePlan = plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
   const canUpgradeToFullTime = fullTimePlan ? canUpgradeTo(fullTimePlan) : false;
   const fullTimeUpgradePrice = fullTimePlan ? getUpgradePrice(fullTimePlan) : 0;
+
+  const getSideGigButtonText = () => {
+    if (isSideGigLowerPlan) return 'Lower Plan';
+    if (!canUpgradeToSideGig) return 'Current Plan';
+    return currentPlan.type === 'free' ? 'Upgrade to Side-Gig' : 'Upgrade to Side-Gig';
+  };
+
+  const getFullTimeButtonText = () => {
+    if (!canUpgradeToFullTime) return 'Current Plan';
+    return currentPlan.type === 'free' ? 'Upgrade to Full-Time' : 'Upgrade to Full-Time';
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
@@ -537,13 +549,11 @@ const Profile = () => {
                     </div>
                     <p className="text-xs text-muted-foreground mb-3">15 worksheets/month</p>
                     <div className="mb-3">
-                      <p className="text-2xl font-bold">
-                        ${canUpgradeToSideGig ? sideGigUpgradePrice : 9}
-                      </p>
+                      <p className="text-2xl font-bold">$9</p>
                       <p className="text-xs text-muted-foreground">/month</p>
                       {canUpgradeToSideGig && currentPlan.type !== 'free' && (
                         <p className="text-xs text-muted-foreground">
-                          (Upgrade price)
+                          Upgrade now for ${sideGigUpgradePrice}
                         </p>
                       )}
                     </div>
@@ -551,11 +561,9 @@ const Profile = () => {
                       className="w-full" 
                       size="sm"
                       onClick={() => handleSubscribe('side-gig')}
-                      disabled={isLoading === 'side-gig' || !canUpgradeToSideGig}
+                      disabled={isLoading === 'side-gig' || isSideGigLowerPlan || !canUpgradeToSideGig}
                     >
-                      {isLoading === 'side-gig' ? 'Processing...' : 
-                       !canUpgradeToSideGig ? 'Current Plan' : 
-                       currentPlan.type === 'free' ? 'Upgrade to Side-Gig' : 'Upgrade to Side-Gig'}
+                      {isLoading === 'side-gig' ? 'Processing...' : getSideGigButtonText()}
                     </Button>
                   </div>
 
@@ -585,12 +593,12 @@ const Profile = () => {
                     
                     <div className="mb-3">
                       <p className="text-2xl font-bold">
-                        ${canUpgradeToFullTime ? fullTimeUpgradePrice : selectedPlan?.price}
+                        ${selectedPlan?.price}
                       </p>
                       <p className="text-xs text-muted-foreground">/month</p>
                       {canUpgradeToFullTime && currentPlan.type !== 'free' && (
                         <p className="text-xs text-muted-foreground">
-                          (Upgrade price)
+                          Upgrade now for ${fullTimeUpgradePrice}
                         </p>
                       )}
                     </div>
@@ -601,9 +609,7 @@ const Profile = () => {
                       onClick={() => handleSubscribe('full-time')}
                       disabled={isLoading === 'full-time' || !canUpgradeToFullTime}
                     >
-                      {isLoading === 'full-time' ? 'Processing...' : 
-                       !canUpgradeToFullTime ? 'Current Plan' : 
-                       currentPlan.type === 'free' ? 'Upgrade to Full-Time' : 'Upgrade to Full-Time'}
+                      {isLoading === 'full-time' ? 'Processing...' : getFullTimeButtonText()}
                     </Button>
                   </div>
                 </div>
