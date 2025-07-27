@@ -11,6 +11,9 @@ interface WorksheetHistoryItem {
   html_content: string;
   student_id?: string;
   generation_time_seconds?: number;
+  student_name?: string;
+  topic?: string;
+  learning_goal?: string;
 }
 
 export const useWorksheetHistory = (studentId?: string) => {
@@ -28,7 +31,17 @@ export const useWorksheetHistory = (studentId?: string) => {
 
       let query = supabase
         .from('worksheets')
-        .select('id, title, created_at, form_data, ai_response, html_content, student_id, generation_time_seconds')
+        .select(`
+          id, 
+          title, 
+          created_at, 
+          form_data, 
+          ai_response, 
+          html_content, 
+          student_id, 
+          generation_time_seconds,
+          students(name)
+        `)
         .eq('teacher_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -39,7 +52,15 @@ export const useWorksheetHistory = (studentId?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setWorksheets(data || []);
+      
+      const processedData = (data || []).map(worksheet => ({
+        ...worksheet,
+        student_name: worksheet.students?.name || null,
+        topic: worksheet.form_data?.lesson_topic || null,
+        learning_goal: worksheet.form_data?.lesson_goal || null
+      }));
+
+      setWorksheets(processedData);
     } catch (error: any) {
       console.error('Error fetching worksheets:', error);
     } finally {

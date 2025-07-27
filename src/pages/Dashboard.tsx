@@ -209,7 +209,7 @@ const Dashboard = () => {
                 Manage your students and generate worksheets for them
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2">
               {students.length === 0 ? (
                 <div className="text-center py-6">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -217,7 +217,7 @@ const Dashboard = () => {
                   <AddStudentButton onStudentAdded={refetchStudents} />
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {sortedStudents.map((student) => (
                     <StudentCard 
                       key={student.id} 
@@ -273,7 +273,7 @@ const Dashboard = () => {
                             <h3 className="font-medium truncate">{worksheet.title || 'Worksheet'}</h3>
                             {worksheet.student_name && (
                               <button
-                                onClick={() => handleStudentClick(worksheet.student_id)}
+                                onClick={() => handleStudentClick(worksheet.student_id!)}
                                 className="text-sm text-primary hover:underline flex-shrink-0"
                               >
                                 {worksheet.student_name}
