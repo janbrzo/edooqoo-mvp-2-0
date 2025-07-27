@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,7 +29,29 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
       return currentPlan === 'Side-Gig' || currentPlan.includes('Full-Time');
     }
     
+    if (planType === 'Side-Gig') {
+      return currentPlan.includes('Full-Time');
+    }
+    
     return false;
+  };
+
+  const getPlanButtonText = (planType: string) => {
+    if (isCurrentPlanLower(planType)) {
+      return 'Lower Plan';
+    }
+    
+    const currentPlan = profile?.subscription_type || 'Free Demo';
+    
+    if (planType === 'Free Demo') {
+      return currentPlan === 'Free Demo' ? 'Current Plan' : 'Get Started Free';
+    }
+    
+    if (planType === 'Side-Gig') {
+      return currentPlan === 'Side-Gig' ? 'Current Plan' : 'Upgrade to Side-Gig';
+    }
+    
+    return 'Upgrade Plan';
   };
 
   useEffect(() => {

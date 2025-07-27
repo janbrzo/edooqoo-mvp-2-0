@@ -114,6 +114,17 @@ export const useStudents = () => {
 
   useEffect(() => {
     fetchStudents();
+    
+    // Listen for student updates from worksheet generation
+    const handleStudentUpdate = () => {
+      fetchStudents();
+    };
+    
+    window.addEventListener('studentUpdated', handleStudentUpdate);
+    
+    return () => {
+      window.removeEventListener('studentUpdated', handleStudentUpdate);
+    };
   }, []);
 
   return {

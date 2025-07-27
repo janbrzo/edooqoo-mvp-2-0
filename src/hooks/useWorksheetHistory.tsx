@@ -59,6 +59,9 @@ export const useWorksheetHistory = (studentId?: string) => {
         .eq('id', studentId);
 
       if (error) throw error;
+      
+      // Emit a custom event to notify other components about the student update
+      window.dispatchEvent(new CustomEvent('studentUpdated', { detail: { studentId } }));
     } catch (error: any) {
       console.error('Error updating student activity:', error);
     }
