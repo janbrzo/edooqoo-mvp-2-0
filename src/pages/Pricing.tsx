@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -174,6 +173,8 @@ const Pricing = () => {
 
   const getButtonText = (planType: 'free' | 'side-gig' | 'full-time') => {
     if (planType === 'free') {
+      // For unauthenticated users, always show "Get Started Free"
+      if (!isRegisteredUser) return 'Get Started Free';
       return currentPlan.type === 'free' ? 'Current Plan' : 'Get Started Free';
     }
     
@@ -193,6 +194,8 @@ const Pricing = () => {
 
   const isButtonDisabled = (planType: 'free' | 'side-gig' | 'full-time') => {
     if (planType === 'free') {
+      // For unauthenticated users, never disable the free plan button
+      if (!isRegisteredUser) return false;
       return currentPlan.type === 'free';
     }
     
@@ -287,15 +290,11 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Worksheets are editable</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Basic student management</span>
+                  <span className="text-sm">Student management</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
@@ -366,10 +365,6 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Worksheets are editable</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -379,10 +374,6 @@ const Pricing = () => {
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Export to HTML & PDF</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Email support</span>
                 </div>
               </div>
               
@@ -463,27 +454,15 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All worksheet types</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Worksheets are editable</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Unlimited student management</span>
+                  <span className="text-sm">Student management</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Export to HTML & PDF</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Priority email support</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Advanced analytics</span>
                 </div>
               </div>
               

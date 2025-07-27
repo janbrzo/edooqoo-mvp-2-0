@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,7 +17,7 @@ const Profile = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
   const { profile, loading: profileLoading, refetch } = useProfile();
   const { tokenLeft } = useTokenSystem(user?.id);
-  const { currentPlan, plans, canUpgradeTo, getUpgradePrice, getUpgradeTokens, getRecommendedFullTimePlan } = usePlanLogic(profile?.subscription_type);
+  const { currentPlan, plans, canUpgradeTo, getUpgradePrice, getUpgradeTokens } = usePlanLogic(profile?.subscription_type);
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
@@ -29,11 +28,6 @@ const Profile = () => {
       navigate('/');
     }
   }, [loading, isRegisteredUser, navigate]);
-
-  // Update recommended plan when profile changes
-  useEffect(() => {
-    setSelectedFullTimePlan(getRecommendedFullTimePlan());
-  }, [getRecommendedFullTimePlan]);
 
   // Auto-refresh profile when returning from payment (e.g., URL contains success params)
   useEffect(() => {
