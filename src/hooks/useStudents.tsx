@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
@@ -22,6 +23,7 @@ export const useStudents = () => {
         .from('students')
         .select('*')
         .eq('teacher_id', user.id)
+        .order('updated_at', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -122,12 +124,29 @@ export const useStudents = () => {
     }
   };
 
+  const updateStudentActivity = async (studentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('students')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', studentId);
+
+      if (error) throw error;
+      
+      // Refresh students list to reflect new order
+      fetchStudents();
+    } catch (error: any) {
+      console.error('Error updating student activity:', error);
+    }
+  };
+
   return {
     students,
     loading,
     addStudent,
     updateStudent,
     deleteStudent,
+    updateStudentActivity,
     refetch: fetchStudents
   };
 };

@@ -11,6 +11,7 @@ import { useWorksheetHistory } from "@/hooks/useWorksheetHistory";
 import { AddStudentButton } from "@/components/dashboard/AddStudentButton";
 import { StudentCard } from "@/components/dashboard/StudentCard";
 import { useProfile } from "@/hooks/useProfile";
+import { format } from "date-fns";
 import { 
   User, 
   GraduationCap, 
@@ -84,6 +85,24 @@ const Dashboard = () => {
   const handleWorksheetOpen = (worksheet: any) => {
     sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheet));
     navigate('/');
+  };
+
+  const formatWorksheetTitle = (worksheet: any) => {
+    if (worksheet.title) return worksheet.title;
+    const formData = worksheet.form_data;
+    if (formData?.lessonTopic) return formData.lessonTopic;
+    return 'Untitled Worksheet';
+  };
+
+  const formatWorksheetDescription = (worksheet: any) => {
+    const formData = worksheet.form_data;
+    if (!formData) return '';
+    
+    const parts = [];
+    if (formData.lessonTopic) parts.push(`Topic: ${formData.lessonTopic}`);
+    if (formData.lessonGoal) parts.push(`Goal: ${formData.lessonGoal}`);
+    
+    return parts.join(' • ');
   };
 
   return (
@@ -246,24 +265,35 @@ const Dashboard = () => {
               ) : (
                 <div className="space-y-4">
                   {worksheets.slice(0, 5).map((worksheet) => (
-                    <div key={worksheet.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <BookOpen className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{worksheet.title || 'Worksheet'}</p>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {new Date(worksheet.created_at).toLocaleDateString()}
-                          </p>
+                    <div key={worksheet.id} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-sm truncate">
+                            {formatWorksheetTitle(worksheet)}
+                          </h3>
+                          {formatWorksheetDescription(worksheet) && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {formatWorksheetDescription(worksheet)}
+                            </p>
+                          )}
                         </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleWorksheetOpen(worksheet)}
+                        >
+                          Open
+                        </Button>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleWorksheetOpen(worksheet)}
-                      >
-                        Open
-                      </Button>
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        <span>
+                          {format(new Date(worksheet.created_at), 'MMM dd, yyyy')}
+                        </span>
+                        <span className="ml-2">
+                          {format(new Date(worksheet.created_at), 'HH:mm')}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -51,10 +51,24 @@ export const useWorksheetHistory = (studentId?: string) => {
     return worksheets.slice(0, limit);
   };
 
+  const updateStudentActivity = async (studentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('students')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', studentId);
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Error updating student activity:', error);
+    }
+  };
+
   return {
     worksheets,
     loading,
     getRecentWorksheets,
+    updateStudentActivity,
     refetch: fetchWorksheets
   };
 };
