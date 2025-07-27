@@ -7,7 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Calculator, DollarSign, Clock, Users, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-export const PricingCalculator = () => {
+interface PricingCalculatorProps {
+  onRecommendation?: (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => void;
+}
+
+export const PricingCalculator = ({ onRecommendation }: PricingCalculatorProps) => {
   const [prepTime, setPrepTime] = useState(30);
   const [lessonPrice, setLessonPrice] = useState(25);
   const [lessonsPerWeek, setLessonsPerWeek] = useState(10);
@@ -18,6 +22,15 @@ export const PricingCalculator = () => {
   
   const timesSaved = monthlyPrepTime * 0.8; // 80% time reduction
   const moneySaved = monthlyPrepCost * 0.8;
+
+  // Calculate recommended plan based on lessons per week
+  React.useEffect(() => {
+    if (onRecommendation) {
+      const worksheetsNeeded = Math.ceil(lessonsPerWeek * 1.2); // 20% buffer
+      const recommendedPlan = worksheetsNeeded <= 15 ? 'side-gig' : 'full-time';
+      onRecommendation(recommendedPlan, worksheetsNeeded);
+    }
+  }, [lessonsPerWeek, onRecommendation]);
 
   return (
     <div className="bg-gradient-to-br from-background to-secondary/20 py-16">
