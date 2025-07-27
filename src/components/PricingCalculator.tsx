@@ -7,12 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Calculator, TrendingUp, Clock, Plus, Minus, Info } from 'lucide-react';
+import { useProfile } from '@/hooks/useProfile';
 
 interface PricingCalculatorProps {
   onRecommendation: (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => void;
 }
 
 export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommendation }) => {
+  const { profile } = useProfile();
   const [prepTime, setPrepTime] = useState(25);
   const [lessonPrice, setLessonPrice] = useState(25);
   const [lessonsPerWeek, setLessonsPerWeek] = useState(7);
@@ -20,6 +22,16 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
   const [timeSavings, setTimeSavings] = useState(0);
   const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
+
+  const isCurrentPlanLower = (planType: string) => {
+    const currentPlan = profile?.subscription_type || 'Free Demo';
+    
+    if (planType === 'Free Demo') {
+      return currentPlan === 'Side-Gig' || currentPlan.includes('Full-Time');
+    }
+    
+    return false;
+  };
 
   useEffect(() => {
     // Calculate monthly prep time and cost
@@ -59,7 +71,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
     setRecommendedWorksheets(recommendedWorksheetCount);
     
     onRecommendation(planType, recommendedWorksheetCount);
-  }, [prepTime, lessonPrice, lessonsPerWeek, onRecommendation]);
+  }, [prepTime, lessonPrice, lessonsPerWeek, onRecommendation, profile]);
 
   const handleIncrement = (field: 'prepTime' | 'lessonPrice' | 'lessonsPerWeek') => {
     switch (field) {
