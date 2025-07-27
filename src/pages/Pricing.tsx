@@ -14,7 +14,7 @@ import { PricingCalculator } from '@/components/PricingCalculator';
 
 const Pricing = () => {
   const { userId } = useAnonymousAuth();
-  const { tokenBalance } = useTokenSystem(userId);
+  const { tokenLeft } = useTokenSystem(userId);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
@@ -144,7 +144,7 @@ const Pricing = () => {
           {userId && (
             <div className="flex items-center gap-4">
               <Badge variant="outline" className="text-sm px-3 py-1">
-                Balance: {tokenBalance} tokens
+                Balance: {tokenLeft} tokens
               </Badge>
               <Button variant="outline" size="sm" onClick={handleManageSubscription}>
                 Manage Subscription
