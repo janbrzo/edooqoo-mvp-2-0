@@ -1,112 +1,104 @@
-
-import React from "react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { User, GraduationCap } from "lucide-react";
-import WorksheetDisplay from "@/components/WorksheetDisplay";
-import { submitFeedback } from "@/services/worksheetService";
-import { useToast } from "@/hooks/use-toast";
-import { useStudents } from "@/hooks/useStudents";
-import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { FormData } from '@/components/WorksheetForm';
+import { InputParamsCard } from './InputParamsCard';
+import { WorksheetDisplay } from '@/components/WorksheetDisplay';
 
 interface GenerationViewProps {
-  worksheetId: string | null;
-  generatedWorksheet: any;
-  editableWorksheet: any;
-  setEditableWorksheet: (worksheet: any) => void;
-  inputParams: any;
+  inputParams: FormData;
+  isGenerating: boolean;
   generationTime: number;
   sourceCount: number;
-  onBack: () => void;
-  userId: string;
+  generatedWorksheet: any;
+  onStartEditing: () => void;
+  onToggleView: () => void;
+  viewMode: "student" | "teacher";
+  onDownload: () => void;
+  onSave: () => void;
+  onReset: () => void;
+  downloadStatus: string;
+  isDownloadUnlocked: boolean;
 }
 
-export default function GenerationView({
-  worksheetId,
-  generatedWorksheet,
-  editableWorksheet,
-  setEditableWorksheet,
+export const GenerationView: React.FC<GenerationViewProps> = ({
   inputParams,
+  isGenerating,
   generationTime,
   sourceCount,
-  onBack,
-  userId
-}: GenerationViewProps) {
-  const { toast } = useToast();
-  const { students } = useStudents();
-  const { userId: authUserId } = useAnonymousAuth();
-  const isLoggedIn = !!authUserId;
-
-  // Find student name if studentId is provided in inputParams
-  const studentName = inputParams?.studentId 
-    ? students.find(s => s.id === inputParams.studentId)?.name 
-    : undefined;
-
-  const handleFeedbackSubmit = async (rating: number, feedback: string) => {
-    if (!worksheetId) {
-      toast({
-        title: "Error",
-        description: "Cannot submit feedback - worksheet ID missing",
-        variant: "destructive"
-      });
-      return;
+  generatedWorksheet,
+  onStartEditing,
+  onToggleView,
+  viewMode,
+  onDownload,
+  onSave,
+  onReset,
+  downloadStatus,
+  isDownloadUnlocked
+}) => {
+  const getDownloadStatusMessage = () => {
+    switch (downloadStatus) {
+      case 'generating':
+        return 'Generating download link...';
+      case 'ready':
+        return 'Download ready!';
+      case 'failed':
+        return 'Download failed. Please try again.';
+      default:
+        return 'Download Worksheet';
     }
+  };
 
-    try {
-      await submitFeedback(worksheetId, rating, feedback, userId);
-      toast({
-        title: "Thank you!",
-        description: "Your feedback has been submitted successfully.",
-        className: "bg-green-50 border-green-200"
-      });
-    } catch (error) {
-      console.error('Error submitting feedback:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit feedback. Please try again.",
-        variant: "destructive"
-      });
+  const getDownloadIcon = () => {
+    if (downloadStatus === 'generating') {
+      return <Clock className="h-4 w-4 animate-spin mr-2" />;
+    } else if (downloadStatus === 'ready') {
+      return <CheckCircle className="h-4 w-4 text-green-500 mr-2" />;
+    } else if (downloadStatus === 'failed') {
+      return <AlertCircle className="h-4 w-4 text-red-500 mr-2" />;
+    } else {
+      return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header with navigation buttons */}
-      <div className="absolute top-4 right-4 z-20 flex gap-2">
-        {!isLoggedIn ? (
-          <Button asChild variant="outline">
-            <Link to="/auth">Sign In for Free</Link>
-          </Button>
-        ) : (
-          <>
-            <Button asChild variant="outline" size="icon">
-              <Link to="/profile">
-                <User className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link to="/dashboard">
-                <GraduationCap className="h-4 w-4 mr-2" />
-                Dashboard
-              </Link>
-            </Button>
-          </>
-        )}
-      </div>
-
-      <WorksheetDisplay
-        worksheet={generatedWorksheet}
-        editableWorksheet={editableWorksheet}
-        setEditableWorksheet={setEditableWorksheet}
+    <div className="space-y-6">
+      <InputParamsCard
         inputParams={inputParams}
         generationTime={generationTime}
         sourceCount={sourceCount}
-        onBack={onBack}
-        worksheetId={worksheetId}
-        onFeedbackSubmit={handleFeedbackSubmit}
-        userId={userId}
-        studentName={studentName}
       />
+
+      <div className="flex justify-between items-center">
+        <div className="flex gap-2">
+          <Button onClick={onStartEditing} disabled={isGenerating}>
+            Start Editing
+          </Button>
+          <Button variant="outline" onClick={onToggleView}>
+            View as {viewMode === "student" ? "Teacher" : "Student"}
+          </Button>
+        </div>
+
+        <div className="flex gap-2">
+          <Button onClick={onSave} disabled={isGenerating}>
+            Save to Dashboard
+          </Button>
+          <Button
+            onClick={onDownload}
+            disabled={isGenerating || downloadStatus === 'generating'}
+          >
+            {getDownloadIcon()}
+            {getDownloadStatusMessage()}
+          </Button>
+          <Button variant="destructive" onClick={onReset} disabled={isGenerating}>
+            Generate New
+          </Button>
+        </div>
+      </div>
+      
+      {generatedWorksheet && (
+        <WorksheetDisplay viewMode={viewMode} />
+      )}
     </div>
   );
-}
+};
