@@ -160,9 +160,7 @@ const Dashboard = () => {
                     {sortedStudents.map((student) => (
                       <StudentCard 
                         key={student.id} 
-                        student={student} 
-                        onUpdate={refetchStudents}
-                        onDelete={refetchStudents}
+                        student={student}
                       />
                     ))}
                   </div>

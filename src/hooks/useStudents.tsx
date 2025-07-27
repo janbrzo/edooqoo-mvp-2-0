@@ -45,7 +45,7 @@ export const useStudents = () => {
     fetchStudents();
   }, [user?.id]);
 
-  const addStudent = async (studentData: Omit<Student, 'id' | 'teacher_id' | 'created_at' | 'updated_at'>) => {
+  const addStudent = async (studentData: { name: string; english_level: string; main_goal: string }) => {
     if (!user?.id) return;
 
     try {
