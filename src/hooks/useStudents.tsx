@@ -41,6 +41,77 @@ export const useStudents = () => {
     }
   };
 
+  const addStudent = async (name: string, englishLevel: string, mainGoal: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('students')
+        .insert([{
+          name,
+          english_level: englishLevel,
+          main_goal: mainGoal,
+          teacher_id: user.id
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setStudents(prevStudents => [data, ...prevStudents]);
+      
+      toast({
+        title: "Success",
+        description: "Student added successfully",
+      });
+
+      return data;
+    } catch (error: any) {
+      console.error('Error adding student:', error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
+
+  const updateStudent = async (id: string, updates: Partial<Pick<Student, 'name' | 'english_level' | 'main_goal'>>) => {
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setStudents(prevStudents => 
+        prevStudents.map(student => 
+          student.id === id ? { ...student, ...data } : student
+        )
+      );
+
+      toast({
+        title: "Success",
+        description: "Student updated successfully",
+      });
+
+      return data;
+    } catch (error: any) {
+      console.error('Error updating student:', error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
+
   useEffect(() => {
     fetchStudents();
   }, []);
@@ -48,6 +119,8 @@ export const useStudents = () => {
   return {
     students,
     loading,
+    addStudent,
+    updateStudent,
     refetch: fetchStudents
   };
 };
