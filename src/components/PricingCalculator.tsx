@@ -110,7 +110,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
               <div className="space-y-1">
                 <div className="flex items-center gap-1">
                   <Label htmlFor="prep-time" className="text-sm">
-                    Prep time?
+                    Prep time? (minutes)
                   </Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -155,14 +155,14 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
               <div className="space-y-1">
                 <div className="flex items-center gap-1">
                   <Label htmlFor="lesson-price" className="text-sm">
-                    Hourly rate?
+                    Lesson price? ($)
                   </Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>What's your hourly rate for teaching? This helps calculate the cost of your preparation time.</p>
+                      <p>What do you charge per hour for your English lessons?</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
