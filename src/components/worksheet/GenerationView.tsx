@@ -62,10 +62,20 @@ export const GenerationView: React.FC<GenerationViewProps> = ({
     }
   };
 
+  // Transform FormData to match InputParamsCard expected interface
+  const transformedInputParams = {
+    lessonTime: inputParams.lessonTime || '60 minutes',
+    englishLevel: inputParams.englishLevel || 'Intermediate',
+    lessonTopic: inputParams.lessonTopic,
+    lessonGoal: inputParams.lessonGoal,
+    teachingPreferences: inputParams.teachingPreferences,
+    additionalInformation: inputParams.additionalInformation
+  };
+
   return (
     <div className="space-y-6">
       <InputParamsCard
-        inputParams={inputParams}
+        inputParams={transformedInputParams}
       />
 
       <div className="flex justify-between items-center">
