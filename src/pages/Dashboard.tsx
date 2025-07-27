@@ -218,7 +218,7 @@ const Dashboard = () => {
                   <AddStudentButton onStudentAdded={refetchStudents} />
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {students.map((student) => (
                     <StudentCard 
                       key={student.id} 
@@ -263,36 +263,33 @@ const Dashboard = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {worksheets.slice(0, 5).map((worksheet) => (
-                    <div key={worksheet.id} className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm truncate">
+                    <div
+                      key={worksheet.id}
+                      className="flex items-center justify-between p-4 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleWorksheetOpen(worksheet)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <FileText className="h-5 w-5 text-primary" />
+                        <div>
+                          <h3 className="font-medium">
                             {formatWorksheetTitle(worksheet)}
                           </h3>
                           {formatWorksheetDescription(worksheet) && (
-                            <p className="text-xs text-muted-foreground truncate">
+                            <p className="text-sm text-muted-foreground">
                               {formatWorksheetDescription(worksheet)}
                             </p>
                           )}
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleWorksheetOpen(worksheet)}
-                        >
-                          Open
-                        </Button>
                       </div>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        <span>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">
                           {format(new Date(worksheet.created_at), 'MMM dd, yyyy')}
-                        </span>
-                        <span className="ml-2">
+                        </div>
+                        <div className="text-xs text-muted-foreground">
                           {format(new Date(worksheet.created_at), 'HH:mm')}
-                        </span>
+                        </div>
                       </div>
                     </div>
                   ))}
