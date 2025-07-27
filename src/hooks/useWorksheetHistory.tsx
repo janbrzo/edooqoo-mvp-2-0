@@ -53,12 +53,19 @@ export const useWorksheetHistory = (studentId?: string) => {
 
       if (error) throw error;
       
-      const processedData = (data || []).map(worksheet => ({
-        ...worksheet,
-        student_name: worksheet.students?.name || null,
-        topic: worksheet.form_data?.lesson_topic || null,
-        learning_goal: worksheet.form_data?.lesson_goal || null
-      }));
+      const processedData = (data || []).map(worksheet => {
+        // Type guard to check if form_data is an object
+        const formData = worksheet.form_data && typeof worksheet.form_data === 'object' && !Array.isArray(worksheet.form_data) 
+          ? worksheet.form_data as Record<string, any>
+          : {};
+
+        return {
+          ...worksheet,
+          student_name: worksheet.students?.name || null,
+          topic: formData.lessonTopic || formData.lesson_topic || null,
+          learning_goal: formData.lessonGoal || formData.lesson_goal || null
+        };
+      });
 
       setWorksheets(processedData);
     } catch (error: any) {
