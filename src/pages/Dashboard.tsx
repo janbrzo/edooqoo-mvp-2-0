@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,23 +85,6 @@ const Dashboard = () => {
     sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheet));
     navigate('/');
   };
-
-  const handleStudentClick = (studentId: string) => {
-    navigate(`/student/${studentId}`);
-  };
-
-  // Sort students by last activity (either creation or last worksheet generation)
-  const sortedStudents = [...students].sort((a, b) => {
-    const aLastActivity = new Date(Math.max(
-      new Date(a.created_at).getTime(),
-      new Date(a.last_worksheet_generated || a.created_at).getTime()
-    ));
-    const bLastActivity = new Date(Math.max(
-      new Date(b.created_at).getTime(),
-      new Date(b.last_worksheet_generated || b.created_at).getTime()
-    ));
-    return bLastActivity.getTime() - aLastActivity.getTime();
-  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
@@ -209,21 +191,20 @@ const Dashboard = () => {
                 Manage your students and generate worksheets for them
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent>
               {students.length === 0 ? (
-                <div className="text-center py-6">
+                <div className="text-center py-8">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">No students yet</p>
                   <AddStudentButton onStudentAdded={refetchStudents} />
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {sortedStudents.map((student) => (
+                <div className="space-y-4">
+                  {students.map((student) => (
                     <StudentCard 
                       key={student.id} 
                       student={student}
                       onOpenWorksheet={handleWorksheetOpen}
-                      onStudentClick={handleStudentClick}
                     />
                   ))}
                 </div>
@@ -254,7 +235,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               {worksheets.length === 0 ? (
-                <div className="text-center py-6">
+                <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">No worksheets yet</p>
                   <Button onClick={handleGenerateWorksheet}>
@@ -263,29 +244,16 @@ const Dashboard = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {worksheets.slice(0, 5).map((worksheet) => (
-                    <div key={worksheet.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center gap-3 flex-1">
-                        <BookOpen className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-medium truncate">{worksheet.title || 'Worksheet'}</h3>
-                            {worksheet.student_name && (
-                              <button
-                                onClick={() => handleStudentClick(worksheet.student_id!)}
-                                className="text-sm text-primary hover:underline flex-shrink-0"
-                              >
-                                {worksheet.student_name}
-                              </button>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            Topic: {worksheet.topic || 'General'} • Goal: {worksheet.learning_goal || 'Practice'}
-                          </p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <div key={worksheet.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <BookOpen className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{worksheet.title || 'Worksheet'}</p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {new Date(worksheet.created_at).toLocaleDateString()} {new Date(worksheet.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(worksheet.created_at).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -293,7 +261,6 @@ const Dashboard = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleWorksheetOpen(worksheet)}
-                        className="flex-shrink-0"
                       >
                         Open
                       </Button>

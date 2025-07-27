@@ -1,95 +1,135 @@
 
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { User, GraduationCap, Target, Plus, Calendar } from 'lucide-react';
-import { AddStudentButton } from './AddStudentButton';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tables } from '@/integrations/supabase/types';
+import { User, BookOpen, ChevronDown, ChevronRight, FileText, Calendar, ExternalLink } from 'lucide-react';
+import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
+import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
+
+type Student = Tables<'students'>;
 
 interface StudentCardProps {
-  student: {
-    id: string;
-    name: string;
-    english_level: string;
-    main_goal: string;
-    created_at: string;
-    last_worksheet_generated?: string;
-  };
-  onOpenWorksheet: (worksheet: any) => void;
-  onStudentClick?: (studentId: string) => void;
+  student: Student;
+  onViewHistory?: (studentId: string) => void;
+  onOpenWorksheet?: (worksheet: any) => void;
 }
 
-export const StudentCard = ({ student, onOpenWorksheet, onStudentClick }: StudentCardProps) => {
-  const handleGenerateWorksheet = () => {
-    const worksheetData = {
-      student_id: student.id,
-      student_name: student.name,
-      english_level: student.english_level,
-      learning_goal: student.main_goal,
-      topic: '',
-      worksheet_type: 'mixed'
+export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: StudentCardProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { worksheets, loading, getRecentWorksheets } = useWorksheetHistory(student.id);
+  const recentWorksheets = getRecentWorksheets(3);
+
+  const formatGoal = (goal: string) => {
+    const goalMap: Record<string, string> = {
+      'work': 'Work/Business',
+      'exam': 'Exam Preparation',
+      'general': 'General English',
+      'travel': 'Travel',
+      'academic': 'Academic'
     };
-    onOpenWorksheet(worksheetData);
+    return goalMap[goal] || goal;
   };
 
-  const handleStudentClick = () => {
-    if (onStudentClick) {
-      onStudentClick(student.id);
+  const handleWorksheetClick = (worksheet: any, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onOpenWorksheet) {
+      onOpenWorksheet(worksheet);
     }
   };
 
   return (
     <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <button
-                onClick={handleStudentClick}
-                className="font-medium text-primary hover:underline truncate"
-              >
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <Link to={`/student/${student.id}`} className="hover:underline">
+              <CardTitle className="text-lg hover:text-primary transition-colors cursor-pointer">
                 {student.name}
-              </button>
-            </div>
-            
-            <div className="space-y-1 mb-3">
-              <div className="flex items-center gap-2">
-                <GraduationCap className="h-3 w-3 text-muted-foreground" />
-                <Badge variant="secondary" className="text-xs">
-                  {student.english_level}
-                </Badge>
-              </div>
-              
-              <div className="flex items-start gap-2">
-                <Target className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <span className="text-xs text-muted-foreground line-clamp-2">
-                  {student.main_goal}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Calendar className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  {student.last_worksheet_generated 
-                    ? `Last worksheet: ${new Date(student.last_worksheet_generated).toLocaleDateString()}`
-                    : `Added: ${new Date(student.created_at).toLocaleDateString()}`
-                  }
-                </span>
-              </div>
-            </div>
+              </CardTitle>
+            </Link>
           </div>
-          
-          <Button 
-            size="sm" 
-            variant="outline"
-            onClick={handleGenerateWorksheet}
-            className="flex-shrink-0 ml-2"
-          >
-            <Plus className="h-3 w-3 mr-1" />
-            Worksheet
-          </Button>
+          <Badge variant="secondary">{student.english_level}</Badge>
         </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="text-sm text-muted-foreground">
+          <strong>Goal:</strong> {formatGoal(student.main_goal)}
+        </div>
+        
+        {/* Fixed layout with flex to maintain alignment */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+            <BookOpen className="h-4 w-4" />
+            <span>{worksheets.length} worksheets</span>
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/student/${student.id}`}>
+                <ExternalLink className="h-4 w-4 mr-1" />
+                View Profile
+              </Link>
+            </Button>
+            <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" size="sm">
+                  {isOpen ? <ChevronDown className="h-4 w-4 mr-1" /> : <ChevronRight className="h-4 w-4 mr-1" />}
+                  Recent
+                </Button>
+              </CollapsibleTrigger>
+            </Collapsible>
+          </div>
+        </div>
+        
+        {/* Collapsible content */}
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          <CollapsibleContent>
+            {loading ? (
+              <div className="text-center py-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto"></div>
+              </div>
+            ) : recentWorksheets.length > 0 ? (
+              <div className="space-y-2 mt-3">
+                {recentWorksheets.map((worksheet) => (
+                  <div
+                    key={worksheet.id}
+                    className="flex items-center justify-between p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors"
+                    onClick={(e) => handleWorksheetClick(worksheet, e)}
+                  >
+                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                      <FileText className="h-3 w-3 flex-shrink-0" />
+                      <span className="text-xs font-medium truncate">
+                        {worksheet.title || 'Untitled Worksheet'}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-1 text-xs text-muted-foreground flex-shrink-0 ml-2">
+                      <Calendar className="h-3 w-3" />
+                      <span>{format(new Date(worksheet.created_at), 'MMM dd')}</span>
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="w-full text-xs mt-2"
+                  asChild
+                >
+                  <Link to={`/student/${student.id}`}>
+                    View All ({worksheets.length} total)
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-2 mt-3">
+                No worksheets generated yet
+              </p>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );

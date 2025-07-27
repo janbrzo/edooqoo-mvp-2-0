@@ -11,9 +11,6 @@ interface WorksheetHistoryItem {
   html_content: string;
   student_id?: string;
   generation_time_seconds?: number;
-  student_name?: string;
-  topic?: string;
-  learning_goal?: string;
 }
 
 export const useWorksheetHistory = (studentId?: string) => {
@@ -31,17 +28,7 @@ export const useWorksheetHistory = (studentId?: string) => {
 
       let query = supabase
         .from('worksheets')
-        .select(`
-          id, 
-          title, 
-          created_at, 
-          form_data, 
-          ai_response, 
-          html_content, 
-          student_id, 
-          generation_time_seconds,
-          students(name)
-        `)
+        .select('id, title, created_at, form_data, ai_response, html_content, student_id, generation_time_seconds')
         .eq('teacher_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -52,22 +39,7 @@ export const useWorksheetHistory = (studentId?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      
-      const processedData = (data || []).map(worksheet => {
-        // Type guard to check if form_data is an object
-        const formData = worksheet.form_data && typeof worksheet.form_data === 'object' && !Array.isArray(worksheet.form_data) 
-          ? worksheet.form_data as Record<string, any>
-          : {};
-
-        return {
-          ...worksheet,
-          student_name: worksheet.students?.name || null,
-          topic: formData.lessonTopic || formData.lesson_topic || null,
-          learning_goal: formData.lessonGoal || formData.lesson_goal || null
-        };
-      });
-
-      setWorksheets(processedData);
+      setWorksheets(data || []);
     } catch (error: any) {
       console.error('Error fetching worksheets:', error);
     } finally {
