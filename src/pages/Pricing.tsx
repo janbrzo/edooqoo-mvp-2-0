@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Check, User, GraduationCap, Zap, Users, CheckCircle } from 'lucide-react';
+import { Check, User, GraduationCap, Zap, Users } from 'lucide-react';
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,20 +19,9 @@ const Pricing = () => {
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
-  const [recommendedPlan, setRecommendedPlan] = useState<'demo' | 'side-gig' | 'full-time'>('side-gig');
+  const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
   const [hasManuallyChanged, setHasManuallyChanged] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Check if user is authenticated (not anonymous)
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      // User is properly authenticated if they exist and are not anonymous
-      setIsAuthenticated(!!user && !user.is_anonymous);
-    };
-    checkAuth();
-  }, []);
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -44,8 +33,7 @@ const Pricing = () => {
   const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
 
   const handleRecommendation = (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => {
-    const finalPlan = worksheetsNeeded <= 2 ? 'demo' : plan;
-    setRecommendedPlan(finalPlan);
+    setRecommendedPlan(plan);
     setRecommendedWorksheets(worksheetsNeeded);
     
     // Only auto-select if user hasn't manually changed the plan
@@ -62,12 +50,60 @@ const Pricing = () => {
     setHasManuallyChanged(true);
   };
 
-  // Navigate to auth with selected plan
-  const handlePlanSelection = (planType: 'demo' | 'side-gig' | 'full-time') => {
-    navigate(`/auth?plan=${planType}`);
+  const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
+    if (!userId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to subscribe to a plan.",
+        variant: "destructive"
+      });
+      navigate('/auth');
+      return;
+    }
+
+    setIsLoading(planType);
+    try {
+      const planData = planType === 'side-gig' 
+        ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
+        : { name: `Full-Time Plan (${selectedFullTimePlan} worksheets)`, price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
+
+      const { data, error } = await supabase.functions.invoke('create-subscription', {
+        body: {
+          planType: planType,
+          monthlyLimit: planData.tokens,
+          price: planData.price,
+          planName: planData.name
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      console.error('Subscription error:', error);
+      toast({
+        title: "Subscription Error",
+        description: error.message || "Failed to create subscription. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(null);
+    }
   };
 
   const handleManageSubscription = async () => {
+    if (!userId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to manage subscription.",
+        variant: "destructive"
+      });
+      navigate('/auth');
+      return;
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
       if (error) throw error;
@@ -85,20 +121,6 @@ const Pricing = () => {
     }
   };
 
-  // Calculate per-worksheet price
-  const getPerWorksheetPrice = (planType: 'demo' | 'side-gig' | 'full-time', tokens?: string) => {
-    if (planType === 'demo') return '$1.00';
-    if (planType === 'side-gig') return '$0.60';
-    if (planType === 'full-time' && tokens) {
-      const plan = fullTimePlans.find(p => p.tokens === tokens);
-      if (plan) {
-        const pricePerWorksheet = plan.price / parseInt(plan.tokens);
-        return `$${pricePerWorksheet.toFixed(2)}`;
-      }
-    }
-    return '$0.63'; // Default for full-time
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <div className="max-w-6xl mx-auto">
@@ -106,45 +128,26 @@ const Pricing = () => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex gap-3">
             <Button asChild variant="outline">
-              <Link to="/" className="flex items-center gap-2">
+              <Link to="/dashboard" className="flex items-center gap-2">
                 <GraduationCap className="h-4 w-4" />
-                Generator
+                Dashboard
               </Link>
             </Button>
-            {isAuthenticated && (
-              <>
-                <Button asChild variant="outline">
-                  <Link to="/dashboard" className="flex items-center gap-2">
-                    <GraduationCap className="h-4 w-4" />
-                    Dashboard
-                  </Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link to="/profile" className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Profile
-                  </Link>
-                </Button>
-              </>
-            )}
+            <Button asChild variant="outline">
+              <Link to="/profile" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Profile
+              </Link>
+            </Button>
           </div>
           
-          {isAuthenticated ? (
+          {userId && (
             <div className="flex items-center gap-4">
               <Badge variant="outline" className="text-sm px-3 py-1">
                 Balance: {tokenBalance} tokens
               </Badge>
               <Button variant="outline" size="sm" onClick={handleManageSubscription}>
                 Manage Subscription
-              </Button>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <Button asChild variant="outline">
-                <Link to="/login">Log in</Link>
-              </Button>
-              <Button asChild>
-                <Link to="/signup">Get Started</Link>
               </Button>
             </div>
           )}
@@ -154,65 +157,14 @@ const Pricing = () => {
         <PricingCalculator onRecommendation={handleRecommendation} />
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          
-          {/* Free Demo Plan */}
-          <Card className={`relative ${recommendedPlan === 'demo' ? 'border-primary shadow-lg' : ''}`}>
-            {recommendedPlan === 'demo' && (
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold whitespace-nowrap">
-                  RECOMMENDED
-                </Badge>
-              </div>
-            )}
-            
-            <CardHeader className="text-center pb-6">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <CardTitle className="text-xl">Free Demo</CardTitle>
-              </div>
-              <CardDescription className="text-base">
-                Try it out with limited features
-              </CardDescription>
-              <div className="mt-4">
-                <span className="text-4xl font-bold">Free</span>
-              </div>
-              <div className="mt-2 space-y-1">
-                <Badge variant="secondary">2 worksheets to try</Badge>
-                <div className="text-sm text-muted-foreground">
-                  {getPerWorksheetPrice('demo')}/worksheet
-                </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">2 worksheet credits</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Demo features</span>
-                </div>
-              </div>
-              
-              <Button 
-                className="w-full h-10" 
-                onClick={() => handlePlanSelection('demo')}
-                disabled={isLoading === 'demo'}
-              >
-                {isLoading === 'demo' ? 'Processing...' : 'Start Free Demo'}
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           
           {/* Side-Gig Plan */}
           <Card className={`relative ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'side-gig' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold whitespace-nowrap">
-                  RECOMMENDED
+                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
+                  RECOMMENDED FOR YOU
                 </Badge>
               </div>
             )}
@@ -229,11 +181,8 @@ const Pricing = () => {
                 <span className="text-4xl font-bold">$9</span>
                 <span className="text-lg text-muted-foreground">/month</span>
               </div>
-              <div className="mt-2 space-y-1">
+              <div className="mt-2">
                 <Badge variant="secondary">15 worksheets / month</Badge>
-                <div className="text-sm text-muted-foreground">
-                  {getPerWorksheetPrice('side-gig')}/worksheet
-                </div>
               </div>
             </CardHeader>
             
@@ -245,17 +194,25 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">All worksheet types</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Student management</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Export to HTML & PDF</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Email support</span>
+                </div>
               </div>
               
               <Button 
                 className="w-full h-10" 
-                onClick={() => handlePlanSelection('side-gig')}
+                onClick={() => handleSubscribe('side-gig')}
                 disabled={isLoading === 'side-gig'}
               >
                 {isLoading === 'side-gig' ? 'Processing...' : 'Choose Side-Gig'}
@@ -267,8 +224,8 @@ const Pricing = () => {
           <Card className={`relative ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'full-time' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-2 py-1 text-xs font-semibold whitespace-nowrap">
-                  RECOMMENDED
+                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
+                  RECOMMENDED FOR YOU
                 </Badge>
               </div>
             )}
@@ -301,11 +258,8 @@ const Pricing = () => {
                   <span className="text-4xl font-bold">${selectedPlan?.price}</span>
                   <span className="text-lg text-muted-foreground">/month</span>
                 </div>
-                <div className="space-y-1">
+                <div>
                   <Badge variant="secondary">{selectedFullTimePlan} worksheets / month</Badge>
-                  <div className="text-sm text-muted-foreground">
-                    {getPerWorksheetPrice('full-time', selectedFullTimePlan)}/worksheet
-                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -318,17 +272,29 @@ const Pricing = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Student management</span>
+                  <span className="text-sm">All worksheet types</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Unlimited student management</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Export to HTML & PDF</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Priority email support</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Advanced analytics</span>
+                </div>
               </div>
               
               <Button 
                 className="w-full h-10 bg-primary hover:bg-primary/90" 
-                onClick={() => handlePlanSelection('full-time')}
+                onClick={() => handleSubscribe('full-time')}
                 disabled={isLoading === 'full-time'}
               >
                 {isLoading === 'full-time' ? 'Processing...' : 'Choose Full-Time'}
