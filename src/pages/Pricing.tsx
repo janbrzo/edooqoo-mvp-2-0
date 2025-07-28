@@ -6,9 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Check, User, GraduationCap, Zap, Users, Gift, ChevronDown, ChevronUp, Mail, Tag } from 'lucide-react';
+import { Check, User, GraduationCap, Zap, Users, Gift, ChevronDown, ChevronUp, Mail } from 'lucide-react';
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
 import { usePlanLogic } from '@/hooks/usePlanLogic';
@@ -29,8 +27,6 @@ const Pricing = () => {
   const [hasManuallyChanged, setHasManuallyChanged] = useState(false);
   const [openFaqItems, setOpenFaqItems] = useState<number[]>([]);
   const [showEmailConfirmationModal, setShowEmailConfirmationModal] = useState(false);
-  const [couponCode, setCouponCode] = useState('');
-  const [showCouponField, setShowCouponField] = useState(false);
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -144,7 +140,6 @@ const Pricing = () => {
           monthlyLimit: planData.tokens,
           price: upgradePrice, // Use upgrade price instead of full price
           planName: planData.name,
-          couponCode: couponCode.trim() || undefined, // Pass coupon code if provided
           upgradeTokens: upgradeTokens, // Pass upgrade tokens
           isUpgrade: currentPlan.type !== 'free'
         }
@@ -190,7 +185,7 @@ const Pricing = () => {
     if (planType === 'free') {
       // For unauthenticated users, always show "Get Started Free"
       if (!isRegisteredUser) return 'Get Started Free';
-      return currentPlan.type === 'free' ? 'Current Plan' : 'Lower Plan';
+      return currentPlan.type === 'free' ? 'Current Plan' : 'Get Started Free';
     }
     
     if (planType === 'side-gig') {
@@ -278,38 +273,6 @@ const Pricing = () => {
 
         {/* Pricing Calculator */}
         <PricingCalculator onRecommendation={handleRecommendation} />
-
-        {/* Coupon Code Section - Available for everyone who wants to subscribe */}
-        <div className="max-w-md mx-auto mb-6">
-          <div className="text-center mb-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowCouponField(!showCouponField)}
-              className="text-sm"
-            >
-              <Tag className="h-4 w-4 mr-2" />
-              {showCouponField ? 'Hide' : 'Have a'} Coupon Code?
-            </Button>
-          </div>
-          {showCouponField && (
-            <div className="space-y-2">
-              <Label htmlFor="couponCode" className="text-sm font-medium">
-                Coupon Code
-              </Label>
-              <Input
-                id="couponCode"
-                type="text"
-                placeholder="Enter your coupon code"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value)}
-                className="text-center"
-              />
-              <p className="text-xs text-muted-foreground text-center">
-                Enter your coupon code to get a discount on your subscription
-              </p>
-            </div>
-          )}
-        </div>
 
         {/* Pricing Cards */}
         <div className="grid lg:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">

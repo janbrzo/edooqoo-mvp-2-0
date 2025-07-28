@@ -8,129 +8,158 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[CREATE-SUBSCRIPTION] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { planType, monthlyLimit, price, planName, couponCode, upgradeTokens, isUpgrade } = await req.json()
+    logStep('Function started');
 
-    // Initialize Stripe
-    const stripe = new Stripe(Deno.env.get('Stripe_Secret_Key') || '', {
-      apiVersion: '2023-10-16'
-    })
-
-    // Get user from auth header
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('No authorization header')
-    }
-
-    const supabase = createClient(
+    // Initialize Supabase with anon key for user auth
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    )
+    );
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      throw new Error('Invalid user')
+    // Get authenticated user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      logStep('No authorization header');
+      throw new Error('No authorization header');
     }
 
-    // Check if customer exists
-    const customers = await stripe.customers.list({
-      email: user.email!,
-      limit: 1,
-    })
+    const token = authHeader.replace('Bearer ', '');
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    if (userError) {
+      logStep('User error', userError);
+      throw userError;
+    }
 
-    let customer
+    const user = userData.user;
+    if (!user?.email) {
+      logStep('User not authenticated');
+      throw new Error('User not authenticated');
+    }
+
+    logStep('User authenticated', { email: user.email });
+
+    // Parse request body
+    const body = await req.json();
+    const { planType, monthlyLimit, price, planName, couponCode, upgradeTokens, isUpgrade } = body;
+
+    logStep('Request body parsed', { planType, monthlyLimit, price, planName, couponCode, upgradeTokens, isUpgrade });
+
+    // Initialize Stripe
+    const stripeKey = Deno.env.get('Stripe_Secret_Key');
+    if (!stripeKey) {
+      logStep('Stripe key not configured');
+      throw new Error('Stripe key not configured');
+    }
+
+    const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
+
+    // Find or create customer
+    let customer;
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length > 0) {
-      customer = customers.data[0]
+      customer = customers.data[0];
+      logStep('Found existing customer', { customerId: customer.id });
     } else {
-      // Create new customer
       customer = await stripe.customers.create({
-        email: user.email!,
+        email: user.email,
         metadata: {
-          supabase_user_id: user.id,
-        },
-      })
+          supabase_user_id: user.id
+        }
+      });
+      logStep('Created new customer', { customerId: customer.id });
     }
 
-    // Create line items
-    const lineItems = [{
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: planName,
-        },
-        unit_amount: price * 100, // Convert to cents
-        recurring: {
-          interval: 'month',
-        },
-      },
-      quantity: 1,
-    }]
+    // Get the correct origin for redirect URLs
+    const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://cdoyjgiyrfziejbrcvpx.supabase.co';
+    logStep('Origin determined', { origin });
 
-    // Prepare session configuration
+    // Create checkout session configuration
     const sessionConfig: any = {
       customer: customer.id,
-      line_items: lineItems,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: isUpgrade ? `${planName} (Upgrade)` : planName,
+              description: isUpgrade ? 
+                `Upgrade to ${monthlyLimit} worksheets per month (${upgradeTokens} additional tokens)` :
+                `${monthlyLimit} worksheets per month`,
+            },
+            unit_amount: price * 100, // Convert to cents
+            recurring: {
+              interval: 'month',
+            },
+          },
+          quantity: 1,
+        },
+      ],
       mode: 'subscription',
-      success_url: `${req.headers.get('origin')}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/pricing`,
+      success_url: `${origin}/profile?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/profile?canceled=true`,
       metadata: {
-        user_id: user.id,
+        supabase_user_id: user.id,
         plan_type: planType,
         monthly_limit: monthlyLimit.toString(),
-        upgrade_tokens: upgradeTokens?.toString() || '0',
-        is_upgrade: isUpgrade?.toString() || 'false',
+        is_upgrade: isUpgrade ? 'true' : 'false',
+        upgrade_tokens: upgradeTokens ? upgradeTokens.toString() : '0',
       },
-      subscription_data: {
-        metadata: {
-          user_id: user.id,
-          plan_type: planType,
-          monthly_limit: monthlyLimit.toString(),
-        },
-      },
-    }
+    };
 
-    // Add coupon if provided
-    if (couponCode && couponCode.trim()) {
+    // Handle coupon code if provided
+    if (couponCode) {
+      logStep('Processing coupon code', { couponCode });
+      
       try {
-        // Validate coupon exists and is active
-        const coupon = await stripe.coupons.retrieve(couponCode.trim())
-        if (coupon.valid) {
-          sessionConfig.discounts = [{
-            coupon: couponCode.trim()
-          }]
-        }
+        // Check if coupon exists and is valid
+        const coupon = await stripe.coupons.retrieve(couponCode);
+        logStep('Coupon found', { couponId: coupon.id, percentOff: coupon.percent_off, amountOff: coupon.amount_off });
+        
+        // Apply coupon to checkout session
+        sessionConfig.discounts = [{
+          coupon: couponCode
+        }];
+        
+        logStep('Coupon applied to session');
       } catch (couponError) {
-        // If coupon doesn't exist or is invalid, continue without discount
-        console.log('Coupon validation failed:', couponError)
-        // Don't throw error, just continue without discount
+        logStep('Coupon error', { error: couponError.message });
+        // Don't throw error, just proceed without coupon
+        logStep('Proceeding without coupon');
       }
     }
 
     // Create checkout session
-    const session = await stripe.checkout.sessions.create(sessionConfig)
+    const session = await stripe.checkout.sessions.create(sessionConfig);
+
+    logStep('Checkout session created', { sessionId: session.id, url: session.url });
 
     return new Response(
       JSON.stringify({ url: session.url }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
-    )
-  } catch (error) {
-    console.error('Error creating subscription:', error)
+    );
+
+  } catch (error: any) {
+    logStep('Error occurred', { message: error.message, stack: error.stack });
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
-    )
+    );
   }
-})
+});
