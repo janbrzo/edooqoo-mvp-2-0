@@ -143,7 +143,7 @@ const Index = () => {
         <Link to="/login">Log in</Link>
       </Button>
       <Button asChild size="sm">
-        <Link to="/signup">Get started</Link>
+        <Link to="/signup">Get Started Free</Link>
       </Button>
     </div>
   );

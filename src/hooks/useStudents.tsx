@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
@@ -9,24 +10,27 @@ export const useStudents = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchStudents();
-  }, []);
-
   const fetchStudents = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setStudents([]);
+        setLoading(false);
+        return;
+      }
 
       const { data, error } = await supabase
         .from('students')
         .select('*')
         .eq('teacher_id', user.id)
+        .order('updated_at', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
       setStudents(data || []);
     } catch (error: any) {
+      console.error('Error fetching students:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -40,28 +44,31 @@ export const useStudents = () => {
   const addStudent = async (name: string, englishLevel: string, mainGoal: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!user) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('students')
-        .insert({
+        .insert([{
           name,
           english_level: englishLevel,
           main_goal: mainGoal,
           teacher_id: user.id
-        })
+        }])
         .select()
         .single();
 
       if (error) throw error;
 
-      setStudents(prev => [data, ...prev]);
+      setStudents(prevStudents => [data, ...prevStudents]);
+      
       toast({
         title: "Success",
         description: "Student added successfully",
       });
+
       return data;
     } catch (error: any) {
+      console.error('Error adding student:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -82,13 +89,20 @@ export const useStudents = () => {
 
       if (error) throw error;
 
-      setStudents(prev => prev.map(s => s.id === id ? data : s));
+      setStudents(prevStudents => 
+        prevStudents.map(student => 
+          student.id === id ? { ...student, ...data } : student
+        )
+      );
+
       toast({
         title: "Success",
         description: "Student updated successfully",
       });
+
       return data;
     } catch (error: any) {
+      console.error('Error updating student:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -98,36 +112,26 @@ export const useStudents = () => {
     }
   };
 
-  const deleteStudent = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('students')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setStudents(prev => prev.filter(s => s.id !== id));
-      toast({
-        title: "Success",
-        description: "Student deleted successfully",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-      throw error;
-    }
-  };
+  useEffect(() => {
+    fetchStudents();
+    
+    // Listen for student updates from worksheet generation
+    const handleStudentUpdate = () => {
+      fetchStudents();
+    };
+    
+    window.addEventListener('studentUpdated', handleStudentUpdate);
+    
+    return () => {
+      window.removeEventListener('studentUpdated', handleStudentUpdate);
+    };
+  }, []);
 
   return {
     students,
     loading,
     addStudent,
     updateStudent,
-    deleteStudent,
     refetch: fetchStudents
   };
 };

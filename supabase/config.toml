@@ -50,6 +50,3 @@ verify_jwt = false
 
 [functions.check-subscription-status]
 verify_jwt = true
-
-[functions.delete-account]
-verify_jwt = true

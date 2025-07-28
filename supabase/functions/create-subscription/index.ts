@@ -51,9 +51,9 @@ serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { planType, monthlyLimit, price, planName } = body;
+    const { planType, monthlyLimit, price, planName, couponCode, upgradeTokens, isUpgrade } = body;
 
-    logStep('Request body parsed', { planType, monthlyLimit, price, planName });
+    logStep('Request body parsed', { planType, monthlyLimit, price, planName, couponCode, upgradeTokens, isUpgrade });
 
     // Initialize Stripe
     const stripeKey = Deno.env.get('Stripe_Secret_Key');
@@ -84,8 +84,8 @@ serve(async (req) => {
     const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://cdoyjgiyrfziejbrcvpx.supabase.co';
     logStep('Origin determined', { origin });
 
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
+    // Create checkout session configuration
+    const sessionConfig: any = {
       customer: customer.id,
       payment_method_types: ['card'],
       line_items: [
@@ -93,8 +93,10 @@ serve(async (req) => {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: planName,
-              description: `${monthlyLimit} worksheets per month`,
+              name: isUpgrade ? `${planName} (Upgrade)` : planName,
+              description: isUpgrade ? 
+                `Upgrade to ${monthlyLimit} worksheets per month (${upgradeTokens} additional tokens)` :
+                `${monthlyLimit} worksheets per month`,
             },
             unit_amount: price * 100, // Convert to cents
             recurring: {
@@ -111,8 +113,35 @@ serve(async (req) => {
         supabase_user_id: user.id,
         plan_type: planType,
         monthly_limit: monthlyLimit.toString(),
+        is_upgrade: isUpgrade ? 'true' : 'false',
+        upgrade_tokens: upgradeTokens ? upgradeTokens.toString() : '0',
       },
-    });
+    };
+
+    // Handle coupon code if provided
+    if (couponCode) {
+      logStep('Processing coupon code', { couponCode });
+      
+      try {
+        // Check if coupon exists and is valid
+        const coupon = await stripe.coupons.retrieve(couponCode);
+        logStep('Coupon found', { couponId: coupon.id, percentOff: coupon.percent_off, amountOff: coupon.amount_off });
+        
+        // Apply coupon to checkout session
+        sessionConfig.discounts = [{
+          coupon: couponCode
+        }];
+        
+        logStep('Coupon applied to session');
+      } catch (couponError) {
+        logStep('Coupon error', { error: couponError.message });
+        // Don't throw error, just proceed without coupon
+        logStep('Proceeding without coupon');
+      }
+    }
+
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     logStep('Checkout session created', { sessionId: session.id, url: session.url });
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { useWorksheetHistory } from "@/hooks/useWorksheetHistory";
 import { AddStudentButton } from "@/components/dashboard/AddStudentButton";
 import { StudentCard } from "@/components/dashboard/StudentCard";
 import { useProfile } from "@/hooks/useProfile";
+import { format } from "date-fns";
 import { 
   User, 
   GraduationCap, 
@@ -84,6 +86,32 @@ const Dashboard = () => {
   const handleWorksheetOpen = (worksheet: any) => {
     sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheet));
     navigate('/');
+  };
+
+  const formatWorksheetTitle = (worksheet: any) => {
+    if (worksheet.title) return worksheet.title;
+    const formData = worksheet.form_data;
+    if (formData?.lessonTopic) return formData.lessonTopic;
+    return 'Untitled Worksheet';
+  };
+
+  const formatWorksheetDescription = (worksheet: any) => {
+    const formData = worksheet.form_data;
+    if (!formData) return '';
+    
+    const parts = [];
+    if (formData.lessonTopic) parts.push(`Topic: ${formData.lessonTopic}`);
+    if (formData.lessonGoal) parts.push(`Goal: ${formData.lessonGoal}`);
+    
+    return parts.join(' • ');
+  };
+
+  const getStudentNameForWorksheet = (worksheet: any) => {
+    if (worksheet.student_id) {
+      const student = students.find(s => s.id === worksheet.student_id);
+      return student?.name;
+    }
+    return null;
   };
 
   return (
@@ -199,7 +227,7 @@ const Dashboard = () => {
                   <AddStudentButton onStudentAdded={refetchStudents} />
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {students.map((student) => (
                     <StudentCard 
                       key={student.id} 
@@ -244,28 +272,42 @@ const Dashboard = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {worksheets.slice(0, 5).map((worksheet) => (
-                    <div key={worksheet.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <BookOpen className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{worksheet.title || 'Worksheet'}</p>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {new Date(worksheet.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
+                <div className="space-y-3">
+                  {worksheets.slice(0, 5).map((worksheet) => {
+                    const studentName = getStudentNameForWorksheet(worksheet);
+                    return (
+                      <div
+                        key={worksheet.id}
+                        className="p-4 bg-muted/20 rounded-lg cursor-pointer hover:bg-muted/30 transition-colors border border-border/50"
                         onClick={() => handleWorksheetOpen(worksheet)}
                       >
-                        Open
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-medium text-base">
+                              {formatWorksheetTitle(worksheet)}
+                              {studentName && (
+                                <span className="text-primary ml-2">
+                                  for {studentName}
+                                </span>
+                              )}
+                            </h3>
+                            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          </div>
+                          {formatWorksheetDescription(worksheet) && (
+                            <p className="text-sm text-muted-foreground">
+                              {formatWorksheetDescription(worksheet)}
+                            </p>
+                          )}
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            <span>{format(new Date(worksheet.created_at), 'MMM dd, yyyy')}</span>
+                            <span className="mx-2">•</span>
+                            <span>{format(new Date(worksheet.created_at), 'HH:mm')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

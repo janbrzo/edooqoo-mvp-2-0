@@ -19,7 +19,24 @@ export {
  * Generates a worksheet using the Edge Function
  */
 async function generateWorksheet(prompt: WorksheetFormData & { fullPrompt?: string, formDataForStorage?: any, studentId?: string }, userId: string) {
-  return generateWorksheetAPI(prompt, userId);
+  const result = await generateWorksheetAPI(prompt, userId);
+  
+  // Update student activity if studentId is provided
+  if (prompt.studentId) {
+    try {
+      await supabase
+        .from('students')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', prompt.studentId);
+      
+      // Emit event to notify other components
+      window.dispatchEvent(new CustomEvent('studentUpdated', { detail: { studentId: prompt.studentId } }));
+    } catch (error) {
+      console.error('Error updating student activity:', error);
+    }
+  }
+  
+  return result;
 }
 
 /**

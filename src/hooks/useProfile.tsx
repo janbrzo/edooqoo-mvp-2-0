@@ -72,36 +72,9 @@ export const useProfile = () => {
     }
   };
 
-  const deleteAccount = async () => {
-    try {
-      const { error } = await supabase.functions.invoke('delete-account');
-      
-      if (error) throw error;
-
-      // Sign out user after successful deletion
-      await supabase.auth.signOut();
-      
-      toast({
-        title: "Account deleted",
-        description: "Your account has been deleted successfully.",
-      });
-
-      return true;
-    } catch (error: any) {
-      console.error('Error deleting account:', error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-      return false;
-    }
-  };
-
   return {
     profile,
     loading,
-    refetch: fetchProfile,
-    deleteAccount
+    refetch: fetchProfile
   };
 };

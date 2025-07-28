@@ -1,4 +1,9 @@
 
+-- Dodaj pole rollover_tokens do tabeli profiles
+ALTER TABLE public.profiles 
+ADD COLUMN rollover_tokens INTEGER NOT NULL DEFAULT 0;
+
+-- Zmodyfikuj funkcję consume_token aby obsługiwała rollover tokens
 CREATE OR REPLACE FUNCTION public.consume_token(p_teacher_id uuid, p_worksheet_id uuid)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -59,4 +64,4 @@ BEGIN
   -- Brak dostępnych tokenów
   RETURN FALSE;
 END;
-$function$
+$function$;
