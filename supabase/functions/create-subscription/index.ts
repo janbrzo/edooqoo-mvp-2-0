@@ -51,9 +51,9 @@ serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { planType, monthlyLimit, price, planName, couponCode, upgradeTokens, isUpgrade } = body;
+    const { planType, monthlyLimit, price, planName, upgradeTokens, isUpgrade } = body;
 
-    logStep('Request body parsed', { planType, monthlyLimit, price, planName, couponCode, upgradeTokens, isUpgrade });
+    logStep('Request body parsed', { planType, monthlyLimit, price, planName, upgradeTokens, isUpgrade });
 
     // Initialize Stripe
     const stripeKey = Deno.env.get('Stripe_Secret_Key');
@@ -109,6 +109,8 @@ serve(async (req) => {
       mode: 'subscription',
       success_url: `${origin}/profile?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/profile?canceled=true`,
+      // Enable promotion codes directly in Stripe checkout
+      allow_promotion_codes: true,
       metadata: {
         supabase_user_id: user.id,
         plan_type: planType,
@@ -118,27 +120,7 @@ serve(async (req) => {
       },
     };
 
-    // Handle coupon code if provided
-    if (couponCode) {
-      logStep('Processing coupon code', { couponCode });
-      
-      try {
-        // Check if coupon exists and is valid
-        const coupon = await stripe.coupons.retrieve(couponCode);
-        logStep('Coupon found', { couponId: coupon.id, percentOff: coupon.percent_off, amountOff: coupon.amount_off });
-        
-        // Apply coupon to checkout session
-        sessionConfig.discounts = [{
-          coupon: couponCode
-        }];
-        
-        logStep('Coupon applied to session');
-      } catch (couponError) {
-        logStep('Coupon error', { error: couponError.message });
-        // Don't throw error, just proceed without coupon
-        logStep('Proceeding without coupon');
-      }
-    }
+    logStep('Checkout session configuration created with promotion codes enabled');
 
     // Create checkout session
     const session = await stripe.checkout.sessions.create(sessionConfig);
