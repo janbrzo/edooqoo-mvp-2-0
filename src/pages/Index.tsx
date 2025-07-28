@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -30,24 +29,17 @@ import { useTokenSystem } from '@/hooks/useTokenSystem';
 import { usePlanLogic } from '@/hooks/usePlanLogic';
 import WorksheetForm from '@/components/WorksheetForm';
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth';
-import { IsometricBackground } from '@/components/IsometricBackground';
-import { RatingSection } from '@/components/RatingSection';
+import IsometricBackground from '@/components/IsometricBackground';
+import RatingSection from '@/components/RatingSection';
 import { PricingCalculator } from '@/components/PricingCalculator';
 
 const Index = () => {
   const { user, isRegisteredUser } = useAuthFlow();
   const { tokenLeft, profile } = useTokenSystem(user?.id);
   const { currentPlan } = usePlanLogic(profile?.subscription_type);
-  const { initializeAnonymousSession } = useAnonymousAuth();
+  const { userId } = useAnonymousAuth();
   const navigate = useNavigate();
   const [openFaqItems, setOpenFaqItems] = useState<number[]>([]);
-
-  useEffect(() => {
-    // Initialize anonymous session for unauthenticated users
-    if (!user) {
-      initializeAnonymousSession();
-    }
-  }, [user, initializeAnonymousSession]);
 
   const handleGetStarted = () => {
     if (isRegisteredUser) {
@@ -55,6 +47,11 @@ const Index = () => {
     } else {
       navigate('/signup');
     }
+  };
+
+  const handleWorksheetSubmit = (formData: any) => {
+    // Handle worksheet form submission
+    console.log('Worksheet form submitted:', formData);
   };
 
   const toggleFaqItem = (index: number) => {
@@ -258,7 +255,7 @@ const Index = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="px-8 pb-8">
-            <WorksheetForm />
+            <WorksheetForm onSubmit={handleWorksheetSubmit} />
           </CardContent>
         </Card>
 
