@@ -43,7 +43,7 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
 
   return (
     <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-1 pt-3">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <User className="h-4 w-4 text-muted-foreground" />
@@ -56,11 +56,12 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
           <Badge variant="secondary">{student.english_level}</Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-1 pt-1 pb-3">
+      <CardContent className="space-y-3">
         <div className="text-sm text-muted-foreground">
           <strong>Goal:</strong> {formatGoal(student.main_goal)}
         </div>
         
+        {/* Fixed layout with flex to maintain alignment */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1 text-sm text-muted-foreground">
             <BookOpen className="h-4 w-4" />
@@ -84,6 +85,7 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
           </div>
         </div>
         
+        {/* Collapsible content */}
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleContent>
             {loading ? (
@@ -91,7 +93,7 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto"></div>
               </div>
             ) : recentWorksheets.length > 0 ? (
-              <div className="space-y-2 mt-2">
+              <div className="space-y-2 mt-3">
                 {recentWorksheets.map((worksheet) => (
                   <div
                     key={worksheet.id}
@@ -113,7 +115,7 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
                 <Button
                   variant="link"
                   size="sm"
-                  className="w-full text-xs mt-1"
+                  className="w-full text-xs mt-2"
                   asChild
                 >
                   <Link to={`/student/${student.id}`}>
@@ -122,7 +124,7 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
                 </Button>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-2 mt-2">
+              <p className="text-xs text-muted-foreground text-center py-2 mt-3">
                 No worksheets generated yet
               </p>
             )}

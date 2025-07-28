@@ -120,7 +120,7 @@ async function handleCheckoutCompleted(stripe: Stripe, supabaseClient: any, sess
     // If this is a subscription checkout, get subscription details
     if (session.mode === 'subscription' && session.subscription) {
       const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-      await processSubscription(supabaseClient, user.id, customer as any, subscription, session.metadata);
+      await processSubscription(supabaseClient, user.id, customer as any, subscription);
     }
 
   } catch (error) {
@@ -145,8 +145,7 @@ async function handlePaymentSucceeded(stripe: Stripe, supabaseClient: any, invoi
     const user = users.users.find((u: any) => u.email === (customer as any).email);
     if (!user) return;
 
-    // This is a renewal, handle rollover tokens
-    await processSubscriptionRenewal(supabaseClient, user.id, customer as any, subscription);
+    await processSubscription(supabaseClient, user.id, customer as any, subscription);
   }
 }
 
@@ -166,7 +165,7 @@ async function handleSubscriptionEvent(stripe: Stripe, supabaseClient: any, subs
   await processSubscription(supabaseClient, user.id, customer as any, subscription);
 }
 
-async function processSubscription(supabaseClient: any, userId: string, customer: any, subscription: any, metadata: any = null) {
+async function processSubscription(supabaseClient: any, userId: string, customer: any, subscription: any) {
   console.log('[STRIPE-WEBHOOK] Processing subscription for user:', userId);
   
   try {
@@ -179,15 +178,11 @@ async function processSubscription(supabaseClient: any, userId: string, customer
     let tokensToAdd = 0;
     let subscriptionType = 'Unknown Plan';
 
-    // Check if this is an upgrade from metadata
-    const isUpgrade = metadata?.is_upgrade === 'true';
-    const upgradeTokens = metadata?.upgrade_tokens ? parseInt(metadata.upgrade_tokens) : 0;
-
     // Determine plan based on amount with detailed naming
     if (amount === 900) { // $9.00
       planType = 'side-gig';
       monthlyLimit = 15;
-      tokensToAdd = isUpgrade ? upgradeTokens : 15;
+      tokensToAdd = 15;
       subscriptionType = 'Side-Gig';
     } else if (amount >= 1900) { // $19.00+
       planType = 'full-time';
@@ -207,10 +202,10 @@ async function processSubscription(supabaseClient: any, userId: string, customer
         monthlyLimit = 30;
         subscriptionType = 'Full-Time 30';
       }
-      tokensToAdd = isUpgrade ? upgradeTokens : monthlyLimit;
+      tokensToAdd = monthlyLimit;
     }
 
-    console.log('[STRIPE-WEBHOOK] Plan details:', { planType, monthlyLimit, tokensToAdd, subscriptionType, isUpgrade });
+    console.log('[STRIPE-WEBHOOK] Plan details:', { planType, monthlyLimit, tokensToAdd, subscriptionType });
 
     // Upsert subscription record
     const { error: subError } = await supabaseClient
@@ -281,7 +276,7 @@ async function processSubscription(supabaseClient: any, userId: string, customer
           teacher_id: userId,
           transaction_type: 'purchase',
           amount: tokensToAdd,
-          description: isUpgrade ? `${subscriptionType} upgrade (+${tokensToAdd} tokens)` : `${subscriptionType} subscription activation`,
+          description: `${subscriptionType} subscription activation`,
           reference_id: null
         });
 
@@ -296,81 +291,6 @@ async function processSubscription(supabaseClient: any, userId: string, customer
 
   } catch (error) {
     console.error('[STRIPE-WEBHOOK] Error processing subscription:', error);
-    throw error;
-  }
-}
-
-async function processSubscriptionRenewal(supabaseClient: any, userId: string, customer: any, subscription: any) {
-  console.log('[STRIPE-WEBHOOK] Processing subscription renewal for user:', userId);
-  
-  try {
-    // Get current profile data
-    const { data: currentProfile } = await supabaseClient
-      .from('profiles')
-      .select('monthly_worksheet_limit, monthly_worksheets_used, rollover_tokens')
-      .eq('id', userId)
-      .single();
-
-    if (!currentProfile) {
-      console.error('[STRIPE-WEBHOOK] Profile not found for user:', userId);
-      return;
-    }
-
-    const monthlyLimit = currentProfile.monthly_worksheet_limit || 0;
-    const monthlyUsed = currentProfile.monthly_worksheets_used || 0;
-    const currentRollover = currentProfile.rollover_tokens || 0;
-
-    // Calculate unused worksheets to carry forward
-    const unusedWorksheets = Math.max(0, monthlyLimit - monthlyUsed);
-    const newRolloverTokens = currentRollover + unusedWorksheets;
-
-    console.log('[STRIPE-WEBHOOK] Rollover calculation:', {
-      monthlyLimit,
-      monthlyUsed,
-      unusedWorksheets,
-      currentRollover,
-      newRolloverTokens
-    });
-
-    // Update profile with rollover tokens and reset monthly usage
-    const { error: profileError } = await supabaseClient
-      .from('profiles')
-      .update({
-        rollover_tokens: newRolloverTokens,
-        monthly_worksheets_used: 0, // Reset for new period
-        subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId);
-
-    if (profileError) {
-      console.error('[STRIPE-WEBHOOK] Error updating profile for renewal:', profileError);
-      throw profileError;
-    }
-
-    // Log rollover transaction if there are unused worksheets
-    if (unusedWorksheets > 0) {
-      const { error: tokenError } = await supabaseClient
-        .from('token_transactions')
-        .insert({
-          teacher_id: userId,
-          transaction_type: 'rollover',
-          amount: unusedWorksheets,
-          description: `${unusedWorksheets} unused monthly worksheets carried forward as rollover tokens`,
-          reference_id: null
-        });
-
-      if (tokenError) {
-        console.error('[STRIPE-WEBHOOK] Error adding rollover transaction:', tokenError);
-      } else {
-        console.log('[STRIPE-WEBHOOK] Added rollover transaction for', unusedWorksheets, 'tokens');
-      }
-    }
-
-    console.log('[STRIPE-WEBHOOK] Successfully processed renewal for user:', userId);
-
-  } catch (error) {
-    console.error('[STRIPE-WEBHOOK] Error processing renewal:', error);
     throw error;
   }
 }

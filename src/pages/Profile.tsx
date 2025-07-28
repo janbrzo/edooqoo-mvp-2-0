@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,20 +8,18 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useProfile } from '@/hooks/useProfile';
-import { useTokenSystem } from '@/hooks/useTokenSystem';
-import { usePlanLogic } from '@/hooks/usePlanLogic';
 import { EditableProfileField } from '@/components/profile/EditableProfileField';
+import { DeleteAccountDialog } from '@/components/profile/DeleteAccountDialog';
 import { toast } from '@/hooks/use-toast';
-import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail } from 'lucide-react';
+import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail, Trash2 } from 'lucide-react';
 
 const Profile = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
-  const { profile, loading: profileLoading, refetch } = useProfile();
-  const { tokenLeft } = useTokenSystem(user?.id);
-  const { currentPlan, plans, canUpgradeTo, getUpgradePrice, getUpgradeTokens } = usePlanLogic(profile?.subscription_type);
+  const { profile, loading: profileLoading, refetch, deleteAccount } = useProfile();
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
@@ -64,6 +63,7 @@ const Profile = () => {
 
   const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
 
+  // Check if user has proper authentication for subscription
   const checkUserForSubscription = async () => {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -148,6 +148,10 @@ const Profile = () => {
     navigate('/');
   };
 
+  const handleDeleteAccount = async () => {
+    return await deleteAccount();
+  };
+
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
     // Check user authentication first
     const canSubscribe = await checkUserForSubscription();
@@ -159,29 +163,14 @@ const Profile = () => {
         ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
         : { name: `Full-Time Plan (${selectedFullTimePlan} worksheets)`, price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
 
-      // Find the target plan from plans array
-      const targetPlan = planType === 'side-gig' 
-        ? plans.find(p => p.id === 'side-gig')
-        : plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
-
-      if (!targetPlan) {
-        throw new Error('Target plan not found');
-      }
-
-      // Calculate upgrade pricing
-      const upgradePrice = getUpgradePrice(targetPlan);
-      const upgradeTokens = getUpgradeTokens(targetPlan);
-
-      console.log('Attempting to create subscription:', { planType, planData, upgradePrice, upgradeTokens });
+      console.log('Attempting to create subscription:', { planType, planData });
 
       const { data, error } = await supabase.functions.invoke('create-subscription', {
         body: {
           planType: planType,
           monthlyLimit: planData.tokens,
-          price: upgradePrice, // Use upgrade price instead of full price
-          planName: planData.name,
-          upgradeTokens: upgradeTokens, // Pass upgrade tokens
-          isUpgrade: currentPlan.type !== 'free'
+          price: planData.price,
+          planName: planData.name
         }
       });
 
@@ -301,9 +290,9 @@ const Profile = () => {
   const monthlyLimit = profile?.monthly_worksheet_limit;
 
   const tokenBalance = profile?.token_balance || 0;
-  const rolloverTokens = profile?.rollover_tokens || 0;
   const monthlyUsed = profile?.monthly_worksheets_used || 0;
   const monthlyAvailable = monthlyLimit ? Math.max(0, monthlyLimit - monthlyUsed) : 0;
+  const tokenLeft = tokenBalance + monthlyAvailable;
 
   const getMonthlyLimitDisplay = () => {
     if (subscriptionType === 'Free Demo') return 'Not applicable';
@@ -317,28 +306,6 @@ const Profile = () => {
       return renewalDate.toLocaleDateString();
     }
     return null;
-  };
-
-  // Get side-gig plan from plans array
-  const sideGigPlan = plans.find(p => p.id === 'side-gig');
-  const canUpgradeToSideGig = sideGigPlan ? canUpgradeTo(sideGigPlan) : false;
-  const sideGigUpgradePrice = sideGigPlan ? getUpgradePrice(sideGigPlan) : 0;
-  const isSideGigLowerPlan = currentPlan.type === 'full-time' && !!sideGigPlan;
-
-  // Get full-time plan from plans array
-  const fullTimePlan = plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
-  const canUpgradeToFullTime = fullTimePlan ? canUpgradeTo(fullTimePlan) : false;
-  const fullTimeUpgradePrice = fullTimePlan ? getUpgradePrice(fullTimePlan) : 0;
-
-  const getSideGigButtonText = () => {
-    if (isSideGigLowerPlan) return 'Lower Plan';
-    if (!canUpgradeToSideGig) return 'Current Plan';
-    return currentPlan.type === 'free' ? 'Upgrade to Side-Gig' : 'Upgrade to Side-Gig';
-  };
-
-  const getFullTimeButtonText = () => {
-    if (!canUpgradeToFullTime) return 'Current Plan';
-    return currentPlan.type === 'free' ? 'Upgrade to Full-Time' : 'Upgrade to Full-Time';
   };
 
   return (
@@ -400,7 +367,7 @@ const Profile = () => {
                   <label className="text-sm font-medium text-muted-foreground">Email</label>
                   <p className="text-base flex items-center gap-2 mt-1">
                     <Mail className="h-4 w-4" />
-                    {user?.email || profile?.email || 'Not available'}
+                    {user?.email || 'Not available'}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Your email address associated with your account.
@@ -454,6 +421,15 @@ const Profile = () => {
                   >
                     Sign Out
                   </Button>
+                  <Button 
+                    className="w-full" 
+                    variant="destructive"
+                    onClick={() => setShowDeleteDialog(true)}
+                    size="sm"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Account
+                  </Button>
                 </CardContent>
               </Card>
 
@@ -474,10 +450,6 @@ const Profile = () => {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Purchased tokens</span>
                       <span className="font-medium">{tokenBalance}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Rollover tokens</span>
-                      <span className="font-medium">{rolloverTokens}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">This month used</span>
@@ -546,20 +518,14 @@ const Profile = () => {
                     <div className="mb-3">
                       <p className="text-2xl font-bold">$9</p>
                       <p className="text-xs text-muted-foreground">/month</p>
-                      <p className="text-xs text-muted-foreground">$0.60 per worksheet</p>
-                      {canUpgradeToSideGig && currentPlan.type !== 'free' && (
-                        <p className="text-xs text-muted-foreground">
-                          Upgrade now for ${sideGigUpgradePrice}
-                        </p>
-                      )}
                     </div>
                     <Button 
                       className="w-full" 
                       size="sm"
                       onClick={() => handleSubscribe('side-gig')}
-                      disabled={isLoading === 'side-gig' || isSideGigLowerPlan || !canUpgradeToSideGig}
+                      disabled={isLoading === 'side-gig'}
                     >
-                      {isLoading === 'side-gig' ? 'Processing...' : getSideGigButtonText()}
+                      {isLoading === 'side-gig' ? 'Processing...' : 'Upgrade to Side-Gig'}
                     </Button>
                   </div>
 
@@ -588,27 +554,17 @@ const Profile = () => {
                     </div>
                     
                     <div className="mb-3">
-                      <p className="text-2xl font-bold">
-                        ${selectedPlan?.price}
-                      </p>
+                      <p className="text-2xl font-bold">${selectedPlan?.price}</p>
                       <p className="text-xs text-muted-foreground">/month</p>
-                      <p className="text-xs text-muted-foreground">
-                        ${((selectedPlan?.price || 19) / parseInt(selectedFullTimePlan)).toFixed(2)} per worksheet
-                      </p>
-                      {canUpgradeToFullTime && currentPlan.type !== 'free' && (
-                        <p className="text-xs text-muted-foreground">
-                          Upgrade now for ${fullTimeUpgradePrice}
-                        </p>
-                      )}
                     </div>
                     
                     <Button 
                       className="w-full" 
                       size="sm"
                       onClick={() => handleSubscribe('full-time')}
-                      disabled={isLoading === 'full-time' || !canUpgradeToFullTime}
+                      disabled={isLoading === 'full-time'}
                     >
-                      {isLoading === 'full-time' ? 'Processing...' : getFullTimeButtonText()}
+                      {isLoading === 'full-time' ? 'Processing...' : 'Upgrade to Full-Time'}
                     </Button>
                   </div>
                 </div>
@@ -617,6 +573,14 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Account Dialog */}
+      <DeleteAccountDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteAccount}
+        userEmail={user?.email || ''}
+      />
     </div>
   );
 };

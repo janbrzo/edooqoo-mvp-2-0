@@ -130,7 +130,6 @@ export type Database = {
           last_name: string | null
           monthly_worksheet_limit: number | null
           monthly_worksheets_used: number
-          rollover_tokens: number
           school_institution: string | null
           subscription_expires_at: string | null
           subscription_status: string | null
@@ -149,7 +148,6 @@ export type Database = {
           last_name?: string | null
           monthly_worksheet_limit?: number | null
           monthly_worksheets_used?: number
-          rollover_tokens?: number
           school_institution?: string | null
           subscription_expires_at?: string | null
           subscription_status?: string | null
@@ -168,7 +166,6 @@ export type Database = {
           last_name?: string | null
           monthly_worksheet_limit?: number | null
           monthly_worksheets_used?: number
-          rollover_tokens?: number
           school_institution?: string | null
           subscription_expires_at?: string | null
           subscription_status?: string | null
