@@ -92,11 +92,17 @@ export function useDownloadStatus() {
     }
   };
 
-  // NEW: Auto-unlock for token-generated worksheets
+  // FIXED: Only auto-unlock for authenticated users with valid tokens/subscriptions
   const checkTokenGeneratedWorksheet = (worksheetId: string, userId?: string) => {
-    // If user is logged in and worksheet exists, auto-unlock
-    if (userId && worksheetId && worksheetId !== 'unknown') {
-      console.log('🔓 Auto-unlocking download for token-generated worksheet');
+    // IMPORTANT: Only auto-unlock if user is authenticated AND has active subscription/tokens
+    // This prevents auto-unlocking for anonymous users who should pay $1
+    if (!userId) {
+      console.log('❌ No userId provided - anonymous user must pay for downloads');
+      return;
+    }
+    
+    if (worksheetId && worksheetId !== 'unknown') {
+      console.log('🔓 Auto-unlocking download for authenticated user with token-generated worksheet');
       const autoToken = `token_${worksheetId}_${userId}_${Date.now()}`;
       
       // Set a long-lasting token for token-generated worksheets
@@ -107,7 +113,7 @@ export function useDownloadStatus() {
       setIsDownloadUnlocked(true);
       setDownloadStats({ downloads_count: 0, expires_at: new Date(expiryTime).toISOString() });
       
-      console.log('✅ Auto-unlock completed for token-generated worksheet');
+      console.log('✅ Auto-unlock completed for authenticated user with token-generated worksheet');
     }
   };
 
