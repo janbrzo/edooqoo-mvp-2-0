@@ -21,17 +21,10 @@ export function useDownloadStatus() {
     };
     
     fetchUserIp();
-    // REMOVED: checkDownloadStatus() call to prevent auto-unlocking for anonymous users
+    checkDownloadStatus();
   }, []);
 
-  // FIXED: Modified to prevent auto-unlock for anonymous users
-  const checkDownloadStatus = async (userId?: string) => {
-    // IMPORTANT: Only check download status for authenticated users
-    if (!userId) {
-      console.log('❌ Skipping download status check for anonymous user');
-      return;
-    }
-
+  const checkDownloadStatus = async () => {
     const token = sessionStorage.getItem('downloadToken');
     const expiry = sessionStorage.getItem('downloadTokenExpiry');
     
@@ -121,9 +114,6 @@ export function useDownloadStatus() {
       setDownloadStats({ downloads_count: 0, expires_at: new Date(expiryTime).toISOString() });
       
       console.log('✅ Auto-unlock completed for authenticated user with token-generated worksheet');
-      
-      // Also check download status to sync with database
-      checkDownloadStatus(userId);
     }
   };
 
