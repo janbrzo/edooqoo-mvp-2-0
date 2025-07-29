@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { downloadSessionService } from "@/services/downloadSessionService";
 
@@ -95,8 +96,8 @@ export function useDownloadStatus() {
   const checkTokenGeneratedWorksheet = (worksheetId: string, userId?: string) => {
     // IMPORTANT: Only auto-unlock if user is authenticated AND has active subscription/tokens
     // This prevents auto-unlocking for anonymous users who should pay $1
-    if (!userId || userId === 'anonymous') {
-      console.log('❌ Anonymous user must pay $1 for downloads - no auto-unlock');
+    if (!userId) {
+      console.log('❌ No userId provided - anonymous user must pay for downloads');
       return;
     }
     
