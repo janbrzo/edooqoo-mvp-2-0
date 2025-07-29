@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDownloadTracking } from "@/hooks/useDownloadTracking";
@@ -74,19 +73,13 @@ export default function WorksheetDisplay({
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
-  const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload, checkTokenGeneratedWorksheet } = useDownloadStatus();
+  const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload } = useDownloadStatus();
   const isMobile = useIsMobile();
   const { trackDownloadAttempt } = useDownloadTracking(userId);
   const { trackPaymentButtonClick } = usePaymentTracking(userId);
   
   useEffect(() => {
     validateWorksheetStructure();
-    
-    // AUTO-UNLOCK: Check if this is a token-generated worksheet
-    if (userId && worksheetId) {
-      console.log('🔍 Checking if worksheet should be auto-unlocked for user:', userId);
-      checkTokenGeneratedWorksheet(worksheetId, userId);
-    }
     
     const style = document.createElement('style');
     style.textContent = `
@@ -146,7 +139,7 @@ export default function WorksheetDisplay({
     return () => {
       document.head.removeChild(style);
     };
-  }, [userId, worksheetId, checkTokenGeneratedWorksheet]);
+  }, []);
   
   const validateWorksheetStructure = () => {
     if (!worksheet) {
@@ -183,7 +176,7 @@ export default function WorksheetDisplay({
   // Enhanced download handler with tracking
   const handleDownloadWithTracking = () => {
     // Track download attempt with proper locked/unlocked distinction
-    trackDownloadAttempt(isDownloadUnlocked, worksheetId || 'unknown');
+    trackDownloadAttempt(!isDownloadUnlocked, worksheetId || 'unknown');
 
     trackDownload();
     if (onDownload) {
