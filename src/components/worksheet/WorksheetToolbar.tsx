@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Edit, Lightbulb, User, Download, Lock } from "lucide-react";
@@ -143,7 +142,7 @@ const WorksheetToolbar = ({
 
   return (
     <TooltipProvider>
-      <div className="sticky top-0 z-10 bg-white border-b mb-6 py-3 px-4">
+      <div className="bg-white border-b mb-6 py-3 px-4">
         <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between items-center'} max-w-[98%] mx-auto`}>
           <div className={`flex ${isMobile ? 'justify-center' : ''} space-x-2`}>
             <Button
