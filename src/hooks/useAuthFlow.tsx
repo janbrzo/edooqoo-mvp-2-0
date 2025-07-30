@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -55,7 +54,7 @@ export function useAuthFlow() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Helper function to determine if user is anonymous - LESS RESTRICTIVE for real users
+  // Helper function to determine if user is anonymous - SIMPLIFIED LOGIC
   const determineIfAnonymous = (session: Session | null): boolean => {
     console.log('🧩 determineIfAnonymous called with:', {
       hasSession: !!session,
@@ -72,7 +71,7 @@ export function useAuthFlow() {
     const user = session.user;
     
     // If explicitly marked as anonymous, it's anonymous
-    if (user.is_anonymous === true) {
+    if (user.is_anonymous) {
       console.log('✅ User explicitly marked as anonymous');
       return true;
     }
@@ -101,15 +100,9 @@ export function useAuthFlow() {
       return true;
     }
     
-    // MAIN CHANGE: If user has real email and is_anonymous is NOT true, treat as authenticated
-    if (user.email && user.is_anonymous !== true) {
-      console.log('✅ User has real email and is_anonymous !== true - returning authenticated (false)');
-      return false;
-    }
-    
-    // Final fallback to anonymous
-    console.log('❓ Final fallback - returning anonymous');
-    return true;
+    // If user has real email and is NOT explicitly anonymous, treat as authenticated
+    console.log('✅ User has real email and not explicitly anonymous - returning authenticated (false)');
+    return false;
   };
 
   const signInAnonymously = async () => {
