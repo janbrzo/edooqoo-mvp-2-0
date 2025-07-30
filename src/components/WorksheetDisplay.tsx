@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDownloadTracking } from "@/hooks/useDownloadTracking";
 import { usePaymentTracking } from "@/hooks/usePaymentTracking";
-import { useAuthFlow } from "@/hooks/useAuthFlow";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
 import InputParamsCard from "./worksheet/InputParamsCard";
 import WorksheetToolbar from "./worksheet/WorksheetToolbar";
@@ -74,43 +74,20 @@ export default function WorksheetDisplay({
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
-  const { user, isAnonymous } = useAuthFlow();
-  const { 
-    isDownloadUnlocked, 
-    userIp, 
-    handleDownloadUnlock, 
-    trackDownload, 
-    initializeDownloadState,
-    resetInitialization,
-    isInitialized
-  } = useDownloadStatus();
+  const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload, checkTokenGeneratedWorksheet } = useDownloadStatus();
   const isMobile = useIsMobile();
   const { trackDownloadAttempt } = useDownloadTracking(userId);
   const { trackPaymentButtonClick } = usePaymentTracking(userId);
   
-  // Validation useEffect - runs only once
   useEffect(() => {
     validateWorksheetStructure();
-  }, []);
-
-  // Download state initialization useEffect - runs when auth data changes
-  useEffect(() => {
-    if (!isInitialized && user !== undefined) {
-      console.log('🔄 Auth state changed - User type check:', {
-        userId,
-        isAnonymous,
-        userEmail: user?.email,
-        hasUser: !!user
-      });
-      
-      // Reset and reinitialize when user changes
-      resetInitialization();
-      initializeDownloadState(userId, isAnonymous, user?.email, worksheetId || undefined);
+    
+    // AUTO-UNLOCK: Check if this is a token-generated worksheet
+    if (userId && worksheetId) {
+      console.log('🔍 Checking if worksheet should be auto-unlocked for user:', userId);
+      checkTokenGeneratedWorksheet(worksheetId, userId);
     }
-  }, [user, userId, isAnonymous, worksheetId, isInitialized, initializeDownloadState, resetInitialization]);
-
-  // Styles useEffect - runs only once
-  useEffect(() => {
+    
     const style = document.createElement('style');
     style.textContent = `
       @media print {
@@ -169,7 +146,7 @@ export default function WorksheetDisplay({
     return () => {
       document.head.removeChild(style);
     };
-  }, []);
+  }, [userId, worksheetId, checkTokenGeneratedWorksheet]);
   
   const validateWorksheetStructure = () => {
     if (!worksheet) {

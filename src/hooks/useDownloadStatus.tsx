@@ -1,13 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { downloadSessionService } from "@/services/downloadSessionService";
-
-export type UserType = 'authenticated' | 'anonymous' | 'unknown';
 
 export function useDownloadStatus() {
   const [isDownloadUnlocked, setIsDownloadUnlocked] = useState(false);
   const [userIp, setUserIp] = useState<string | null>(null);
   const [downloadStats, setDownloadStats] = useState<{ downloads_count: number; expires_at: string } | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const fetchUserIp = async () => {
@@ -23,135 +21,14 @@ export function useDownloadStatus() {
     };
     
     fetchUserIp();
+    checkDownloadStatus();
   }, []);
-
-  // Improved user type determination - synchronized with useAuthFlow logic
-  const determineUserType = (userId?: string, isAnonymous?: boolean, userEmail?: string): UserType => {
-    console.log('🔍 determineUserType called with:', {
-      userId,
-      isAnonymous,
-      userEmail,
-      hasUserId: !!userId,
-      hasEmail: !!userEmail
-    });
-
-    // If no userId at all, it's unknown
-    if (!userId) {
-      console.log('❓ No userId provided - returning unknown');
-      return 'unknown';
-    }
-    
-    // If explicitly marked as anonymous, it's anonymous
-    if (isAnonymous === true) {
-      console.log('👤 User explicitly marked as anonymous');
-      return 'anonymous';
-    }
-    
-    // MAIN CHANGE: If isAnonymous is false OR undefined, but user has real email, it's authenticated
-    if ((isAnonymous === false || isAnonymous === undefined) && userEmail && userEmail.trim() !== '') {
-      // Check for anonymous email patterns
-      const anonymousEmailPatterns = [
-        /^anonymous/i,
-        /^guest/i,
-        /^temp/i,
-        /@anonymous\./i,
-        /@temp\./i
-      ];
-      
-      const hasAnonymousEmail = anonymousEmailPatterns.some(pattern => 
-        pattern.test(userEmail)
-      );
-      
-      if (hasAnonymousEmail) {
-        console.log('👤 User has anonymous email pattern - treating as anonymous');
-        return 'anonymous';
-      }
-      
-      console.log('✅ User has real email and not explicitly anonymous - authenticated');
-      return 'authenticated';
-    }
-    
-    // If no real email, treat as anonymous
-    if (!userEmail || userEmail.trim() === '') {
-      console.log('👤 User has no real email - anonymous');
-      return 'anonymous';
-    }
-    
-    // Final fallback - if unclear, be defensive and treat as anonymous
-    console.log('👤 Unclear case - defaulting to anonymous for safety');
-    return 'anonymous';
-  };
-
-  // Check if user has a valid download token in sessionStorage
-  const hasValidDownloadToken = () => {
-    const token = sessionStorage.getItem('downloadToken');
-    const expiry = sessionStorage.getItem('downloadTokenExpiry');
-    
-    if (!token || !expiry) {
-      return false;
-    }
-    
-    const expiryTime = parseInt(expiry);
-    const isValid = Date.now() < expiryTime;
-    
-    return isValid;
-  };
-
-  // Initialize download state based on user type and payment status
-  const initializeDownloadState = (userId?: string, isAnonymous?: boolean, userEmail?: string, worksheetId?: string) => {
-    if (isInitialized) {
-      return; // Prevent re-initialization
-    }
-
-    const userType = determineUserType(userId, isAnonymous, userEmail);
-    console.log('🚀 Initializing download state for user type:', userType);
-
-    switch (userType) {
-      case 'authenticated':
-        console.log('✅ Authenticated user - auto-unlocking downloads');
-        setIsDownloadUnlocked(true);
-        // Create auto-unlock token for authenticated users
-        if (worksheetId) {
-          const autoToken = `token_${worksheetId}_${userId}_${Date.now()}`;
-          const expiryTime = Date.now() + (365 * 24 * 60 * 60 * 1000); // 1 year
-          sessionStorage.setItem('downloadToken', autoToken);
-          sessionStorage.setItem('downloadTokenExpiry', expiryTime.toString());
-          setDownloadStats({ downloads_count: 0, expires_at: new Date(expiryTime).toISOString() });
-        }
-        break;
-
-      case 'anonymous':
-        const hasValidToken = hasValidDownloadToken();
-        if (hasValidToken) {
-          console.log('💰 Anonymous user has valid payment token - unlocking downloads');
-          setIsDownloadUnlocked(true);
-          checkDownloadStatus();
-        } else {
-          console.log('🔒 Anonymous user without payment - downloads locked');
-          setIsDownloadUnlocked(false);
-          clearSessionStorage();
-        }
-        break;
-
-      case 'unknown':
-        console.log('❓ Unknown user type - downloads locked');
-        setIsDownloadUnlocked(false);
-        clearSessionStorage();
-        break;
-    }
-
-    setIsInitialized(true);
-  };
-
-  const clearSessionStorage = () => {
-    sessionStorage.removeItem('downloadToken');
-    sessionStorage.removeItem('downloadTokenExpiry');
-    setDownloadStats(null);
-  };
 
   const checkDownloadStatus = async () => {
     const token = sessionStorage.getItem('downloadToken');
     const expiry = sessionStorage.getItem('downloadTokenExpiry');
+    
+    console.log('Checking download status with token:', token);
     
     if (token && expiry) {
       const expiryTime = parseInt(expiry);
@@ -163,20 +40,23 @@ export function useDownloadStatus() {
           // Get download stats
           const stats = await downloadSessionService.getSessionStats(token);
           setDownloadStats(stats);
+          console.log('Download unlocked with stats:', stats);
         } else {
           // Session expired in database, clean up
-          clearSessionStorage();
+          sessionStorage.removeItem('downloadToken');
+          sessionStorage.removeItem('downloadTokenExpiry');
           setIsDownloadUnlocked(false);
         }
       } else {
-        clearSessionStorage();
+        sessionStorage.removeItem('downloadToken');
+        sessionStorage.removeItem('downloadTokenExpiry');
         setIsDownloadUnlocked(false);
       }
     }
   };
 
   const handleDownloadUnlock = async (token: string) => {
-    console.log('💳 Processing payment unlock with token:', token.substring(0, 20) + '...');
+    console.log('Unlocking downloads with token:', token);
     setIsDownloadUnlocked(true);
     
     // Create session in database if it doesn't exist
@@ -189,19 +69,21 @@ export function useDownloadStatus() {
     // Get updated stats
     const stats = await downloadSessionService.getSessionStats(token);
     setDownloadStats(stats);
-    console.log('✅ Download unlock completed');
+    console.log('Download unlock completed with stats:', stats);
   };
 
   const trackDownload = async () => {
     const token = sessionStorage.getItem('downloadToken');
+    console.log('Tracking download with token:', token);
     
     if (token) {
       const success = await downloadSessionService.incrementDownloadCount(token);
       if (success) {
-        console.log('📥 Download tracked successfully');
+        console.log('Download tracked successfully');
         // Update local stats
         const stats = await downloadSessionService.getSessionStats(token);
         setDownloadStats(stats);
+        console.log('Updated stats after download:', stats);
       } else {
         console.error('Failed to track download');
       }
@@ -210,9 +92,29 @@ export function useDownloadStatus() {
     }
   };
 
-  // Reset initialization flag when user changes
-  const resetInitialization = () => {
-    setIsInitialized(false);
+  // FIXED: Only auto-unlock for authenticated users with valid tokens/subscriptions
+  const checkTokenGeneratedWorksheet = (worksheetId: string, userId?: string) => {
+    // IMPORTANT: Only auto-unlock if user is authenticated AND has active subscription/tokens
+    // This prevents auto-unlocking for anonymous users who should pay $1
+    if (!userId) {
+      console.log('❌ No userId provided - anonymous user must pay for downloads');
+      return;
+    }
+    
+    if (worksheetId && worksheetId !== 'unknown') {
+      console.log('🔓 Auto-unlocking download for authenticated user with token-generated worksheet');
+      const autoToken = `token_${worksheetId}_${userId}_${Date.now()}`;
+      
+      // Set a long-lasting token for token-generated worksheets
+      const expiryTime = Date.now() + (365 * 24 * 60 * 60 * 1000); // 1 year
+      sessionStorage.setItem('downloadToken', autoToken);
+      sessionStorage.setItem('downloadTokenExpiry', expiryTime.toString());
+      
+      setIsDownloadUnlocked(true);
+      setDownloadStats({ downloads_count: 0, expires_at: new Date(expiryTime).toISOString() });
+      
+      console.log('✅ Auto-unlock completed for authenticated user with token-generated worksheet');
+    }
   };
 
   return {
@@ -221,10 +123,6 @@ export function useDownloadStatus() {
     downloadStats,
     handleDownloadUnlock,
     trackDownload,
-    determineUserType,
-    initializeDownloadState,
-    hasValidDownloadToken,
-    resetInitialization,
-    isInitialized
+    checkTokenGeneratedWorksheet
   };
 }

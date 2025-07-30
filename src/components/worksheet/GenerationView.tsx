@@ -4,7 +4,6 @@ import WorksheetDisplay from "@/components/WorksheetDisplay";
 import { submitFeedback } from "@/services/worksheetService";
 import { useToast } from "@/hooks/use-toast";
 import { useStudents } from "@/hooks/useStudents";
-import { useAuthFlow } from "@/hooks/useAuthFlow";
 
 interface GenerationViewProps {
   worksheetId: string | null;
@@ -31,7 +30,6 @@ export default function GenerationView({
 }: GenerationViewProps) {
   const { toast } = useToast();
   const { students } = useStudents();
-  const { isAnonymous } = useAuthFlow();
 
   // Find student name if studentId is provided in inputParams
   const studentName = inputParams?.studentId 
