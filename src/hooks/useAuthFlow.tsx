@@ -15,22 +15,89 @@ export function useAuthFlow() {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state change:', event, session?.user?.is_anonymous);
+      console.log('🔍 Auth details:', {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userEmail: session?.user?.email,
+        isAnonymousFlag: session?.user?.is_anonymous,
+        userId: session?.user?.id
+      });
+      
       setSession(session);
       setUser(session?.user ?? null);
-      setIsAnonymous(session?.user?.is_anonymous === true);
+      
+      // Improved anonymous detection
+      const isUserAnonymous = determineIfAnonymous(session);
+      console.log('🔍 User determined as anonymous:', isUserAnonymous);
+      setIsAnonymous(isUserAnonymous);
       setLoading(false);
     });
 
     // Check for existing session without creating anonymous account
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('🔍 Initial session check:', {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userEmail: session?.user?.email,
+        isAnonymousFlag: session?.user?.is_anonymous,
+        userId: session?.user?.id
+      });
+      
       setSession(session);
       setUser(session?.user ?? null);
-      setIsAnonymous(session?.user?.is_anonymous === true);
+      
+      const isUserAnonymous = determineIfAnonymous(session);
+      console.log('🔍 Initial user determined as anonymous:', isUserAnonymous);
+      setIsAnonymous(isUserAnonymous);
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Helper function to determine if user is anonymous
+  const determineIfAnonymous = (session: Session | null): boolean => {
+    if (!session || !session.user) {
+      return true; // No session = anonymous
+    }
+    
+    const user = session.user;
+    
+    // Check if explicitly marked as anonymous
+    if (user.is_anonymous === true) {
+      return true;
+    }
+    
+    // Check if user has a real email
+    if (!user.email || user.email.trim() === '') {
+      return true;
+    }
+    
+    // Check for anonymous email patterns
+    const anonymousEmailPatterns = [
+      /^anonymous/i,
+      /^guest/i,
+      /^temp/i,
+      /@anonymous\./i,
+      /@temp\./i
+    ];
+    
+    const hasAnonymousEmail = anonymousEmailPatterns.some(pattern => 
+      pattern.test(user.email || '')
+    );
+    
+    if (hasAnonymousEmail) {
+      return true;
+    }
+    
+    // If is_anonymous is explicitly false and user has real email, treat as authenticated
+    if (user.is_anonymous === false && user.email) {
+      return false;
+    }
+    
+    // Default to anonymous for safety if unclear
+    return true;
+  };
 
   const signInAnonymously = async () => {
     try {

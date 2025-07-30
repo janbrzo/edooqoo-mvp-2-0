@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDownloadTracking } from "@/hooks/useDownloadTracking";
@@ -83,8 +82,7 @@ export default function WorksheetDisplay({
     trackDownload, 
     initializeDownloadState,
     resetInitialization,
-    isInitialized,
-    determineUserType
+    isInitialized
   } = useDownloadStatus();
   const isMobile = useIsMobile();
   const { trackDownloadAttempt } = useDownloadTracking(userId);
@@ -98,14 +96,18 @@ export default function WorksheetDisplay({
   // Download state initialization useEffect - runs when auth data changes
   useEffect(() => {
     if (!isInitialized && user !== undefined) {
-      const userType = determineUserType(userId, isAnonymous);
-      console.log('🔄 Auth state changed - User type:', userType, 'UserId:', userId, 'IsAnonymous:', isAnonymous);
+      console.log('🔄 Auth state changed - User type check:', {
+        userId,
+        isAnonymous,
+        userEmail: user?.email,
+        hasUser: !!user
+      });
       
       // Reset and reinitialize when user changes
       resetInitialization();
-      initializeDownloadState(userId, isAnonymous, worksheetId || undefined);
+      initializeDownloadState(userId, isAnonymous, user?.email, worksheetId || undefined);
     }
-  }, [user, userId, isAnonymous, worksheetId, isInitialized, initializeDownloadState, resetInitialization, determineUserType]);
+  }, [user, userId, isAnonymous, worksheetId, isInitialized, initializeDownloadState, resetInitialization]);
 
   // Styles useEffect - runs only once
   useEffect(() => {

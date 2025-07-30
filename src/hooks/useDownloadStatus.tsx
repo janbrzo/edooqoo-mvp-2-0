@@ -26,15 +26,55 @@ export function useDownloadStatus() {
     fetchUserIp();
   }, []);
 
-  // Determine user type based on session data
-  const determineUserType = (userId?: string, isAnonymous?: boolean): UserType => {
+  // Improved user type determination with better logging
+  const determineUserType = (userId?: string, isAnonymous?: boolean, userEmail?: string): UserType => {
+    console.log('🔍 Determining user type with params:', {
+      userId,
+      isAnonymous,
+      userEmail,
+      hasUserId: !!userId,
+      hasEmail: !!userEmail
+    });
+
+    // If no userId at all, it's unknown
     if (!userId) {
+      console.log('❓ No userId provided - returning unknown');
       return 'unknown';
     }
+    
+    // If explicitly marked as anonymous, it's anonymous
     if (isAnonymous === true) {
+      console.log('👤 User explicitly marked as anonymous');
       return 'anonymous';
     }
-    return 'authenticated';
+    
+    // If isAnonymous is false AND user has real email, it's authenticated
+    if (isAnonymous === false && userEmail && userEmail.trim() !== '') {
+      // Check for anonymous email patterns
+      const anonymousEmailPatterns = [
+        /^anonymous/i,
+        /^guest/i,
+        /^temp/i,
+        /@anonymous\./i,
+        /@temp\./i
+      ];
+      
+      const hasAnonymousEmail = anonymousEmailPatterns.some(pattern => 
+        pattern.test(userEmail)
+      );
+      
+      if (hasAnonymousEmail) {
+        console.log('👤 User has anonymous email pattern - treating as anonymous');
+        return 'anonymous';
+      }
+      
+      console.log('✅ User has real email and not marked anonymous - authenticated');
+      return 'authenticated';
+    }
+    
+    // Default to anonymous for safety - this is the key change
+    console.log('👤 Unclear case - defaulting to anonymous for safety');
+    return 'anonymous';
   };
 
   // Check if user has a valid download token in sessionStorage
@@ -53,12 +93,12 @@ export function useDownloadStatus() {
   };
 
   // Initialize download state based on user type and payment status
-  const initializeDownloadState = (userId?: string, isAnonymous?: boolean, worksheetId?: string) => {
+  const initializeDownloadState = (userId?: string, isAnonymous?: boolean, userEmail?: string, worksheetId?: string) => {
     if (isInitialized) {
       return; // Prevent re-initialization
     }
 
-    const userType = determineUserType(userId, isAnonymous);
+    const userType = determineUserType(userId, isAnonymous, userEmail);
     console.log('🚀 Initializing download state for user type:', userType);
 
     switch (userType) {
