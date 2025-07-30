@@ -107,12 +107,6 @@ export function useAuthFlow() {
       return false;
     }
     
-    // If we get here, something is unclear - be defensive but check email again
-    if (user.email && !hasAnonymousEmail) {
-      console.log('⚠️ Unclear case but user has real email - returning authenticated (false)');
-      return false;
-    }
-    
     // Final fallback to anonymous
     console.log('❓ Final fallback - returning anonymous');
     return true;

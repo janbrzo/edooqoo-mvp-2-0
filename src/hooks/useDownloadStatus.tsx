@@ -71,9 +71,9 @@ export function useDownloadStatus() {
       return 'authenticated';
     }
     
-    // If isAnonymous is true OR no real email, treat as anonymous
-    if (isAnonymous === true || !userEmail || userEmail.trim() === '') {
-      console.log('👤 User is anonymous or has no real email - anonymous');
+    // If no real email, treat as anonymous
+    if (!userEmail || userEmail.trim() === '') {
+      console.log('👤 User has no real email - anonymous');
       return 'anonymous';
     }
     
