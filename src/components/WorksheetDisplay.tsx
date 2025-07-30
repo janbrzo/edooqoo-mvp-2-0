@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDownloadTracking } from "@/hooks/useDownloadTracking";
@@ -78,7 +79,7 @@ export default function WorksheetDisplay({
   const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload, checkTokenGeneratedWorksheet, clearSessionForAnonymous } = useDownloadStatus();
   const isMobile = useIsMobile();
   const { trackDownloadAttempt } = useDownloadTracking(userId);
-  const { trackPaymentTracking } = usePaymentTracking(userId);
+  const { trackPaymentButtonClick } = usePaymentTracking(userId);
   
   useEffect(() => {
     validateWorksheetStructure();
