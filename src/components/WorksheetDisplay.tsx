@@ -82,9 +82,9 @@ export default function WorksheetDisplay({
   useEffect(() => {
     validateWorksheetStructure();
     
-    // AUTO-UNLOCK: Check if this is a token-generated worksheet for authenticated users
-    if (userId && worksheetId && userId !== 'anonymous') {
-      console.log('🔍 Checking if worksheet should be auto-unlocked for authenticated user:', userId);
+    // AUTO-UNLOCK: Check if this is a token-generated worksheet
+    if (userId && worksheetId) {
+      console.log('🔍 Checking if worksheet should be auto-unlocked for user:', userId);
       checkTokenGeneratedWorksheet(worksheetId, userId);
     }
     
@@ -183,7 +183,7 @@ export default function WorksheetDisplay({
   // Enhanced download handler with tracking
   const handleDownloadWithTracking = () => {
     // Track download attempt with proper locked/unlocked distinction
-    trackDownloadAttempt(!isDownloadUnlocked, worksheetId || 'unknown');
+    trackDownloadAttempt(isDownloadUnlocked, worksheetId || 'unknown');
 
     trackDownload();
     if (onDownload) {

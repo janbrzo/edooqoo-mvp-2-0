@@ -117,7 +117,7 @@ const Index = () => {
 
   // Navigation component for authenticated users
   const AuthenticatedNav = () => (
-    <div className="absolute top-4 right-4 z-50 flex items-center gap-4">
+    <div className="fixed top-4 right-4 z-50 flex items-center gap-4">
       <Badge variant="outline" className="text-sm">
         Token Left: {tokenLeft}
       </Badge>

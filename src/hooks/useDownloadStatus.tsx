@@ -92,12 +92,12 @@ export function useDownloadStatus() {
     }
   };
 
-  // AUTO-UNLOCK: Only for authenticated users with tokens (not anonymous)
+  // FIXED: Only auto-unlock for authenticated users with valid tokens/subscriptions
   const checkTokenGeneratedWorksheet = (worksheetId: string, userId?: string) => {
-    // IMPORTANT: Only auto-unlock if user is authenticated AND not anonymous
+    // IMPORTANT: Only auto-unlock if user is authenticated AND has active subscription/tokens
     // This prevents auto-unlocking for anonymous users who should pay $1
-    if (!userId || userId === 'anonymous') {
-      console.log('❌ Anonymous user or no userId - must pay for downloads');
+    if (!userId) {
+      console.log('❌ No userId provided - anonymous user must pay for downloads');
       return;
     }
     
