@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDownloadTracking } from "@/hooks/useDownloadTracking";
@@ -74,29 +75,40 @@ export default function WorksheetDisplay({
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
-  const { isAnonymous } = useAuthFlow();
-  const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload, checkTokenGeneratedWorksheet, clearSessionForAnonymous, hasValidDownloadToken } = useDownloadStatus();
+  const { user, isAnonymous } = useAuthFlow();
+  const { 
+    isDownloadUnlocked, 
+    userIp, 
+    handleDownloadUnlock, 
+    trackDownload, 
+    initializeDownloadState,
+    resetInitialization,
+    isInitialized,
+    determineUserType
+  } = useDownloadStatus();
   const isMobile = useIsMobile();
   const { trackDownloadAttempt } = useDownloadTracking(userId);
   const { trackPaymentButtonClick } = usePaymentTracking(userId);
   
+  // Validation useEffect - runs only once
   useEffect(() => {
     validateWorksheetStructure();
-    
-    // CRITICAL FIX: Only clear session for anonymous users if they don't have a valid download token
-    if (isAnonymous && !hasValidDownloadToken()) {
-      console.log('🧹 Anonymous user without valid token - clearing session');
-      clearSessionForAnonymous(isAnonymous);
-    } else if (isAnonymous) {
-      console.log('💰 Anonymous user has valid download token - keeping session');
+  }, []);
+
+  // Download state initialization useEffect - runs when auth data changes
+  useEffect(() => {
+    if (!isInitialized && user !== undefined) {
+      const userType = determineUserType(userId, isAnonymous);
+      console.log('🔄 Auth state changed - User type:', userType, 'UserId:', userId, 'IsAnonymous:', isAnonymous);
+      
+      // Reset and reinitialize when user changes
+      resetInitialization();
+      initializeDownloadState(userId, isAnonymous, worksheetId || undefined);
     }
-    
-    // AUTO-UNLOCK: Check if this is a token-generated worksheet (only for authenticated users)
-    if (userId && worksheetId) {
-      console.log('🔍 Checking if worksheet should be auto-unlocked for user:', userId);
-      checkTokenGeneratedWorksheet(worksheetId, userId, isAnonymous);
-    }
-    
+  }, [user, userId, isAnonymous, worksheetId, isInitialized, initializeDownloadState, resetInitialization, determineUserType]);
+
+  // Styles useEffect - runs only once
+  useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
       @media print {
@@ -155,7 +167,7 @@ export default function WorksheetDisplay({
     return () => {
       document.head.removeChild(style);
     };
-  }, [userId, worksheetId, isAnonymous, checkTokenGeneratedWorksheet, clearSessionForAnonymous, hasValidDownloadToken]);
+  }, []);
   
   const validateWorksheetStructure = () => {
     if (!worksheet) {

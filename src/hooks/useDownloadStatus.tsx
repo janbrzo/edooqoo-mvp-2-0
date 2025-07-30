@@ -2,10 +2,13 @@
 import { useState, useEffect } from "react";
 import { downloadSessionService } from "@/services/downloadSessionService";
 
+export type UserType = 'authenticated' | 'anonymous' | 'unknown';
+
 export function useDownloadStatus() {
   const [isDownloadUnlocked, setIsDownloadUnlocked] = useState(false);
   const [userIp, setUserIp] = useState<string | null>(null);
   const [downloadStats, setDownloadStats] = useState<{ downloads_count: number; expires_at: string } | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const fetchUserIp = async () => {
@@ -21,10 +24,20 @@ export function useDownloadStatus() {
     };
     
     fetchUserIp();
-    checkDownloadStatus();
   }, []);
 
-  // NEW: Check if user has a valid download token in sessionStorage
+  // Determine user type based on session data
+  const determineUserType = (userId?: string, isAnonymous?: boolean): UserType => {
+    if (!userId) {
+      return 'unknown';
+    }
+    if (isAnonymous === true) {
+      return 'anonymous';
+    }
+    return 'authenticated';
+  };
+
+  // Check if user has a valid download token in sessionStorage
   const hasValidDownloadToken = () => {
     const token = sessionStorage.getItem('downloadToken');
     const expiry = sessionStorage.getItem('downloadTokenExpiry');
@@ -36,15 +49,64 @@ export function useDownloadStatus() {
     const expiryTime = parseInt(expiry);
     const isValid = Date.now() < expiryTime;
     
-    console.log('🔍 Checking valid download token:', { token: token.substring(0, 20) + '...', isValid });
     return isValid;
+  };
+
+  // Initialize download state based on user type and payment status
+  const initializeDownloadState = (userId?: string, isAnonymous?: boolean, worksheetId?: string) => {
+    if (isInitialized) {
+      return; // Prevent re-initialization
+    }
+
+    const userType = determineUserType(userId, isAnonymous);
+    console.log('🚀 Initializing download state for user type:', userType);
+
+    switch (userType) {
+      case 'authenticated':
+        console.log('✅ Authenticated user - auto-unlocking downloads');
+        setIsDownloadUnlocked(true);
+        // Create auto-unlock token for authenticated users
+        if (worksheetId) {
+          const autoToken = `token_${worksheetId}_${userId}_${Date.now()}`;
+          const expiryTime = Date.now() + (365 * 24 * 60 * 60 * 1000); // 1 year
+          sessionStorage.setItem('downloadToken', autoToken);
+          sessionStorage.setItem('downloadTokenExpiry', expiryTime.toString());
+          setDownloadStats({ downloads_count: 0, expires_at: new Date(expiryTime).toISOString() });
+        }
+        break;
+
+      case 'anonymous':
+        const hasValidToken = hasValidDownloadToken();
+        if (hasValidToken) {
+          console.log('💰 Anonymous user has valid payment token - unlocking downloads');
+          setIsDownloadUnlocked(true);
+          checkDownloadStatus();
+        } else {
+          console.log('🔒 Anonymous user without payment - downloads locked');
+          setIsDownloadUnlocked(false);
+          clearSessionStorage();
+        }
+        break;
+
+      case 'unknown':
+        console.log('❓ Unknown user type - downloads locked');
+        setIsDownloadUnlocked(false);
+        clearSessionStorage();
+        break;
+    }
+
+    setIsInitialized(true);
+  };
+
+  const clearSessionStorage = () => {
+    sessionStorage.removeItem('downloadToken');
+    sessionStorage.removeItem('downloadTokenExpiry');
+    setDownloadStats(null);
   };
 
   const checkDownloadStatus = async () => {
     const token = sessionStorage.getItem('downloadToken');
     const expiry = sessionStorage.getItem('downloadTokenExpiry');
-    
-    console.log('Checking download status with token:', token);
     
     if (token && expiry) {
       const expiryTime = parseInt(expiry);
@@ -56,23 +118,20 @@ export function useDownloadStatus() {
           // Get download stats
           const stats = await downloadSessionService.getSessionStats(token);
           setDownloadStats(stats);
-          console.log('Download unlocked with stats:', stats);
         } else {
           // Session expired in database, clean up
-          sessionStorage.removeItem('downloadToken');
-          sessionStorage.removeItem('downloadTokenExpiry');
+          clearSessionStorage();
           setIsDownloadUnlocked(false);
         }
       } else {
-        sessionStorage.removeItem('downloadToken');
-        sessionStorage.removeItem('downloadTokenExpiry');
+        clearSessionStorage();
         setIsDownloadUnlocked(false);
       }
     }
   };
 
   const handleDownloadUnlock = async (token: string) => {
-    console.log('Unlocking downloads with token:', token);
+    console.log('💳 Processing payment unlock with token:', token.substring(0, 20) + '...');
     setIsDownloadUnlocked(true);
     
     // Create session in database if it doesn't exist
@@ -85,21 +144,19 @@ export function useDownloadStatus() {
     // Get updated stats
     const stats = await downloadSessionService.getSessionStats(token);
     setDownloadStats(stats);
-    console.log('Download unlock completed with stats:', stats);
+    console.log('✅ Download unlock completed');
   };
 
   const trackDownload = async () => {
     const token = sessionStorage.getItem('downloadToken');
-    console.log('Tracking download with token:', token);
     
     if (token) {
       const success = await downloadSessionService.incrementDownloadCount(token);
       if (success) {
-        console.log('Download tracked successfully');
+        console.log('📥 Download tracked successfully');
         // Update local stats
         const stats = await downloadSessionService.getSessionStats(token);
         setDownloadStats(stats);
-        console.log('Updated stats after download:', stats);
       } else {
         console.error('Failed to track download');
       }
@@ -108,45 +165,9 @@ export function useDownloadStatus() {
     }
   };
 
-  // UPDATED: Clear session storage for anonymous users using isAnonymous flag
-  const clearSessionForAnonymous = (isAnonymous: boolean) => {
-    if (isAnonymous) {
-      console.log('🧹 Clearing sessionStorage for anonymous user');
-      sessionStorage.removeItem('downloadToken');
-      sessionStorage.removeItem('downloadTokenExpiry');
-      setIsDownloadUnlocked(false);
-      setDownloadStats(null);
-      console.log('✅ Anonymous user session cleared - downloads locked');
-    }
-  };
-
-  // UPDATED: Only auto-unlock for authenticated users (non-anonymous)
-  const checkTokenGeneratedWorksheet = (worksheetId: string, userId?: string, isAnonymous?: boolean) => {
-    // IMPORTANT: Only auto-unlock if user is authenticated (not anonymous)
-    if (isAnonymous) {
-      console.log('❌ Anonymous user - must pay for downloads');
-      return;
-    }
-    
-    if (!userId) {
-      console.log('❌ No userId - cannot auto-unlock');
-      return;
-    }
-    
-    if (worksheetId && worksheetId !== 'unknown') {
-      console.log('🔓 Auto-unlocking download for authenticated user with token-generated worksheet');
-      const autoToken = `token_${worksheetId}_${userId}_${Date.now()}`;
-      
-      // Set a long-lasting token for token-generated worksheets
-      const expiryTime = Date.now() + (365 * 24 * 60 * 60 * 1000); // 1 year
-      sessionStorage.setItem('downloadToken', autoToken);
-      sessionStorage.setItem('downloadTokenExpiry', expiryTime.toString());
-      
-      setIsDownloadUnlocked(true);
-      setDownloadStats({ downloads_count: 0, expires_at: new Date(expiryTime).toISOString() });
-      
-      console.log('✅ Auto-unlock completed for authenticated user with token-generated worksheet');
-    }
+  // Reset initialization flag when user changes
+  const resetInitialization = () => {
+    setIsInitialized(false);
   };
 
   return {
@@ -155,8 +176,10 @@ export function useDownloadStatus() {
     downloadStats,
     handleDownloadUnlock,
     trackDownload,
-    checkTokenGeneratedWorksheet,
-    clearSessionForAnonymous,
-    hasValidDownloadToken
+    determineUserType,
+    initializeDownloadState,
+    hasValidDownloadToken,
+    resetInitialization,
+    isInitialized
   };
 }
