@@ -73,13 +73,19 @@ export default function WorksheetDisplay({
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
-  const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload } = useDownloadStatus();
+  const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload, checkTokenGeneratedWorksheet } = useDownloadStatus();
   const isMobile = useIsMobile();
   const { trackDownloadAttempt } = useDownloadTracking(userId);
-  const { trackPaymentButtonClick } = usePaymentTracking(userId);
+  const { trackPaymentTracking } = usePaymentTracking(userId);
   
   useEffect(() => {
     validateWorksheetStructure();
+    
+    // AUTO-UNLOCK: Check if this is a token-generated worksheet for authenticated users
+    if (userId && worksheetId && userId !== 'anonymous') {
+      console.log('🔍 Checking if worksheet should be auto-unlocked for authenticated user:', userId);
+      checkTokenGeneratedWorksheet(worksheetId, userId);
+    }
     
     const style = document.createElement('style');
     style.textContent = `
@@ -139,7 +145,7 @@ export default function WorksheetDisplay({
     return () => {
       document.head.removeChild(style);
     };
-  }, []);
+  }, [userId, worksheetId, checkTokenGeneratedWorksheet]);
   
   const validateWorksheetStructure = () => {
     if (!worksheet) {

@@ -92,11 +92,37 @@ export function useDownloadStatus() {
     }
   };
 
+  // AUTO-UNLOCK: Only for authenticated users with tokens (not anonymous)
+  const checkTokenGeneratedWorksheet = (worksheetId: string, userId?: string) => {
+    // IMPORTANT: Only auto-unlock if user is authenticated AND not anonymous
+    // This prevents auto-unlocking for anonymous users who should pay $1
+    if (!userId || userId === 'anonymous') {
+      console.log('❌ Anonymous user or no userId - must pay for downloads');
+      return;
+    }
+    
+    if (worksheetId && worksheetId !== 'unknown') {
+      console.log('🔓 Auto-unlocking download for authenticated user with token-generated worksheet');
+      const autoToken = `token_${worksheetId}_${userId}_${Date.now()}`;
+      
+      // Set a long-lasting token for token-generated worksheets
+      const expiryTime = Date.now() + (365 * 24 * 60 * 60 * 1000); // 1 year
+      sessionStorage.setItem('downloadToken', autoToken);
+      sessionStorage.setItem('downloadTokenExpiry', expiryTime.toString());
+      
+      setIsDownloadUnlocked(true);
+      setDownloadStats({ downloads_count: 0, expires_at: new Date(expiryTime).toISOString() });
+      
+      console.log('✅ Auto-unlock completed for authenticated user with token-generated worksheet');
+    }
+  };
+
   return {
     isDownloadUnlocked,
     userIp,
     downloadStats,
     handleDownloadUnlock,
-    trackDownload
+    trackDownload,
+    checkTokenGeneratedWorksheet
   };
 }
