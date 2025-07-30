@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { downloadSessionService } from "@/services/downloadSessionService";
 
@@ -91,6 +92,18 @@ export function useDownloadStatus() {
     }
   };
 
+  // NEW: Clear session storage for anonymous users
+  const clearSessionForAnonymous = (userId?: string) => {
+    if (userId === 'anonymous') {
+      console.log('🧹 Clearing sessionStorage for anonymous user');
+      sessionStorage.removeItem('downloadToken');
+      sessionStorage.removeItem('downloadTokenExpiry');
+      setIsDownloadUnlocked(false);
+      setDownloadStats(null);
+      console.log('✅ Anonymous user session cleared - downloads locked');
+    }
+  };
+
   // FIXED: Only auto-unlock for authenticated users with valid tokens/subscriptions
   const checkTokenGeneratedWorksheet = (worksheetId: string, userId?: string) => {
     // IMPORTANT: Only auto-unlock if user is authenticated AND has active subscription/tokens
@@ -122,6 +135,7 @@ export function useDownloadStatus() {
     downloadStats,
     handleDownloadUnlock,
     trackDownload,
-    checkTokenGeneratedWorksheet
+    checkTokenGeneratedWorksheet,
+    clearSessionForAnonymous
   };
 }

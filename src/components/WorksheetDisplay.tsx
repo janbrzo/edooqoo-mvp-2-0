@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDownloadTracking } from "@/hooks/useDownloadTracking";
@@ -74,7 +73,7 @@ export default function WorksheetDisplay({
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
-  const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload, checkTokenGeneratedWorksheet } = useDownloadStatus();
+  const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload, checkTokenGeneratedWorksheet, clearSessionForAnonymous } = useDownloadStatus();
   const isMobile = useIsMobile();
   const { trackDownloadAttempt } = useDownloadTracking(userId);
   const { trackPaymentButtonClick } = usePaymentTracking(userId);
@@ -82,7 +81,10 @@ export default function WorksheetDisplay({
   useEffect(() => {
     validateWorksheetStructure();
     
-    // AUTO-UNLOCK: Check if this is a token-generated worksheet
+    // CRITICAL FIX: Clear session for anonymous users FIRST
+    clearSessionForAnonymous(userId);
+    
+    // AUTO-UNLOCK: Check if this is a token-generated worksheet (only for authenticated users now)
     if (userId && worksheetId) {
       console.log('🔍 Checking if worksheet should be auto-unlocked for user:', userId);
       checkTokenGeneratedWorksheet(worksheetId, userId);
@@ -146,7 +148,7 @@ export default function WorksheetDisplay({
     return () => {
       document.head.removeChild(style);
     };
-  }, [userId, worksheetId, checkTokenGeneratedWorksheet]);
+  }, [userId, worksheetId, checkTokenGeneratedWorksheet, clearSessionForAnonymous]);
   
   const validateWorksheetStructure = () => {
     if (!worksheet) {
