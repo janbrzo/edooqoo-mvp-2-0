@@ -24,6 +24,22 @@ export function useDownloadStatus() {
     checkDownloadStatus();
   }, []);
 
+  // NEW: Check if user has a valid download token in sessionStorage
+  const hasValidDownloadToken = () => {
+    const token = sessionStorage.getItem('downloadToken');
+    const expiry = sessionStorage.getItem('downloadTokenExpiry');
+    
+    if (!token || !expiry) {
+      return false;
+    }
+    
+    const expiryTime = parseInt(expiry);
+    const isValid = Date.now() < expiryTime;
+    
+    console.log('🔍 Checking valid download token:', { token: token.substring(0, 20) + '...', isValid });
+    return isValid;
+  };
+
   const checkDownloadStatus = async () => {
     const token = sessionStorage.getItem('downloadToken');
     const expiry = sessionStorage.getItem('downloadTokenExpiry');
@@ -140,6 +156,7 @@ export function useDownloadStatus() {
     handleDownloadUnlock,
     trackDownload,
     checkTokenGeneratedWorksheet,
-    clearSessionForAnonymous
+    clearSessionForAnonymous,
+    hasValidDownloadToken
   };
 }

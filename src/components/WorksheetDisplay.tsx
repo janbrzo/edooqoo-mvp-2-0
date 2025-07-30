@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDownloadTracking } from "@/hooks/useDownloadTracking";
@@ -76,7 +75,7 @@ export default function WorksheetDisplay({
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
   const { isAnonymous } = useAuthFlow();
-  const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload, checkTokenGeneratedWorksheet, clearSessionForAnonymous } = useDownloadStatus();
+  const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload, checkTokenGeneratedWorksheet, clearSessionForAnonymous, hasValidDownloadToken } = useDownloadStatus();
   const isMobile = useIsMobile();
   const { trackDownloadAttempt } = useDownloadTracking(userId);
   const { trackPaymentButtonClick } = usePaymentTracking(userId);
@@ -84,8 +83,13 @@ export default function WorksheetDisplay({
   useEffect(() => {
     validateWorksheetStructure();
     
-    // CRITICAL FIX: Clear session for anonymous users FIRST
-    clearSessionForAnonymous(isAnonymous);
+    // CRITICAL FIX: Only clear session for anonymous users if they don't have a valid download token
+    if (isAnonymous && !hasValidDownloadToken()) {
+      console.log('🧹 Anonymous user without valid token - clearing session');
+      clearSessionForAnonymous(isAnonymous);
+    } else if (isAnonymous) {
+      console.log('💰 Anonymous user has valid download token - keeping session');
+    }
     
     // AUTO-UNLOCK: Check if this is a token-generated worksheet (only for authenticated users)
     if (userId && worksheetId) {
@@ -151,7 +155,7 @@ export default function WorksheetDisplay({
     return () => {
       document.head.removeChild(style);
     };
-  }, [userId, worksheetId, isAnonymous, checkTokenGeneratedWorksheet, clearSessionForAnonymous]);
+  }, [userId, worksheetId, isAnonymous, checkTokenGeneratedWorksheet, clearSessionForAnonymous, hasValidDownloadToken]);
   
   const validateWorksheetStructure = () => {
     if (!worksheet) {
