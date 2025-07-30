@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDownloadTracking } from "@/hooks/useDownloadTracking";
 import { usePaymentTracking } from "@/hooks/usePaymentTracking";
+import { useAuthFlow } from "@/hooks/useAuthFlow";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
 import InputParamsCard from "./worksheet/InputParamsCard";
 import WorksheetToolbar from "./worksheet/WorksheetToolbar";
@@ -73,21 +74,22 @@ export default function WorksheetDisplay({
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
+  const { isAnonymous } = useAuthFlow();
   const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload, checkTokenGeneratedWorksheet, clearSessionForAnonymous } = useDownloadStatus();
   const isMobile = useIsMobile();
   const { trackDownloadAttempt } = useDownloadTracking(userId);
-  const { trackPaymentButtonClick } = usePaymentTracking(userId);
+  const { trackPaymentTracking } = usePaymentTracking(userId);
   
   useEffect(() => {
     validateWorksheetStructure();
     
     // CRITICAL FIX: Clear session for anonymous users FIRST
-    clearSessionForAnonymous(userId);
+    clearSessionForAnonymous(isAnonymous);
     
-    // AUTO-UNLOCK: Check if this is a token-generated worksheet (only for authenticated users now)
+    // AUTO-UNLOCK: Check if this is a token-generated worksheet (only for authenticated users)
     if (userId && worksheetId) {
       console.log('🔍 Checking if worksheet should be auto-unlocked for user:', userId);
-      checkTokenGeneratedWorksheet(worksheetId, userId);
+      checkTokenGeneratedWorksheet(worksheetId, userId, isAnonymous);
     }
     
     const style = document.createElement('style');
@@ -148,7 +150,7 @@ export default function WorksheetDisplay({
     return () => {
       document.head.removeChild(style);
     };
-  }, [userId, worksheetId, checkTokenGeneratedWorksheet, clearSessionForAnonymous]);
+  }, [userId, worksheetId, isAnonymous, checkTokenGeneratedWorksheet, clearSessionForAnonymous]);
   
   const validateWorksheetStructure = () => {
     if (!worksheet) {

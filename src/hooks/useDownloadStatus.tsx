@@ -92,9 +92,9 @@ export function useDownloadStatus() {
     }
   };
 
-  // NEW: Clear session storage for anonymous users
-  const clearSessionForAnonymous = (userId?: string) => {
-    if (userId === 'anonymous') {
+  // UPDATED: Clear session storage for anonymous users using isAnonymous flag
+  const clearSessionForAnonymous = (isAnonymous: boolean) => {
+    if (isAnonymous) {
       console.log('🧹 Clearing sessionStorage for anonymous user');
       sessionStorage.removeItem('downloadToken');
       sessionStorage.removeItem('downloadTokenExpiry');
@@ -104,12 +104,16 @@ export function useDownloadStatus() {
     }
   };
 
-  // FIXED: Only auto-unlock for authenticated users with valid tokens/subscriptions
-  const checkTokenGeneratedWorksheet = (worksheetId: string, userId?: string) => {
-    // IMPORTANT: Only auto-unlock if user is authenticated AND has active subscription/tokens
-    // This prevents auto-unlocking for anonymous users who should pay $1
-    if (!userId || userId === 'anonymous') {
-      console.log('❌ Anonymous user or no userId - must pay for downloads');
+  // UPDATED: Only auto-unlock for authenticated users (non-anonymous)
+  const checkTokenGeneratedWorksheet = (worksheetId: string, userId?: string, isAnonymous?: boolean) => {
+    // IMPORTANT: Only auto-unlock if user is authenticated (not anonymous)
+    if (isAnonymous) {
+      console.log('❌ Anonymous user - must pay for downloads');
+      return;
+    }
+    
+    if (!userId) {
+      console.log('❌ No userId - cannot auto-unlock');
       return;
     }
     
