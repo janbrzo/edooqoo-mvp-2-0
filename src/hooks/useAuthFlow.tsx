@@ -26,7 +26,7 @@ export function useAuthFlow() {
       setSession(session);
       setUser(session?.user ?? null);
       
-      // Improved anonymous detection
+      // Improved anonymous detection - less restrictive for real users
       const isUserAnonymous = determineIfAnonymous(session);
       console.log('🔍 User determined as anonymous:', isUserAnonymous);
       setIsAnonymous(isUserAnonymous);
@@ -55,21 +55,31 @@ export function useAuthFlow() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Helper function to determine if user is anonymous
+  // Helper function to determine if user is anonymous - LESS RESTRICTIVE for real users
   const determineIfAnonymous = (session: Session | null): boolean => {
+    console.log('🧩 determineIfAnonymous called with:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userEmail: session?.user?.email,
+      isAnonymousFlag: session?.user?.is_anonymous
+    });
+
     if (!session || !session.user) {
+      console.log('❌ No session or user - returning anonymous');
       return true; // No session = anonymous
     }
     
     const user = session.user;
     
-    // Check if explicitly marked as anonymous
+    // If explicitly marked as anonymous, it's anonymous
     if (user.is_anonymous === true) {
+      console.log('✅ User explicitly marked as anonymous');
       return true;
     }
     
     // Check if user has a real email
     if (!user.email || user.email.trim() === '') {
+      console.log('❌ No email - returning anonymous');
       return true;
     }
     
@@ -87,15 +97,24 @@ export function useAuthFlow() {
     );
     
     if (hasAnonymousEmail) {
+      console.log('❌ Anonymous email pattern detected - returning anonymous');
       return true;
     }
     
-    // If is_anonymous is explicitly false and user has real email, treat as authenticated
-    if (user.is_anonymous === false && user.email) {
+    // MAIN CHANGE: If user has real email and is_anonymous is NOT true, treat as authenticated
+    if (user.email && user.is_anonymous !== true) {
+      console.log('✅ User has real email and is_anonymous !== true - returning authenticated (false)');
       return false;
     }
     
-    // Default to anonymous for safety if unclear
+    // If we get here, something is unclear - be defensive but check email again
+    if (user.email && !hasAnonymousEmail) {
+      console.log('⚠️ Unclear case but user has real email - returning authenticated (false)');
+      return false;
+    }
+    
+    // Final fallback to anonymous
+    console.log('❓ Final fallback - returning anonymous');
     return true;
   };
 

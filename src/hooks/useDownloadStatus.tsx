@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { downloadSessionService } from "@/services/downloadSessionService";
 
@@ -26,9 +25,9 @@ export function useDownloadStatus() {
     fetchUserIp();
   }, []);
 
-  // Improved user type determination with better logging
+  // Improved user type determination - synchronized with useAuthFlow logic
   const determineUserType = (userId?: string, isAnonymous?: boolean, userEmail?: string): UserType => {
-    console.log('🔍 Determining user type with params:', {
+    console.log('🔍 determineUserType called with:', {
       userId,
       isAnonymous,
       userEmail,
@@ -48,8 +47,8 @@ export function useDownloadStatus() {
       return 'anonymous';
     }
     
-    // If isAnonymous is false AND user has real email, it's authenticated
-    if (isAnonymous === false && userEmail && userEmail.trim() !== '') {
+    // MAIN CHANGE: If isAnonymous is false OR undefined, but user has real email, it's authenticated
+    if ((isAnonymous === false || isAnonymous === undefined) && userEmail && userEmail.trim() !== '') {
       // Check for anonymous email patterns
       const anonymousEmailPatterns = [
         /^anonymous/i,
@@ -68,11 +67,17 @@ export function useDownloadStatus() {
         return 'anonymous';
       }
       
-      console.log('✅ User has real email and not marked anonymous - authenticated');
+      console.log('✅ User has real email and not explicitly anonymous - authenticated');
       return 'authenticated';
     }
     
-    // Default to anonymous for safety - this is the key change
+    // If isAnonymous is true OR no real email, treat as anonymous
+    if (isAnonymous === true || !userEmail || userEmail.trim() === '') {
+      console.log('👤 User is anonymous or has no real email - anonymous');
+      return 'anonymous';
+    }
+    
+    // Final fallback - if unclear, be defensive and treat as anonymous
     console.log('👤 Unclear case - defaulting to anonymous for safety');
     return 'anonymous';
   };
