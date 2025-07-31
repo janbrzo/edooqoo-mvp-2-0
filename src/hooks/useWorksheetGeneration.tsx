@@ -86,18 +86,6 @@ export const useWorksheetGeneration = (
         }
       }
       
-      // Update student activity if studentId is provided
-      if (studentId) {
-        console.log('🔄 Updating student activity for:', studentId);
-        
-        // Dispatch custom event to notify other components about student update
-        window.dispatchEvent(new CustomEvent('studentUpdated', { 
-          detail: { studentId } 
-        }));
-        
-        console.log('🔄 StudentUpdated event dispatched for:', studentId);
-      }
-      
       console.log("✅ Generated worksheet data received:", {
         hasData: !!worksheetData,
         exerciseCount: worksheetData?.exercises?.length || 0,
@@ -217,6 +205,21 @@ export const useWorksheetGeneration = (
     } finally {
       console.log('🏁 Finishing generation process...');
       setIsGenerating(false);
+      
+      // MOVED HERE: Update student activity if studentId is provided - AT THE VERY END
+      if (studentId) {
+        console.log('🔄 FINAL STEP: Updating student activity for:', studentId);
+        
+        // Add a small delay to ensure the worksheet has been fully processed
+        setTimeout(() => {
+          // Dispatch custom event to notify other components about student update
+          window.dispatchEvent(new CustomEvent('studentUpdated', { 
+            detail: { studentId } 
+          }));
+          
+          console.log('🔄 StudentUpdated event dispatched AFTER generation completed for:', studentId);
+        }, 500);
+      }
     }
   };
 

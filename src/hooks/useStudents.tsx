@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { toast } from '@/hooks/use-toast';
@@ -10,8 +10,9 @@ export const useStudents = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
+      console.log('📚 Fetching students...');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setStudents([]);
@@ -27,6 +28,8 @@ export const useStudents = () => {
 
       if (error) throw error;
 
+      console.log('📚 Students fetched:', data?.length, 'students');
+      console.log('📚 Students order:', data?.map(s => ({ name: s.name, updated_at: s.updated_at })));
       setStudents(data || []);
     } catch (error: any) {
       console.error('Error fetching students:', error);
@@ -38,7 +41,7 @@ export const useStudents = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const addStudent = async (name: string, englishLevel: string, mainGoal: string) => {
     try {
@@ -111,9 +114,9 @@ export const useStudents = () => {
     }
   };
 
-  const updateStudentActivity = async (studentId: string) => {
+  const updateStudentActivity = useCallback(async (studentId: string) => {
     try {
-      console.log('Updating student activity for:', studentId);
+      console.log('🔄 UPDATING STUDENT ACTIVITY for:', studentId);
       
       const { data, error } = await supabase
         .from('students')
@@ -124,27 +127,32 @@ export const useStudents = () => {
 
       if (error) throw error;
       
-      console.log('Student activity updated:', data);
+      console.log('✅ Student activity updated successfully:', data);
       
-      // Immediately refetch to update the order
-      await fetchStudents();
+      // Wait a bit to ensure database is updated, then refetch
+      setTimeout(async () => {
+        console.log('🔄 Refetching students to update order...');
+        await fetchStudents();
+        console.log('✅ Students refetched after activity update');
+      }, 1000);
       
       return data;
     } catch (error: any) {
-      console.error('Error updating student activity:', error);
+      console.error('❌ Error updating student activity:', error);
       throw error;
     }
-  };
+  }, [fetchStudents]);
 
   useEffect(() => {
     fetchStudents();
     
     // Listen for student updates from worksheet generation
     const handleStudentUpdate = async (event: CustomEvent) => {
-      console.log('Received studentUpdated event:', event.detail);
+      console.log('🎯 RECEIVED studentUpdated event:', event.detail);
       const { studentId } = event.detail;
       
       if (studentId) {
+        console.log('🎯 Processing student update for:', studentId);
         await updateStudentActivity(studentId);
       }
     };
@@ -154,7 +162,7 @@ export const useStudents = () => {
     return () => {
       window.removeEventListener('studentUpdated', handleStudentUpdate as EventListener);
     };
-  }, []);
+  }, [fetchStudents, updateStudentActivity]);
 
   return {
     students,
