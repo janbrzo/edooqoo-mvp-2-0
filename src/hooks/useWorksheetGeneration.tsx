@@ -28,7 +28,8 @@ export const useWorksheetGeneration = (
     console.log('🔧 Form data received:', { 
       lessonTime: data.lessonTime, 
       grammarFocus: data.teachingPreferences,
-      hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim())
+      hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim()),
+      studentId
     });
 
     // Check token requirements for authenticated users
@@ -83,6 +84,18 @@ export const useWorksheetGeneration = (
         if (!tokenConsumed) {
           console.warn('⚠️ Failed to consume token, but worksheet was generated');
         }
+      }
+      
+      // Update student activity if studentId is provided
+      if (studentId) {
+        console.log('🔄 Updating student activity for:', studentId);
+        
+        // Dispatch custom event to notify other components about student update
+        window.dispatchEvent(new CustomEvent('studentUpdated', { 
+          detail: { studentId } 
+        }));
+        
+        console.log('🔄 StudentUpdated event dispatched for:', studentId);
       }
       
       console.log("✅ Generated worksheet data received:", {

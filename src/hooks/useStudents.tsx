@@ -23,8 +23,7 @@ export const useStudents = () => {
         .from('students')
         .select('*')
         .eq('teacher_id', user.id)
-        .order('updated_at', { ascending: false })
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
@@ -112,18 +111,48 @@ export const useStudents = () => {
     }
   };
 
+  const updateStudentActivity = async (studentId: string) => {
+    try {
+      console.log('Updating student activity for:', studentId);
+      
+      const { data, error } = await supabase
+        .from('students')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', studentId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      console.log('Student activity updated:', data);
+      
+      // Immediately refetch to update the order
+      await fetchStudents();
+      
+      return data;
+    } catch (error: any) {
+      console.error('Error updating student activity:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     fetchStudents();
     
     // Listen for student updates from worksheet generation
-    const handleStudentUpdate = () => {
-      fetchStudents();
+    const handleStudentUpdate = async (event: CustomEvent) => {
+      console.log('Received studentUpdated event:', event.detail);
+      const { studentId } = event.detail;
+      
+      if (studentId) {
+        await updateStudentActivity(studentId);
+      }
     };
     
-    window.addEventListener('studentUpdated', handleStudentUpdate);
+    window.addEventListener('studentUpdated', handleStudentUpdate as EventListener);
     
     return () => {
-      window.removeEventListener('studentUpdated', handleStudentUpdate);
+      window.removeEventListener('studentUpdated', handleStudentUpdate as EventListener);
     };
   }, []);
 
@@ -132,6 +161,7 @@ export const useStudents = () => {
     loading,
     addStudent,
     updateStudent,
+    updateStudentActivity,
     refetch: fetchStudents
   };
 };
