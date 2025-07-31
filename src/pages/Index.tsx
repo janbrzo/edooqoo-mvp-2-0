@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuthFlow } from "@/hooks/useAuthFlow";
@@ -117,7 +118,7 @@ const Index = () => {
 
   // Navigation component for authenticated users
   const AuthenticatedNav = () => (
-    <div className="fixed top-4 right-4 z-50 flex items-center gap-4">
+    <div className="absolute top-4 right-4 z-50 flex items-center gap-4">
       <Badge variant="outline" className="text-sm">
         Token Left: {tokenLeft}
       </Badge>
@@ -138,7 +139,7 @@ const Index = () => {
 
   // Navigation component for anonymous users
   const AnonymousNav = () => (
-    <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+    <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
       <Button asChild variant="outline" size="sm">
         <Link to="/login">Log in</Link>
       </Button>
@@ -149,7 +150,7 @@ const Index = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 relative">
       {/* Navigation based on auth status */}
       {isRegisteredUser ? <AuthenticatedNav /> : <AnonymousNav />}
       
