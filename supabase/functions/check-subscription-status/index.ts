@@ -107,39 +107,77 @@ serve(async (req) => {
     const subscription = bestSubscription;
     console.log('[CHECK-SUBSCRIPTION] Using subscription:', subscription.id, 'with amount:', bestAmount);
 
-    // Get subscription details
-    const amount = bestAmount;
-    
+    // IMPROVED PLAN RECOGNITION: Use metadata first, fallback to price
     let planType = 'unknown';
     let subscriptionType = 'Unknown Plan';
     let monthlyLimit = 0;
 
-    if (amount === 900) {
-      planType = 'side-gig';
-      subscriptionType = 'Side-Gig';
-      monthlyLimit = 15;
-    } else if (amount >= 1900) {
-      planType = 'full-time';
-      if (amount === 1900) {
-        monthlyLimit = 30;
+    // Check if subscription has metadata (new subscriptions will have this)
+    if (subscription.metadata?.plan_type && subscription.metadata?.monthly_limit) {
+      planType = subscription.metadata.plan_type;
+      monthlyLimit = parseInt(subscription.metadata.monthly_limit);
+      
+      if (planType === 'side-gig') {
+        subscriptionType = 'Side-Gig';
+      } else if (planType === 'full-time') {
+        subscriptionType = `Full-Time ${monthlyLimit}`;
+      }
+      
+      console.log('[CHECK-SUBSCRIPTION] Using metadata for plan detection:', { planType, monthlyLimit, subscriptionType });
+    } else {
+      // Fallback to price detection for older subscriptions
+      console.log('[CHECK-SUBSCRIPTION] No metadata found, using price fallback');
+      const amount = bestAmount;
+      
+      // Enhanced price recognition including upgrade prices
+      if (amount === 900) {
+        planType = 'side-gig';
+        subscriptionType = 'Side-Gig';
+        monthlyLimit = 15;
+      } else if (amount === 1000) { // $10 upgrade from side-gig to full-time 30
+        planType = 'full-time';
         subscriptionType = 'Full-Time 30';
-      } else if (amount === 3900) {
-        monthlyLimit = 60;
+        monthlyLimit = 30;
+      } else if (amount === 1900) {
+        planType = 'full-time';
+        subscriptionType = 'Full-Time 30';
+        monthlyLimit = 30;
+      } else if (amount === 2000) { // $20 upgrade from full-time 30 to 60
+        planType = 'full-time';
         subscriptionType = 'Full-Time 60';
+        monthlyLimit = 60;
+      } else if (amount === 3000) { // $30 upgrade from side-gig to full-time 60
+        planType = 'full-time';
+        subscriptionType = 'Full-Time 60';
+        monthlyLimit = 60;
+      } else if (amount === 3900) {
+        planType = 'full-time';
+        subscriptionType = 'Full-Time 60';
+        monthlyLimit = 60;
       } else if (amount === 5900) {
-        monthlyLimit = 90;
+        planType = 'full-time';
         subscriptionType = 'Full-Time 90';
+        monthlyLimit = 90;
       } else if (amount === 7900) {
-        monthlyLimit = 120;
+        planType = 'full-time';
         subscriptionType = 'Full-Time 120';
+        monthlyLimit = 120;
       } else {
-        // For custom amounts, try to determine from metadata or default to 30
-        monthlyLimit = 30;
-        subscriptionType = 'Full-Time 30';
+        // For unknown amounts, try to get info from product/price
+        try {
+          const price = await stripe.prices.retrieve(subscription.items.data[0].price.id);
+          if (price.metadata?.plan_type && price.metadata?.monthly_limit) {
+            planType = price.metadata.plan_type;
+            monthlyLimit = parseInt(price.metadata.monthly_limit);
+            subscriptionType = planType === 'side-gig' ? 'Side-Gig' : `Full-Time ${monthlyLimit}`;
+          }
+        } catch (e) {
+          console.log('[CHECK-SUBSCRIPTION] Could not retrieve price metadata:', e.message);
+        }
       }
     }
 
-    console.log('[CHECK-SUBSCRIPTION] Determined plan:', { planType, subscriptionType, monthlyLimit, amount });
+    console.log('[CHECK-SUBSCRIPTION] Determined plan:', { planType, subscriptionType, monthlyLimit, amount: bestAmount });
 
     // Use service role key to update data
     const supabaseService = createClient(
@@ -147,6 +185,34 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } }
     );
+
+    // Get current profile to check for token upgrade
+    const { data: currentProfile, error: profileFetchError } = await supabaseService
+      .from('profiles')
+      .select('subscription_type, token_balance, monthly_worksheet_limit')
+      .eq('id', user.id)
+      .single();
+
+    if (profileFetchError) {
+      console.error('[CHECK-SUBSCRIPTION] Error fetching current profile:', profileFetchError);
+    }
+
+    // Check if this is an upgrade and we need to add tokens
+    let shouldAddTokens = false;
+    let tokensToAdd = 0;
+
+    if (currentProfile && subscriptionType !== 'Unknown Plan') {
+      const currentType = currentProfile.subscription_type;
+      const currentLimit = currentProfile.monthly_worksheet_limit || 0;
+      
+      // Check if this is an upgrade (higher monthly limit)
+      if (monthlyLimit > currentLimit && currentType !== subscriptionType) {
+        // Calculate tokens to add (difference in monthly limits)
+        tokensToAdd = monthlyLimit - currentLimit;
+        shouldAddTokens = true;
+        console.log('[CHECK-SUBSCRIPTION] Upgrade detected, adding tokens:', { tokensToAdd, from: currentType, to: subscriptionType });
+      }
+    }
 
     // Update subscription record
     const { error: subError } = await supabaseService
@@ -170,20 +236,44 @@ serve(async (req) => {
       console.error('[CHECK-SUBSCRIPTION] Error updating subscription:', subError);
     }
 
-    // Update profile - bez dodawania tokenów, tylko synchronizacja danych
+    // Update profile with token addition if needed
+    const profileUpdate: any = {
+      subscription_type: subscriptionType,
+      subscription_status: subscription.status,
+      subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
+      monthly_worksheet_limit: monthlyLimit,
+      updated_at: new Date().toISOString()
+    };
+
+    // Add tokens if this is an upgrade
+    if (shouldAddTokens && tokensToAdd > 0) {
+      profileUpdate.token_balance = (currentProfile.token_balance || 0) + tokensToAdd;
+      console.log('[CHECK-SUBSCRIPTION] Adding tokens to profile:', { current: currentProfile.token_balance, adding: tokensToAdd, new: profileUpdate.token_balance });
+    }
+
     const { error: profileError } = await supabaseService
       .from('profiles')
-      .update({
-        subscription_type: subscriptionType,
-        subscription_status: subscription.status,
-        subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-        monthly_worksheet_limit: monthlyLimit,
-        updated_at: new Date().toISOString()
-      })
+      .update(profileUpdate)
       .eq('id', user.id);
 
     if (profileError) {
       console.error('[CHECK-SUBSCRIPTION] Error updating profile:', profileError);
+    }
+
+    // Log token transaction if tokens were added
+    if (shouldAddTokens && tokensToAdd > 0) {
+      const { error: tokenError } = await supabaseService
+        .from('token_transactions')
+        .insert({
+          teacher_id: user.id,
+          transaction_type: 'upgrade',
+          amount: tokensToAdd,
+          description: `Subscription upgrade to ${subscriptionType}`
+        });
+
+      if (tokenError) {
+        console.error('[CHECK-SUBSCRIPTION] Error logging token transaction:', tokenError);
+      }
     }
 
     console.log('[CHECK-SUBSCRIPTION] Successfully synced subscription data');
@@ -195,6 +285,7 @@ serve(async (req) => {
         subscription_status: subscription.status,
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         monthly_limit: monthlyLimit,
+        tokens_added: shouldAddTokens ? tokensToAdd : 0,
         message: 'Subscription status synchronized'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
