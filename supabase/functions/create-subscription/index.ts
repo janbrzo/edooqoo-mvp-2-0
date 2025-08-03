@@ -92,57 +92,25 @@ serve(async (req) => {
     const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://cdoyjgiyrfziejbrcvpx.supabase.co';
     logStep('Origin determined', { origin });
 
-    // Calculate proper pricing for the plan
-    const fullPlanPrices = {
-      'side-gig': 900, // $9
-      'full-time-30': 1900, // $19
-      'full-time-60': 3900, // $39
-      'full-time-90': 5900, // $59
-      'full-time-120': 7900, // $79
-    };
-
-    // Get the full price for the target plan
-    let fullPlanPrice = price * 100; // Default to provided price
-    if (planType === 'side-gig') {
-      fullPlanPrice = fullPlanPrices['side-gig'];
-    } else if (planType === 'full-time') {
-      const planKey = `full-time-${monthlyLimit}` as keyof typeof fullPlanPrices;
-      if (fullPlanPrices[planKey]) {
-        fullPlanPrice = fullPlanPrices[planKey];
-      }
-    }
-
-    logStep('Calculated pricing', { requestedPrice: price * 100, fullPlanPrice });
-
     // If there's an active subscription, update it (upgrade)
     if (existingSubscriptions.data.length > 0) {
       const existingSubscription = existingSubscriptions.data[0];
       logStep('Upgrading existing subscription', { subscriptionId: existingSubscription.id });
 
-      // Create new price for the upgraded plan with FULL PLAN PRICE
+      // Create new price for the upgraded plan
       const product = await stripe.products.create({
         name: planName,
         description: `${monthlyLimit} worksheets per month`,
-        metadata: {
-          plan_type: planType,
-          monthly_limit: monthlyLimit.toString(),
-        }
       });
 
       const newPrice = await stripe.prices.create({
         currency: 'usd',
         product: product.id,
-        unit_amount: fullPlanPrice, // Use FULL plan price, not upgrade difference
+        unit_amount: price * 100,
         recurring: {
           interval: 'month',
         },
-        metadata: {
-          plan_type: planType,
-          monthly_limit: monthlyLimit.toString(),
-        }
       });
-
-      logStep('Created new price for upgrade', { priceId: newPrice.id, amount: fullPlanPrice });
 
       // Update the subscription with the new price
       const updatedSubscription = await stripe.subscriptions.update(existingSubscription.id, {
@@ -157,11 +125,10 @@ serve(async (req) => {
           monthly_limit: monthlyLimit.toString(),
           is_upgrade: 'true',
           upgrade_tokens: upgradeTokens ? upgradeTokens.toString() : '0',
-          upgraded_at: new Date().toISOString(),
         },
       });
 
-      logStep('Subscription updated successfully', { subscriptionId: updatedSubscription.id, newPrice: fullPlanPrice });
+      logStep('Subscription updated successfully', { subscriptionId: updatedSubscription.id });
 
       // Cancel any additional duplicate subscriptions
       if (existingSubscriptions.data.length > 1) {
@@ -176,8 +143,7 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           message: 'Subscription upgraded successfully',
-          subscription_id: updatedSubscription.id,
-          full_price: fullPlanPrice / 100
+          subscription_id: updatedSubscription.id 
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -198,19 +164,11 @@ serve(async (req) => {
             product_data: {
               name: planName,
               description: `${monthlyLimit} worksheets per month`,
-              metadata: {
-                plan_type: planType,
-                monthly_limit: monthlyLimit.toString(),
-              }
             },
-            unit_amount: fullPlanPrice, // Use full plan price
+            unit_amount: price * 100,
             recurring: {
               interval: 'month',
             },
-            metadata: {
-              plan_type: planType,
-              monthly_limit: monthlyLimit.toString(),
-            }
           },
           quantity: 1,
         },
@@ -230,7 +188,7 @@ serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
 
-    logStep('Checkout session created', { sessionId: session.id, url: session.url, price: fullPlanPrice });
+    logStep('Checkout session created', { sessionId: session.id, url: session.url });
 
     return new Response(
       JSON.stringify({ url: session.url }),
