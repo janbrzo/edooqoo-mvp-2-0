@@ -80,80 +80,11 @@ serve(async (req) => {
       logStep('Created new customer', { customerId: customer.id });
     }
 
-    // Check for existing active subscriptions
-    const existingSubscriptions = await stripe.subscriptions.list({
-      customer: customer.id,
-      status: 'active',
-      limit: 10
-    });
-
-    logStep('Found existing subscriptions', { count: existingSubscriptions.data.length });
-
+    // Get the correct origin for redirect URLs
     const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://cdoyjgiyrfziejbrcvpx.supabase.co';
     logStep('Origin determined', { origin });
 
-    // If there's an active subscription, update it (upgrade)
-    if (existingSubscriptions.data.length > 0) {
-      const existingSubscription = existingSubscriptions.data[0];
-      logStep('Upgrading existing subscription', { subscriptionId: existingSubscription.id });
-
-      // Create new price for the upgraded plan
-      const product = await stripe.products.create({
-        name: planName,
-        description: `${monthlyLimit} worksheets per month`,
-      });
-
-      const newPrice = await stripe.prices.create({
-        currency: 'usd',
-        product: product.id,
-        unit_amount: price * 100,
-        recurring: {
-          interval: 'month',
-        },
-      });
-
-      // Update the subscription with the new price
-      const updatedSubscription = await stripe.subscriptions.update(existingSubscription.id, {
-        items: [{
-          id: existingSubscription.items.data[0].id,
-          price: newPrice.id,
-        }],
-        proration_behavior: 'create_prorations',
-        metadata: {
-          supabase_user_id: user.id,
-          plan_type: planType,
-          monthly_limit: monthlyLimit.toString(),
-          is_upgrade: 'true',
-          upgrade_tokens: upgradeTokens ? upgradeTokens.toString() : '0',
-        },
-      });
-
-      logStep('Subscription updated successfully', { subscriptionId: updatedSubscription.id });
-
-      // Cancel any additional duplicate subscriptions
-      if (existingSubscriptions.data.length > 1) {
-        logStep('Canceling duplicate subscriptions', { count: existingSubscriptions.data.length - 1 });
-        for (let i = 1; i < existingSubscriptions.data.length; i++) {
-          await stripe.subscriptions.cancel(existingSubscriptions.data[i].id);
-          logStep('Canceled duplicate subscription', { subscriptionId: existingSubscriptions.data[i].id });
-        }
-      }
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Subscription upgraded successfully',
-          subscription_id: updatedSubscription.id 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // No existing subscription - create new checkout session
-    logStep('Creating new subscription checkout session');
-
+    // Create checkout session configuration
     const sessionConfig: any = {
       customer: customer.id,
       payment_method_types: ['card'],
@@ -162,10 +93,12 @@ serve(async (req) => {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: planName,
-              description: `${monthlyLimit} worksheets per month`,
+              name: isUpgrade ? `${planName} (Upgrade)` : planName,
+              description: isUpgrade ? 
+                `Upgrade to ${monthlyLimit} worksheets per month (${upgradeTokens} additional tokens)` :
+                `${monthlyLimit} worksheets per month`,
             },
-            unit_amount: price * 100,
+            unit_amount: price * 100, // Convert to cents
             recurring: {
               interval: 'month',
             },
@@ -176,16 +109,20 @@ serve(async (req) => {
       mode: 'subscription',
       success_url: `${origin}/profile?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/profile?canceled=true`,
+      // Enable promotion codes directly in Stripe checkout
       allow_promotion_codes: true,
       metadata: {
         supabase_user_id: user.id,
         plan_type: planType,
         monthly_limit: monthlyLimit.toString(),
-        is_upgrade: 'false',
-        upgrade_tokens: '0',
+        is_upgrade: isUpgrade ? 'true' : 'false',
+        upgrade_tokens: upgradeTokens ? upgradeTokens.toString() : '0',
       },
     };
 
+    logStep('Checkout session configuration created with promotion codes enabled');
+
+    // Create checkout session
     const session = await stripe.checkout.sessions.create(sessionConfig);
 
     logStep('Checkout session created', { sessionId: session.id, url: session.url });

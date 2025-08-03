@@ -58,14 +58,12 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     console.log('[CHECK-SUBSCRIPTION] Found customer:', customerId);
 
-    // Get ALL active subscriptions (not just first one)
+    // Get active subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: 'active',
-      limit: 100, // Get all active subscriptions
+      limit: 1,
     });
-
-    console.log('[CHECK-SUBSCRIPTION] Found active subscriptions:', subscriptions.data.length);
 
     if (subscriptions.data.length === 0) {
       console.log('[CHECK-SUBSCRIPTION] No active subscriptions');
@@ -79,36 +77,12 @@ serve(async (req) => {
       );
     }
 
-    // If multiple active subscriptions, find the highest value one and cancel others
-    let bestSubscription = subscriptions.data[0];
-    let bestAmount = subscriptions.data[0].items.data[0].price.unit_amount || 0;
-
-    if (subscriptions.data.length > 1) {
-      console.log('[CHECK-SUBSCRIPTION] Multiple active subscriptions found, selecting highest and cleaning up');
-      
-      // Find the subscription with highest amount
-      for (let i = 1; i < subscriptions.data.length; i++) {
-        const currentAmount = subscriptions.data[i].items.data[0].price.unit_amount || 0;
-        if (currentAmount > bestAmount) {
-          bestSubscription = subscriptions.data[i];
-          bestAmount = currentAmount;
-        }
-      }
-
-      // Cancel all other subscriptions that are not the best one
-      for (const subscription of subscriptions.data) {
-        if (subscription.id !== bestSubscription.id) {
-          console.log('[CHECK-SUBSCRIPTION] Canceling duplicate subscription:', subscription.id);
-          await stripe.subscriptions.cancel(subscription.id);
-        }
-      }
-    }
-
-    const subscription = bestSubscription;
-    console.log('[CHECK-SUBSCRIPTION] Using subscription:', subscription.id, 'with amount:', bestAmount);
+    const subscription = subscriptions.data[0];
+    console.log('[CHECK-SUBSCRIPTION] Found active subscription:', subscription.id);
 
     // Get subscription details
-    const amount = bestAmount;
+    const priceId = subscription.items.data[0].price.id;
+    const amount = subscription.items.data[0].price.unit_amount || 0;
     
     let planType = 'unknown';
     let subscriptionType = 'Unknown Plan';
@@ -133,13 +107,10 @@ serve(async (req) => {
         monthlyLimit = 120;
         subscriptionType = 'Full-Time 120';
       } else {
-        // For custom amounts, try to determine from metadata or default to 30
         monthlyLimit = 30;
         subscriptionType = 'Full-Time 30';
       }
     }
-
-    console.log('[CHECK-SUBSCRIPTION] Determined plan:', { planType, subscriptionType, monthlyLimit, amount });
 
     // Use service role key to update data
     const supabaseService = createClient(
