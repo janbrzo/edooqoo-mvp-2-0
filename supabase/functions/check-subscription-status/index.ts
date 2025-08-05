@@ -67,6 +67,24 @@ serve(async (req) => {
 
     if (subscriptions.data.length === 0) {
       console.log('[CHECK-SUBSCRIPTION] No active subscriptions');
+      
+      // Use service role to freeze tokens if no active subscription
+      const supabaseService = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+        { auth: { persistSession: false } }
+      );
+
+      await supabaseService
+        .from('profiles')
+        .update({
+          subscription_type: 'Free Demo',
+          subscription_status: 'cancelled',
+          is_tokens_frozen: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
       return new Response(
         JSON.stringify({ 
           subscribed: false, 
@@ -81,7 +99,6 @@ serve(async (req) => {
     console.log('[CHECK-SUBSCRIPTION] Found active subscription:', subscription.id);
 
     // Get subscription details
-    const priceId = subscription.items.data[0].price.id;
     const amount = subscription.items.data[0].price.unit_amount || 0;
     
     let planType = 'unknown';
@@ -124,6 +141,7 @@ serve(async (req) => {
       .from('subscriptions')
       .upsert({
         teacher_id: user.id,
+        email: user.email,
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customerId,
         status: subscription.status,
@@ -141,7 +159,7 @@ serve(async (req) => {
       console.error('[CHECK-SUBSCRIPTION] Error updating subscription:', subError);
     }
 
-    // Update profile - bez dodawania tokenów, tylko synchronizacja danych
+    // Update profile - synchronize subscription data and unfreeze tokens
     const { error: profileError } = await supabaseService
       .from('profiles')
       .update({
@@ -149,6 +167,7 @@ serve(async (req) => {
         subscription_status: subscription.status,
         subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
         monthly_worksheet_limit: monthlyLimit,
+        is_tokens_frozen: false, // Unfreeze tokens for active subscription
         updated_at: new Date().toISOString()
       })
       .eq('id', user.id);
@@ -171,7 +190,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[CHECK-SUBSCRIPTION] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),

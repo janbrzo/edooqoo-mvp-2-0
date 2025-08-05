@@ -8,18 +8,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
 }
 
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('[STRIPE-WEBHOOK] Function started');
+    logStep('Function started');
 
     // Initialize Stripe
     const stripeKey = Deno.env.get('Stripe_Secret_Key');
     if (!stripeKey) {
-      console.error('[STRIPE-WEBHOOK] Stripe key not configured');
+      logStep('Stripe key not configured');
       throw new Error('Stripe key not configured');
     }
 
@@ -28,22 +33,21 @@ serve(async (req) => {
     // Get webhook signature
     const signature = req.headers.get('stripe-signature');
     if (!signature) {
-      console.error('[STRIPE-WEBHOOK] No stripe signature');
+      logStep('No stripe signature');
       throw new Error('No stripe signature');
     }
 
     // Parse webhook body
     const body = await req.text();
-    console.log('[STRIPE-WEBHOOK] Received webhook body length:', body.length);
+    logStep('Received webhook body length:', body.length);
 
     // Verify webhook signature (in production, use webhook endpoint secret)
     let event;
     try {
-      // For now, just parse the event - in production you'd verify with webhook secret
       event = JSON.parse(body);
-      console.log('[STRIPE-WEBHOOK] Event type:', event.type);
+      logStep('Event type:', event.type);
     } catch (err) {
-      console.error('[STRIPE-WEBHOOK] Invalid JSON:', err);
+      logStep('Invalid JSON:', err);
       throw new Error('Invalid JSON');
     }
 
@@ -57,23 +61,28 @@ serve(async (req) => {
     // Handle different event types
     switch (event.type) {
       case 'checkout.session.completed':
-        console.log('[STRIPE-WEBHOOK] Processing checkout.session.completed');
+        logStep('Processing checkout.session.completed');
         await handleCheckoutCompleted(stripe, supabaseClient, event.data.object);
         break;
       
       case 'invoice.payment_succeeded':
-        console.log('[STRIPE-WEBHOOK] Processing invoice.payment_succeeded');
+        logStep('Processing invoice.payment_succeeded');
         await handlePaymentSucceeded(stripe, supabaseClient, event.data.object);
         break;
       
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
-        console.log('[STRIPE-WEBHOOK] Processing subscription event:', event.type);
-        await handleSubscriptionEvent(stripe, supabaseClient, event.data.object);
+        logStep('Processing subscription event:', event.type);
+        await handleSubscriptionEvent(stripe, supabaseClient, event.data.object, event.type);
+        break;
+      
+      case 'customer.subscription.deleted':
+        logStep('Processing subscription deleted');
+        await handleSubscriptionDeleted(stripe, supabaseClient, event.data.object);
         break;
       
       default:
-        console.log('[STRIPE-WEBHOOK] Unhandled event type:', event.type);
+        logStep('Unhandled event type:', event.type);
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -81,8 +90,8 @@ serve(async (req) => {
       status: 200,
     });
 
-  } catch (error) {
-    console.error('[STRIPE-WEBHOOK] Error:', error);
+  } catch (error: any) {
+    logStep('Error occurred', { message: error.message, stack: error.stack });
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
@@ -94,7 +103,7 @@ serve(async (req) => {
 });
 
 async function handleCheckoutCompleted(stripe: Stripe, supabaseClient: any, session: any) {
-  console.log('[STRIPE-WEBHOOK] Handling checkout completed for session:', session.id);
+  logStep('Handling checkout completed for session:', session.id);
   
   try {
     // Get customer details
@@ -103,7 +112,7 @@ async function handleCheckoutCompleted(stripe: Stripe, supabaseClient: any, sess
       throw new Error('Customer not found');
     }
 
-    console.log('[STRIPE-WEBHOOK] Customer email:', (customer as any).email);
+    logStep('Customer email:', (customer as any).email);
 
     // Find user by email
     const { data: users, error: userError } = await supabaseClient.auth.admin.listUsers();
@@ -111,11 +120,11 @@ async function handleCheckoutCompleted(stripe: Stripe, supabaseClient: any, sess
 
     const user = users.users.find((u: any) => u.email === (customer as any).email);
     if (!user) {
-      console.error('[STRIPE-WEBHOOK] User not found for email:', (customer as any).email);
+      logStep('User not found for email:', (customer as any).email);
       return;
     }
 
-    console.log('[STRIPE-WEBHOOK] Found user:', user.id);
+    logStep('Found user:', user.id);
 
     // If this is a subscription checkout, get subscription details
     if (session.mode === 'subscription' && session.subscription) {
@@ -124,13 +133,13 @@ async function handleCheckoutCompleted(stripe: Stripe, supabaseClient: any, sess
     }
 
   } catch (error) {
-    console.error('[STRIPE-WEBHOOK] Error handling checkout completed:', error);
+    logStep('Error handling checkout completed:', error);
     throw error;
   }
 }
 
 async function handlePaymentSucceeded(stripe: Stripe, supabaseClient: any, invoice: any) {
-  console.log('[STRIPE-WEBHOOK] Handling payment succeeded for invoice:', invoice.id);
+  logStep('Handling payment succeeded for invoice:', invoice.id);
   
   if (invoice.subscription) {
     const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
@@ -145,13 +154,13 @@ async function handlePaymentSucceeded(stripe: Stripe, supabaseClient: any, invoi
     const user = users.users.find((u: any) => u.email === (customer as any).email);
     if (!user) return;
 
-    // This is a renewal, handle rollover tokens
+    // This is a renewal - add monthly tokens
     await processSubscriptionRenewal(supabaseClient, user.id, customer as any, subscription);
   }
 }
 
-async function handleSubscriptionEvent(stripe: Stripe, supabaseClient: any, subscription: any) {
-  console.log('[STRIPE-WEBHOOK] Handling subscription event for subscription:', subscription.id);
+async function handleSubscriptionEvent(stripe: Stripe, supabaseClient: any, subscription: any, eventType: string) {
+  logStep('Handling subscription event for subscription:', subscription.id);
   
   const customer = await stripe.customers.retrieve(subscription.customer);
   if (!customer || customer.deleted) return;
@@ -166,8 +175,25 @@ async function handleSubscriptionEvent(stripe: Stripe, supabaseClient: any, subs
   await processSubscription(supabaseClient, user.id, customer as any, subscription);
 }
 
+async function handleSubscriptionDeleted(stripe: Stripe, supabaseClient: any, subscription: any) {
+  logStep('Handling subscription deleted for subscription:', subscription.id);
+  
+  const customer = await stripe.customers.retrieve(subscription.customer);
+  if (!customer || customer.deleted) return;
+
+  // Find user by email
+  const { data: users, error: userError } = await supabaseClient.auth.admin.listUsers();
+  if (userError) throw userError;
+
+  const user = users.users.find((u: any) => u.email === (customer as any).email);
+  if (!user) return;
+
+  // Freeze tokens when subscription is deleted
+  await freezeUserTokens(supabaseClient, user.id, subscription.id);
+}
+
 async function processSubscription(supabaseClient: any, userId: string, customer: any, subscription: any, metadata: any = null) {
-  console.log('[STRIPE-WEBHOOK] Processing subscription for user:', userId);
+  logStep('Processing subscription for user:', userId);
   
   try {
     // Determine plan details
@@ -183,13 +209,13 @@ async function processSubscription(supabaseClient: any, userId: string, customer
     const isUpgrade = metadata?.is_upgrade === 'true';
     const upgradeTokens = metadata?.upgrade_tokens ? parseInt(metadata.upgrade_tokens) : 0;
 
-    // Determine plan based on amount with detailed naming
-    if (amount === 900) { // $9.00
+    // Determine plan based on amount
+    if (amount === 900) { // $9.00 - Side-Gig
       planType = 'side-gig';
       monthlyLimit = 15;
       tokensToAdd = isUpgrade ? upgradeTokens : 15;
       subscriptionType = 'Side-Gig';
-    } else if (amount >= 1900) { // $19.00+
+    } else if (amount >= 1900) { // $19.00+ - Full-Time
       planType = 'full-time';
       if (amount === 1900) {
         monthlyLimit = 30;
@@ -210,13 +236,14 @@ async function processSubscription(supabaseClient: any, userId: string, customer
       tokensToAdd = isUpgrade ? upgradeTokens : monthlyLimit;
     }
 
-    console.log('[STRIPE-WEBHOOK] Plan details:', { planType, monthlyLimit, tokensToAdd, subscriptionType, isUpgrade });
+    logStep('Plan details:', { planType, monthlyLimit, tokensToAdd, subscriptionType, isUpgrade });
 
     // Upsert subscription record
     const { error: subError } = await supabaseClient
       .from('subscriptions')
       .upsert({
         teacher_id: userId,
+        email: customer.email,
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customer.id,
         status: subscription.status,
@@ -231,23 +258,21 @@ async function processSubscription(supabaseClient: any, userId: string, customer
       });
 
     if (subError) {
-      console.error('[STRIPE-WEBHOOK] Error upserting subscription:', subError);
+      logStep('Error upserting subscription:', subError);
       throw subError;
     }
 
-    console.log('[STRIPE-WEBHOOK] Subscription record saved');
-
-    // Get current token balance before updating
+    // Get current profile
     const { data: currentProfile } = await supabaseClient
       .from('profiles')
-      .select('token_balance')
+      .select('available_tokens, total_tokens_received')
       .eq('id', userId)
       .single();
 
-    const currentTokens = currentProfile?.token_balance || 0;
-    const newTokenBalance = currentTokens + tokensToAdd;
+    const currentTokens = currentProfile?.available_tokens || 0;
+    const totalReceived = currentProfile?.total_tokens_received || 0;
 
-    // Update user profile with ALL subscription details and new token balance
+    // Update profile with new subscription data and tokens
     const { error: profileError } = await supabaseClient
       .from('profiles')
       .update({
@@ -255,122 +280,135 @@ async function processSubscription(supabaseClient: any, userId: string, customer
         subscription_status: subscription.status,
         subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
         monthly_worksheet_limit: monthlyLimit,
-        monthly_worksheets_used: 0, // Reset monthly usage for new subscription
-        token_balance: newTokenBalance,
+        available_tokens: currentTokens + tokensToAdd,
+        total_tokens_received: totalReceived + tokensToAdd,
+        is_tokens_frozen: false, // Unfreeze tokens on active subscription
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
 
     if (profileError) {
-      console.error('[STRIPE-WEBHOOK] Error updating profile:', profileError);
+      logStep('Error updating profile:', profileError);
       throw profileError;
     }
 
-    console.log('[STRIPE-WEBHOOK] Profile updated with:', {
-      subscriptionType,
-      monthlyLimit,
-      newTokenBalance,
-      monthlyWorksheetsUsed: 0
+    // Log subscription event
+    const eventType = isUpgrade ? 'upgraded' : (currentProfile ? 'renewed' : 'created');
+    await logSubscriptionEvent(supabaseClient, userId, eventType, {
+      old_plan: currentProfile?.subscription_type,
+      new_plan: subscriptionType,
+      tokens_added: tokensToAdd,
+      stripe_subscription_id: subscription.id
     });
 
-    // Add tokens transaction record
-    if (tokensToAdd > 0) {
-      const { error: tokenError } = await supabaseClient
-        .from('token_transactions')
-        .insert({
-          teacher_id: userId,
-          transaction_type: 'purchase',
-          amount: tokensToAdd,
-          description: isUpgrade ? `${subscriptionType} upgrade (+${tokensToAdd} tokens)` : `${subscriptionType} subscription activation`,
-          reference_id: null
-        });
-
-      if (tokenError) {
-        console.error('[STRIPE-WEBHOOK] Error adding token transaction:', tokenError);
-      } else {
-        console.log('[STRIPE-WEBHOOK] Added token transaction for', tokensToAdd, 'tokens');
-      }
-    }
-
-    console.log('[STRIPE-WEBHOOK] Successfully processed subscription for user:', userId);
+    logStep('Successfully processed subscription for user:', userId);
 
   } catch (error) {
-    console.error('[STRIPE-WEBHOOK] Error processing subscription:', error);
+    logStep('Error processing subscription:', error);
     throw error;
   }
 }
 
 async function processSubscriptionRenewal(supabaseClient: any, userId: string, customer: any, subscription: any) {
-  console.log('[STRIPE-WEBHOOK] Processing subscription renewal for user:', userId);
+  logStep('Processing subscription renewal for user:', userId);
   
   try {
-    // Get current profile data
+    // Get subscription details to determine tokens to add
+    const amount = subscription.items.data[0].price.unit_amount || 0;
+    let tokensToAdd = 0;
+    
+    if (amount === 900) tokensToAdd = 15;
+    else if (amount === 1900) tokensToAdd = 30;
+    else if (amount === 3900) tokensToAdd = 60;
+    else if (amount === 5900) tokensToAdd = 90;
+    else if (amount === 7900) tokensToAdd = 120;
+
+    // Get current profile
     const { data: currentProfile } = await supabaseClient
       .from('profiles')
-      .select('monthly_worksheet_limit, monthly_worksheets_used, rollover_tokens')
+      .select('available_tokens, total_tokens_received')
       .eq('id', userId)
       .single();
 
-    if (!currentProfile) {
-      console.error('[STRIPE-WEBHOOK] Profile not found for user:', userId);
-      return;
-    }
+    const currentTokens = currentProfile?.available_tokens || 0;
+    const totalReceived = currentProfile?.total_tokens_received || 0;
 
-    const monthlyLimit = currentProfile.monthly_worksheet_limit || 0;
-    const monthlyUsed = currentProfile.monthly_worksheets_used || 0;
-    const currentRollover = currentProfile.rollover_tokens || 0;
-
-    // Calculate unused worksheets to carry forward
-    const unusedWorksheets = Math.max(0, monthlyLimit - monthlyUsed);
-    const newRolloverTokens = currentRollover + unusedWorksheets;
-
-    console.log('[STRIPE-WEBHOOK] Rollover calculation:', {
-      monthlyLimit,
-      monthlyUsed,
-      unusedWorksheets,
-      currentRollover,
-      newRolloverTokens
-    });
-
-    // Update profile with rollover tokens and reset monthly usage
+    // Add renewal tokens
     const { error: profileError } = await supabaseClient
       .from('profiles')
       .update({
-        rollover_tokens: newRolloverTokens,
-        monthly_worksheets_used: 0, // Reset for new period
+        available_tokens: currentTokens + tokensToAdd,
+        total_tokens_received: totalReceived + tokensToAdd,
         subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
 
     if (profileError) {
-      console.error('[STRIPE-WEBHOOK] Error updating profile for renewal:', profileError);
+      logStep('Error updating profile for renewal:', profileError);
       throw profileError;
     }
 
-    // Log rollover transaction if there are unused worksheets
-    if (unusedWorksheets > 0) {
-      const { error: tokenError } = await supabaseClient
-        .from('token_transactions')
-        .insert({
-          teacher_id: userId,
-          transaction_type: 'rollover',
-          amount: unusedWorksheets,
-          description: `${unusedWorksheets} unused monthly worksheets carried forward as rollover tokens`,
-          reference_id: null
-        });
+    // Log renewal event
+    await logSubscriptionEvent(supabaseClient, userId, 'renewed', {
+      tokens_added: tokensToAdd,
+      stripe_subscription_id: subscription.id
+    });
 
-      if (tokenError) {
-        console.error('[STRIPE-WEBHOOK] Error adding rollover transaction:', tokenError);
-      } else {
-        console.log('[STRIPE-WEBHOOK] Added rollover transaction for', unusedWorksheets, 'tokens');
-      }
-    }
-
-    console.log('[STRIPE-WEBHOOK] Successfully processed renewal for user:', userId);
+    logStep('Successfully processed renewal for user:', userId);
 
   } catch (error) {
-    console.error('[STRIPE-WEBHOOK] Error processing renewal:', error);
+    logStep('Error processing renewal:', error);
     throw error;
+  }
+}
+
+async function freezeUserTokens(supabaseClient: any, userId: string, subscriptionId: string) {
+  logStep('Freezing tokens for user:', userId);
+  
+  try {
+    const { error } = await supabaseClient
+      .from('profiles')
+      .update({
+        is_tokens_frozen: true,
+        subscription_type: 'Free Demo',
+        subscription_status: 'cancelled',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (error) {
+      logStep('Error freezing tokens:', error);
+      throw error;
+    }
+
+    // Log cancellation event
+    await logSubscriptionEvent(supabaseClient, userId, 'cancelled', {
+      stripe_subscription_id: subscriptionId
+    });
+
+    logStep('Successfully froze tokens for user:', userId);
+
+  } catch (error) {
+    logStep('Error freezing tokens:', error);
+    throw error;
+  }
+}
+
+async function logSubscriptionEvent(supabaseClient: any, userId: string, eventType: string, eventData: any) {
+  try {
+    await supabaseClient
+      .from('subscription_events')
+      .insert({
+        teacher_id: userId,
+        event_type: eventType,
+        event_data: eventData,
+        old_plan_type: eventData.old_plan,
+        new_plan_type: eventData.new_plan,
+        tokens_added: eventData.tokens_added || 0,
+        stripe_event_id: eventData.stripe_subscription_id
+      });
+  } catch (error) {
+    logStep('Error logging subscription event:', error);
   }
 }

@@ -80,59 +80,101 @@ serve(async (req) => {
       logStep('Created new customer', { customerId: customer.id });
     }
 
-    // Get the correct origin for redirect URLs
+    // Check for existing active subscription
+    const existingSubscriptions = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: 'active',
+      limit: 1,
+    });
+
     const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://cdoyjgiyrfziejbrcvpx.supabase.co';
     logStep('Origin determined', { origin });
 
-    // Create checkout session configuration
-    const sessionConfig: any = {
-      customer: customer.id,
-      payment_method_types: ['card'],
-      line_items: [
-        {
+    if (existingSubscriptions.data.length > 0 && isUpgrade) {
+      // Handle upgrade - update existing subscription
+      const existingSubscription = existingSubscriptions.data[0];
+      logStep('Upgrading existing subscription', { subscriptionId: existingSubscription.id });
+
+      // Update subscription with new price
+      const updatedSubscription = await stripe.subscriptions.update(existingSubscription.id, {
+        items: [{
+          id: existingSubscription.items.data[0].id,
           price_data: {
             currency: 'usd',
             product_data: {
-              name: isUpgrade ? `${planName} (Upgrade)` : planName,
-              description: isUpgrade ? 
-                `Upgrade to ${monthlyLimit} worksheets per month (${upgradeTokens} additional tokens)` :
-                `${monthlyLimit} worksheets per month`,
+              name: planName,
             },
-            unit_amount: price * 100, // Convert to cents
+            unit_amount: price * 100,
             recurring: {
               interval: 'month',
             },
           },
-          quantity: 1,
+        }],
+        proration_behavior: 'always_invoice',
+        metadata: {
+          supabase_user_id: user.id,
+          plan_type: planType,
+          monthly_limit: monthlyLimit.toString(),
+          is_upgrade: 'true',
+          upgrade_tokens: upgradeTokens ? upgradeTokens.toString() : '0',
         },
-      ],
-      mode: 'subscription',
-      success_url: `${origin}/profile?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/profile?canceled=true`,
-      // Enable promotion codes directly in Stripe checkout
-      allow_promotion_codes: true,
-      metadata: {
-        supabase_user_id: user.id,
-        plan_type: planType,
-        monthly_limit: monthlyLimit.toString(),
-        is_upgrade: isUpgrade ? 'true' : 'false',
-        upgrade_tokens: upgradeTokens ? upgradeTokens.toString() : '0',
-      },
-    };
+      });
 
-    logStep('Checkout session configuration created with promotion codes enabled');
+      logStep('Subscription upgraded', { subscriptionId: updatedSubscription.id });
 
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create(sessionConfig);
+      return new Response(
+        JSON.stringify({ success: true, subscription_id: updatedSubscription.id }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    } else {
+      // Create new checkout session
+      const sessionConfig: any = {
+        customer: customer.id,
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: planName,
+                description: `${monthlyLimit} worksheets per month`,
+              },
+              unit_amount: price * 100,
+              recurring: {
+                interval: 'month',
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${origin}/profile?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${origin}/pricing?canceled=true`,
+        allow_promotion_codes: true,
+        metadata: {
+          supabase_user_id: user.id,
+          plan_type: planType,
+          monthly_limit: monthlyLimit.toString(),
+          is_upgrade: isUpgrade ? 'true' : 'false',
+          upgrade_tokens: upgradeTokens ? upgradeTokens.toString() : '0',
+        },
+      };
 
-    logStep('Checkout session created', { sessionId: session.id, url: session.url });
+      logStep('Checkout session configuration created');
 
-    return new Response(
-      JSON.stringify({ url: session.url }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+      const session = await stripe.checkout.sessions.create(sessionConfig);
+
+      logStep('Checkout session created', { sessionId: session.id, url: session.url });
+
+      return new Response(
+        JSON.stringify({ url: session.url }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
 
   } catch (error: any) {
     logStep('Error occurred', { message: error.message, stack: error.stack });
