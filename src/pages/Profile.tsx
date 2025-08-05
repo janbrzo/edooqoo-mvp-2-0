@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -300,7 +301,7 @@ const Profile = () => {
   const subscriptionType = profile?.subscription_type || 'Free Demo';
   const monthlyLimit = profile?.monthly_worksheet_limit;
 
-  const tokenBalance = profile?.token_balance || 0;
+  const availableTokens = profile?.available_tokens || 0;
   const rolloverTokens = profile?.rollover_tokens || 0;
   const monthlyUsed = profile?.monthly_worksheets_used || 0;
   const monthlyAvailable = monthlyLimit ? Math.max(0, monthlyLimit - monthlyUsed) : 0;
@@ -472,8 +473,8 @@ const Profile = () => {
                       <span className="font-medium">{tokenLeft}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Purchased tokens</span>
-                      <span className="font-medium">{tokenBalance}</span>
+                      <span className="text-muted-foreground">Available tokens</span>
+                      <span className="font-medium">{availableTokens}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Rollover tokens</span>
