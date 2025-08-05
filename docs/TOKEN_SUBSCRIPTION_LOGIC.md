@@ -1,260 +1,393 @@
-
-# Token and Subscription Logic Documentation
+# Token and Subscription System Documentation
 
 ## Overview
-This document describes the token and subscription system implemented in the edooqoo worksheet generator application.
+This document describes the comprehensive token and subscription system for the edooqoo worksheet generator application, including all subscription lifecycle events and token management logic.
 
-## Token System
+## Core Principles
 
-### Token Types
-1. **Purchased Tokens**: Never expire, bought separately from subscriptions
-2. **Rollover Tokens**: Unused monthly worksheets that carry forward to next month
-3. **Monthly Worksheets**: Included in subscription plans, reset monthly
+### Token Management
+- **Single Token Pool**: All tokens are stored in `available_tokens` field
+- **Token Freezing**: Tokens can be frozen but never deleted
+- **No Token Expiration**: Tokens never expire, only get frozen/unfrozen
+- **Cumulative System**: Tokens accumulate over time from various sources
 
-### Token Consumption Order
-The system consumes tokens in the following priority:
-1. Purchased tokens (first)
-2. Rollover tokens (second)
-3. Monthly worksheets (last)
+### Subscription Lifecycle
+- **Stripe as Source of Truth**: All subscription data originates from Stripe
+- **Supabase Replication**: Local copy with additional business logic
+- **Webhook Synchronization**: Real-time updates via Stripe webhooks
+- **Upgrade/Downgrade**: Uses `subscription.update()` preserving renewal dates
 
-### Token Storage
-- **purchased_tokens**: Tokens bought separately, never expire
-- **rollover_tokens**: Unused monthly worksheets from previous months
-- **monthly_worksheet_limit**: Current month's worksheet allowance based on subscription
+## Database Schema
+
+### Profiles Table
+```sql
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id),
+  email TEXT NOT NULL,
+  available_tokens INTEGER DEFAULT 2,
+  is_tokens_frozen BOOLEAN DEFAULT FALSE,
+  subscription_type TEXT DEFAULT 'Free Demo',
+  subscription_status TEXT DEFAULT 'active',
+  subscription_expires_at TIMESTAMPTZ,
+  
+  -- Historical data for analysis
+  rollover_tokens INTEGER DEFAULT 0,
+  monthly_worksheet_limit INTEGER DEFAULT 0,
+  monthly_worksheets_used INTEGER DEFAULT 0,
+  
+  -- Cumulative statistics
+  total_worksheets_created INTEGER DEFAULT 0,
+  total_tokens_consumed INTEGER DEFAULT 0,
+  total_tokens_received INTEGER DEFAULT 0,
+  
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### Subscriptions Table
+```sql
+CREATE TABLE subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  teacher_id UUID NOT NULL REFERENCES auth.users(id),
+  email TEXT NOT NULL,
+  stripe_subscription_id TEXT UNIQUE NOT NULL,
+  stripe_customer_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  plan_type TEXT NOT NULL,
+  monthly_limit INTEGER NOT NULL,
+  current_period_start TIMESTAMPTZ NOT NULL,
+  current_period_end TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### Subscription Events Table
+```sql
+CREATE TABLE subscription_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  teacher_id UUID NOT NULL REFERENCES auth.users(id),
+  event_type TEXT NOT NULL, -- 'created', 'upgraded', 'downgraded', 'renewed', 'cancelled', 'expired'
+  event_data JSONB,
+  stripe_event_id TEXT,
+  old_plan_type TEXT,
+  new_plan_type TEXT,
+  tokens_added INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
 
 ## Subscription Plans
 
 ### Available Plans
-1. **Free Demo**: 2 free tokens on signup, no subscription required
-2. **Side-Gig**: $9/month, 15 worksheets/month
-3. **Full-Time Plans**:
-   - 30 worksheets: $19/month
-   - 60 worksheets: $39/month
-   - 90 worksheets: $59/month
-   - 120 worksheets: $79/month
+- **Free Demo**: 2 initial tokens, no monthly limit
+- **Side-Gig**: $9/month, 15 tokens on purchase + 15 tokens monthly
+- **Full-Time 30**: $19/month, 30 tokens on purchase + 30 tokens monthly
+- **Full-Time 60**: $39/month, 60 tokens on purchase + 60 tokens monthly
+- **Full-Time 90**: $59/month, 90 tokens on purchase + 90 tokens monthly
+- **Full-Time 120**: $79/month, 120 tokens on purchase + 120 tokens monthly
 
-### Subscription Features
-- All plans include unlimited student management
-- Export to HTML and PDF
-- All worksheet types available
-- Editable worksheets
-- Unused monthly worksheets carry forward as rollover tokens
+## Token Logic Rules
 
-## Database Schema
-
-### User Profiles Table
-```sql
-CREATE TABLE profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id),
-  email TEXT,
-  full_name TEXT,
-  subscription_type TEXT DEFAULT 'Free Demo',
-  subscription_status TEXT DEFAULT 'active',
-  monthly_worksheet_limit INTEGER DEFAULT 0,
-  purchased_tokens INTEGER DEFAULT 0,
-  rollover_tokens INTEGER DEFAULT 0,
-  stripe_customer_id TEXT,
-  stripe_subscription_id TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
+### 1. Account Creation
+```
+New user registration:
+- available_tokens = 2 (free demo tokens)
+- is_tokens_frozen = FALSE
+- subscription_type = 'Free Demo'
+- Can use tokens WITHOUT subscription
 ```
 
-### Key Functions
-
-#### Token Consumption (`consume_token_updated`)
-```sql
-CREATE OR REPLACE FUNCTION consume_token_updated(user_id UUID)
-RETURNS BOOLEAN AS $$
-DECLARE
-  user_profile profiles%ROWTYPE;
-  worksheets_used INTEGER;
-  can_consume BOOLEAN := FALSE;
-BEGIN
-  -- Get user profile
-  SELECT * INTO user_profile FROM profiles WHERE id = user_id;
-  
-  -- Check purchased tokens first
-  IF user_profile.purchased_tokens > 0 THEN
-    UPDATE profiles 
-    SET purchased_tokens = purchased_tokens - 1,
-        updated_at = now()
-    WHERE id = user_id;
-    RETURN TRUE;
-  END IF;
-  
-  -- Check rollover tokens second
-  IF user_profile.rollover_tokens > 0 THEN
-    UPDATE profiles 
-    SET rollover_tokens = rollover_tokens - 1,
-        updated_at = now()
-    WHERE id = user_id;
-    RETURN TRUE;
-  END IF;
-  
-  -- Check monthly worksheets last
-  SELECT COUNT(*) INTO worksheets_used 
-  FROM worksheet_history 
-  WHERE user_id = user_id 
-  AND created_at >= date_trunc('month', now());
-  
-  IF worksheets_used < user_profile.monthly_worksheet_limit THEN
-    RETURN TRUE;
-  END IF;
-  
-  RETURN FALSE;
-END;
-$$ LANGUAGE plpgsql;
-```
-
-#### Rollover Processing
-At the end of each month, unused monthly worksheets are automatically converted to rollover tokens through the subscription webhook system.
-
-## Authentication Flow
-
-### Registration Process
-1. User signs up with email and password
-2. Email confirmation required (security feature)
-3. User receives 2 free tokens upon email confirmation
-4. Profile created with default values
-
-### Email Confirmation
-- Required for all new users
-- Confirmation email sent automatically
-- Users must click email link to activate account
-- Free tokens only added after email confirmation
-
-## Subscription Management
-
-### Stripe Integration
-- All subscriptions managed through Stripe
-- Webhooks handle subscription events
-- Customer portal for subscription management
-- Automatic billing and renewal
-
-### Upgrade Logic
-- Users can upgrade from any plan to higher tier
-- Prorated billing through Stripe
-- Immediate access to higher limits
-- Unused tokens/worksheets preserved
-
-### Cancellation
-- Users can cancel anytime through customer portal
-- Subscription remains active until billing period ends
-- Access to features maintained until expiration
-- Rollover tokens preserved after cancellation
-
-## Token Tracking
-
-### Available Tokens Calculation
-```typescript
-const getAvailableTokens = (profile: Profile) => {
-  const purchasedTokens = profile.purchased_tokens || 0;
-  const rolloverTokens = profile.rollover_tokens || 0;
-  
-  // Calculate monthly worksheets used
-  const monthlyUsed = getMonthlyWorksheetsUsed(profile.id);
-  const monthlyAvailable = Math.max(0, profile.monthly_worksheet_limit - monthlyUsed);
-  
-  return purchasedTokens + rolloverTokens + monthlyAvailable;
+### 2. Available Tokens Calculation
+```javascript
+const getAvailableTokens = (profile) => {
+  if (profile.is_tokens_frozen) {
+    return 0; // Tokens frozen - not available for use
+  }
+  return profile.available_tokens; // All tokens available
 };
 ```
 
-### Usage Tracking
-- All worksheet generations tracked in `worksheet_history`
-- Monthly usage calculated from creation timestamps
-- Real-time token balance updates
-- Historical usage data maintained
+### 3. Token Consumption
+```
+Pre-consumption check:
+1. is_tokens_frozen === FALSE
+2. available_tokens > 0
+
+If both TRUE:
+- available_tokens -= 1
+- total_tokens_consumed += 1
+- Log consumption in token_transactions
+
+If either FALSE:
+- Show paywall (subscription/upgrade prompt)
+```
+
+## Subscription Workflows
+
+### New Subscription Purchase
+1. **User Action**: Select plan and complete Stripe checkout
+2. **Stripe**: Creates new subscription, sends webhook
+3. **Supabase Updates**:
+   ```javascript
+   available_tokens += plan_tokens
+   subscription_type = plan_name
+   subscription_status = 'active'
+   subscription_expires_at = current_period_end
+   is_tokens_frozen = FALSE
+   total_tokens_received += plan_tokens
+   ```
+4. **Event Log**: Record 'created' event in subscription_events
+
+### Upgrade Subscription
+1. **User Action**: Select higher plan
+2. **Stripe**: Uses `subscription.update()` - preserves renewal date
+3. **Immediate Charge**: Prorated amount for upgrade
+4. **Supabase Updates**:
+   ```javascript
+   token_difference = new_plan_tokens - old_plan_tokens
+   available_tokens += token_difference
+   subscription_type = new_plan_name
+   // subscription_expires_at UNCHANGED
+   total_tokens_received += token_difference
+   ```
+5. **Event Log**: Record 'upgraded' event with token difference
+
+### Downgrade Subscription
+1. **User Action**: Select lower plan
+2. **Stripe**: Uses `subscription.update()` - preserves renewal date
+3. **Future Billing**: Lower price at next renewal
+4. **Supabase Updates**:
+   ```javascript
+   // available_tokens UNCHANGED (user keeps existing tokens)
+   subscription_type = new_plan_name
+   // subscription_expires_at UNCHANGED
+   ```
+5. **Event Log**: Record 'downgraded' event
+
+### Monthly Renewal
+1. **Stripe**: Automatic billing, sends webhook
+2. **Supabase Updates**:
+   ```javascript
+   available_tokens += monthly_plan_tokens
+   subscription_expires_at = new_period_end
+   monthly_worksheets_used = 0 // Reset monthly counter
+   total_tokens_received += monthly_plan_tokens
+   ```
+3. **Event Log**: Record 'renewed' event
+
+### Subscription Cancellation
+1. **User Action**: Cancel via Stripe Customer Portal
+2. **Stripe**: Sets `cancel_at_period_end = true`
+3. **Until Expiration**:
+   ```javascript
+   // Tokens remain active
+   is_tokens_frozen = FALSE
+   subscription_status = 'active' (until period ends)
+   ```
+4. **After Expiration**:
+   ```javascript
+   is_tokens_frozen = TRUE // Freeze all tokens
+   subscription_type = 'Free Demo'
+   subscription_status = 'cancelled'
+   ```
+5. **Event Log**: Record 'cancelled' and later 'expired' events
+
+### Subscription Reactivation
+1. **User Action**: Purchase new subscription after cancellation
+2. **Supabase Updates**:
+   ```javascript
+   is_tokens_frozen = FALSE // Unfreeze ALL existing tokens
+   available_tokens += new_plan_tokens
+   subscription_type = new_plan_name
+   subscription_status = 'active'
+   total_tokens_received += new_plan_tokens
+   ```
+3. **Result**: All previously frozen tokens become available again
+
+## Edge Functions
+
+### stripe-webhook
+Handles all Stripe subscription events:
+- `checkout.session.completed`: New subscriptions
+- `customer.subscription.updated`: Upgrades/downgrades
+- `customer.subscription.deleted`: Cancellations
+- `invoice.payment_succeeded`: Monthly renewals
+
+### create-subscription
+Creates new subscriptions or updates existing ones:
+```javascript
+// Check for existing active subscription
+const existingSubscription = await getActiveSubscription(customerId);
+
+if (existingSubscription) {
+  // Upgrade/Downgrade: Update existing subscription
+  await stripe.subscriptions.update(existingSubscription.id, {
+    items: [{ price: newPriceId }],
+    proration_behavior: 'always_invoice'
+  });
+} else {
+  // New subscription: Create checkout session
+  await stripe.checkout.sessions.create({...});
+}
+```
+
+### check-subscription-status
+Synchronizes subscription data from Stripe to Supabase:
+- Fetches current subscription status from Stripe
+- Updates local Supabase data
+- Handles discrepancies and repairs data inconsistencies
+
+## Token Tracking
+
+### Token Sources
+1. **Initial Registration**: 2 free demo tokens
+2. **New Subscription**: Full plan amount (15-120 tokens)
+3. **Monthly Renewal**: Plan amount added monthly
+4. **Upgrades**: Difference between old and new plan
+5. **Reactivation**: New plan tokens + unfrozen existing tokens
+
+### Token States
+- **Active**: `is_tokens_frozen = FALSE`, can be consumed
+- **Frozen**: `is_tokens_frozen = TRUE`, visible but not consumable
+- **Available**: Current usable token count for UI display
+
+### Consumption Logic
+```javascript
+const consumeToken = async (userId, worksheetId) => {
+  const profile = await getProfile(userId);
+  
+  // Check if tokens are available
+  if (profile.is_tokens_frozen || profile.available_tokens <= 0) {
+    return { success: false, reason: 'no_tokens_available' };
+  }
+  
+  // Consume token
+  await updateProfile(userId, {
+    available_tokens: profile.available_tokens - 1,
+    total_tokens_consumed: profile.total_tokens_consumed + 1
+  });
+  
+  // Log transaction
+  await logTokenTransaction(userId, 'consumption', -1, worksheetId);
+  
+  return { success: true };
+};
+```
 
 ## Business Rules
 
-### Token Expiration
-- Purchased tokens: Never expire
-- Rollover tokens: Never expire
-- Monthly worksheets: Reset monthly, unused convert to rollover
+### Token Freezing Rules
+1. **Free Demo Users**: Tokens never frozen (can use 2 tokens without subscription)
+2. **Active Subscribers**: Tokens never frozen
+3. **Cancelled Subscriptions**: Tokens frozen after `current_period_end`
+4. **Expired Subscriptions**: Tokens remain frozen until reactivation
 
-### Plan Restrictions
-- Free Demo: Limited to 2 initial tokens
-- All paid plans: Unlimited student management
-- No restrictions on worksheet types or export features
+### Upgrade/Downgrade Rules
+1. **Timing**: Takes effect immediately
+2. **Billing**: Prorated for upgrades, adjusted for next renewal on downgrades
+3. **Tokens**: Upgrades add difference, downgrades preserve existing tokens
+4. **Renewal Date**: Always preserved during plan changes
 
-### Fair Usage
-- Rate limiting on worksheet generation (30-60 seconds per request)
-- Geolocation tracking for usage analytics
-- Security measures against abuse
+### Data Consistency Rules
+1. **Single Active Subscription**: User can have only one active subscription
+2. **Email Synchronization**: Email must match in profiles and subscriptions tables
+3. **Token Conservation**: Tokens are never deleted, only frozen/unfrozen
+4. **Audit Trail**: All subscription changes logged in subscription_events
 
 ## Error Handling
 
 ### Common Scenarios
-1. **Insufficient tokens**: User redirected to upgrade page
-2. **Subscription expiration**: Graceful degradation to free tier
-3. **Payment failures**: Retry logic with user notification
-4. **Email confirmation pending**: Limited access until confirmed
+1. **Multiple Active Subscriptions**: Consolidate to most recent
+2. **Missing Tokens**: Repair based on subscription history
+3. **Webhook Failures**: Retry mechanism with exponential backoff
+4. **Data Inconsistency**: Repair function to sync with Stripe
 
-### Fallback Mechanisms
-- Demo mode for unauthenticated users
-- Token purchase as alternative to subscription
-- Manual token addition for support cases
-- Webhook retry system for failed events
+### Repair Functions
+```javascript
+// Consolidate duplicate subscriptions
+const repairDuplicateSubscriptions = async (userId) => {
+  const subscriptions = await getActiveSubscriptions(userId);
+  if (subscriptions.length > 1) {
+    // Keep most recent, cancel others
+    const latest = subscriptions.sort((a, b) => b.created_at - a.created_at)[0];
+    const toCancel = subscriptions.filter(s => s.id !== latest.id);
+    
+    for (const sub of toCancel) {
+      await stripe.subscriptions.cancel(sub.stripe_subscription_id);
+    }
+  }
+};
+```
 
-## Integration Points
+## Frontend Integration
 
-### Frontend Components
-- `useTokenSystem`: Hook for token balance and consumption
-- `usePlanLogic`: Hook for subscription plan management
-- `TokenPaywall`: Component for upgrade prompts
-- `PricingCalculator`: Dynamic pricing based on usage
+### useTokenSystem Hook
+```javascript
+const useTokenSystem = (userId) => {
+  const getAvailableTokens = () => {
+    if (!profile) return 0;
+    return profile.is_tokens_frozen ? 0 : profile.available_tokens;
+  };
+  
+  const canUseTokens = () => {
+    return !profile?.is_tokens_frozen && profile?.available_tokens > 0;
+  };
+  
+  return { availableTokens: getAvailableTokens(), canUseTokens: canUseTokens() };
+};
+```
 
-### Backend Functions
-- `generateWorksheet`: Token consumption and worksheet creation
-- `create-subscription`: Stripe subscription creation
-- `stripe-webhook`: Subscription event handling
-- `add-tokens`: Manual token addition (admin)
+### Subscription Management UI
+- **Current Plan Display**: Show active subscription with expiration date
+- **Upgrade Options**: List higher tier plans with token differences
+- **Downgrade Options**: List lower tier plans with preserved tokens notice
+- **Token Display**: Show available tokens with frozen state indicator
+- **No Token Purchase**: Only subscription-based token acquisition
+
+## Security Considerations
+
+### Access Control
+- Row-Level Security on all user-related tables
+- Service role access for webhook processing
+- User access limited to own subscription data
+
+### Data Validation
+- Webhook signature verification
+- Email domain validation
+- Token balance non-negative constraints
+- Subscription status validation
 
 ## Monitoring and Analytics
 
 ### Key Metrics
-- Token consumption rates
-- Subscription conversion rates
-- Monthly recurring revenue
-- User engagement levels
-- Worksheet generation patterns
+- Active subscription distribution by plan
+- Token consumption patterns
+- Upgrade/downgrade conversion rates
+- Cancellation and reactivation rates
+- Revenue tracking by subscription tier
 
-### Data Points
-- User registration and confirmation rates
-- Plan upgrade/downgrade frequency
-- Token purchase vs subscription preference
-- Geographic usage distribution
-- Feature usage analytics
+### Event Logging
+All subscription events logged with:
+- Timestamp and user identification
+- Event type and associated data
+- Token changes and balance snapshots
+- Stripe event correlation IDs
 
-## Security Considerations
+## Migration and Maintenance
 
-### Data Protection
-- Row-level security on all user data
-- Encrypted payment information
-- Secure token storage
-- Audit trails for all transactions
+### Data Migration
+When updating the system:
+1. Backup existing subscription data
+2. Run migration scripts for schema changes
+3. Repair any data inconsistencies
+4. Validate token balances against subscription history
 
-### Access Control
-- Authentication required for all features
-- Email confirmation mandatory
-- Subscription status validation
-- Rate limiting and abuse prevention
+### Regular Maintenance
+- Weekly subscription data synchronization with Stripe
+- Monthly token balance audits
+- Quarterly subscription analytics reviews
+- Annual pricing and plan structure evaluation
 
-## Future Enhancements
-
-### Planned Features
-- Team/organization accounts
-- Bulk token purchases
-- Advanced analytics dashboard
-- API access for enterprise users
-- Multi-language support
-
-### Technical Improvements
-- Performance optimization
-- Enhanced error handling
-- Automated testing coverage
-- Documentation updates
-- Mobile app compatibility
-
-This documentation reflects the current implementation as of the latest system update and should be maintained as the system evolves.
+This documentation reflects the current implementation and should be updated as the system evolves.
