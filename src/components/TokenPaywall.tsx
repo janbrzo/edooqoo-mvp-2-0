@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Coins, CreditCard, Zap, Users } from 'lucide-react';
+import { Coins, Zap, Users } from 'lucide-react';
 
 interface TokenPaywallProps {
   isDemo: boolean;
@@ -19,6 +19,7 @@ export const TokenPaywall: React.FC<TokenPaywallProps> = ({
   onUpgrade 
 }) => {
   const currentPlan = profile?.subscription_type;
+  const tokensFrozen = profile?.is_tokens_frozen;
 
   if (isDemo) {
     return (
@@ -37,7 +38,7 @@ export const TokenPaywall: React.FC<TokenPaywallProps> = ({
               <li>• 2 free tokens to start</li>
               <li>• Save and manage students</li>
               <li>• Access to all worksheet types</li>
-              <li>• No subscription required</li>
+              <li>• Choose from subscription plans</li>
             </ul>
           </div>
           <Button asChild className="w-full">
@@ -46,6 +47,38 @@ export const TokenPaywall: React.FC<TokenPaywallProps> = ({
           <Button asChild variant="outline" className="w-full">
             <Link to="/auth">Sign In</Link>
           </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Handle frozen tokens case
+  if (tokensFrozen) {
+    return (
+      <Card className="max-w-md mx-auto mt-8">
+        <CardHeader className="text-center">
+          <Coins className="w-12 h-12 mx-auto mb-4 text-destructive" />
+          <CardTitle>Subscription Expired</CardTitle>
+          <CardDescription>
+            Your tokens are currently frozen. Reactivate your subscription to continue generating worksheets.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-destructive/10 p-4 rounded-lg border border-destructive/20">
+            <h4 className="font-semibold mb-2 text-destructive">Available Tokens: {tokenLeft} (Frozen)</h4>
+            <p className="text-sm">Your tokens will be available again once you reactivate your subscription.</p>
+          </div>
+          <Button asChild className="w-full">
+            <Link to="/pricing">Reactivate Subscription</Link>
+          </Button>
+          <div className="flex gap-2 pt-4">
+            <Button asChild variant="outline" className="flex-1">
+              <Link to="/dashboard">Dashboard</Link>
+            </Button>
+            <Button asChild variant="outline" className="flex-1">
+              <Link to="/profile">Profile</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -114,8 +147,8 @@ export const TokenPaywall: React.FC<TokenPaywallProps> = ({
         </CardTitle>
         <CardDescription>
           {currentPlan && currentPlan !== 'Free Demo' 
-            ? `You've reached your limit. Upgrade your ${currentPlan} to continue.`
-            : `You have ${tokenLeft} tokens left. Choose a subscription plan to continue generating worksheets.`
+            ? `You have ${tokenLeft} tokens left. Upgrade your ${currentPlan} to get more tokens.`
+            : `You have ${tokenLeft} tokens left. Choose a subscription plan to get more tokens.`
           }
         </CardDescription>
       </CardHeader>

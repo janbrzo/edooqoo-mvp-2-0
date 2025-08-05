@@ -23,24 +23,21 @@ export const useTokenSystem = (userId?: string | null) => {
     if (!userId) return;
     
     try {
-      // Get profile data with token and subscription info including rollover_tokens
+      // Get profile data with simplified token system
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('token_balance, rollover_tokens, monthly_worksheet_limit, subscription_type, monthly_worksheets_used')
+        .select('available_tokens, is_tokens_frozen, monthly_worksheet_limit, subscription_type, monthly_worksheets_used, total_worksheets_created, total_tokens_consumed, total_tokens_received')
         .eq('id', userId)
         .single();
       
       if (error) throw error;
       
-      // Calculate Token Left with new logic:
-      // Token Left = token_balance + rollover_tokens + (monthly_limit - monthly_used)
-      const tokenBalance = profileData?.token_balance || 0;
-      const rolloverTokens = profileData?.rollover_tokens || 0;
-      const monthlyLimit = profileData?.monthly_worksheet_limit || 0;
-      const monthlyUsed = profileData?.monthly_worksheets_used || 0;
-      const monthlyAvailable = Math.max(0, monthlyLimit - monthlyUsed);
+      // Simplified Token Left calculation
+      // Token Left = available_tokens (if not frozen, otherwise 0)
+      const availableTokens = profileData?.available_tokens || 0;
+      const tokensFrozen = profileData?.is_tokens_frozen || false;
       
-      const calculatedTokenLeft = tokenBalance + rolloverTokens + monthlyAvailable;
+      const calculatedTokenLeft = tokensFrozen ? 0 : availableTokens;
       
       setTokenLeft(calculatedTokenLeft);
       setProfile(profileData);
@@ -84,7 +81,7 @@ export const useTokenSystem = (userId?: string | null) => {
   // Check if user has tokens available
   const hasTokens = () => {
     if (!userId) return false; // Demo mode - no tokens
-    return tokenLeft > 0;
+    return tokenLeft > 0 && !(profile?.is_tokens_frozen);
   };
 
   const isDemo = !userId; // Anonymous users are in demo mode

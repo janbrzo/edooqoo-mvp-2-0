@@ -121,11 +121,13 @@ export type Database = {
       }
       profiles: {
         Row: {
+          available_tokens: number
           created_at: string
           deleted_at: string | null
           email: string | null
           first_name: string | null
           id: string
+          is_tokens_frozen: boolean
           last_limit_reset: string | null
           last_name: string | null
           monthly_worksheet_limit: number | null
@@ -136,15 +138,19 @@ export type Database = {
           subscription_status: string | null
           subscription_type: string | null
           teaching_preferences: Json | null
-          token_balance: number
+          total_tokens_consumed: number | null
+          total_tokens_received: number | null
+          total_worksheets_created: number | null
           updated_at: string
         }
         Insert: {
+          available_tokens?: number
           created_at?: string
           deleted_at?: string | null
           email?: string | null
           first_name?: string | null
           id: string
+          is_tokens_frozen?: boolean
           last_limit_reset?: string | null
           last_name?: string | null
           monthly_worksheet_limit?: number | null
@@ -155,15 +161,19 @@ export type Database = {
           subscription_status?: string | null
           subscription_type?: string | null
           teaching_preferences?: Json | null
-          token_balance?: number
+          total_tokens_consumed?: number | null
+          total_tokens_received?: number | null
+          total_worksheets_created?: number | null
           updated_at?: string
         }
         Update: {
+          available_tokens?: number
           created_at?: string
           deleted_at?: string | null
           email?: string | null
           first_name?: string | null
           id?: string
+          is_tokens_frozen?: boolean
           last_limit_reset?: string | null
           last_name?: string | null
           monthly_worksheet_limit?: number | null
@@ -174,7 +184,9 @@ export type Database = {
           subscription_status?: string | null
           subscription_type?: string | null
           teaching_preferences?: Json | null
-          token_balance?: number
+          total_tokens_consumed?: number | null
+          total_tokens_received?: number | null
+          total_worksheets_created?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -217,11 +229,48 @@ export type Database = {
           },
         ]
       }
+      subscription_events: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          new_plan_type: string | null
+          old_plan_type: string | null
+          stripe_event_id: string | null
+          teacher_id: string
+          tokens_added: number | null
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          new_plan_type?: string | null
+          old_plan_type?: string | null
+          stripe_event_id?: string | null
+          teacher_id: string
+          tokens_added?: number | null
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          new_plan_type?: string | null
+          old_plan_type?: string | null
+          stripe_event_id?: string | null
+          teacher_id?: string
+          tokens_added?: number | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
           current_period_end: string
           current_period_start: string
+          email: string | null
           id: string
           monthly_limit: number
           plan_type: string
@@ -235,6 +284,7 @@ export type Database = {
           created_at?: string
           current_period_end: string
           current_period_start: string
+          email?: string | null
           id?: string
           monthly_limit: number
           plan_type: string
@@ -248,6 +298,7 @@ export type Database = {
           created_at?: string
           current_period_end?: string
           current_period_start?: string
+          email?: string | null
           id?: string
           monthly_limit?: number
           plan_type?: string
