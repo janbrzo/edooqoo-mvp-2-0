@@ -51,7 +51,6 @@ serve(async (req) => {
 
     let event;
     try {
-      // FIXED: Use async version to prevent "SubtleCryptoProvider cannot be used in a synchronous context" error
       event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
       logStep('Event verified successfully', { type: event.type, id: event.id });
     } catch (err) {
@@ -64,9 +63,22 @@ serve(async (req) => {
         event.type === 'customer.subscription.updated' ||
         event.type === 'invoice.payment_succeeded') {
       
-      const subscription = event.type === 'invoice.payment_succeeded' 
-        ? await stripe.subscriptions.retrieve(event.data.object.subscription as string)
-        : event.data.object as Stripe.Subscription;
+      let subscription;
+      
+      if (event.type === 'invoice.payment_succeeded') {
+        // FIXED: Check if subscription ID exists before retrieving
+        const invoiceSubscriptionId = event.data.object.subscription;
+        if (!invoiceSubscriptionId) {
+          logStep('WARNING: Invoice has no subscription ID, skipping', { invoiceId: event.data.object.id });
+          return new Response(JSON.stringify({ received: true, skipped: 'no_subscription' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          });
+        }
+        subscription = await stripe.subscriptions.retrieve(invoiceSubscriptionId as string);
+      } else {
+        subscription = event.data.object as Stripe.Subscription;
+      }
 
       logStep('Processing subscription event', { 
         subscriptionId: subscription.id,
@@ -143,6 +155,22 @@ serve(async (req) => {
         priceAmount: amount 
       });
 
+      // FIXED: Validate subscription dates before using them
+      let subscriptionExpiresAt = null;
+      if (subscription.current_period_end && typeof subscription.current_period_end === 'number') {
+        try {
+          subscriptionExpiresAt = new Date(subscription.current_period_end * 1000).toISOString();
+          logStep('Subscription expiry date calculated', { expiresAt: subscriptionExpiresAt });
+        } catch (dateError) {
+          logStep('WARNING: Could not parse subscription end date', { 
+            current_period_end: subscription.current_period_end,
+            error: dateError.message 
+          });
+          // Use a default date 30 days from now if date parsing fails
+          subscriptionExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        }
+      }
+
       // Update profile with subscription details and add tokens
       const newAvailableTokens = profile.available_tokens + tokensToAdd;
       const newTotalReceived = (profile.total_tokens_received || 0) + tokensToAdd;
@@ -152,7 +180,7 @@ serve(async (req) => {
         .update({
           subscription_type: subscriptionType,
           subscription_status: subscription.status,
-          subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
+          subscription_expires_at: subscriptionExpiresAt,
           monthly_worksheet_limit: monthlyLimit,
           available_tokens: newAvailableTokens,
           total_tokens_received: newTotalReceived,
@@ -228,7 +256,7 @@ serve(async (req) => {
           plan_type: subscriptionType.toLowerCase().replace(' ', '-'),
           monthly_limit: monthlyLimit,
           current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          current_period_end: subscriptionExpiresAt,
           updated_at: new Date().toISOString()
         }, { 
           onConflict: 'stripe_subscription_id',
@@ -242,7 +270,7 @@ serve(async (req) => {
       }
     }
 
-    // NEW: Handle subscription deletion/cancellation
+    // Handle subscription deletion/cancellation
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object as Stripe.Subscription;
 
