@@ -19,7 +19,7 @@ This document describes the comprehensive token and subscription system for the 
 
 ## Database Schema
 
-### Profiles Table
+### Profiles Table (Simplified)
 ```sql
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id),
@@ -30,8 +30,7 @@ CREATE TABLE profiles (
   subscription_status TEXT DEFAULT 'active',
   subscription_expires_at TIMESTAMPTZ,
   
-  -- Historical data for analysis
-  rollover_tokens INTEGER DEFAULT 0,
+  -- Legacy fields (kept for historical data)
   monthly_worksheet_limit INTEGER DEFAULT 0,
   monthly_worksheets_used INTEGER DEFAULT 0,
   
@@ -110,18 +109,50 @@ const getAvailableTokens = (profile) => {
 ```
 
 ### 3. Token Consumption
-```
-Pre-consumption check:
-1. is_tokens_frozen === FALSE
-2. available_tokens > 0
-
-If both TRUE:
-- available_tokens -= 1
-- total_tokens_consumed += 1
-- Log consumption in token_transactions
-
-If either FALSE:
-- Show paywall (subscription/upgrade prompt)
+```sql
+-- Simplified consumption using consume_token function
+CREATE OR REPLACE FUNCTION public.consume_token(p_teacher_id uuid, p_worksheet_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+  current_available INTEGER;
+  tokens_frozen BOOLEAN;
+BEGIN
+  -- Get current data from simplified structure
+  SELECT 
+    available_tokens, 
+    is_tokens_frozen
+  INTO current_available, tokens_frozen
+  FROM public.profiles 
+  WHERE id = p_teacher_id;
+  
+  -- Check if tokens are frozen
+  IF tokens_frozen = TRUE THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Check if tokens are available
+  IF current_available <= 0 THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Consume one token
+  UPDATE public.profiles 
+  SET 
+    available_tokens = available_tokens - 1,
+    total_tokens_consumed = total_tokens_consumed + 1,
+    total_worksheets_created = total_worksheets_created + 1
+  WHERE id = p_teacher_id;
+  
+  -- Log transaction
+  INSERT INTO public.token_transactions (teacher_id, transaction_type, amount, description, reference_id)
+  VALUES (p_teacher_id, 'usage', -1, 'Worksheet generation', p_worksheet_id);
+  
+  RETURN TRUE;
+END;
+$function$
 ```
 
 ## Subscription Workflows
@@ -172,7 +203,6 @@ If either FALSE:
    ```javascript
    available_tokens += monthly_plan_tokens
    subscription_expires_at = new_period_end
-   monthly_worksheets_used = 0 // Reset monthly counter
    total_tokens_received += monthly_plan_tokens
    ```
 3. **Event Log**: Record 'renewed' event
@@ -225,7 +255,11 @@ if (existingSubscription) {
   // Upgrade/Downgrade: Update existing subscription
   await stripe.subscriptions.update(existingSubscription.id, {
     items: [{ price: newPriceId }],
-    proration_behavior: 'always_invoice'
+    proration_behavior: 'always_invoice',
+    metadata: {
+      upgradeTokens: upgradeTokens.toString(),
+      isUpgrade: 'true'
+    }
   });
 } else {
   // New subscription: Create checkout session
@@ -237,6 +271,7 @@ if (existingSubscription) {
 Synchronizes subscription data from Stripe to Supabase:
 - Fetches current subscription status from Stripe
 - Updates local Supabase data
+- Handles token freezing/unfreezing based on subscription status
 - Handles discrepancies and repairs data inconsistencies
 
 ## Token Tracking
@@ -252,29 +287,6 @@ Synchronizes subscription data from Stripe to Supabase:
 - **Active**: `is_tokens_frozen = FALSE`, can be consumed
 - **Frozen**: `is_tokens_frozen = TRUE`, visible but not consumable
 - **Available**: Current usable token count for UI display
-
-### Consumption Logic
-```javascript
-const consumeToken = async (userId, worksheetId) => {
-  const profile = await getProfile(userId);
-  
-  // Check if tokens are available
-  if (profile.is_tokens_frozen || profile.available_tokens <= 0) {
-    return { success: false, reason: 'no_tokens_available' };
-  }
-  
-  // Consume token
-  await updateProfile(userId, {
-    available_tokens: profile.available_tokens - 1,
-    total_tokens_consumed: profile.total_tokens_consumed + 1
-  });
-  
-  // Log transaction
-  await logTokenTransaction(userId, 'consumption', -1, worksheetId);
-  
-  return { success: true };
-};
-```
 
 ## Business Rules
 
@@ -296,31 +308,6 @@ const consumeToken = async (userId, worksheetId) => {
 3. **Token Conservation**: Tokens are never deleted, only frozen/unfrozen
 4. **Audit Trail**: All subscription changes logged in subscription_events
 
-## Error Handling
-
-### Common Scenarios
-1. **Multiple Active Subscriptions**: Consolidate to most recent
-2. **Missing Tokens**: Repair based on subscription history
-3. **Webhook Failures**: Retry mechanism with exponential backoff
-4. **Data Inconsistency**: Repair function to sync with Stripe
-
-### Repair Functions
-```javascript
-// Consolidate duplicate subscriptions
-const repairDuplicateSubscriptions = async (userId) => {
-  const subscriptions = await getActiveSubscriptions(userId);
-  if (subscriptions.length > 1) {
-    // Keep most recent, cancel others
-    const latest = subscriptions.sort((a, b) => b.created_at - a.created_at)[0];
-    const toCancel = subscriptions.filter(s => s.id !== latest.id);
-    
-    for (const sub of toCancel) {
-      await stripe.subscriptions.cancel(sub.stripe_subscription_id);
-    }
-  }
-};
-```
-
 ## Frontend Integration
 
 ### useTokenSystem Hook
@@ -335,7 +322,11 @@ const useTokenSystem = (userId) => {
     return !profile?.is_tokens_frozen && profile?.available_tokens > 0;
   };
   
-  return { availableTokens: getAvailableTokens(), canUseTokens: canUseTokens() };
+  return { 
+    tokenLeft: getAvailableTokens(), 
+    hasTokens: canUseTokens(),
+    isDemo: !userId 
+  };
 };
 ```
 
@@ -344,7 +335,7 @@ const useTokenSystem = (userId) => {
 - **Upgrade Options**: List higher tier plans with token differences
 - **Downgrade Options**: List lower tier plans with preserved tokens notice
 - **Token Display**: Show available tokens with frozen state indicator
-- **No Token Purchase**: Only subscription-based token acquisition
+- **Subscription-Only Model**: No standalone token purchases
 
 ## Security Considerations
 
@@ -369,25 +360,10 @@ const useTokenSystem = (userId) => {
 - Revenue tracking by subscription tier
 
 ### Event Logging
-All subscription events logged with:
+All subscription events logged in `subscription_events` with:
 - Timestamp and user identification
 - Event type and associated data
 - Token changes and balance snapshots
 - Stripe event correlation IDs
 
-## Migration and Maintenance
-
-### Data Migration
-When updating the system:
-1. Backup existing subscription data
-2. Run migration scripts for schema changes
-3. Repair any data inconsistencies
-4. Validate token balances against subscription history
-
-### Regular Maintenance
-- Weekly subscription data synchronization with Stripe
-- Monthly token balance audits
-- Quarterly subscription analytics reviews
-- Annual pricing and plan structure evaluation
-
-This documentation reflects the current implementation and should be updated as the system evolves.
+This documentation reflects the current simplified implementation where all token logic is centralized around `available_tokens` and `is_tokens_frozen` fields.
