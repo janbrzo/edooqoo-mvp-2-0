@@ -51,14 +51,15 @@ serve(async (req) => {
 
     let event;
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-      logStep('Event verified', { type: event.type, id: event.id });
+      // FIXED: Use async version to prevent "SubtleCryptoProvider cannot be used in a synchronous context" error
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+      logStep('Event verified successfully', { type: event.type, id: event.id });
     } catch (err) {
       logStep('ERROR: Webhook signature verification failed', { error: err.message });
       throw new Error(`Webhook signature verification failed: ${err.message}`);
     }
 
-    // Handle subscription events
+    // Handle subscription creation and updates
     if (event.type === 'customer.subscription.created' || 
         event.type === 'customer.subscription.updated' ||
         event.type === 'invoice.payment_succeeded') {
@@ -70,7 +71,8 @@ serve(async (req) => {
       logStep('Processing subscription event', { 
         subscriptionId: subscription.id,
         customerId: subscription.customer,
-        status: subscription.status 
+        status: subscription.status,
+        eventType: event.type
       });
 
       // Get customer details
@@ -87,7 +89,7 @@ serve(async (req) => {
       // Find user profile by email
       const { data: profile, error: profileError } = await supabaseService
         .from('profiles')
-        .select('id, available_tokens, subscription_type, monthly_worksheet_limit')
+        .select('id, available_tokens, subscription_type, monthly_worksheet_limit, total_tokens_received')
         .eq('email', email)
         .single();
 
@@ -96,7 +98,11 @@ serve(async (req) => {
         throw new Error(`User profile not found for email: ${email}`);
       }
 
-      logStep('Profile found', { userId: profile.id, currentTokens: profile.available_tokens });
+      logStep('Profile found', { 
+        userId: profile.id, 
+        currentTokens: profile.available_tokens,
+        currentTotalReceived: profile.total_tokens_received || 0
+      });
 
       // Determine subscription details from price
       const priceId = subscription.items.data[0].price.id;
@@ -111,7 +117,7 @@ serve(async (req) => {
       if (amount === 900) { // $9.00 = Side-Gig
         subscriptionType = 'Side-Gig';
         monthlyLimit = 15;
-        tokensToAdd = 15; // Add tokens for Side-Gig plan
+        tokensToAdd = 15;
       } else if (amount === 1900) { // $19.00 = Full-Time 30
         subscriptionType = 'Full-Time 30';
         monthlyLimit = 30;
@@ -138,6 +144,9 @@ serve(async (req) => {
       });
 
       // Update profile with subscription details and add tokens
+      const newAvailableTokens = profile.available_tokens + tokensToAdd;
+      const newTotalReceived = (profile.total_tokens_received || 0) + tokensToAdd;
+
       const { error: updateError } = await supabaseService
         .from('profiles')
         .update({
@@ -145,10 +154,10 @@ serve(async (req) => {
           subscription_status: subscription.status,
           subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
           monthly_worksheet_limit: monthlyLimit,
-          available_tokens: profile.available_tokens + tokensToAdd, // ADD TOKENS!
-          total_tokens_received: (profile.total_tokens_received || 0) + tokensToAdd,
+          available_tokens: newAvailableTokens,
+          total_tokens_received: newTotalReceived,
           is_tokens_frozen: false,
-          monthly_worksheets_used: 0, // Reset monthly usage
+          monthly_worksheets_used: 0, // Reset monthly usage on new subscription
           updated_at: new Date().toISOString()
         })
         .eq('id', profile.id);
@@ -159,7 +168,8 @@ serve(async (req) => {
       }
 
       logStep('Profile updated successfully', { 
-        newTokens: profile.available_tokens + tokensToAdd,
+        newAvailableTokens,
+        newTotalReceived,
         subscriptionType 
       });
 
@@ -177,7 +187,9 @@ serve(async (req) => {
             subscription_id: subscription.id,
             customer_id: customer.id,
             amount: amount,
-            currency: price.currency
+            currency: price.currency,
+            period_start: subscription.current_period_start,
+            period_end: subscription.current_period_end
           }
         });
 
@@ -185,6 +197,23 @@ serve(async (req) => {
         logStep('WARNING: Failed to log subscription event', eventError);
       } else {
         logStep('Subscription event logged successfully');
+      }
+
+      // Add token transaction record
+      const { error: transactionError } = await supabaseService
+        .from('token_transactions')
+        .insert({
+          teacher_id: profile.id,
+          transaction_type: 'purchase',
+          amount: tokensToAdd,
+          description: `Subscription tokens added - ${subscriptionType}`,
+          reference_id: null
+        });
+
+      if (transactionError) {
+        logStep('WARNING: Failed to log token transaction', transactionError);
+      } else {
+        logStep('Token transaction logged successfully', { tokensAdded: tokensToAdd });
       }
 
       // Update subscriptions table
@@ -213,14 +242,103 @@ serve(async (req) => {
       }
     }
 
-    logStep('Webhook processed successfully');
+    // NEW: Handle subscription deletion/cancellation
+    if (event.type === 'customer.subscription.deleted') {
+      const subscription = event.data.object as Stripe.Subscription;
+
+      logStep('Processing subscription deletion', { 
+        subscriptionId: subscription.id,
+        customerId: subscription.customer
+      });
+
+      // Get customer details
+      const customer = await stripe.customers.retrieve(subscription.customer as string) as Stripe.Customer;
+      const email = customer.email;
+
+      if (!email) {
+        logStep('ERROR: No email found for deleted subscription customer');
+        throw new Error('No email found for customer');
+      }
+
+      // Find user profile by email
+      const { data: profile, error: profileError } = await supabaseService
+        .from('profiles')
+        .select('id, subscription_type')
+        .eq('email', email)
+        .single();
+
+      if (profileError || !profile) {
+        logStep('ERROR: User profile not found for deletion', { email, error: profileError });
+        throw new Error(`User profile not found for email: ${email}`);
+      }
+
+      logStep('Processing cancellation for profile', { userId: profile.id, email });
+
+      // Freeze tokens and update subscription status
+      const { error: updateError } = await supabaseService
+        .from('profiles')
+        .update({
+          subscription_status: 'cancelled',
+          is_tokens_frozen: true, // Freeze tokens when subscription is cancelled
+          monthly_worksheet_limit: 0,
+          monthly_worksheets_used: 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', profile.id);
+
+      if (updateError) {
+        logStep('ERROR: Failed to update profile on cancellation', updateError);
+        throw updateError;
+      }
+
+      // Log cancellation event
+      const { error: eventError } = await supabaseService
+        .from('subscription_events')
+        .insert({
+          teacher_id: profile.id,
+          event_type: 'customer.subscription.deleted',
+          old_plan_type: profile.subscription_type || 'Unknown',
+          new_plan_type: 'Free Demo',
+          tokens_added: 0,
+          stripe_event_id: event.id,
+          event_data: {
+            subscription_id: subscription.id,
+            customer_id: customer.id,
+            cancelled_at: subscription.canceled_at,
+            ended_at: subscription.ended_at
+          }
+        });
+
+      if (eventError) {
+        logStep('WARNING: Failed to log cancellation event', eventError);
+      } else {
+        logStep('Cancellation event logged successfully');
+      }
+
+      // Update subscriptions table status
+      const { error: subError } = await supabaseService
+        .from('subscriptions')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString()
+        })
+        .eq('stripe_subscription_id', subscription.id);
+
+      if (subError) {
+        logStep('WARNING: Failed to update subscriptions table on cancellation', subError);
+      } else {
+        logStep('Subscriptions table updated for cancellation');
+      }
+    }
+
+    logStep('Webhook processed successfully', { eventType: event.type });
     return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
 
   } catch (error: any) {
-    logStep('ERROR: Webhook processing failed', { message: error.message });
+    logStep('ERROR: Webhook processing failed', { message: error.message, stack: error.stack });
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
