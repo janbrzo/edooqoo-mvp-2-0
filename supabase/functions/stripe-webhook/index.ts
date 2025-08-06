@@ -5,12 +5,13 @@ import Stripe from 'https://esm.sh/stripe@12.18.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 const logStep = (step: string, details?: any) => {
+  const timestamp = new Date().toISOString();
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
+  console.log(`[STRIPE-WEBHOOK] ${timestamp} ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
@@ -19,396 +20,213 @@ serve(async (req) => {
   }
 
   try {
-    logStep('Function started');
+    logStep('Webhook received');
 
-    // Initialize Stripe
     const stripeKey = Deno.env.get('Stripe_Secret_Key');
     if (!stripeKey) {
-      logStep('Stripe key not configured');
-      throw new Error('Stripe key not configured');
+      logStep('ERROR: Missing Stripe secret key');
+      throw new Error('Stripe secret key not configured');
     }
 
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
-
-    // Get webhook signature
-    const signature = req.headers.get('stripe-signature');
-    if (!signature) {
-      logStep('No stripe signature');
-      throw new Error('No stripe signature');
-    }
-
-    // Parse webhook body
-    const body = await req.text();
-    logStep('Received webhook body length:', body.length);
-
-    // Verify webhook signature (in production, use webhook endpoint secret)
-    let event;
-    try {
-      event = JSON.parse(body);
-      logStep('Event type:', event.type);
-    } catch (err) {
-      logStep('Invalid JSON:', err);
-      throw new Error('Invalid JSON');
-    }
-
-    // Initialize Supabase with service role key to bypass RLS
-    const supabaseClient = createClient(
+    const supabaseService = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } }
     );
 
-    // Handle different event types
-    switch (event.type) {
-      case 'checkout.session.completed':
-        logStep('Processing checkout.session.completed');
-        await handleCheckoutCompleted(stripe, supabaseClient, event.data.object);
-        break;
-      
-      case 'invoice.payment_succeeded':
-        logStep('Processing invoice.payment_succeeded');
-        await handlePaymentSucceeded(stripe, supabaseClient, event.data.object);
-        break;
-      
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-        logStep('Processing subscription event:', event.type);
-        await handleSubscriptionEvent(stripe, supabaseClient, event.data.object, event.type);
-        break;
-      
-      case 'customer.subscription.deleted':
-        logStep('Processing subscription deleted');
-        await handleSubscriptionDeleted(stripe, supabaseClient, event.data.object);
-        break;
-      
-      default:
-        logStep('Unhandled event type:', event.type);
+    const body = await req.text();
+    const signature = req.headers.get('stripe-signature');
+    
+    if (!signature) {
+      logStep('ERROR: Missing Stripe signature');
+      throw new Error('Missing stripe signature');
     }
 
+    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+    if (!webhookSecret) {
+      logStep('ERROR: Missing webhook secret');
+      throw new Error('Missing webhook secret');
+    }
+
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      logStep('Event verified', { type: event.type, id: event.id });
+    } catch (err) {
+      logStep('ERROR: Webhook signature verification failed', { error: err.message });
+      throw new Error(`Webhook signature verification failed: ${err.message}`);
+    }
+
+    // Handle subscription events
+    if (event.type === 'customer.subscription.created' || 
+        event.type === 'customer.subscription.updated' ||
+        event.type === 'invoice.payment_succeeded') {
+      
+      const subscription = event.type === 'invoice.payment_succeeded' 
+        ? await stripe.subscriptions.retrieve(event.data.object.subscription as string)
+        : event.data.object as Stripe.Subscription;
+
+      logStep('Processing subscription event', { 
+        subscriptionId: subscription.id,
+        customerId: subscription.customer,
+        status: subscription.status 
+      });
+
+      // Get customer details
+      const customer = await stripe.customers.retrieve(subscription.customer as string) as Stripe.Customer;
+      const email = customer.email;
+
+      if (!email) {
+        logStep('ERROR: No email found for customer');
+        throw new Error('No email found for customer');
+      }
+
+      logStep('Customer found', { email, customerId: customer.id });
+
+      // Find user profile by email
+      const { data: profile, error: profileError } = await supabaseService
+        .from('profiles')
+        .select('id, available_tokens, subscription_type, monthly_worksheet_limit')
+        .eq('email', email)
+        .single();
+
+      if (profileError || !profile) {
+        logStep('ERROR: User profile not found', { email, error: profileError });
+        throw new Error(`User profile not found for email: ${email}`);
+      }
+
+      logStep('Profile found', { userId: profile.id, currentTokens: profile.available_tokens });
+
+      // Determine subscription details from price
+      const priceId = subscription.items.data[0].price.id;
+      const price = await stripe.prices.retrieve(priceId);
+      const amount = price.unit_amount || 0;
+      
+      let subscriptionType = 'Unknown';
+      let monthlyLimit = 0;
+      let tokensToAdd = 0;
+
+      // Determine plan based on amount
+      if (amount === 900) { // $9.00 = Side-Gig
+        subscriptionType = 'Side-Gig';
+        monthlyLimit = 15;
+        tokensToAdd = 15; // Add tokens for Side-Gig plan
+      } else if (amount === 1900) { // $19.00 = Full-Time 30
+        subscriptionType = 'Full-Time 30';
+        monthlyLimit = 30;
+        tokensToAdd = 30;
+      } else if (amount === 3900) { // $39.00 = Full-Time 60
+        subscriptionType = 'Full-Time 60';
+        monthlyLimit = 60;
+        tokensToAdd = 60;
+      } else if (amount === 5900) { // $59.00 = Full-Time 90
+        subscriptionType = 'Full-Time 90';
+        monthlyLimit = 90;
+        tokensToAdd = 90;
+      } else if (amount === 7900) { // $79.00 = Full-Time 120
+        subscriptionType = 'Full-Time 120';
+        monthlyLimit = 120;
+        tokensToAdd = 120;
+      }
+
+      logStep('Plan determined', { 
+        subscriptionType, 
+        monthlyLimit, 
+        tokensToAdd, 
+        priceAmount: amount 
+      });
+
+      // Update profile with subscription details and add tokens
+      const { error: updateError } = await supabaseService
+        .from('profiles')
+        .update({
+          subscription_type: subscriptionType,
+          subscription_status: subscription.status,
+          subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
+          monthly_worksheet_limit: monthlyLimit,
+          available_tokens: profile.available_tokens + tokensToAdd, // ADD TOKENS!
+          total_tokens_received: (profile.total_tokens_received || 0) + tokensToAdd,
+          is_tokens_frozen: false,
+          monthly_worksheets_used: 0, // Reset monthly usage
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', profile.id);
+
+      if (updateError) {
+        logStep('ERROR: Failed to update profile', updateError);
+        throw updateError;
+      }
+
+      logStep('Profile updated successfully', { 
+        newTokens: profile.available_tokens + tokensToAdd,
+        subscriptionType 
+      });
+
+      // Log subscription event
+      const { error: eventError } = await supabaseService
+        .from('subscription_events')
+        .insert({
+          teacher_id: profile.id,
+          event_type: event.type,
+          old_plan_type: profile.subscription_type || 'Free Demo',
+          new_plan_type: subscriptionType,
+          tokens_added: tokensToAdd,
+          stripe_event_id: event.id,
+          event_data: {
+            subscription_id: subscription.id,
+            customer_id: customer.id,
+            amount: amount,
+            currency: price.currency
+          }
+        });
+
+      if (eventError) {
+        logStep('WARNING: Failed to log subscription event', eventError);
+      } else {
+        logStep('Subscription event logged successfully');
+      }
+
+      // Update subscriptions table
+      const { error: subError } = await supabaseService
+        .from('subscriptions')
+        .upsert({
+          teacher_id: profile.id,
+          email: email,
+          stripe_subscription_id: subscription.id,
+          stripe_customer_id: customer.id,
+          status: subscription.status,
+          plan_type: subscriptionType.toLowerCase().replace(' ', '-'),
+          monthly_limit: monthlyLimit,
+          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          updated_at: new Date().toISOString()
+        }, { 
+          onConflict: 'stripe_subscription_id',
+          ignoreDuplicates: false 
+        });
+
+      if (subError) {
+        logStep('WARNING: Failed to update subscriptions table', subError);
+      } else {
+        logStep('Subscriptions table updated successfully');
+      }
+    }
+
+    logStep('Webhook processed successfully');
     return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
 
   } catch (error: any) {
-    logStep('Error occurred', { message: error.message, stack: error.stack });
+    logStep('ERROR: Webhook processing failed', { message: error.message });
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
 });
-
-async function handleCheckoutCompleted(stripe: Stripe, supabaseClient: any, session: any) {
-  logStep('Handling checkout completed for session:', session.id);
-  
-  try {
-    // Get customer details
-    const customer = await stripe.customers.retrieve(session.customer as string);
-    if (!customer || customer.deleted) {
-      throw new Error('Customer not found');
-    }
-
-    logStep('Customer email:', (customer as any).email);
-
-    // Find user by email
-    const { data: users, error: userError } = await supabaseClient.auth.admin.listUsers();
-    if (userError) throw userError;
-
-    const user = users.users.find((u: any) => u.email === (customer as any).email);
-    if (!user) {
-      logStep('User not found for email:', (customer as any).email);
-      return;
-    }
-
-    logStep('Found user:', user.id);
-
-    // If this is a subscription checkout, get subscription details
-    if (session.mode === 'subscription' && session.subscription) {
-      const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-      await processSubscription(supabaseClient, user.id, customer as any, subscription, session.metadata);
-    }
-
-  } catch (error) {
-    logStep('Error handling checkout completed:', error);
-    throw error;
-  }
-}
-
-async function handlePaymentSucceeded(stripe: Stripe, supabaseClient: any, invoice: any) {
-  logStep('Handling payment succeeded for invoice:', invoice.id);
-  
-  if (invoice.subscription) {
-    const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
-    const customer = await stripe.customers.retrieve(subscription.customer as string);
-    
-    if (!customer || customer.deleted) return;
-
-    // Find user by email
-    const { data: users, error: userError } = await supabaseClient.auth.admin.listUsers();
-    if (userError) throw userError;
-
-    const user = users.users.find((u: any) => u.email === (customer as any).email);
-    if (!user) return;
-
-    // This is a renewal - add monthly tokens
-    await processSubscriptionRenewal(supabaseClient, user.id, customer as any, subscription);
-  }
-}
-
-async function handleSubscriptionEvent(stripe: Stripe, supabaseClient: any, subscription: any, eventType: string) {
-  logStep('Handling subscription event for subscription:', subscription.id);
-  
-  const customer = await stripe.customers.retrieve(subscription.customer);
-  if (!customer || customer.deleted) return;
-
-  // Find user by email
-  const { data: users, error: userError } = await supabaseClient.auth.admin.listUsers();
-  if (userError) throw userError;
-
-  const user = users.users.find((u: any) => u.email === (customer as any).email);
-  if (!user) return;
-
-  await processSubscription(supabaseClient, user.id, customer as any, subscription);
-}
-
-async function handleSubscriptionDeleted(stripe: Stripe, supabaseClient: any, subscription: any) {
-  logStep('Handling subscription deleted for subscription:', subscription.id);
-  
-  const customer = await stripe.customers.retrieve(subscription.customer);
-  if (!customer || customer.deleted) return;
-
-  // Find user by email
-  const { data: users, error: userError } = await supabaseClient.auth.admin.listUsers();
-  if (userError) throw userError;
-
-  const user = users.users.find((u: any) => u.email === (customer as any).email);
-  if (!user) return;
-
-  // Freeze tokens when subscription is deleted
-  await freezeUserTokens(supabaseClient, user.id, subscription.id);
-}
-
-async function processSubscription(supabaseClient: any, userId: string, customer: any, subscription: any, metadata: any = null) {
-  logStep('Processing subscription for user:', userId);
-  
-  try {
-    // Determine plan details
-    const priceId = subscription.items.data[0].price.id;
-    const amount = subscription.items.data[0].price.unit_amount || 0;
-    
-    let planType = 'unknown';
-    let monthlyLimit = 0;
-    let tokensToAdd = 0;
-    let subscriptionType = 'Unknown Plan';
-
-    // Check if this is an upgrade from metadata
-    const isUpgrade = metadata?.is_upgrade === 'true';
-    const upgradeTokens = metadata?.upgrade_tokens ? parseInt(metadata.upgrade_tokens) : 0;
-
-    // Determine plan based on amount
-    if (amount === 900) { // $9.00 - Side-Gig
-      planType = 'side-gig';
-      monthlyLimit = 15;
-      tokensToAdd = isUpgrade ? upgradeTokens : 15;
-      subscriptionType = 'Side-Gig';
-    } else if (amount >= 1900) { // $19.00+ - Full-Time
-      planType = 'full-time';
-      if (amount === 1900) {
-        monthlyLimit = 30;
-        subscriptionType = 'Full-Time 30';
-      } else if (amount === 3900) {
-        monthlyLimit = 60;
-        subscriptionType = 'Full-Time 60';
-      } else if (amount === 5900) {
-        monthlyLimit = 90;
-        subscriptionType = 'Full-Time 90';
-      } else if (amount === 7900) {
-        monthlyLimit = 120;
-        subscriptionType = 'Full-Time 120';
-      } else {
-        monthlyLimit = 30;
-        subscriptionType = 'Full-Time 30';
-      }
-      tokensToAdd = isUpgrade ? upgradeTokens : monthlyLimit;
-    }
-
-    logStep('Plan details:', { planType, monthlyLimit, tokensToAdd, subscriptionType, isUpgrade });
-
-    // Upsert subscription record
-    const { error: subError } = await supabaseClient
-      .from('subscriptions')
-      .upsert({
-        teacher_id: userId,
-        email: customer.email,
-        stripe_subscription_id: subscription.id,
-        stripe_customer_id: customer.id,
-        status: subscription.status,
-        plan_type: planType,
-        monthly_limit: monthlyLimit,
-        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-        updated_at: new Date().toISOString()
-      }, { 
-        onConflict: 'stripe_subscription_id',
-        ignoreDuplicates: false 
-      });
-
-    if (subError) {
-      logStep('Error upserting subscription:', subError);
-      throw subError;
-    }
-
-    // Get current profile
-    const { data: currentProfile } = await supabaseClient
-      .from('profiles')
-      .select('available_tokens, total_tokens_received')
-      .eq('id', userId)
-      .single();
-
-    const currentTokens = currentProfile?.available_tokens || 0;
-    const totalReceived = currentProfile?.total_tokens_received || 0;
-
-    // Update profile with new subscription data and tokens
-    const { error: profileError } = await supabaseClient
-      .from('profiles')
-      .update({
-        subscription_type: subscriptionType,
-        subscription_status: subscription.status,
-        subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-        monthly_worksheet_limit: monthlyLimit,
-        available_tokens: currentTokens + tokensToAdd,
-        total_tokens_received: totalReceived + tokensToAdd,
-        is_tokens_frozen: false, // Unfreeze tokens on active subscription
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId);
-
-    if (profileError) {
-      logStep('Error updating profile:', profileError);
-      throw profileError;
-    }
-
-    // Log subscription event
-    const eventType = isUpgrade ? 'upgraded' : (currentProfile ? 'renewed' : 'created');
-    await logSubscriptionEvent(supabaseClient, userId, eventType, {
-      old_plan: currentProfile?.subscription_type,
-      new_plan: subscriptionType,
-      tokens_added: tokensToAdd,
-      stripe_subscription_id: subscription.id
-    });
-
-    logStep('Successfully processed subscription for user:', userId);
-
-  } catch (error) {
-    logStep('Error processing subscription:', error);
-    throw error;
-  }
-}
-
-async function processSubscriptionRenewal(supabaseClient: any, userId: string, customer: any, subscription: any) {
-  logStep('Processing subscription renewal for user:', userId);
-  
-  try {
-    // Get subscription details to determine tokens to add
-    const amount = subscription.items.data[0].price.unit_amount || 0;
-    let tokensToAdd = 0;
-    
-    if (amount === 900) tokensToAdd = 15;
-    else if (amount === 1900) tokensToAdd = 30;
-    else if (amount === 3900) tokensToAdd = 60;
-    else if (amount === 5900) tokensToAdd = 90;
-    else if (amount === 7900) tokensToAdd = 120;
-
-    // Get current profile
-    const { data: currentProfile } = await supabaseClient
-      .from('profiles')
-      .select('available_tokens, total_tokens_received')
-      .eq('id', userId)
-      .single();
-
-    const currentTokens = currentProfile?.available_tokens || 0;
-    const totalReceived = currentProfile?.total_tokens_received || 0;
-
-    // Add renewal tokens
-    const { error: profileError } = await supabaseClient
-      .from('profiles')
-      .update({
-        available_tokens: currentTokens + tokensToAdd,
-        total_tokens_received: totalReceived + tokensToAdd,
-        subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId);
-
-    if (profileError) {
-      logStep('Error updating profile for renewal:', profileError);
-      throw profileError;
-    }
-
-    // Log renewal event
-    await logSubscriptionEvent(supabaseClient, userId, 'renewed', {
-      tokens_added: tokensToAdd,
-      stripe_subscription_id: subscription.id
-    });
-
-    logStep('Successfully processed renewal for user:', userId);
-
-  } catch (error) {
-    logStep('Error processing renewal:', error);
-    throw error;
-  }
-}
-
-async function freezeUserTokens(supabaseClient: any, userId: string, subscriptionId: string) {
-  logStep('Freezing tokens for user:', userId);
-  
-  try {
-    const { error } = await supabaseClient
-      .from('profiles')
-      .update({
-        is_tokens_frozen: true,
-        subscription_type: 'Free Demo',
-        subscription_status: 'cancelled',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId);
-
-    if (error) {
-      logStep('Error freezing tokens:', error);
-      throw error;
-    }
-
-    // Log cancellation event
-    await logSubscriptionEvent(supabaseClient, userId, 'cancelled', {
-      stripe_subscription_id: subscriptionId
-    });
-
-    logStep('Successfully froze tokens for user:', userId);
-
-  } catch (error) {
-    logStep('Error freezing tokens:', error);
-    throw error;
-  }
-}
-
-async function logSubscriptionEvent(supabaseClient: any, userId: string, eventType: string, eventData: any) {
-  try {
-    await supabaseClient
-      .from('subscription_events')
-      .insert({
-        teacher_id: userId,
-        event_type: eventType,
-        event_data: eventData,
-        old_plan_type: eventData.old_plan,
-        new_plan_type: eventData.new_plan,
-        tokens_added: eventData.tokens_added || 0,
-        stripe_event_id: eventData.stripe_subscription_id
-      });
-  } catch (error) {
-    logStep('Error logging subscription event:', error);
-  }
-}
