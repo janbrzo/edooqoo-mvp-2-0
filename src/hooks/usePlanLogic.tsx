@@ -75,7 +75,7 @@ export const usePlanLogic = (currentSubscriptionType?: string) => {
       return targetPlan.tokens;
     }
     
-    // For upgrades, calculate the difference
+    // For upgrades, calculate the difference in tokens
     return Math.max(0, targetPlan.tokens - currentPlan.tokens);
   };
 

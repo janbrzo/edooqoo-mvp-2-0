@@ -17,7 +17,7 @@ export const useSubscriptionSync = () => {
       if (data?.subscribed) {
         toast({
           title: "Subscription Synchronized",
-          description: `Your ${data.subscription_type} is now active!`,
+          description: `Your ${data.subscription_type} subscription is now active!`,
         });
       } else {
         toast({

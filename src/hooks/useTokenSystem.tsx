@@ -26,7 +26,7 @@ export const useTokenSystem = (userId?: string | null) => {
       // Get profile data with simplified token system
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('available_tokens, is_tokens_frozen, monthly_worksheet_limit, subscription_type, monthly_worksheets_used, total_worksheets_created, total_tokens_consumed, total_tokens_received')
+        .select('available_tokens, is_tokens_frozen, monthly_worksheet_limit, subscription_type, monthly_worksheets_used, total_worksheets_created, total_tokens_consumed, total_tokens_received, subscription_status, subscription_expires_at')
         .eq('id', userId)
         .single();
       
