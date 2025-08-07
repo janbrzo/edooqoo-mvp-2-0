@@ -255,7 +255,7 @@ serve(async (req) => {
         tokensFrozen: shouldFreezeTokens
       });
 
-      // Log subscription event
+      // Log subscription event with better error handling
       const { error: eventError } = await supabaseService
         .from('subscription_events')
         .insert({
@@ -302,7 +302,7 @@ serve(async (req) => {
         }
       }
 
-      // Update subscriptions table
+      // Update subscriptions table with new column names
       const { error: subError } = await supabaseService
         .from('subscriptions')
         .upsert({
@@ -310,8 +310,8 @@ serve(async (req) => {
           email: email,
           stripe_subscription_id: subscription.id,
           stripe_customer_id: customer.id,
-          status: newSubscriptionStatus,
-          plan_type: subscriptionType.toLowerCase().replace(' ', '-'),
+          subscription_status: newSubscriptionStatus,
+          subscription_type: subscriptionType.toLowerCase().replace(' ', '-'),
           monthly_limit: monthlyLimit,
           current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
           current_period_end: subscriptionExpiresAt,
@@ -360,11 +360,12 @@ serve(async (req) => {
 
       logStep('Processing cancellation for profile', { userId: profile.id, email });
 
-      // Freeze tokens and update subscription status
+      // Freeze tokens and update subscription status - set type to 'Inactive'
       const { error: updateError } = await supabaseService
         .from('profiles')
         .update({
           subscription_status: 'cancelled',
+          subscription_type: 'Inactive', // NEW: Set to Inactive when cancelled
           is_tokens_frozen: true, // Freeze tokens when subscription is actually cancelled
           monthly_worksheet_limit: 0,
           monthly_worksheets_used: 0,
@@ -384,7 +385,7 @@ serve(async (req) => {
           teacher_id: profile.id,
           event_type: 'customer.subscription.deleted',
           old_plan_type: profile.subscription_type || 'Unknown',
-          new_plan_type: 'Free Demo',
+          new_plan_type: 'Inactive',
           tokens_added: 0,
           stripe_event_id: event.id,
           event_data: {
@@ -401,11 +402,12 @@ serve(async (req) => {
         logStep('Cancellation event logged successfully');
       }
 
-      // Update subscriptions table status
+      // Update subscriptions table status with new column names
       const { error: subError } = await supabaseService
         .from('subscriptions')
         .update({
-          status: 'cancelled',
+          subscription_status: 'cancelled',
+          subscription_type: 'inactive',
           updated_at: new Date().toISOString()
         })
         .eq('stripe_subscription_id', subscription.id);

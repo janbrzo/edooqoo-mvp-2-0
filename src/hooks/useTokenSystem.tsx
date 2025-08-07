@@ -32,14 +32,12 @@ export const useTokenSystem = (userId?: string | null) => {
       
       if (error) throw error;
       
-      // Simplified Token Left calculation
-      // Token Left = available_tokens (if not frozen, otherwise 0)
+      // FIXED: Corrected Token Left calculation
+      // Token Left = actual available_tokens (what user has)
+      // This shows the real token count regardless of frozen state
       const availableTokens = profileData?.available_tokens || 0;
-      const tokensFrozen = profileData?.is_tokens_frozen || false;
       
-      const calculatedTokenLeft = tokensFrozen ? 0 : availableTokens;
-      
-      setTokenLeft(calculatedTokenLeft);
+      setTokenLeft(availableTokens);
       setProfile(profileData);
     } catch (error: any) {
       console.error('Error fetching token balance:', error);
@@ -78,16 +76,17 @@ export const useTokenSystem = (userId?: string | null) => {
     }
   };
 
-  // Check if user has tokens available
+  // Check if user has tokens available for use
   const hasTokens = () => {
     if (!userId) return false; // Demo mode - no tokens
+    // Tokens are available if not frozen and count > 0
     return tokenLeft > 0 && !(profile?.is_tokens_frozen);
   };
 
   const isDemo = !userId; // Anonymous users are in demo mode
 
   return {
-    tokenLeft,
+    tokenLeft, // Shows actual available_tokens count
     profile,
     loading,
     hasTokens: hasTokens(),

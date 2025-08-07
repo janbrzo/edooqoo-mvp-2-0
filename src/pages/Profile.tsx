@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -305,6 +304,8 @@ const Profile = () => {
   const rolloverTokens = profile?.rollover_tokens || 0;
   const monthlyUsed = profile?.monthly_worksheets_used || 0;
   const monthlyAvailable = monthlyLimit ? Math.max(0, monthlyLimit - monthlyUsed) : 0;
+  
+  const tokensAvailableForUse = profile?.is_tokens_frozen ? 0 : availableTokens;
 
   const getMonthlyLimitDisplay = () => {
     if (subscriptionType === 'Free Demo') return 'Not applicable';
@@ -312,7 +313,7 @@ const Profile = () => {
   };
 
   const getRenewalInfo = () => {
-    if (subscriptionType === 'Free Demo') return null;
+    if (subscriptionType === 'Free Demo' || subscriptionType === 'Inactive') return null;
     if (profile?.subscription_expires_at) {
       const renewalDate = new Date(profile.subscription_expires_at);
       return renewalDate.toLocaleDateString();
@@ -320,9 +321,8 @@ const Profile = () => {
     return null;
   };
 
-  // NEW: Function to determine if subscription should show "Expires" vs "Renews"
   const getSubscriptionLabel = () => {
-    if (subscriptionType === 'Free Demo') return null;
+    if (subscriptionType === 'Free Demo' || subscriptionType === 'Inactive') return null;
     
     const subscriptionStatus = profile?.subscription_status;
     if (subscriptionStatus === 'active_cancelled') {
@@ -331,13 +331,11 @@ const Profile = () => {
     return 'Renews';
   };
 
-  // Get side-gig plan from plans array
   const sideGigPlan = plans.find(p => p.id === 'side-gig');
   const canUpgradeToSideGig = sideGigPlan ? canUpgradeTo(sideGigPlan) : false;
   const sideGigUpgradePrice = sideGigPlan ? getUpgradePrice(sideGigPlan) : 0;
   const isSideGigLowerPlan = currentPlan.type === 'full-time' && !!sideGigPlan;
 
-  // Get full-time plan from plans array
   const fullTimePlan = plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
   const canUpgradeToFullTime = fullTimePlan ? canUpgradeTo(fullTimePlan) : false;
   const fullTimeUpgradePrice = fullTimePlan ? getUpgradePrice(fullTimePlan) : 0;
@@ -481,11 +479,11 @@ const Profile = () => {
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Token Left</span>
-                      <span className="font-medium">{tokenLeft}</span>
+                      <span className="font-medium">{availableTokens}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Available tokens</span>
-                      <span className="font-medium">{availableTokens}</span>
+                      <span className="font-medium">{tokensAvailableForUse}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Rollover tokens</span>
@@ -499,6 +497,11 @@ const Profile = () => {
                       <span className="text-muted-foreground">Monthly limit</span>
                       <span className="font-medium">{getMonthlyLimitDisplay()}</span>
                     </div>
+                    {profile?.is_tokens_frozen && (
+                      <div className="text-xs text-destructive mt-2 p-2 bg-destructive/10 rounded">
+                        ⚠️ Tokens are frozen - subscription required to use
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -523,7 +526,7 @@ const Profile = () => {
                   </Badge>
                 </div>
                 
-                {subscriptionType !== 'Free Demo' && (
+                {subscriptionType !== 'Free Demo' && subscriptionType !== 'Inactive' && (
                   <div className="space-y-2">
                     {getRenewalInfo() && (
                       <div className="flex justify-between items-center">
@@ -542,6 +545,20 @@ const Profile = () => {
                         Manage Plan
                       </Button>
                     </div>
+                  </div>
+                )}
+                
+                {subscriptionType === 'Inactive' && (
+                  <div className="pt-2">
+                    <Button 
+                      variant="outline" 
+                      className="w-full" 
+                      size="sm" 
+                      onClick={handleManageSubscription}
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Reactivate Plan
+                    </Button>
                   </div>
                 )}
                 

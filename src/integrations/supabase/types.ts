@@ -273,10 +273,10 @@ export type Database = {
           email: string | null
           id: string
           monthly_limit: number
-          plan_type: string
-          status: string
           stripe_customer_id: string
           stripe_subscription_id: string
+          subscription_status: string
+          subscription_type: string
           teacher_id: string
           updated_at: string
         }
@@ -287,10 +287,10 @@ export type Database = {
           email?: string | null
           id?: string
           monthly_limit: number
-          plan_type: string
-          status: string
           stripe_customer_id: string
           stripe_subscription_id: string
+          subscription_status: string
+          subscription_type: string
           teacher_id: string
           updated_at?: string
         }
@@ -301,10 +301,10 @@ export type Database = {
           email?: string | null
           id?: string
           monthly_limit?: number
-          plan_type?: string
-          status?: string
           stripe_customer_id?: string
           stripe_subscription_id?: string
+          subscription_status?: string
+          subscription_type?: string
           teacher_id?: string
           updated_at?: string
         }
