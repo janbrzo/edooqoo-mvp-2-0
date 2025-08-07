@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -279,6 +280,33 @@ const Profile = () => {
     }
   };
 
+  // DODANE FUNKCJE dla UI - wyświetlania informacji o subskrypcji
+  const getRenewalInfo = () => {
+    if (!profile?.subscription_expires_at) return null;
+    if (subscriptionType === 'Free Demo' || subscriptionType === 'Inactive') return null;
+    
+    try {
+      const renewalDate = new Date(profile.subscription_expires_at);
+      return renewalDate.toLocaleDateString();
+    } catch (error) {
+      console.error('Error parsing subscription expiry date:', error);
+      return null;
+    }
+  };
+
+  const getSubscriptionLabel = () => {
+    if (!profile?.subscription_status) return null;
+    if (subscriptionType === 'Free Demo' || subscriptionType === 'Inactive') return null;
+    
+    const subscriptionStatus = profile.subscription_status;
+    if (subscriptionStatus === 'active_cancelled') {
+      return 'Expires';
+    } else if (subscriptionStatus === 'active') {
+      return 'Renews';
+    }
+    return null;
+  };
+
   // Show loading spinner while checking auth
   if (loading || profileLoading) {
     return (
@@ -312,24 +340,8 @@ const Profile = () => {
     return monthlyLimit || 'Not set';
   };
 
-  const getRenewalInfo = () => {
-    if (subscriptionType === 'Free Demo' || subscriptionType === 'Inactive') return null;
-    if (profile?.subscription_expires_at) {
-      const renewalDate = new Date(profile.subscription_expires_at);
-      return renewalDate.toLocaleDateString();
-    }
-    return null;
-  };
-
-  const getSubscriptionLabel = () => {
-    if (subscriptionType === 'Free Demo' || subscriptionType === 'Inactive') return null;
-    
-    const subscriptionStatus = profile?.subscription_status;
-    if (subscriptionStatus === 'active_cancelled') {
-      return 'Expires';
-    }
-    return 'Renews';
-  };
+  const renewalInfo = getRenewalInfo();
+  const subscriptionLabel = getSubscriptionLabel();
 
   const sideGigPlan = plans.find(p => p.id === 'side-gig');
   const canUpgradeToSideGig = sideGigPlan ? canUpgradeTo(sideGigPlan) : false;
@@ -526,41 +538,26 @@ const Profile = () => {
                   </Badge>
                 </div>
                 
-                {subscriptionType !== 'Free Demo' && subscriptionType !== 'Inactive' && (
-                  <div className="space-y-2">
-                    {getRenewalInfo() && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">{getSubscriptionLabel()}</span>
-                        <span className="text-sm font-medium">{getRenewalInfo()}</span>
-                      </div>
-                    )}
-                    <div className="pt-2">
-                      <Button 
-                        variant="outline" 
-                        className="w-full" 
-                        size="sm" 
-                        onClick={handleManageSubscription}
-                      >
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        Manage Plan
-                      </Button>
-                    </div>
+                {/* POPRAWIONA SEKCJA - wyświetla informacje o odnowieniu/wygaśnięciu */}
+                {renewalInfo && subscriptionLabel && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">{subscriptionLabel}</span>
+                    <span className="text-sm font-medium">{renewalInfo}</span>
                   </div>
                 )}
                 
-                {subscriptionType === 'Inactive' && (
-                  <div className="pt-2">
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
-                      size="sm" 
-                      onClick={handleManageSubscription}
-                    >
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Manage Plan
-                    </Button>
-                  </div>
-                )}
+                {/* Manage Subscription Button - zawsze widoczny dla wszystkich planów */}
+                <div className="pt-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    size="sm" 
+                    onClick={handleManageSubscription}
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Manage Plan
+                  </Button>
+                </div>
                 
                 {/* Upgrade Buttons Side by Side */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

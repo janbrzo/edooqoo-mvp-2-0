@@ -58,11 +58,12 @@ serve(async (req) => {
       throw new Error(`Webhook signature verification failed: ${err.message}`);
     }
 
-    // NOWY KOD: Sprawdź czy event już został przetworzony (deduplikacja)
+    // POPRAWIONA DEDUPLIKACJA: Sprawdź kombinację stripe_event_id + event_type
     const { data: existingEvent, error: eventCheckError } = await supabaseService
       .from('subscription_events')
       .select('id')
       .eq('stripe_event_id', event.id)
+      .eq('event_type', event.type)
       .single();
 
     if (eventCheckError && eventCheckError.code !== 'PGRST116') {
@@ -71,7 +72,7 @@ serve(async (req) => {
     }
 
     if (existingEvent) {
-      logStep('Event already processed, skipping', { eventId: event.id });
+      logStep('Event already processed, skipping', { eventId: event.id, eventType: event.type });
       return new Response(JSON.stringify({ received: true, skipped: 'already_processed' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -297,7 +298,7 @@ serve(async (req) => {
         .from('subscription_events')
         .insert({
           teacher_id: profile.id,
-          email: email, // NOWY KOD: Dodaj email do eventu
+          email: email,
           event_type: event.type,
           old_plan_type: profile.subscription_type || 'Free Demo',
           new_plan_type: subscriptionType,
@@ -340,7 +341,7 @@ serve(async (req) => {
         }
       }
 
-      // NAPRAWIONY KOD: Update subscriptions table z właściwą logiką upsert
+      // POPRAWIONA LOGIKA: Update subscriptions table z prawidłową logiką upsert
       const subscriptionData = {
         teacher_id: profile.id,
         email: email,
@@ -354,27 +355,27 @@ serve(async (req) => {
         updated_at: new Date().toISOString()
       };
 
-      // Pierwsza próba: sprawdź czy istnieje rekord dla tego teacher_id
+      // KLUCZOWA ZMIANA: Sprawdź czy istnieje rekord dla tego stripe_subscription_id
       const { data: existingSubscription } = await supabaseService
         .from('subscriptions')
         .select('id')
-        .eq('teacher_id', profile.id)
+        .eq('stripe_subscription_id', subscription.id)
         .single();
 
       if (existingSubscription) {
-        // Update istniejącego rekordu
+        // Update istniejącego rekordu po stripe_subscription_id
         const { error: subError } = await supabaseService
           .from('subscriptions')
           .update(subscriptionData)
-          .eq('teacher_id', profile.id);
+          .eq('stripe_subscription_id', subscription.id);
 
         if (subError) {
           logStep('WARNING: Failed to update existing subscription record', subError);
         } else {
-          logStep('Existing subscription record updated successfully');
+          logStep('Existing subscription record updated successfully', { subscriptionId: subscription.id });
         }
       } else {
-        // Insert nowego rekordu
+        // Insert nowego rekordu - może być kilka subskrypcji dla tego samego użytkownika
         const { error: subError } = await supabaseService
           .from('subscriptions')
           .insert(subscriptionData);
@@ -382,7 +383,7 @@ serve(async (req) => {
         if (subError) {
           logStep('WARNING: Failed to insert new subscription record', subError);
         } else {
-          logStep('New subscription record created successfully');
+          logStep('New subscription record created successfully', { subscriptionId: subscription.id });
         }
       }
     }
@@ -395,21 +396,6 @@ serve(async (req) => {
         subscriptionId: subscription.id,
         customerId: subscription.customer
       });
-
-      // Check if event already processed (deduplikacja)
-      const { data: existingEvent } = await supabaseService
-        .from('subscription_events')
-        .select('id')
-        .eq('stripe_event_id', event.id)
-        .single();
-
-      if (existingEvent) {
-        logStep('Deletion event already processed, skipping', { eventId: event.id });
-        return new Response(JSON.stringify({ received: true, skipped: 'already_processed' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        });
-      }
 
       // Get customer details
       const customer = await stripe.customers.retrieve(subscription.customer as string) as Stripe.Customer;
@@ -457,7 +443,7 @@ serve(async (req) => {
         .from('subscription_events')
         .insert({
           teacher_id: profile.id,
-          email: email, // NOWY KOD: Dodaj email do eventu
+          email: email,
           event_type: 'customer.subscription.deleted',
           old_plan_type: profile.subscription_type || 'Unknown',
           new_plan_type: 'Inactive',
@@ -477,7 +463,7 @@ serve(async (req) => {
         logStep('Cancellation event logged successfully');
       }
 
-      // Update subscriptions table status
+      // Update subscriptions table status po stripe_subscription_id
       const { error: subError } = await supabaseService
         .from('subscriptions')
         .update({
@@ -485,7 +471,7 @@ serve(async (req) => {
           subscription_type: 'inactive',
           updated_at: new Date().toISOString()
         })
-        .eq('teacher_id', profile.id);
+        .eq('stripe_subscription_id', subscription.id);
 
       if (subError) {
         logStep('WARNING: Failed to update subscriptions table on cancellation', subError);
