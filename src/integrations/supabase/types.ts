@@ -232,6 +232,7 @@ export type Database = {
       subscription_events: {
         Row: {
           created_at: string
+          email: string | null
           event_data: Json | null
           event_type: string
           id: string
@@ -243,6 +244,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          email?: string | null
           event_data?: Json | null
           event_type: string
           id?: string
@@ -254,6 +256,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          email?: string | null
           event_data?: Json | null
           event_type?: string
           id?: string

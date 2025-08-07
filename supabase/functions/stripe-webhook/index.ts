@@ -58,6 +58,26 @@ serve(async (req) => {
       throw new Error(`Webhook signature verification failed: ${err.message}`);
     }
 
+    // NOWY KOD: Sprawdź czy event już został przetworzony (deduplikacja)
+    const { data: existingEvent, error: eventCheckError } = await supabaseService
+      .from('subscription_events')
+      .select('id')
+      .eq('stripe_event_id', event.id)
+      .single();
+
+    if (eventCheckError && eventCheckError.code !== 'PGRST116') {
+      logStep('ERROR: Failed to check existing event', eventCheckError);
+      throw eventCheckError;
+    }
+
+    if (existingEvent) {
+      logStep('Event already processed, skipping', { eventId: event.id });
+      return new Response(JSON.stringify({ received: true, skipped: 'already_processed' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
     // Handle subscription creation and updates
     if (event.type === 'customer.subscription.created' || 
         event.type === 'customer.subscription.updated' ||
@@ -156,23 +176,40 @@ serve(async (req) => {
         priceAmount: amount 
       });
 
-      // FIXED: Validate subscription dates before using them
+      // Validate subscription dates before using them
       let subscriptionExpiresAt = null;
+      let currentPeriodStart = null;
+      let currentPeriodEnd = null;
+
+      if (subscription.current_period_start && typeof subscription.current_period_start === 'number') {
+        try {
+          currentPeriodStart = new Date(subscription.current_period_start * 1000).toISOString();
+          logStep('Current period start calculated', { periodStart: currentPeriodStart });
+        } catch (dateError) {
+          logStep('WARNING: Could not parse subscription start date', { 
+            current_period_start: subscription.current_period_start,
+            error: dateError.message 
+          });
+          currentPeriodStart = new Date().toISOString();
+        }
+      }
+
       if (subscription.current_period_end && typeof subscription.current_period_end === 'number') {
         try {
           subscriptionExpiresAt = new Date(subscription.current_period_end * 1000).toISOString();
+          currentPeriodEnd = subscriptionExpiresAt;
           logStep('Subscription expiry date calculated', { expiresAt: subscriptionExpiresAt });
         } catch (dateError) {
           logStep('WARNING: Could not parse subscription end date', { 
             current_period_end: subscription.current_period_end,
             error: dateError.message 
           });
-          // Use a default date 30 days from now if date parsing fails
           subscriptionExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          currentPeriodEnd = subscriptionExpiresAt;
         }
       }
 
-      // NEW: Determine subscription status based on cancel_at_period_end
+      // Determine subscription status based on cancel_at_period_end
       let newSubscriptionStatus: string;
       let shouldFreezeTokens = false;
 
@@ -190,7 +227,7 @@ serve(async (req) => {
         shouldFreezeTokens = subscription.status === 'cancelled';
       }
 
-      // NEW: Token deduplication logic - only add tokens for new subscriptions or reactivations
+      // Token deduplication logic - only add tokens for new subscriptions or reactivations
       let shouldAddTokens = false;
       let newAvailableTokens = profile.available_tokens;
       let newTotalReceived = profile.total_tokens_received || 0;
@@ -255,11 +292,12 @@ serve(async (req) => {
         tokensFrozen: shouldFreezeTokens
       });
 
-      // Log subscription event with better error handling
+      // Log subscription event with email included
       const { error: eventError } = await supabaseService
         .from('subscription_events')
         .insert({
           teacher_id: profile.id,
+          email: email, // NOWY KOD: Dodaj email do eventu
           event_type: event.type,
           old_plan_type: profile.subscription_type || 'Free Demo',
           new_plan_type: subscriptionType,
@@ -302,29 +340,50 @@ serve(async (req) => {
         }
       }
 
-      // Update subscriptions table with new column names
-      const { error: subError } = await supabaseService
-        .from('subscriptions')
-        .upsert({
-          teacher_id: profile.id,
-          email: email,
-          stripe_subscription_id: subscription.id,
-          stripe_customer_id: customer.id,
-          subscription_status: newSubscriptionStatus,
-          subscription_type: subscriptionType.toLowerCase().replace(' ', '-'),
-          monthly_limit: monthlyLimit,
-          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          current_period_end: subscriptionExpiresAt,
-          updated_at: new Date().toISOString()
-        }, { 
-          onConflict: 'stripe_subscription_id',
-          ignoreDuplicates: false 
-        });
+      // NAPRAWIONY KOD: Update subscriptions table z właściwą logiką upsert
+      const subscriptionData = {
+        teacher_id: profile.id,
+        email: email,
+        stripe_subscription_id: subscription.id,
+        stripe_customer_id: customer.id,
+        subscription_status: newSubscriptionStatus,
+        subscription_type: subscriptionType.toLowerCase().replace(/\s+/g, '-'),
+        monthly_limit: monthlyLimit,
+        current_period_start: currentPeriodStart,
+        current_period_end: currentPeriodEnd,
+        updated_at: new Date().toISOString()
+      };
 
-      if (subError) {
-        logStep('WARNING: Failed to update subscriptions table', subError);
+      // Pierwsza próba: sprawdź czy istnieje rekord dla tego teacher_id
+      const { data: existingSubscription } = await supabaseService
+        .from('subscriptions')
+        .select('id')
+        .eq('teacher_id', profile.id)
+        .single();
+
+      if (existingSubscription) {
+        // Update istniejącego rekordu
+        const { error: subError } = await supabaseService
+          .from('subscriptions')
+          .update(subscriptionData)
+          .eq('teacher_id', profile.id);
+
+        if (subError) {
+          logStep('WARNING: Failed to update existing subscription record', subError);
+        } else {
+          logStep('Existing subscription record updated successfully');
+        }
       } else {
-        logStep('Subscriptions table updated successfully');
+        // Insert nowego rekordu
+        const { error: subError } = await supabaseService
+          .from('subscriptions')
+          .insert(subscriptionData);
+
+        if (subError) {
+          logStep('WARNING: Failed to insert new subscription record', subError);
+        } else {
+          logStep('New subscription record created successfully');
+        }
       }
     }
 
@@ -336,6 +395,21 @@ serve(async (req) => {
         subscriptionId: subscription.id,
         customerId: subscription.customer
       });
+
+      // Check if event already processed (deduplikacja)
+      const { data: existingEvent } = await supabaseService
+        .from('subscription_events')
+        .select('id')
+        .eq('stripe_event_id', event.id)
+        .single();
+
+      if (existingEvent) {
+        logStep('Deletion event already processed, skipping', { eventId: event.id });
+        return new Response(JSON.stringify({ received: true, skipped: 'already_processed' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      }
 
       // Get customer details
       const customer = await stripe.customers.retrieve(subscription.customer as string) as Stripe.Customer;
@@ -365,8 +439,8 @@ serve(async (req) => {
         .from('profiles')
         .update({
           subscription_status: 'cancelled',
-          subscription_type: 'Inactive', // NEW: Set to Inactive when cancelled
-          is_tokens_frozen: true, // Freeze tokens when subscription is actually cancelled
+          subscription_type: 'Inactive',
+          is_tokens_frozen: true,
           monthly_worksheet_limit: 0,
           monthly_worksheets_used: 0,
           updated_at: new Date().toISOString()
@@ -378,11 +452,12 @@ serve(async (req) => {
         throw updateError;
       }
 
-      // Log cancellation event
+      // Log cancellation event with email
       const { error: eventError } = await supabaseService
         .from('subscription_events')
         .insert({
           teacher_id: profile.id,
+          email: email, // NOWY KOD: Dodaj email do eventu
           event_type: 'customer.subscription.deleted',
           old_plan_type: profile.subscription_type || 'Unknown',
           new_plan_type: 'Inactive',
@@ -402,7 +477,7 @@ serve(async (req) => {
         logStep('Cancellation event logged successfully');
       }
 
-      // Update subscriptions table status with new column names
+      // Update subscriptions table status
       const { error: subError } = await supabaseService
         .from('subscriptions')
         .update({
@@ -410,7 +485,7 @@ serve(async (req) => {
           subscription_type: 'inactive',
           updated_at: new Date().toISOString()
         })
-        .eq('stripe_subscription_id', subscription.id);
+        .eq('teacher_id', profile.id);
 
       if (subError) {
         logStep('WARNING: Failed to update subscriptions table on cancellation', subError);
