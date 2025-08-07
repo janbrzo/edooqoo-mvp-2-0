@@ -341,7 +341,7 @@ serve(async (req) => {
         }
       }
 
-      // POPRAWIONA LOGIKA: Update subscriptions table z prawidłową logiką upsert
+      // POPRAWIONA LOGIKA: Update/Create subscriptions table record po teacher_id
       const subscriptionData = {
         teacher_id: profile.id,
         email: email,
@@ -355,36 +355,22 @@ serve(async (req) => {
         updated_at: new Date().toISOString()
       };
 
-      // KLUCZOWA ZMIANA: Sprawdź czy istnieje rekord dla tego stripe_subscription_id
-      const { data: existingSubscription } = await supabaseService
+      // KLUCZOWA ZMIANA: Upsert po teacher_id zamiast stripe_subscription_id
+      const { error: subError } = await supabaseService
         .from('subscriptions')
-        .select('id')
-        .eq('stripe_subscription_id', subscription.id)
-        .single();
+        .upsert(subscriptionData, { 
+          onConflict: 'teacher_id',
+          ignoreDuplicates: false 
+        });
 
-      if (existingSubscription) {
-        // Update istniejącego rekordu po stripe_subscription_id
-        const { error: subError } = await supabaseService
-          .from('subscriptions')
-          .update(subscriptionData)
-          .eq('stripe_subscription_id', subscription.id);
-
-        if (subError) {
-          logStep('WARNING: Failed to update existing subscription record', subError);
-        } else {
-          logStep('Existing subscription record updated successfully', { subscriptionId: subscription.id });
-        }
+      if (subError) {
+        logStep('WARNING: Failed to upsert subscription record', subError);
       } else {
-        // Insert nowego rekordu - może być kilka subskrypcji dla tego samego użytkownika
-        const { error: subError } = await supabaseService
-          .from('subscriptions')
-          .insert(subscriptionData);
-
-        if (subError) {
-          logStep('WARNING: Failed to insert new subscription record', subError);
-        } else {
-          logStep('New subscription record created successfully', { subscriptionId: subscription.id });
-        }
+        logStep('Subscription record upserted successfully', { 
+          teacherId: profile.id, 
+          subscriptionId: subscription.id,
+          status: newSubscriptionStatus
+        });
       }
     }
 
@@ -463,7 +449,7 @@ serve(async (req) => {
         logStep('Cancellation event logged successfully');
       }
 
-      // Update subscriptions table status po stripe_subscription_id
+      // Update subscriptions table status po teacher_id
       const { error: subError } = await supabaseService
         .from('subscriptions')
         .update({
@@ -471,7 +457,7 @@ serve(async (req) => {
           subscription_type: 'inactive',
           updated_at: new Date().toISOString()
         })
-        .eq('stripe_subscription_id', subscription.id);
+        .eq('teacher_id', profile.id);
 
       if (subError) {
         logStep('WARNING: Failed to update subscriptions table on cancellation', subError);
