@@ -80,8 +80,8 @@ serve(async (req) => {
       logStep('Created new customer', { customerId: customer.id });
     }
 
-    // Check for existing active subscription
-    const existingSubscriptions = await stripe.subscriptions.list({
+    // POPRAWIONA LOGIKA: Sprawdź istniejące subskrypcje w Stripe i Supabase
+    const existingStripeSubscriptions = await stripe.subscriptions.list({
       customer: customer.id,
       status: 'active',
       limit: 1,
@@ -90,44 +90,101 @@ serve(async (req) => {
     const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://cdoyjgiyrfziejbrcvpx.supabase.co';
     logStep('Origin determined', { origin });
 
-    if (existingSubscriptions.data.length > 0 && isUpgrade) {
-      // Handle upgrade - update existing subscription
-      const existingSubscription = existingSubscriptions.data[0];
-      logStep('Upgrading existing subscription', { subscriptionId: existingSubscription.id });
+    // NOWA LOGIKA: Sprawdź rekord w Supabase subscriptions
+    const supabaseService = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
+    );
 
-      // Update subscription with new price
-      const updatedSubscription = await stripe.subscriptions.update(existingSubscription.id, {
-        items: [{
-          id: existingSubscription.items.data[0].id,
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: planName,
-            },
-            unit_amount: price * 100,
-            recurring: {
-              interval: 'month',
-            },
-          },
-        }],
-        proration_behavior: 'always_invoice',
-        metadata: {
-          supabase_user_id: user.id,
-          plan_type: planType,
-          monthly_limit: monthlyLimit.toString(),
-          is_upgrade: 'true',
-          upgrade_tokens: upgradeTokens ? upgradeTokens.toString() : '0',
-        },
+    const { data: supabaseSubscription, error: subError } = await supabaseService
+      .from('subscriptions')
+      .select('*')
+      .eq('email', user.email)
+      .single();
+
+    if (subError && subError.code !== 'PGRST116') {
+      logStep('Error checking Supabase subscription', subError);
+      throw subError;
+    }
+
+    logStep('Supabase subscription check', { 
+      found: !!supabaseSubscription, 
+      subscriptionId: supabaseSubscription?.stripe_subscription_id 
+    });
+
+    if (existingStripeSubscriptions.data.length > 0 && isUpgrade) {
+      // POPRAWIONA LOGIKA UPGRADE
+      const existingSubscription = existingStripeSubscriptions.data[0];
+      logStep('Upgrading existing subscription', { 
+        subscriptionId: existingSubscription.id,
+        supabaseRecordExists: !!supabaseSubscription
       });
 
-      logStep('Subscription upgraded', { subscriptionId: updatedSubscription.id });
+      try {
+        // POPRAWIONA STRUKTURA STRIPE API - używamy 'product' zamiast 'product_data'
+        const updatedSubscription = await stripe.subscriptions.update(existingSubscription.id, {
+          items: [{
+            id: existingSubscription.items.data[0].id,
+            price_data: {
+              currency: 'usd',
+              product: existingSubscription.items.data[0].price.product as string, // Używamy istniejącego produktu
+              unit_amount: price * 100,
+              recurring: {
+                interval: 'month',
+              },
+            },
+          }],
+          proration_behavior: 'always_invoice',
+          metadata: {
+            supabase_user_id: user.id,
+            plan_type: planType,
+            monthly_limit: monthlyLimit.toString(),
+            is_upgrade: 'true',
+            upgrade_tokens: upgradeTokens ? upgradeTokens.toString() : '0',
+          },
+        });
 
-      return new Response(
-        JSON.stringify({ success: true, subscription_id: updatedSubscription.id }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        logStep('Subscription upgraded successfully', { 
+          subscriptionId: updatedSubscription.id,
+          newAmount: price * 100
+        });
+
+        // Zaktualizuj rekord w Supabase subscriptions jeśli istnieje
+        if (supabaseSubscription) {
+          const { error: updateError } = await supabaseService
+            .from('subscriptions')
+            .update({
+              subscription_type: planType.toLowerCase().replace(/\s+/g, '-'),
+              monthly_limit: monthlyLimit,
+              updated_at: new Date().toISOString()
+            })
+            .eq('teacher_id', supabaseSubscription.teacher_id);
+
+          if (updateError) {
+            logStep('Warning: Failed to update Supabase subscription record', updateError);
+          } else {
+            logStep('Supabase subscription record updated');
+          }
         }
-      );
+
+        return new Response(
+          JSON.stringify({ success: true, subscription_id: updatedSubscription.id }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+
+      } catch (stripeError: any) {
+        logStep('Stripe upgrade error', { 
+          message: stripeError.message,
+          type: stripeError.type,
+          code: stripeError.code,
+          param: stripeError.param
+        });
+        throw stripeError;
+      }
+
     } else {
       // Create new checkout session
       const sessionConfig: any = {
@@ -177,9 +234,18 @@ serve(async (req) => {
     }
 
   } catch (error: any) {
-    logStep('Error occurred', { message: error.message, stack: error.stack });
+    logStep('Error occurred', { 
+      message: error.message, 
+      stack: error.stack,
+      type: error.type || 'unknown',
+      code: error.code || 'unknown'
+    });
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        type: error.type || 'unknown',
+        code: error.code || 'unknown'
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
