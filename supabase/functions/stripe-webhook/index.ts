@@ -66,7 +66,6 @@ serve(async (req) => {
       let subscription;
       
       if (event.type === 'invoice.payment_succeeded') {
-        // FIXED: Check if subscription ID exists before retrieving
         const invoiceSubscriptionId = event.data.object.subscription;
         if (!invoiceSubscriptionId) {
           logStep('WARNING: Invoice has no subscription ID, skipping', { invoiceId: event.data.object.id });
@@ -84,7 +83,8 @@ serve(async (req) => {
         subscriptionId: subscription.id,
         customerId: subscription.customer,
         status: subscription.status,
-        eventType: event.type
+        eventType: event.type,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end
       });
 
       // Get customer details
@@ -101,7 +101,7 @@ serve(async (req) => {
       // Find user profile by email
       const { data: profile, error: profileError } = await supabaseService
         .from('profiles')
-        .select('id, available_tokens, subscription_type, monthly_worksheet_limit, total_tokens_received')
+        .select('id, available_tokens, subscription_type, monthly_worksheet_limit, total_tokens_received, subscription_status')
         .eq('email', email)
         .single();
 
@@ -113,7 +113,8 @@ serve(async (req) => {
       logStep('Profile found', { 
         userId: profile.id, 
         currentTokens: profile.available_tokens,
-        currentTotalReceived: profile.total_tokens_received || 0
+        currentTotalReceived: profile.total_tokens_received || 0,
+        currentSubscriptionStatus: profile.subscription_status
       });
 
       // Determine subscription details from price
@@ -171,21 +172,72 @@ serve(async (req) => {
         }
       }
 
-      // Update profile with subscription details and add tokens
-      const newAvailableTokens = profile.available_tokens + tokensToAdd;
-      const newTotalReceived = (profile.total_tokens_received || 0) + tokensToAdd;
+      // NEW: Determine subscription status based on cancel_at_period_end
+      let newSubscriptionStatus: string;
+      let shouldFreezeTokens = false;
 
+      if (subscription.status === 'active') {
+        if (subscription.cancel_at_period_end) {
+          newSubscriptionStatus = 'active_cancelled';
+          shouldFreezeTokens = false; // Don't freeze until actually cancelled
+          logStep('Subscription is active but set to cancel at period end');
+        } else {
+          newSubscriptionStatus = 'active';
+          shouldFreezeTokens = false;
+        }
+      } else {
+        newSubscriptionStatus = subscription.status;
+        shouldFreezeTokens = subscription.status === 'cancelled';
+      }
+
+      // NEW: Token deduplication logic - only add tokens for new subscriptions or reactivations
+      let shouldAddTokens = false;
+      let newAvailableTokens = profile.available_tokens;
+      let newTotalReceived = profile.total_tokens_received || 0;
+
+      if (event.type === 'customer.subscription.created') {
+        // Always add tokens for new subscriptions
+        shouldAddTokens = true;
+        logStep('Adding tokens for new subscription');
+      } else if (event.type === 'customer.subscription.updated') {
+        // Only add tokens if subscription was reactivated (from cancelled to active)
+        const wasInactive = !profile.subscription_status || 
+                           profile.subscription_status === 'cancelled' || 
+                           profile.subscription_status === 'past_due';
+        const isNowActive = subscription.status === 'active';
+        
+        if (wasInactive && isNowActive && !subscription.cancel_at_period_end) {
+          shouldAddTokens = true;
+          logStep('Adding tokens for reactivated subscription');
+        } else {
+          logStep('Not adding tokens - subscription update without reactivation', {
+            wasInactive,
+            isNowActive,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end
+          });
+        }
+      }
+
+      if (shouldAddTokens) {
+        newAvailableTokens = profile.available_tokens + tokensToAdd;
+        newTotalReceived = (profile.total_tokens_received || 0) + tokensToAdd;
+        logStep('Tokens will be added', { tokensToAdd, newAvailableTokens, newTotalReceived });
+      } else {
+        logStep('No tokens will be added');
+      }
+
+      // Update profile with subscription details
       const { error: updateError } = await supabaseService
         .from('profiles')
         .update({
           subscription_type: subscriptionType,
-          subscription_status: subscription.status,
+          subscription_status: newSubscriptionStatus,
           subscription_expires_at: subscriptionExpiresAt,
           monthly_worksheet_limit: monthlyLimit,
           available_tokens: newAvailableTokens,
           total_tokens_received: newTotalReceived,
-          is_tokens_frozen: false,
-          monthly_worksheets_used: 0, // Reset monthly usage on new subscription
+          is_tokens_frozen: shouldFreezeTokens,
+          monthly_worksheets_used: 0, // Reset monthly usage on subscription changes
           updated_at: new Date().toISOString()
         })
         .eq('id', profile.id);
@@ -198,7 +250,9 @@ serve(async (req) => {
       logStep('Profile updated successfully', { 
         newAvailableTokens,
         newTotalReceived,
-        subscriptionType 
+        subscriptionType,
+        subscriptionStatus: newSubscriptionStatus,
+        tokensFrozen: shouldFreezeTokens
       });
 
       // Log subscription event
@@ -209,7 +263,7 @@ serve(async (req) => {
           event_type: event.type,
           old_plan_type: profile.subscription_type || 'Free Demo',
           new_plan_type: subscriptionType,
-          tokens_added: tokensToAdd,
+          tokens_added: shouldAddTokens ? tokensToAdd : 0,
           stripe_event_id: event.id,
           event_data: {
             subscription_id: subscription.id,
@@ -217,7 +271,9 @@ serve(async (req) => {
             amount: amount,
             currency: price.currency,
             period_start: subscription.current_period_start,
-            period_end: subscription.current_period_end
+            period_end: subscription.current_period_end,
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            status: subscription.status
           }
         });
 
@@ -227,21 +283,23 @@ serve(async (req) => {
         logStep('Subscription event logged successfully');
       }
 
-      // Add token transaction record
-      const { error: transactionError } = await supabaseService
-        .from('token_transactions')
-        .insert({
-          teacher_id: profile.id,
-          transaction_type: 'purchase',
-          amount: tokensToAdd,
-          description: `Subscription tokens added - ${subscriptionType}`,
-          reference_id: null
-        });
+      // Add token transaction record only if tokens were added
+      if (shouldAddTokens) {
+        const { error: transactionError } = await supabaseService
+          .from('token_transactions')
+          .insert({
+            teacher_id: profile.id,
+            transaction_type: 'purchase',
+            amount: tokensToAdd,
+            description: `Subscription tokens added - ${subscriptionType}`,
+            reference_id: null
+          });
 
-      if (transactionError) {
-        logStep('WARNING: Failed to log token transaction', transactionError);
-      } else {
-        logStep('Token transaction logged successfully', { tokensAdded: tokensToAdd });
+        if (transactionError) {
+          logStep('WARNING: Failed to log token transaction', transactionError);
+        } else {
+          logStep('Token transaction logged successfully', { tokensAdded: tokensToAdd });
+        }
       }
 
       // Update subscriptions table
@@ -252,7 +310,7 @@ serve(async (req) => {
           email: email,
           stripe_subscription_id: subscription.id,
           stripe_customer_id: customer.id,
-          status: subscription.status,
+          status: newSubscriptionStatus,
           plan_type: subscriptionType.toLowerCase().replace(' ', '-'),
           monthly_limit: monthlyLimit,
           current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
@@ -307,7 +365,7 @@ serve(async (req) => {
         .from('profiles')
         .update({
           subscription_status: 'cancelled',
-          is_tokens_frozen: true, // Freeze tokens when subscription is cancelled
+          is_tokens_frozen: true, // Freeze tokens when subscription is actually cancelled
           monthly_worksheet_limit: 0,
           monthly_worksheets_used: 0,
           updated_at: new Date().toISOString()

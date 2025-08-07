@@ -320,6 +320,17 @@ const Profile = () => {
     return null;
   };
 
+  // NEW: Function to determine if subscription should show "Expires" vs "Renews"
+  const getSubscriptionLabel = () => {
+    if (subscriptionType === 'Free Demo') return null;
+    
+    const subscriptionStatus = profile?.subscription_status;
+    if (subscriptionStatus === 'active_cancelled') {
+      return 'Expires';
+    }
+    return 'Renews';
+  };
+
   // Get side-gig plan from plans array
   const sideGigPlan = plans.find(p => p.id === 'side-gig');
   const canUpgradeToSideGig = sideGigPlan ? canUpgradeTo(sideGigPlan) : false;
@@ -516,7 +527,7 @@ const Profile = () => {
                   <div className="space-y-2">
                     {getRenewalInfo() && (
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Renews</span>
+                        <span className="text-sm text-muted-foreground">{getSubscriptionLabel()}</span>
                         <span className="text-sm font-medium">{getRenewalInfo()}</span>
                       </div>
                     )}
