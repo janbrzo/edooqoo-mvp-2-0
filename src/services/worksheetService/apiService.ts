@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 import { toast } from 'sonner';
@@ -33,10 +34,10 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPro
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: formattedPrompt,  // This will be saved as the full prompt in database
+        prompt: formattedPrompt,
         formData: formData,
         userId,
-        studentId: prompt.studentId  // Add studentId to the request
+        studentId: prompt.studentId
       })
     });
 
@@ -49,6 +50,13 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPro
       if (response.status === 429) {
         throw new Error('You have reached your daily limit for worksheet generation. Please try again tomorrow.');
       }
+      
+      // Handle timeout specifically
+      if (response.status === 504 && errorData?.code === 'OPENAI_TIMEOUT') {
+        console.warn('⚠️ OpenAI generation timed out after', errorData.timeoutMs + 'ms - falling back to sample worksheet');
+        throw new Error(`Worksheet generation timed out due to high server load. Using sample worksheet instead.`);
+      }
+      
       throw new Error(`Failed to generate worksheet: ${errorData?.error || response.statusText}`);
     }
 

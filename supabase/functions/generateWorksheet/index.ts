@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
@@ -9,6 +8,12 @@ import { RateLimiter } from './rateLimiter.ts';
 import { getGeolocation } from './geolocation.ts';
 
 const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
+
+// Configurable model with fallback to stable GPT-4.1
+const MODEL = Deno.env.get('OPENAI_MODEL') || "gpt-4.1-2025-04-14";
+const OPENAI_TIMEOUT_MS = parseInt(Deno.env.get('OPENAI_TIMEOUT_MS') || '140000'); // 140s default (10s buffer before Supabase 150s limit)
+
+console.log("OpenAI configuration loaded:", { model: MODEL, timeoutMs: OPENAI_TIMEOUT_MS });
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -68,6 +73,7 @@ serve(async (req) => {
     const sanitizedPrompt = sanitizeInput(prompt, 5000);
     
     console.log('Received validated prompt:', sanitizedPrompt.substring(0, 100) + '...');
+    console.log('Using OpenAI model:', MODEL);
 
     // Check if grammarFocus is provided in the prompt
     const hasGrammarFocus = sanitizedPrompt.includes('grammarFocus:');
@@ -156,7 +162,7 @@ EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
       {
         "title": "Using \\"the\\" with Superlatives",
         "explanation": "Superlative adjectives are usually preceded by the definite article \\"the\\" to show that one thing is the highest or lowest in a group.",
-        "examples": ["That was the worst pasta I’ve ever eaten.", "This is the most expensive restaurant in the area."]
+        "examples": ["That was the worst pasta I've ever eaten.", "This is the most expensive restaurant in the area."]
       },
       {
         "title": "Comparing Equality with \\"as...as\\"",
@@ -453,22 +459,59 @@ ${hasGrammarFocus ? `10. Grammar Rules: Must include 4-7 grammar rules with titl
 
 RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
 
-    // Generate worksheet using OpenAI with complete prompt structure
-    const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4.1-2025-04-14", // Changed back to gpt-4o i można gpt-4.1-2025-04-14
-      temperature: 0.2, // 
-      messages: [
-        {
-          role: "system",
-          content: systemMessage
-        },
-        {
-          role: "user",
-          content: sanitizedPrompt
-        }
-      ],
-       max_tokens: 7000 // nowa nazwa parametru  max_completion_tokens: 7500
-    });
+    // Generate worksheet using OpenAI with timeout protection
+    console.log('Starting OpenAI generation with timeout protection:', OPENAI_TIMEOUT_MS + 'ms');
+    
+    // Create timeout controller
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn('OpenAI timeout triggered after', OPENAI_TIMEOUT_MS + 'ms');
+      controller.abort();
+    }, OPENAI_TIMEOUT_MS);
+
+    let aiResponse;
+    try {
+      aiResponse = await openai.chat.completions.create({
+        model: MODEL,
+        temperature: 0.2,
+        messages: [
+          {
+            role: "system",
+            content: systemMessage
+          },
+          {
+            role: "user",
+            content: sanitizedPrompt
+          }
+        ],
+        max_tokens: 7000,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      console.log('OpenAI generation completed successfully');
+      
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (error.name === 'AbortError') {
+        console.error('OpenAI request timed out after', OPENAI_TIMEOUT_MS + 'ms');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Worksheet generation timed out. Please try again.',
+            code: 'OPENAI_TIMEOUT',
+            timeoutMs: OPENAI_TIMEOUT_MS
+          }),
+          { 
+            status: 504,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
+      console.error('OpenAI generation failed:', error);
+      throw error;
+    }
 
     const jsonContent = aiResponse.choices[0].message.content;
     
