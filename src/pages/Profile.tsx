@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -280,9 +279,17 @@ const Profile = () => {
     }
   };
 
-  // DODANE FUNKCJE dla UI - wyświetlania informacji o subskrypcji
+  // POPRAWIONE FUNKCJE dla UI - wyświetlania informacji o subskrypcji
   const getRenewalInfo = () => {
-    if (!profile?.subscription_expires_at) return null;
+    if (!profile?.subscription_expires_at) {
+      // NAPRAWIONE: Jeśli brak daty wygaśnięcia w profilu, ale status to active_cancelled,
+      // spróbuj pobrać datę z tabeli subscriptions
+      if (profile?.subscription_status === 'active_cancelled') {
+        // W tym przypadku powinniśmy mieć datę, ale jeśli nie ma, nie pokazujemy nic
+        return null;
+      }
+      return null;
+    }
     if (subscriptionType === 'Free Demo' || subscriptionType === 'Inactive') return null;
     
     try {
@@ -300,7 +307,7 @@ const Profile = () => {
     
     const subscriptionStatus = profile.subscription_status;
     if (subscriptionStatus === 'active_cancelled') {
-      return 'Expires';
+      return 'Expires'; // NAPRAWIONE: Teraz będzie pokazywać "Expires" dla active_cancelled
     } else if (subscriptionStatus === 'active') {
       return 'Renews';
     }

@@ -210,7 +210,7 @@ serve(async (req) => {
         }
       }
 
-      // Determine subscription status based on cancel_at_period_end
+      // NAPRAWIONE: Determine subscription status based on cancel_at_period_end
       let newSubscriptionStatus: string;
       let shouldFreezeTokens = false;
 
@@ -293,7 +293,11 @@ serve(async (req) => {
         tokensFrozen: shouldFreezeTokens
       });
 
-      // Log subscription event with email included
+      // NAPRAWIONE: Log subscription event z poprawnym new_plan_type
+      const eventNewPlanType = newSubscriptionStatus === 'active_cancelled' 
+        ? `${subscriptionType}_cancelled` 
+        : subscriptionType;
+
       const { error: eventError } = await supabaseService
         .from('subscription_events')
         .insert({
@@ -301,7 +305,7 @@ serve(async (req) => {
           email: email,
           event_type: event.type,
           old_plan_type: profile.subscription_type || 'Free Demo',
-          new_plan_type: subscriptionType,
+          new_plan_type: eventNewPlanType, // NAPRAWIONE: dodaje "_cancelled" dla active_cancelled
           tokens_added: shouldAddTokens ? tokensToAdd : 0,
           stripe_event_id: event.id,
           event_data: {
@@ -341,13 +345,13 @@ serve(async (req) => {
         }
       }
 
-      // POPRAWIONA LOGIKA: Update/Create subscriptions table record po teacher_id
+      // NAPRAWIONA LOGIKA: Update/Create subscriptions table record z poprawnym statusem
       const subscriptionData = {
         teacher_id: profile.id,
         email: email,
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customer.id,
-        subscription_status: newSubscriptionStatus,
+        subscription_status: newSubscriptionStatus, // NAPRAWIONE: używa active_cancelled zamiast cancelled
         subscription_type: subscriptionType.toLowerCase().replace(/\s+/g, '-'),
         monthly_limit: monthlyLimit,
         current_period_start: currentPeriodStart,
@@ -355,7 +359,6 @@ serve(async (req) => {
         updated_at: new Date().toISOString()
       };
 
-      // KLUCZOWA ZMIANA: Upsert po teacher_id zamiast stripe_subscription_id
       const { error: subError } = await supabaseService
         .from('subscriptions')
         .upsert(subscriptionData, { 
@@ -374,13 +377,15 @@ serve(async (req) => {
       }
     }
 
-    // Handle subscription deletion/cancellation
+    // NAPRAWIONE: Handle subscription deletion/cancellation - tylko gdy faktycznie skończyła
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object as Stripe.Subscription;
 
       logStep('Processing subscription deletion', { 
         subscriptionId: subscription.id,
-        customerId: subscription.customer
+        customerId: subscription.customer,
+        endedAt: subscription.ended_at,
+        canceledAt: subscription.canceled_at
       });
 
       // Get customer details
@@ -406,15 +411,22 @@ serve(async (req) => {
 
       logStep('Processing cancellation for profile', { userId: profile.id, email });
 
-      // Freeze tokens and update subscription status - set type to 'Inactive'
+      // NAPRAWIONE: Ustaw status na 'cancelled' tylko gdy subskrypcja faktycznie się skończyła
+      const shouldSetCancelled = subscription.ended_at !== null;
+      const finalStatus = shouldSetCancelled ? 'cancelled' : 'active_cancelled';
+      const finalType = shouldSetCancelled ? 'Inactive' : profile.subscription_type;
+
+      logStep('Determining final status', { shouldSetCancelled, finalStatus, finalType });
+
+      // Freeze tokens and update subscription status
       const { error: updateError } = await supabaseService
         .from('profiles')
         .update({
-          subscription_status: 'cancelled',
-          subscription_type: 'Inactive',
-          is_tokens_frozen: true,
-          monthly_worksheet_limit: 0,
-          monthly_worksheets_used: 0,
+          subscription_status: finalStatus,
+          subscription_type: finalType,
+          is_tokens_frozen: shouldSetCancelled, // Freeze only if actually ended
+          monthly_worksheet_limit: shouldSetCancelled ? 0 : undefined,
+          monthly_worksheets_used: shouldSetCancelled ? 0 : undefined,
           updated_at: new Date().toISOString()
         })
         .eq('id', profile.id);
@@ -432,7 +444,7 @@ serve(async (req) => {
           email: email,
           event_type: 'customer.subscription.deleted',
           old_plan_type: profile.subscription_type || 'Unknown',
-          new_plan_type: 'Inactive',
+          new_plan_type: shouldSetCancelled ? 'Inactive' : `${profile.subscription_type}_cancelled`,
           tokens_added: 0,
           stripe_event_id: event.id,
           event_data: {
@@ -449,12 +461,12 @@ serve(async (req) => {
         logStep('Cancellation event logged successfully');
       }
 
-      // Update subscriptions table status po teacher_id
+      // Update subscriptions table status z poprawnym statusem
       const { error: subError } = await supabaseService
         .from('subscriptions')
         .update({
-          subscription_status: 'cancelled',
-          subscription_type: 'inactive',
+          subscription_status: finalStatus, // NAPRAWIONE: używa active_cancelled lub cancelled
+          subscription_type: shouldSetCancelled ? 'inactive' : subscription.subscription_type,
           updated_at: new Date().toISOString()
         })
         .eq('teacher_id', profile.id);

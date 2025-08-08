@@ -21,8 +21,21 @@ const PLANS: PlanConfig[] = [
 
 export const usePlanLogic = (currentSubscriptionType?: string) => {
   const currentPlan = useMemo(() => {
+    // NAPRAWIONE: Obsługa statusu "Inactive" po wygaśnięciu subskrypcji
     if (!currentSubscriptionType || currentSubscriptionType === 'Free Demo') {
       return PLANS[0]; // free plan
+    }
+    
+    if (currentSubscriptionType === 'Inactive') {
+      // Zwróć specjalny plan dla statusu "Inactive"
+      return {
+        id: 'inactive',
+        name: 'Inactive',
+        type: 'free' as const,
+        price: 0,
+        tokens: 0,
+        description: 'Subscription expired'
+      };
     }
     
     if (currentSubscriptionType === 'Side-Gig') {
