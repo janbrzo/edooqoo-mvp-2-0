@@ -455,8 +455,8 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
 
     // Generate worksheet using OpenAI with complete prompt structure
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-5-2025-08-07", // Changed back to gpt-4o i można gpt-4.1-2025-04-14
-      //temperature: 0.2, // model GPT-5 nie akceptuje parametru temperature innego niż domyślne 1
+      model: "gpt-5-mini-2025-08-07", // Changed back to gpt-4o i można gpt-4.1-2025-04-14
+      //temperature: 0.2, // 
       messages: [
         {
           role: "system",
