@@ -129,6 +129,19 @@ serve(async (req) => {
       }
     }
 
+    // Determine normalized subscription status (active vs active_cancelled)
+    let newSubscriptionStatus: string;
+    if (subscription.status === 'active') {
+      newSubscriptionStatus = subscription.cancel_at_period_end ? 'active_cancelled' : 'active';
+    } else {
+      newSubscriptionStatus = subscription.status;
+    }
+    console.log('[CHECK-SUBSCRIPTION] Computed status:', { 
+      stripeStatus: subscription.status, 
+      cancelAtPeriodEnd: subscription.cancel_at_period_end, 
+      newSubscriptionStatus 
+    });
+
     // Use service role key to update data
     const supabaseService = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -136,7 +149,7 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Update subscription record
+    // Update subscription record with correct column names and conflict target
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
@@ -144,19 +157,21 @@ serve(async (req) => {
         email: user.email,
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customerId,
-        status: subscription.status,
-        plan_type: planType,
+        subscription_status: newSubscriptionStatus, // FIXED
+        subscription_type: planType,               // FIXED
         monthly_limit: monthlyLimit,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         updated_at: new Date().toISOString()
       }, { 
-        onConflict: 'stripe_subscription_id',
+        onConflict: 'teacher_id', // FIXED to rely on unique(teacher_id)
         ignoreDuplicates: false 
       });
 
     if (subError) {
       console.error('[CHECK-SUBSCRIPTION] Error updating subscription:', subError);
+    } else {
+      console.log('[CHECK-SUBSCRIPTION] Subscriptions table upserted successfully for teacher_id:', user.id);
     }
 
     // Update profile - synchronize subscription data and unfreeze tokens
@@ -164,7 +179,7 @@ serve(async (req) => {
       .from('profiles')
       .update({
         subscription_type: subscriptionType,
-        subscription_status: subscription.status,
+        subscription_status: newSubscriptionStatus, // FIXED to keep "active_cancelled" when applicable
         subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
         monthly_worksheet_limit: monthlyLimit,
         is_tokens_frozen: false, // Unfreeze tokens for active subscription
@@ -182,7 +197,7 @@ serve(async (req) => {
       JSON.stringify({
         subscribed: true,
         subscription_type: subscriptionType,
-        subscription_status: subscription.status,
+        subscription_status: newSubscriptionStatus,
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         monthly_limit: monthlyLimit,
         message: 'Subscription status synchronized'
