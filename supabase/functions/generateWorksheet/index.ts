@@ -455,7 +455,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
 
     // Generate worksheet using OpenAI with complete prompt structure
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4.1-2025-04-14", // Changed back to gpt-4o
+      model: "gpt-5-2025-08-07", // Changed back to gpt-4o i można gpt-4.1-2025-04-14
       temperature: 0.2, // 
       messages: [
         {
@@ -467,7 +467,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
           content: sanitizedPrompt
         }
       ],
-      max_tokens: 6500
+      max_completion_tokens: 7500 // nowa nazwa parametru max_tokens: 6500
     });
 
     const jsonContent = aiResponse.choices[0].message.content;
