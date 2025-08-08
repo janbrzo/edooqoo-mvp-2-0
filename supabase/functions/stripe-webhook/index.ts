@@ -228,6 +228,14 @@ serve(async (req) => {
         shouldFreezeTokens = subscription.status === 'cancelled';
       }
 
+      // NAPRAWIONE: Determine old plan type for events (potrzebne do poprawnego logowania reaktywacji)
+      let oldPlanType = profile.subscription_type || 'Free Demo';
+      if (profile.subscription_status === 'active_cancelled') {
+        // Jeśli poprzedni status był active_cancelled, dodaj '_cancelled' do nazwy planu
+        oldPlanType = profile.subscription_type ? `${profile.subscription_type}_cancelled` : 'Free Demo';
+        logStep('Old plan type determined with cancelled suffix', { oldPlanType });
+      }
+
       // Token deduplication logic - only add tokens for new subscriptions or reactivations
       let shouldAddTokens = false;
       let newAvailableTokens = profile.available_tokens;
@@ -304,7 +312,7 @@ serve(async (req) => {
           teacher_id: profile.id,
           email: email,
           event_type: event.type,
-          old_plan_type: profile.subscription_type || 'Free Demo',
+          old_plan_type: oldPlanType, // NAPRAWIONE: używa poprawnego old_plan_type
           new_plan_type: eventNewPlanType, // NAPRAWIONE: dodaje "_cancelled" dla active_cancelled
           tokens_added: shouldAddTokens ? tokensToAdd : 0,
           stripe_event_id: event.id,
@@ -352,7 +360,7 @@ serve(async (req) => {
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customer.id,
         subscription_status: newSubscriptionStatus, // NAPRAWIONE: używa active_cancelled zamiast cancelled
-        subscription_type: subscriptionType.toLowerCase().replace(/\s+/g, '-'),
+        subscription_type: subscriptionType.toLowerCase().replace(/\s+/g, '-').replace(/full-time-/g, 'full-time-'),
         monthly_limit: monthlyLimit,
         current_period_start: currentPeriodStart,
         current_period_end: currentPeriodEnd,
@@ -367,7 +375,7 @@ serve(async (req) => {
         });
 
       if (subError) {
-        logStep('WARNING: Failed to upsert subscription record', subError);
+        logStep('ERROR: Failed to upsert subscription record', subError);
       } else {
         logStep('Subscription record upserted successfully', { 
           teacherId: profile.id, 
@@ -461,12 +469,12 @@ serve(async (req) => {
         logStep('Cancellation event logged successfully');
       }
 
-      // Update subscriptions table status z poprawnym statusem
+      // NAPRAWIONE: Update subscriptions table status z poprawnym statusem
       const { error: subError } = await supabaseService
         .from('subscriptions')
         .update({
           subscription_status: finalStatus, // NAPRAWIONE: używa active_cancelled lub cancelled
-          subscription_type: shouldSetCancelled ? 'inactive' : subscription.subscription_type,
+          subscription_type: shouldSetCancelled ? 'inactive' : undefined,
           updated_at: new Date().toISOString()
         })
         .eq('teacher_id', profile.id);

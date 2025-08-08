@@ -21,6 +21,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [subscriptionData, setSubscriptionData] = useState<any>(null);
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
@@ -28,6 +29,40 @@ const Profile = () => {
       navigate('/');
     }
   }, [loading, isRegisteredUser, navigate]);
+
+  // NAPRAWIONE: Sync subscription status on page mount and fetch fallback data
+  useEffect(() => {
+    const syncSubscriptionData = async () => {
+      if (!user?.id) return;
+      
+      try {
+        // Sync subscription status
+        console.log('Syncing subscription status on profile page mount');
+        await supabase.functions.invoke('check-subscription-status');
+        
+        // Fetch fallback subscription data from subscriptions table
+        const { data: subData, error: subError } = await supabase
+          .from('subscriptions')
+          .select('current_period_end, subscription_status')
+          .eq('teacher_id', user.id)
+          .single();
+          
+        if (!subError && subData) {
+          setSubscriptionData(subData);
+          console.log('Fetched subscription data:', subData);
+        }
+        
+        // Refresh profile data
+        await refetch();
+      } catch (error) {
+        console.error('Error syncing subscription:', error);
+      }
+    };
+
+    if (user?.id && !loading) {
+      syncSubscriptionData();
+    }
+  }, [user?.id, loading, refetch]);
 
   // Auto-refresh profile when returning from payment (e.g., URL contains success params)
   useEffect(() => {
@@ -279,21 +314,25 @@ const Profile = () => {
     }
   };
 
-  // POPRAWIONE FUNKCJE dla UI - wyświetlania informacji o subskrypcji
+  // NAPRAWIONE FUNKCJE dla UI - wyświetlania informacji o subskrypcji
   const getRenewalInfo = () => {
-    if (!profile?.subscription_expires_at) {
-      // NAPRAWIONE: Jeśli brak daty wygaśnięcia w profilu, ale status to active_cancelled,
-      // spróbuj pobrać datę z tabeli subscriptions
-      if (profile?.subscription_status === 'active_cancelled') {
-        // W tym przypadku powinniśmy mieć datę, ale jeśli nie ma, nie pokazujemy nic
-        return null;
-      }
+    // NAPRAWIONE: Fallback logic - jeśli brak daty w profilu, użyj danych z subscriptions
+    let expiryDate = profile?.subscription_expires_at;
+    
+    if (!expiryDate && subscriptionData?.current_period_end) {
+      expiryDate = subscriptionData.current_period_end;
+      console.log('Using fallback expiry date from subscriptions table:', expiryDate);
+    }
+    
+    if (!expiryDate) {
+      console.log('No expiry date available from profile or subscriptions table');
       return null;
     }
+    
     if (subscriptionType === 'Free Demo' || subscriptionType === 'Inactive') return null;
     
     try {
-      const renewalDate = new Date(profile.subscription_expires_at);
+      const renewalDate = new Date(expiryDate);
       return renewalDate.toLocaleDateString();
     } catch (error) {
       console.error('Error parsing subscription expiry date:', error);
@@ -545,7 +584,7 @@ const Profile = () => {
                   </Badge>
                 </div>
                 
-                {/* POPRAWIONA SEKCJA - wyświetla informacje o odnowieniu/wygaśnięciu */}
+                {/* NAPRAWIONA SEKCJA - wyświetla informacje o odnowieniu/wygaśnięciu */}
                 {renewalInfo && subscriptionLabel && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">{subscriptionLabel}</span>

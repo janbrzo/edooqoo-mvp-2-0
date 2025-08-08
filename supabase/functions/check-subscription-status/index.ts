@@ -157,14 +157,14 @@ serve(async (req) => {
         email: user.email,
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customerId,
-        subscription_status: newSubscriptionStatus, // FIXED
-        subscription_type: planType,               // FIXED
+        subscription_status: newSubscriptionStatus, // FIXED: używa active_cancelled gdy trzeba
+        subscription_type: planType,               
         monthly_limit: monthlyLimit,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         updated_at: new Date().toISOString()
       }, { 
-        onConflict: 'teacher_id', // FIXED to rely on unique(teacher_id)
+        onConflict: 'teacher_id',
         ignoreDuplicates: false 
       });
 
@@ -179,7 +179,7 @@ serve(async (req) => {
       .from('profiles')
       .update({
         subscription_type: subscriptionType,
-        subscription_status: newSubscriptionStatus, // FIXED to keep "active_cancelled" when applicable
+        subscription_status: newSubscriptionStatus, 
         subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
         monthly_worksheet_limit: monthlyLimit,
         is_tokens_frozen: false, // Unfreeze tokens for active subscription
