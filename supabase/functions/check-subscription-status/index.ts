@@ -129,20 +129,6 @@ serve(async (req) => {
       }
     }
 
-    // Determine subscription status based on cancel_at_period_end
-    let finalStatus = subscription.status;
-    if (subscription.status === 'active' && subscription.cancel_at_period_end) {
-      finalStatus = 'active_cancelled';
-    }
-
-    console.log('[CHECK-SUBSCRIPTION] Subscription details:', {
-      status: subscription.status,
-      cancel_at_period_end: subscription.cancel_at_period_end,
-      finalStatus,
-      subscriptionType,
-      monthlyLimit
-    });
-
     // Use service role key to update data
     const supabaseService = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -150,7 +136,7 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Update subscription record - FIXED COLUMN NAMES
+    // Update subscription record
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
@@ -158,21 +144,19 @@ serve(async (req) => {
         email: user.email,
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customerId,
-        subscription_status: finalStatus, // FIXED: was 'status'
-        subscription_type: subscriptionType, // FIXED: was 'plan_type'
+        status: subscription.status,
+        plan_type: planType,
         monthly_limit: monthlyLimit,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         updated_at: new Date().toISOString()
       }, { 
-        onConflict: 'teacher_id', // Now works thanks to unique constraint
+        onConflict: 'stripe_subscription_id',
         ignoreDuplicates: false 
       });
 
     if (subError) {
       console.error('[CHECK-SUBSCRIPTION] Error updating subscription:', subError);
-    } else {
-      console.log('[CHECK-SUBSCRIPTION] Successfully updated subscriptions table');
     }
 
     // Update profile - synchronize subscription data and unfreeze tokens
@@ -180,7 +164,7 @@ serve(async (req) => {
       .from('profiles')
       .update({
         subscription_type: subscriptionType,
-        subscription_status: finalStatus,
+        subscription_status: subscription.status,
         subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
         monthly_worksheet_limit: monthlyLimit,
         is_tokens_frozen: false, // Unfreeze tokens for active subscription
@@ -190,8 +174,6 @@ serve(async (req) => {
 
     if (profileError) {
       console.error('[CHECK-SUBSCRIPTION] Error updating profile:', profileError);
-    } else {
-      console.log('[CHECK-SUBSCRIPTION] Successfully updated profiles table');
     }
 
     console.log('[CHECK-SUBSCRIPTION] Successfully synced subscription data');
@@ -200,7 +182,7 @@ serve(async (req) => {
       JSON.stringify({
         subscribed: true,
         subscription_type: subscriptionType,
-        subscription_status: finalStatus,
+        subscription_status: subscription.status,
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         monthly_limit: monthlyLimit,
         message: 'Subscription status synchronized'
