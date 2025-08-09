@@ -58,45 +58,73 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     console.log('[CHECK-SUBSCRIPTION] Found customer:', customerId);
 
-    // Get active subscriptions
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: 'active',
-      limit: 1,
-    });
+    // Use service role to get existing subscription record
+    const supabaseService = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
+    );
 
-    if (subscriptions.data.length === 0) {
-      console.log('[CHECK-SUBSCRIPTION] No active subscriptions');
-      
-      // Use service role to freeze tokens if no active subscription
-      const supabaseService = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-        { auth: { persistSession: false } }
-      );
+    // Get stored subscription record to find stripe_subscription_id
+    const { data: storedSubscription } = await supabaseService
+      .from('subscriptions')
+      .select('stripe_subscription_id')
+      .eq('teacher_id', user.id)
+      .single();
 
-      await supabaseService
-        .from('profiles')
-        .update({
-          subscription_type: 'Free Demo',
-          subscription_status: 'cancelled',
-          is_tokens_frozen: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
+    let subscription = null;
 
-      return new Response(
-        JSON.stringify({ 
-          subscribed: false, 
-          subscription_type: 'Free Demo',
-          message: 'No active subscription found' 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // PRIORITY 1: Try to fetch the stored subscription by ID
+    if (storedSubscription?.stripe_subscription_id) {
+      try {
+        subscription = await stripe.subscriptions.retrieve(storedSubscription.stripe_subscription_id);
+        console.log('[CHECK-SUBSCRIPTION] Found stored subscription:', subscription.id);
+      } catch (error) {
+        console.log('[CHECK-SUBSCRIPTION] Stored subscription not found in Stripe, searching all');
+      }
     }
 
-    const subscription = subscriptions.data[0];
-    console.log('[CHECK-SUBSCRIPTION] Found active subscription:', subscription.id);
+    // PRIORITY 2: If stored subscription not found, get all active subscriptions and pick the best one
+    if (!subscription) {
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: 'active',
+        limit: 10,
+      });
+
+      if (subscriptions.data.length === 0) {
+        console.log('[CHECK-SUBSCRIPTION] No active subscriptions');
+        
+        await supabaseService
+          .from('profiles')
+          .update({
+            subscription_type: 'Free Demo',
+            subscription_status: 'cancelled',
+            is_tokens_frozen: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+
+        return new Response(
+          JSON.stringify({ 
+            subscribed: false, 
+            subscription_type: 'Free Demo',
+            message: 'No active subscription found' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Priority: cancel_at_period_end = true first, then latest current_period_end
+      const cancelledSubs = subscriptions.data.filter(sub => sub.cancel_at_period_end);
+      if (cancelledSubs.length > 0) {
+        subscription = cancelledSubs.sort((a, b) => b.current_period_end - a.current_period_end)[0];
+      } else {
+        subscription = subscriptions.data.sort((a, b) => b.current_period_end - a.current_period_end)[0];
+      }
+    }
+
+    console.log('[CHECK-SUBSCRIPTION] Using subscription:', subscription.id, 'cancel_at_period_end:', subscription.cancel_at_period_end);
 
     // Get subscription details
     const amount = subscription.items.data[0].price.unit_amount || 0;
@@ -129,7 +157,7 @@ serve(async (req) => {
       }
     }
 
-    // Determine normalized subscription status (active vs active_cancelled)
+    // FIXED: Determine normalized subscription status (active vs active_cancelled)
     let newSubscriptionStatus: string;
     if (subscription.status === 'active') {
       newSubscriptionStatus = subscription.cancel_at_period_end ? 'active_cancelled' : 'active';
@@ -142,14 +170,7 @@ serve(async (req) => {
       newSubscriptionStatus 
     });
 
-    // Use service role key to update data
-    const supabaseService = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
-    );
-
-    // Update subscription record with correct column names and conflict target
+    // FIXED: Update subscription record with correct status in BOTH tables
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
@@ -157,7 +178,7 @@ serve(async (req) => {
         email: user.email,
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customerId,
-        subscription_status: newSubscriptionStatus, // FIXED: używa active_cancelled gdy trzeba
+        subscription_status: newSubscriptionStatus, // FIXED: correctly sets active_cancelled
         subscription_type: planType,               
         monthly_limit: monthlyLimit,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
@@ -171,7 +192,7 @@ serve(async (req) => {
     if (subError) {
       console.error('[CHECK-SUBSCRIPTION] Error updating subscription:', subError);
     } else {
-      console.log('[CHECK-SUBSCRIPTION] Subscriptions table upserted successfully for teacher_id:', user.id);
+      console.log('[CHECK-SUBSCRIPTION] Subscriptions table updated with status:', newSubscriptionStatus);
     }
 
     // Update profile - synchronize subscription data and unfreeze tokens
@@ -182,7 +203,7 @@ serve(async (req) => {
         subscription_status: newSubscriptionStatus, 
         subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
         monthly_worksheet_limit: monthlyLimit,
-        is_tokens_frozen: false, // Unfreeze tokens for active subscription
+        is_tokens_frozen: false,
         updated_at: new Date().toISOString()
       })
       .eq('id', user.id);

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@12.18.0'
@@ -58,7 +57,7 @@ serve(async (req) => {
       throw new Error(`Webhook signature verification failed: ${err.message}`);
     }
 
-    // POPRAWIONA DEDUPLIKACJA: Sprawdź kombinację stripe_event_id + event_type
+    // Deduplicate events
     const { data: existingEvent, error: eventCheckError } = await supabaseService
       .from('subscription_events')
       .select('id')
@@ -79,7 +78,194 @@ serve(async (req) => {
       });
     }
 
-    // Handle subscription creation and updates
+    // ADDED: Handle upgrade payments through checkout.session.completed
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      
+      if (session.metadata?.action === 'upgrade') {
+        logStep('Processing upgrade payment', { sessionId: session.id, subscriptionId: session.metadata.subscription_id });
+
+        const subscriptionId = session.metadata.subscription_id;
+        const targetPlanPrice = parseFloat(session.metadata.target_plan_price || '0');
+        const targetPlanName = session.metadata.target_plan_name || '';
+        const targetMonthlyLimit = parseInt(session.metadata.target_monthly_limit || '0');
+        const upgradeTokens = parseInt(session.metadata.upgrade_tokens || '0');
+
+        if (!subscriptionId) {
+          logStep('ERROR: No subscription ID in upgrade metadata');
+          throw new Error('No subscription ID found in upgrade metadata');
+        }
+
+        try {
+          // Update the existing subscription with new price
+          const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+            items: [{
+              id: (await stripe.subscriptions.retrieve(subscriptionId)).items.data[0].id,
+              price_data: {
+                currency: 'usd',
+                product_data: {
+                  name: targetPlanName,
+                  description: `${targetMonthlyLimit} worksheets per month`,
+                },
+                unit_amount: targetPlanPrice * 100, // Full target plan price
+                recurring: {
+                  interval: 'month',
+                },
+              },
+            }],
+            proration_behavior: 'none', // No additional prorating since we handled it with one-time payment
+            billing_cycle_anchor: 'unchanged', // Keep the same billing cycle
+          });
+
+          logStep('Subscription upgraded successfully', { 
+            subscriptionId: updatedSubscription.id,
+            newAmount: targetPlanPrice * 100
+          });
+
+          // Find user by email from customer
+          const customer = await stripe.customers.retrieve(session.customer as string) as Stripe.Customer;
+          const email = customer.email;
+
+          if (!email) {
+            logStep('ERROR: No email found for upgrade customer');
+            throw new Error('No email found for customer');
+          }
+
+          // Find user profile by email
+          const { data: profile, error: profileError } = await supabaseService
+            .from('profiles')
+            .select('id, available_tokens, subscription_type, total_tokens_received')
+            .eq('email', email)
+            .single();
+
+          if (profileError || !profile) {
+            logStep('ERROR: User profile not found for upgrade', { email, error: profileError });
+            throw new Error(`User profile not found for email: ${email}`);
+          }
+
+          // Add upgrade tokens and update subscription info
+          const newAvailableTokens = profile.available_tokens + upgradeTokens;
+          const newTotalReceived = (profile.total_tokens_received || 0) + upgradeTokens;
+
+          // Determine subscription type from target plan price
+          let subscriptionType = 'Unknown';
+          if (targetPlanPrice === 9) {
+            subscriptionType = 'Side-Gig';
+          } else if (targetPlanPrice === 19) {
+            subscriptionType = 'Full-Time 30';
+          } else if (targetPlanPrice === 39) {
+            subscriptionType = 'Full-Time 60';
+          } else if (targetPlanPrice === 59) {
+            subscriptionType = 'Full-Time 90';
+          } else if (targetPlanPrice === 79) {
+            subscriptionType = 'Full-Time 120';
+          }
+
+          const { error: updateError } = await supabaseService
+            .from('profiles')
+            .update({
+              subscription_type: subscriptionType,
+              subscription_status: 'active', // Upgrade makes subscription active
+              monthly_worksheet_limit: targetMonthlyLimit,
+              available_tokens: newAvailableTokens,
+              total_tokens_received: newTotalReceived,
+              is_tokens_frozen: false,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', profile.id);
+
+          if (updateError) {
+            logStep('ERROR: Failed to update profile after upgrade', updateError);
+            throw updateError;
+          }
+
+          // Update subscriptions table
+          const subscriptionData = {
+            teacher_id: profile.id,
+            email: email,
+            stripe_subscription_id: subscriptionId,
+            stripe_customer_id: customer.id,
+            subscription_status: 'active',
+            subscription_type: session.metadata.target_plan_type || 'full-time',
+            monthly_limit: targetMonthlyLimit,
+            current_period_start: new Date(updatedSubscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
+            updated_at: new Date().toISOString()
+          };
+
+          const { error: subError } = await supabaseService
+            .from('subscriptions')
+            .upsert(subscriptionData, { 
+              onConflict: 'teacher_id',
+              ignoreDuplicates: false 
+            });
+
+          if (subError) {
+            logStep('ERROR: Failed to update subscriptions table', subError);
+          } else {
+            logStep('Subscriptions table updated after upgrade');
+          }
+
+          // Log upgrade event
+          const { error: eventError } = await supabaseService
+            .from('subscription_events')
+            .insert({
+              teacher_id: profile.id,
+              email: email,
+              event_type: 'checkout.session.completed',
+              old_plan_type: profile.subscription_type || 'Unknown',
+              new_plan_type: subscriptionType,
+              tokens_added: upgradeTokens,
+              stripe_event_id: event.id,
+              event_data: {
+                session_id: session.id,
+                subscription_id: subscriptionId,
+                target_plan_price: targetPlanPrice,
+                upgrade_tokens: upgradeTokens
+              }
+            });
+
+          if (eventError) {
+            logStep('WARNING: Failed to log upgrade event', eventError);
+          }
+
+          // Add token transaction record
+          const { error: transactionError } = await supabaseService
+            .from('token_transactions')
+            .insert({
+              teacher_id: profile.id,
+              transaction_type: 'purchase',
+              amount: upgradeTokens,
+              description: `Upgrade to ${subscriptionType} - tokens added`,
+              reference_id: null
+            });
+
+          if (transactionError) {
+            logStep('WARNING: Failed to log upgrade token transaction', transactionError);
+          }
+
+          logStep('Upgrade processed successfully', { 
+            newSubscriptionType: subscriptionType,
+            tokensAdded: upgradeTokens,
+            newAvailableTokens
+          });
+
+          return new Response(JSON.stringify({ received: true }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          });
+
+        } catch (stripeError: any) {
+          logStep('ERROR: Failed to update subscription during upgrade', stripeError);
+          throw stripeError;
+        }
+      }
+      
+      // Handle other checkout.session.completed events (non-upgrade)
+      logStep('Non-upgrade checkout session completed', { sessionId: session.id });
+    }
+
+    // Handle subscription creation and updates (existing logic)
     if (event.type === 'customer.subscription.created' || 
         event.type === 'customer.subscription.updated' ||
         event.type === 'invoice.payment_succeeded') {

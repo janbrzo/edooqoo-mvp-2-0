@@ -80,136 +80,69 @@ serve(async (req) => {
       logStep('Created new customer', { customerId: customer.id });
     }
 
-    // POPRAWIONA LOGIKA: Sprawdź istniejące subskrypcje w Stripe i Supabase
+    const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://cdoyjgiyrfziejbrcvpx.supabase.co';
+    logStep('Origin determined', { origin });
+
+    // Check for existing active subscriptions
     const existingStripeSubscriptions = await stripe.subscriptions.list({
       customer: customer.id,
       status: 'active',
       limit: 1,
     });
 
-    const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://cdoyjgiyrfziejbrcvpx.supabase.co';
-    logStep('Origin determined', { origin });
-
-    // NOWA LOGIKA: Sprawdź rekord w Supabase subscriptions
-    const supabaseService = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
-    );
-
-    const { data: supabaseSubscription, error: subError } = await supabaseService
-      .from('subscriptions')
-      .select('*')
-      .eq('email', user.email)
-      .single();
-
-    if (subError && subError.code !== 'PGRST116') {
-      logStep('Error checking Supabase subscription', subError);
-      throw subError;
-    }
-
-    logStep('Supabase subscription check', { 
-      found: !!supabaseSubscription, 
-      subscriptionId: supabaseSubscription?.stripe_subscription_id 
-    });
-
     if (existingStripeSubscriptions.data.length > 0 && isUpgrade) {
-      // POPRAWIONA LOGIKA UPGRADE z obsługą błędu inactive product
+      // FIXED: For upgrades, create a one-time payment checkout session for the upgrade price difference
       const existingSubscription = existingStripeSubscriptions.data[0];
-      logStep('Upgrading existing subscription', { 
+      logStep('Creating upgrade checkout session', { 
         subscriptionId: existingSubscription.id,
-        supabaseRecordExists: !!supabaseSubscription
+        upgradePrice: price, // This is the difference price from frontend
+        targetPlanPrice: price + (existingSubscription.items.data[0].price.unit_amount / 100) // Calculate full target price
       });
 
-      try {
-        // POPRAWIONA STRUKTURA STRIPE API - używamy 'product' zamiast 'product_data'
-        const updatedSubscription = await stripe.subscriptions.update(existingSubscription.id, {
-          items: [{
-            id: existingSubscription.items.data[0].id,
+      const targetPlanPrice = price + (existingSubscription.items.data[0].price.unit_amount / 100);
+
+      const checkoutSession = await stripe.checkout.sessions.create({
+        customer: customer.id,
+        payment_method_types: ['card'],
+        line_items: [
+          {
             price_data: {
               currency: 'usd',
-              product: existingSubscription.items.data[0].price.product as string, // Używamy istniejącego produktu
-              unit_amount: price * 100,
-              recurring: {
-                interval: 'month',
+              product_data: {
+                name: `Upgrade to ${planName}`,
+                description: `One-time upgrade fee - difference between plans`,
               },
+              unit_amount: price * 100, // Only the upgrade price difference
             },
-          }],
-          proration_behavior: 'always_invoice',
-          metadata: {
-            supabase_user_id: user.id,
-            plan_type: planType,
-            monthly_limit: monthlyLimit.toString(),
-            is_upgrade: 'true',
-            upgrade_tokens: upgradeTokens ? upgradeTokens.toString() : '0',
+            quantity: 1,
           },
-        });
+        ],
+        mode: 'payment', // FIXED: One-time payment, not subscription
+        success_url: `${origin}/profile?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${origin}/pricing?canceled=true`,
+        metadata: {
+          action: 'upgrade',
+          supabase_user_id: user.id,
+          subscription_id: existingSubscription.id,
+          target_plan_type: planType,
+          target_plan_name: planName,
+          target_plan_price: targetPlanPrice.toString(), // Full target plan price
+          target_monthly_limit: monthlyLimit.toString(),
+          upgrade_tokens: upgradeTokens ? upgradeTokens.toString() : '0',
+        },
+      });
 
-        logStep('Subscription upgraded successfully', { 
-          subscriptionId: updatedSubscription.id,
-          newAmount: price * 100
-        });
+      logStep('Upgrade checkout session created', { sessionId: checkoutSession.id, url: checkoutSession.url });
 
-        // Zaktualizuj rekord w Supabase subscriptions jeśli istnieje
-        if (supabaseSubscription) {
-          const { error: updateError } = await supabaseService
-            .from('subscriptions')
-            .update({
-              subscription_type: planType.toLowerCase().replace(/\s+/g, '-'),
-              monthly_limit: monthlyLimit,
-              updated_at: new Date().toISOString()
-            })
-            .eq('teacher_id', supabaseSubscription.teacher_id);
-
-          if (updateError) {
-            logStep('Warning: Failed to update Supabase subscription record', updateError);
-          } else {
-            logStep('Supabase subscription record updated');
-          }
+      return new Response(
+        JSON.stringify({ url: checkoutSession.url }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
-
-        return new Response(
-          JSON.stringify({ success: true, subscription_id: updatedSubscription.id }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-
-      } catch (stripeError: any) {
-        logStep('Stripe upgrade error', { 
-          message: stripeError.message,
-          type: stripeError.type,
-          code: stripeError.code,
-          param: stripeError.param
-        });
-
-        // NAPRAWIONE: Jeśli upgrade się nie udał z powodu inactive product, przekieruj do Customer Portal
-        if (stripeError.message?.includes('inactive') || stripeError.message?.includes('no new subscriptions')) {
-          logStep('Product inactive - redirecting to customer portal for upgrade');
-          
-          try {
-            const portalSession = await stripe.billingPortal.sessions.create({
-              customer: customer.id,
-              return_url: `${origin}/profile`,
-            });
-
-            return new Response(
-              JSON.stringify({ redirect_to_portal: true, url: portalSession.url }),
-              { 
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-              }
-            );
-          } catch (portalError: any) {
-            logStep('Failed to create customer portal session', portalError);
-            throw new Error('Unable to process upgrade. Please contact support.');
-          }
-        }
-
-        throw stripeError;
-      }
+      );
 
     } else {
-      // Create new checkout session
+      // Create new subscription checkout session (existing logic)
       const sessionConfig: any = {
         customer: customer.id,
         payment_method_types: ['card'],
