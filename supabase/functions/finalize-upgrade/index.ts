@@ -99,38 +99,83 @@ serve(async (req) => {
       upgradeTokens
     });
 
-    // Get current subscription from Stripe
+    // KLUCZOWA CZĘŚĆ: Znajdź lub utwórz stabilny price_id w Stripe
+    let targetPriceId: string;
+    
+    // Sprawdź czy istnieje już produkt z odpowiednią ceną
+    const products = await stripe.products.list({ 
+      limit: 100,
+      expand: ['data.default_price']
+    });
+    
+    logStep('Searching for existing price', { targetPlanName, targetPlanPrice });
+    
+    // Szukaj istniejącej ceny
+    const prices = await stripe.prices.list({ 
+      limit: 100,
+      recurring: { interval: 'month' },
+      type: 'recurring'
+    });
+    
+    const existingPrice = prices.data.find(price => 
+      price.unit_amount === targetPlanPrice * 100 && 
+      price.currency === 'usd' &&
+      price.recurring?.interval === 'month'
+    );
+    
+    if (existingPrice) {
+      targetPriceId = existingPrice.id;
+      logStep('Using existing price', { priceId: targetPriceId, amount: existingPrice.unit_amount });
+    } else {
+      // Utwórz nowy produkt i cenę
+      logStep('Creating new product and price');
+      
+      const product = await stripe.products.create({
+        name: targetPlanName,
+        description: `${targetMonthlyLimit} worksheets per month`,
+      });
+      
+      const price = await stripe.prices.create({
+        currency: 'usd',
+        product: product.id,
+        unit_amount: targetPlanPrice * 100,
+        recurring: {
+          interval: 'month',
+        },
+      });
+      
+      targetPriceId = price.id;
+      logStep('Created new price', { priceId: targetPriceId, productId: product.id });
+    }
+
+    // KLUCZOWA CZĘŚĆ: Aktualizuj subskrypcję w Stripe
+    logStep('Updating Stripe subscription', { subscriptionId, newPriceId: targetPriceId });
+    
+    // Pobierz aktualną subskrypcję
     const currentSubscription = await stripe.subscriptions.retrieve(subscriptionId);
-    logStep('Retrieved current subscription', { 
+    logStep('Current subscription retrieved', { 
       id: currentSubscription.id,
       status: currentSubscription.status,
-      currentPriceAmount: currentSubscription.items.data[0].price.unit_amount
+      currentPriceId: currentSubscription.items.data[0].price.id,
+      currentAmount: currentSubscription.items.data[0].price.unit_amount
     });
 
-    // Update subscription in Stripe with new price
+    // Aktualizuj subskrypcję z nowym price_id
     const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
       items: [{
         id: currentSubscription.items.data[0].id,
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: targetPlanName,
-            description: `${targetMonthlyLimit} worksheets per month`,
-          },
-          unit_amount: targetPlanPrice * 100,
-          recurring: {
-            interval: 'month',
-          },
-        },
+        price: targetPriceId, // Użyj stabilnego price_id zamiast price_data
       }],
-      proration_behavior: 'none', // No additional prorating since we handled it with one-time payment
-      billing_cycle_anchor: 'unchanged', // Keep the same billing cycle
+      proration_behavior: 'none', // Bez dodatkowego proration - już zapłacone
+      billing_cycle_anchor: 'unchanged', // Zachowaj ten sam cykl rozliczeniowy
     });
 
-    logStep('Subscription updated in Stripe', { 
+    logStep('Subscription updated in Stripe successfully', { 
       subscriptionId: updatedSubscription.id,
+      newPriceId: targetPriceId,
       newAmount: targetPlanPrice * 100,
-      status: updatedSubscription.status
+      status: updatedSubscription.status,
+      currentPeriodEnd: updatedSubscription.current_period_end
     });
 
     // Use service role to update Supabase
@@ -164,12 +209,12 @@ serve(async (req) => {
       newTotalReceived
     });
 
-    // Update profile with new plan details and tokens
+    // KLUCZOWA CZĘŚĆ: Aktualizuj profile z nowymi danymi planu i tokenami
     const { error: updateError } = await supabaseService
       .from('profiles')
       .update({
         subscription_type: targetPlanName,
-        subscription_status: 'active', // Upgrade makes subscription active
+        subscription_status: 'active', // Upgrade czyni subskrypcję aktywną
         monthly_worksheet_limit: targetMonthlyLimit,
         available_tokens: newAvailableTokens,
         total_tokens_received: newTotalReceived,
@@ -186,7 +231,7 @@ serve(async (req) => {
 
     logStep('Profile updated successfully');
 
-    // Update subscriptions table
+    // KLUCZOWA CZĘŚĆ: Aktualizuj tabelę subscriptions z prawidłowymi danymi
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
@@ -195,7 +240,7 @@ serve(async (req) => {
         stripe_subscription_id: subscriptionId,
         stripe_customer_id: session.customer as string,
         subscription_status: 'active',
-        subscription_type: targetPlanName,
+        subscription_type: targetPlanName, // Pełna nazwa planu np. "Full-Time 30"
         monthly_limit: targetMonthlyLimit,
         current_period_start: new Date(updatedSubscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
@@ -232,7 +277,9 @@ serve(async (req) => {
     logStep('Upgrade finalized successfully', {
       newPlan: targetPlanName,
       tokensAdded: upgradeTokens,
-      newAvailableTokens
+      newAvailableTokens,
+      stripeSubscriptionUpdated: true,
+      supabaseDataSynced: true
     });
 
     return new Response(
@@ -240,7 +287,8 @@ serve(async (req) => {
         success: true,
         subscription_type: targetPlanName,
         tokens_added: upgradeTokens,
-        new_available_tokens: newAvailableTokens
+        new_available_tokens: newAvailableTokens,
+        stripe_updated: true
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -254,7 +302,8 @@ serve(async (req) => {
     });
     return new Response(
       JSON.stringify({ 
-        error: error.message
+        error: error.message,
+        success: false
       }),
       { 
         status: 500, 

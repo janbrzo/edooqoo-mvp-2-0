@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,7 +22,7 @@ const Profile = () => {
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
-  const syncExecutedRef = useRef(false); // NAPRAWIONE: Guard dla sync
+  const syncExecutedRef = useRef(false);
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
@@ -32,12 +31,78 @@ const Profile = () => {
     }
   }, [loading, isRegisteredUser, navigate]);
 
-  // NAPRAWIONE: Sync subscription status on page mount only once
+  // NAPRAWIONE: Obsługa powrotu ze Stripe - bezpośrednie wywołanie finalize-upgrade
+  useEffect(() => {
+    const handleStripeReturn = async () => {
+      if (!user?.id || loading) return;
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+      const success = urlParams.get('success');
+      
+      if (sessionId && success === 'true') {
+        console.log('[Profile] Detected return from Stripe with session_id:', sessionId);
+        
+        try {
+          // Najpierw spróbuj finalize-upgrade (dla upgrades)
+          console.log('[Profile] Attempting to finalize upgrade...');
+          const { data: upgradeData, error: upgradeError } = await supabase.functions.invoke('finalize-upgrade', {
+            body: { session_id: sessionId }
+          });
+          
+          if (!upgradeError && upgradeData?.success) {
+            console.log('[Profile] Upgrade finalized successfully:', upgradeData);
+            toast({
+              title: "Upgrade Successful!",
+              description: `Your subscription has been upgraded! ${upgradeData.tokens_added || 0} tokens added.`,
+            });
+          } else {
+            console.log('[Profile] Not an upgrade session or upgrade failed:', upgradeError);
+            // Jeśli to nie upgrade, pokazuj ogólny komunikat o sukcesie
+            toast({
+              title: "Payment Successful!",
+              description: "Your payment has been processed successfully.",
+            });
+          }
+          
+          // Zawsze zsynchronizuj status subskrypcji po płatności
+          console.log('[Profile] Syncing subscription status...');
+          await supabase.functions.invoke('check-subscription-status');
+          
+          // Odśwież dane profilu
+          await refetch();
+          
+        } catch (error) {
+          console.error('[Profile] Error processing payment return:', error);
+          toast({
+            title: "Payment Processed",
+            description: "Your payment was successful. It may take a moment to update your account.",
+          });
+          
+          // Mimo błędu, spróbuj zsynchronizować
+          try {
+            await supabase.functions.invoke('check-subscription-status');
+            await refetch();
+          } catch (syncError) {
+            console.error('[Profile] Error syncing after payment:', syncError);
+          }
+        } finally {
+          // Wyczyść parametry URL
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, '', newUrl);
+        }
+      }
+    };
+
+    handleStripeReturn();
+  }, [user?.id, loading, refetch]);
+
+  // Sync subscription status on page mount only once
   useEffect(() => {
     const syncSubscriptionData = async () => {
       if (!user?.id || loading || syncExecutedRef.current) return;
       
-      syncExecutedRef.current = true; // Ustaw guard
+      syncExecutedRef.current = true;
       
       try {
         console.log('Syncing subscription status on profile page mount');
@@ -64,32 +129,6 @@ const Profile = () => {
 
     syncSubscriptionData();
   }, [user?.id, loading, refetch]);
-
-  // Auto-refresh profile when returning from payment (e.g., URL contains success params)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('success') === 'true' || urlParams.get('session_id')) {
-      // User returned from successful payment, show success message
-      toast({
-        title: "Payment successful!",
-        description: "Your subscription has been updated. It may take a few moments to reflect.",
-      });
-      
-      // Auto-sync subscription after payment
-      setTimeout(async () => {
-        try {
-          await supabase.functions.invoke('check-subscription-status');
-          await refetch();
-        } catch (error) {
-          console.error('Error auto-syncing subscription:', error);
-        }
-      }, 3000);
-      
-      // Clean up URL parameters
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
-    }
-  }, [refetch]);
 
   const fullTimePlans = [
     { tokens: '30', price: 19 },
@@ -248,7 +287,7 @@ const Profile = () => {
         throw error;
       }
 
-      // NAPRAWIONE: Obsługa przekierowania do Customer Portal
+      // Handle redirect to Customer Portal for existing customers
       if (data?.redirect_to_portal && data?.url) {
         console.log('Redirecting to Stripe Customer Portal for upgrade:', data.url);
         window.open(data.url, '_blank');
@@ -322,9 +361,7 @@ const Profile = () => {
     }
   };
 
-  // NAPRAWIONE FUNKCJE dla UI - wyświetlania informacji o subskrypcji z fallback
   const getRenewalInfo = () => {
-    // NAPRAWIONE: Fallback logic - jeśli brak daty w profilu, użyj danych z subscriptions
     let expiryDate = profile?.subscription_expires_at;
     
     if (!expiryDate && subscriptionData?.current_period_end) {
@@ -337,7 +374,6 @@ const Profile = () => {
       return null;
     }
     
-    // Użyj statusu z fallback jeśli potrzeba
     const currentStatus = profile?.subscription_status || subscriptionData?.subscription_status;
     const subscriptionType = profile?.subscription_type || 'Free Demo';
     
@@ -353,7 +389,6 @@ const Profile = () => {
   };
 
   const getSubscriptionLabel = () => {
-    // Użyj statusu z profilu lub fallback z subscriptions
     const currentStatus = profile?.subscription_status || subscriptionData?.subscription_status;
     const subscriptionType = profile?.subscription_type || 'Free Demo';
     
@@ -361,14 +396,13 @@ const Profile = () => {
     if (subscriptionType === 'Free Demo' || subscriptionType === 'Inactive') return null;
     
     if (currentStatus === 'active_cancelled') {
-      return 'Expires'; // NAPRAWIONE: Teraz będzie pokazywać "Expires" dla active_cancelled
+      return 'Expires';
     } else if (currentStatus === 'active') {
       return 'Renews';
     }
     return null;
   };
 
-  // Show loading spinner while checking auth
   if (loading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -380,7 +414,6 @@ const Profile = () => {
     );
   }
 
-  // Don't render anything if not authenticated - user will be redirected
   if (!isRegisteredUser) {
     return null;
   }
@@ -427,7 +460,6 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold flex items-center">
@@ -452,9 +484,7 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Two Column Layout - Personal Info and Subscription */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Personal Information Section */}
           <div className="space-y-6">
             <Card>
               <CardHeader className="pb-4">
@@ -505,9 +535,7 @@ const Profile = () => {
               </CardContent>
             </Card>
 
-            {/* Quick Actions and Token Details Side by Side */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Quick Actions */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Quick Actions</CardTitle>
@@ -540,7 +568,6 @@ const Profile = () => {
                 </CardContent>
               </Card>
 
-              {/* Token Details */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -581,7 +608,6 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Subscription Section */}
           <div className="space-y-6">
             <Card>
               <CardHeader className="pb-4">
@@ -599,7 +625,6 @@ const Profile = () => {
                   </Badge>
                 </div>
                 
-                {/* NAPRAWIONE SEKCJA - wyświetla informacje o odnowieniu/wygaśnięciu z fallback */}
                 {renewalInfo && subscriptionLabel && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">{subscriptionLabel}</span>
@@ -607,7 +632,6 @@ const Profile = () => {
                   </div>
                 )}
                 
-                {/* Manage Subscription Button - zawsze widoczny dla wszystkich planów */}
                 <div className="pt-2">
                   <Button 
                     variant="outline" 
@@ -620,7 +644,6 @@ const Profile = () => {
                   </Button>
                 </div>
                 
-                {/* Upgrade Buttons Side by Side */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="bg-secondary/50 p-4 rounded-lg text-center">
                     <div className="flex items-center justify-center gap-2 mb-2">
