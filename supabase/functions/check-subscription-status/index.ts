@@ -1,5 +1,4 @@
 
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@12.18.0'
@@ -158,7 +157,7 @@ serve(async (req) => {
       }
     }
 
-    // FIXED: Copy logic from profiles table - determine subscription status correctly
+    // FIXED: Determine normalized subscription status (active vs active_cancelled)
     let newSubscriptionStatus: string;
     if (subscription.status === 'active') {
       newSubscriptionStatus = subscription.cancel_at_period_end ? 'active_cancelled' : 'active';
@@ -171,7 +170,7 @@ serve(async (req) => {
       newSubscriptionStatus 
     });
 
-    // FIXED: Update subscription record with correct status and full plan name, ensuring required fields
+    // FIXED: Update subscription record with correct status and full plan name
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
@@ -238,4 +237,3 @@ serve(async (req) => {
     );
   }
 });
-
