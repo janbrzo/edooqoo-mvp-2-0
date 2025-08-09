@@ -170,7 +170,7 @@ serve(async (req) => {
       newSubscriptionStatus 
     });
 
-    // FIXED: Update subscription record with correct status and full plan name
+    // FIXED: Update subscription record with correct status and full plan name - COPY THE SAME LOGIC FROM PROFILES
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
@@ -178,7 +178,7 @@ serve(async (req) => {
         email: user.email,
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customerId,
-        subscription_status: newSubscriptionStatus, // FIXED: correctly sets active_cancelled
+        subscription_status: newSubscriptionStatus, // FIXED: Use the same logic as profiles
         subscription_type: subscriptionType, // FIXED: uses full plan name like "Full-Time 30"              
         monthly_limit: monthlyLimit,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),

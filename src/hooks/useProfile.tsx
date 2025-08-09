@@ -26,15 +26,54 @@ export const useProfile = () => {
       // Check if we're returning from successful payment
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('success') === 'true' || urlParams.get('session_id')) {
-        // Auto-sync subscription status after payment
-        setTimeout(async () => {
-          try {
-            await supabase.functions.invoke('check-subscription-status');
-            await fetchProfile();
-          } catch (error) {
-            console.error('Error auto-syncing subscription:', error);
-          }
-        }, 3000);
+        // Handle upgrade finalization if session_id present
+        const sessionId = urlParams.get('session_id');
+        if (sessionId) {
+          // Auto-finalize upgrade and then sync subscription status
+          setTimeout(async () => {
+            try {
+              console.log('[useProfile] Attempting to finalize upgrade with session:', sessionId);
+              
+              // Try to finalize upgrade first
+              const { data: upgradeData, error: upgradeError } = await supabase.functions.invoke('finalize-upgrade', {
+                body: { session_id: sessionId }
+              });
+              
+              if (upgradeError) {
+                console.log('[useProfile] Upgrade finalization failed (might not be upgrade):', upgradeError);
+              } else {
+                console.log('[useProfile] Upgrade finalized successfully:', upgradeData);
+                toast({
+                  title: "Upgrade Successful",
+                  description: `Your subscription has been upgraded! ${upgradeData?.tokens_added || 0} tokens added.`,
+                });
+              }
+              
+              // Always sync subscription status after payment
+              await supabase.functions.invoke('check-subscription-status');
+              await fetchProfile();
+            } catch (error) {
+              console.error('[useProfile] Error processing payment return:', error);
+              // Still try to sync subscription status even if finalize-upgrade fails
+              try {
+                await supabase.functions.invoke('check-subscription-status');
+                await fetchProfile();
+              } catch (syncError) {
+                console.error('[useProfile] Error syncing subscription:', syncError);
+              }
+            }
+          }, 3000);
+        } else {
+          // Regular payment success without session_id
+          setTimeout(async () => {
+            try {
+              await supabase.functions.invoke('check-subscription-status');
+              await fetchProfile();
+            } catch (error) {
+              console.error('[useProfile] Error auto-syncing subscription:', error);
+            }
+          }, 3000);
+        }
       }
     };
     
