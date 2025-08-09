@@ -23,6 +23,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const syncExecutedRef = useRef(false);
+  const upgradeProcessedRef = useRef(false);
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
@@ -31,10 +32,10 @@ const Profile = () => {
     }
   }, [loading, isRegisteredUser, navigate]);
 
-  // NAPRAWIONE: Obsługa powrotu ze Stripe - bezpośrednie wywołanie finalize-upgrade
+  // NAPRAWIONE: Pojedyncze przetwarzanie upgrade po powrocie ze Stripe
   useEffect(() => {
     const handleStripeReturn = async () => {
-      if (!user?.id || loading) return;
+      if (!user?.id || loading || upgradeProcessedRef.current) return;
 
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('session_id');
@@ -43,8 +44,19 @@ const Profile = () => {
       if (sessionId && success === 'true') {
         console.log('[Profile] Detected return from Stripe with session_id:', sessionId);
         
+        // GUARD: Sprawdź sessionStorage czy już przetwarzane
+        const sessionStorageKey = `upgrade_processed_${sessionId}`;
+        if (sessionStorage.getItem(sessionStorageKey)) {
+          console.log('[Profile] Upgrade already processed for this session, skipping');
+          // Wyczyść URL i zakończ
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, '', newUrl);
+          return;
+        }
+        
+        upgradeProcessedRef.current = true;
+        
         try {
-          // Najpierw spróbuj finalize-upgrade (dla upgrades)
           console.log('[Profile] Attempting to finalize upgrade...');
           const { data: upgradeData, error: upgradeError } = await supabase.functions.invoke('finalize-upgrade', {
             body: { session_id: sessionId }
@@ -52,13 +64,16 @@ const Profile = () => {
           
           if (!upgradeError && upgradeData?.success) {
             console.log('[Profile] Upgrade finalized successfully:', upgradeData);
+            
+            // Zapisz w sessionStorage że przetworzono
+            sessionStorage.setItem(sessionStorageKey, 'true');
+            
             toast({
               title: "Upgrade Successful!",
               description: `Your subscription has been upgraded! ${upgradeData.tokens_added || 0} tokens added.`,
             });
           } else {
             console.log('[Profile] Not an upgrade session or upgrade failed:', upgradeError);
-            // Jeśli to nie upgrade, pokazuj ogólny komunikat o sukcesie
             toast({
               title: "Payment Successful!",
               description: "Your payment has been processed successfully.",

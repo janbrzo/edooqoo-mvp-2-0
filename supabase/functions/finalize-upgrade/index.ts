@@ -60,6 +60,43 @@ serve(async (req) => {
 
     logStep('Processing upgrade for session', { session_id });
 
+    // Use service role to check/update database
+    const supabaseService = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
+    );
+
+    // KLUCZOWA ZMIANA: Sprawdź czy sesja została już przetworzona
+    const { data: existingSession, error: existingError } = await supabaseService
+      .from('processed_upgrade_sessions')
+      .select('*')
+      .eq('session_id', session_id)
+      .single();
+
+    if (existingSession) {
+      logStep('Session already processed', { 
+        sessionId: session_id, 
+        processedAt: existingSession.processed_at,
+        tokensAdded: existingSession.tokens_added 
+      });
+      
+      // Zwróć dane z poprzedniego przetwarzania
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          subscription_type: existingSession.new_plan_type,
+          tokens_added: existingSession.tokens_added,
+          new_available_tokens: 'N/A - already processed',
+          stripe_updated: true,
+          already_processed: true
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     // Initialize Stripe
     const stripeKey = Deno.env.get('Stripe_Secret_Key');
     if (!stripeKey) {
@@ -99,23 +136,37 @@ serve(async (req) => {
       upgradeTokens
     });
 
-    // KLUCZOWA CZĘŚĆ: Znajdź lub utwórz stabilny price_id w Stripe
+    // KLUCZOWA ZMIANA: Pobierz aktualny plan PRZED aktualizacją
+    const { data: currentProfile, error: profileError } = await supabaseService
+      .from('profiles')
+      .select('id, available_tokens, total_tokens_received, subscription_type')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !currentProfile) {
+      logStep('ERROR: User profile not found', { userId: user.id, error: profileError });
+      throw new Error(`User profile not found`);
+    }
+
+    const oldPlanType = currentProfile.subscription_type || 'Free Demo';
+    
+    logStep('Current profile data', {
+      oldPlanType,
+      currentAvailableTokens: currentProfile.available_tokens,
+      currentTotalReceived: currentProfile.total_tokens_received
+    });
+
+    // Find or create stable price_id in Stripe
     let targetPriceId: string;
     
-    // Sprawdź czy istnieje już produkt z odpowiednią ceną
-    const products = await stripe.products.list({ 
-      limit: 100,
-      expand: ['data.default_price']
-    });
-    
-    logStep('Searching for existing price', { targetPlanName, targetPlanPrice });
-    
-    // Szukaj istniejącej ceny
+    // Search for existing price
     const prices = await stripe.prices.list({ 
       limit: 100,
       recurring: { interval: 'month' },
       type: 'recurring'
     });
+    
+    logStep('Searching for existing price', { targetPlanName, targetPlanPrice });
     
     const existingPrice = prices.data.find(price => 
       price.unit_amount === targetPlanPrice * 100 && 
@@ -127,7 +178,7 @@ serve(async (req) => {
       targetPriceId = existingPrice.id;
       logStep('Using existing price', { priceId: targetPriceId, amount: existingPrice.unit_amount });
     } else {
-      // Utwórz nowy produkt i cenę
+      // Create new product and price
       logStep('Creating new product and price');
       
       const product = await stripe.products.create({
@@ -148,10 +199,9 @@ serve(async (req) => {
       logStep('Created new price', { priceId: targetPriceId, productId: product.id });
     }
 
-    // KLUCZOWA CZĘŚĆ: Aktualizuj subskrypcję w Stripe
+    // Update Stripe subscription
     logStep('Updating Stripe subscription', { subscriptionId, newPriceId: targetPriceId });
     
-    // Pobierz aktualną subskrypcję
     const currentSubscription = await stripe.subscriptions.retrieve(subscriptionId);
     logStep('Current subscription retrieved', { 
       id: currentSubscription.id,
@@ -160,14 +210,13 @@ serve(async (req) => {
       currentAmount: currentSubscription.items.data[0].price.unit_amount
     });
 
-    // Aktualizuj subskrypcję z nowym price_id
     const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
       items: [{
         id: currentSubscription.items.data[0].id,
-        price: targetPriceId, // Użyj stabilnego price_id zamiast price_data
+        price: targetPriceId,
       }],
-      proration_behavior: 'none', // Bez dodatkowego proration - już zapłacone
-      billing_cycle_anchor: 'unchanged', // Zachowaj ten sam cykl rozliczeniowy
+      proration_behavior: 'none',
+      billing_cycle_anchor: 'unchanged',
     });
 
     logStep('Subscription updated in Stripe successfully', { 
@@ -178,43 +227,24 @@ serve(async (req) => {
       currentPeriodEnd: updatedSubscription.current_period_end
     });
 
-    // Use service role to update Supabase
-    const supabaseService = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
-    );
-
-    // Get current profile data
-    const { data: profile, error: profileError } = await supabaseService
-      .from('profiles')
-      .select('id, available_tokens, total_tokens_received')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile) {
-      logStep('ERROR: User profile not found', { userId: user.id, error: profileError });
-      throw new Error(`User profile not found`);
-    }
-
     // Calculate new token amounts
-    const newAvailableTokens = profile.available_tokens + upgradeTokens;
-    const newTotalReceived = (profile.total_tokens_received || 0) + upgradeTokens;
+    const newAvailableTokens = currentProfile.available_tokens + upgradeTokens;
+    const newTotalReceived = (currentProfile.total_tokens_received || 0) + upgradeTokens;
 
     logStep('Token calculations', {
-      currentAvailable: profile.available_tokens,
-      currentTotal: profile.total_tokens_received,
+      currentAvailable: currentProfile.available_tokens,
+      currentTotal: currentProfile.total_tokens_received,
       upgradeTokens,
       newAvailableTokens,
       newTotalReceived
     });
 
-    // KLUCZOWA CZĘŚĆ: Aktualizuj profile z nowymi danymi planu i tokenami
+    // Update profile with new plan data and tokens
     const { error: updateError } = await supabaseService
       .from('profiles')
       .update({
         subscription_type: targetPlanName,
-        subscription_status: 'active', // Upgrade czyni subskrypcję aktywną
+        subscription_status: 'active',
         monthly_worksheet_limit: targetMonthlyLimit,
         available_tokens: newAvailableTokens,
         total_tokens_received: newTotalReceived,
@@ -231,7 +261,7 @@ serve(async (req) => {
 
     logStep('Profile updated successfully');
 
-    // KLUCZOWA CZĘŚĆ: Aktualizuj tabelę subscriptions z prawidłowymi danymi
+    // Update subscriptions table
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
@@ -240,7 +270,7 @@ serve(async (req) => {
         stripe_subscription_id: subscriptionId,
         stripe_customer_id: session.customer as string,
         subscription_status: 'active',
-        subscription_type: targetPlanName, // Pełna nazwa planu np. "Full-Time 30"
+        subscription_type: targetPlanName,
         monthly_limit: targetMonthlyLimit,
         current_period_start: new Date(updatedSubscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
@@ -257,6 +287,23 @@ serve(async (req) => {
 
     logStep('Subscriptions table updated successfully');
 
+    // KLUCZOWA ZMIANA: Zapisz że sesja została przetworzona
+    const { error: processedError } = await supabaseService
+      .from('processed_upgrade_sessions')
+      .insert({
+        session_id: session_id,
+        teacher_id: user.id,
+        tokens_added: upgradeTokens,
+        old_plan_type: oldPlanType,
+        new_plan_type: targetPlanName
+      });
+
+    if (processedError) {
+      logStep('WARNING: Failed to log processed session', processedError);
+    } else {
+      logStep('Processed session logged successfully');
+    }
+
     // Add token transaction record
     const { error: transactionError } = await supabaseService
       .from('token_transactions')
@@ -272,6 +319,34 @@ serve(async (req) => {
       logStep('WARNING: Failed to log token transaction', transactionError);
     } else {
       logStep('Token transaction logged successfully');
+    }
+
+    // KLUCZOWA ZMIANA: Zapisz wydarzenie z poprawnymi danymi
+    const { error: eventError } = await supabaseService
+      .from('subscription_events')
+      .insert({
+        teacher_id: user.id,
+        email: user.email,
+        event_type: 'subscription.upgrade.finalized',
+        old_plan_type: oldPlanType, // Zapisany PRZED aktualizacją
+        new_plan_type: targetPlanName,
+        tokens_added: upgradeTokens, // Prawidłowa ilość tokenów
+        event_data: {
+          session_id: session_id,
+          stripe_subscription_id: subscriptionId,
+          upgrade_price: targetPlanPrice,
+          processed_by: 'finalize-upgrade'
+        }
+      });
+
+    if (eventError) {
+      logStep('WARNING: Failed to log subscription event', eventError);
+    } else {
+      logStep('Subscription event logged successfully', {
+        oldPlanType,
+        newPlanType: targetPlanName,
+        tokensAdded: upgradeTokens
+      });
     }
 
     logStep('Upgrade finalized successfully', {
