@@ -228,12 +228,42 @@ serve(async (req) => {
         shouldFreezeTokens = subscription.status === 'cancelled';
       }
 
-      // NAPRAWIONE: Determine old plan type for events (potrzebne do poprawnego logowania reaktywacji)
-      let oldPlanType = profile.subscription_type || 'Free Demo';
-      if (profile.subscription_status === 'active_cancelled') {
-        // Jeśli poprzedni status był active_cancelled, dodaj '_cancelled' do nazwy planu
-        oldPlanType = profile.subscription_type ? `${profile.subscription_type}_cancelled` : 'Free Demo';
-        logStep('Old plan type determined with cancelled suffix', { oldPlanType });
+      // NAPRAWIONE: Determine old plan type for events - sprawdź previous_attributes
+      let oldPlanType = 'Free Demo'; // default fallback
+      
+      if (event.type === 'customer.subscription.updated' && event.data.previous_attributes) {
+        const previousAttributes = event.data.previous_attributes as any;
+        
+        // Sprawdź czy zmienił się cancel_at_period_end - to znaczy że anulowano lub reaktywowano
+        if ('cancel_at_period_end' in previousAttributes) {
+          const wasCancelledBefore = previousAttributes.cancel_at_period_end;
+          const isNowCancelled = subscription.cancel_at_period_end;
+          
+          if (wasCancelledBefore && !isNowCancelled) {
+            // Reaktywacja - subskrypcja była anulowana, teraz jest aktywna
+            oldPlanType = profile.subscription_type ? `${profile.subscription_type}_cancelled` : 'Inactive';
+            logStep('Detected reactivation - subscription was cancelled, now active', { oldPlanType });
+          } else if (!wasCancelledBefore && isNowCancelled) {
+            // Anulowanie - subskrypcja była aktywna, teraz anulowana
+            oldPlanType = profile.subscription_type || subscriptionType;
+            logStep('Detected cancellation - subscription was active, now cancelled', { oldPlanType });
+          } else {
+            // Inne zmiany - użyj obecnego typu z profilu
+            oldPlanType = profile.subscription_type || subscriptionType;
+          }
+        } else {
+          // Inne zmiany w subskrypcji - użyj obecnego typu
+          oldPlanType = profile.subscription_type || subscriptionType;
+        }
+      } else if (event.type === 'customer.subscription.created') {
+        // Nowa subskrypcja
+        if (profile.subscription_status === 'cancelled' || profile.subscription_status === null || !profile.subscription_status) {
+          oldPlanType = 'Inactive'; // NAPRAWIONE: Użyj Inactive zamiast Free Demo po cancelled
+          logStep('New subscription after cancelled/no subscription - using Inactive', { oldPlanType });
+        } else {
+          oldPlanType = profile.subscription_type || 'Free Demo';
+          logStep('New subscription with existing plan', { oldPlanType });
+        }
       }
 
       // Token deduplication logic - only add tokens for new subscriptions or reactivations
@@ -301,7 +331,7 @@ serve(async (req) => {
         tokensFrozen: shouldFreezeTokens
       });
 
-      // NAPRAWIONE: Log subscription event z poprawnym new_plan_type
+      // NAPRAWIONE: Log subscription event z poprawnym old_plan_type i new_plan_type
       const eventNewPlanType = newSubscriptionStatus === 'active_cancelled' 
         ? `${subscriptionType}_cancelled` 
         : subscriptionType;
@@ -312,7 +342,7 @@ serve(async (req) => {
           teacher_id: profile.id,
           email: email,
           event_type: event.type,
-          old_plan_type: oldPlanType, // NAPRAWIONE: używa poprawnego old_plan_type
+          old_plan_type: oldPlanType, // NAPRAWIONE: używa poprawnie wyliczonego old_plan_type
           new_plan_type: eventNewPlanType, // NAPRAWIONE: dodaje "_cancelled" dla active_cancelled
           tokens_added: shouldAddTokens ? tokensToAdd : 0,
           stripe_event_id: event.id,
@@ -353,7 +383,7 @@ serve(async (req) => {
         }
       }
 
-      // NAPRAWIONA LOGIKA: Update/Create subscriptions table record z poprawnym statusem
+      // NAPRAWIONE: Update/Create subscriptions table record z poprawnym statusem
       const subscriptionData = {
         teacher_id: profile.id,
         email: email,

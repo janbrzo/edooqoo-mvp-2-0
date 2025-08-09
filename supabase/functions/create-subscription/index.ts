@@ -114,7 +114,7 @@ serve(async (req) => {
     });
 
     if (existingStripeSubscriptions.data.length > 0 && isUpgrade) {
-      // POPRAWIONA LOGIKA UPGRADE
+      // POPRAWIONA LOGIKA UPGRADE z obsługą błędu inactive product
       const existingSubscription = existingStripeSubscriptions.data[0];
       logStep('Upgrading existing subscription', { 
         subscriptionId: existingSubscription.id,
@@ -182,6 +182,29 @@ serve(async (req) => {
           code: stripeError.code,
           param: stripeError.param
         });
+
+        // NAPRAWIONE: Jeśli upgrade się nie udał z powodu inactive product, przekieruj do Customer Portal
+        if (stripeError.message?.includes('inactive') || stripeError.message?.includes('no new subscriptions')) {
+          logStep('Product inactive - redirecting to customer portal for upgrade');
+          
+          try {
+            const portalSession = await stripe.billingPortal.sessions.create({
+              customer: customer.id,
+              return_url: `${origin}/profile`,
+            });
+
+            return new Response(
+              JSON.stringify({ redirect_to_portal: true, url: portalSession.url }),
+              { 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+              }
+            );
+          } catch (portalError: any) {
+            logStep('Failed to create customer portal session', portalError);
+            throw new Error('Unable to process upgrade. Please contact support.');
+          }
+        }
+
         throw stripeError;
       }
 

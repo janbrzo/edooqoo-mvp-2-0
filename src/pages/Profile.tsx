@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ const Profile = () => {
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
+  const syncExecutedRef = useRef(false); // NAPRAWIONE: Guard dla sync
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
@@ -30,13 +32,14 @@ const Profile = () => {
     }
   }, [loading, isRegisteredUser, navigate]);
 
-  // NAPRAWIONE: Sync subscription status on page mount and fetch fallback data
+  // NAPRAWIONE: Sync subscription status on page mount only once
   useEffect(() => {
     const syncSubscriptionData = async () => {
-      if (!user?.id) return;
+      if (!user?.id || loading || syncExecutedRef.current) return;
+      
+      syncExecutedRef.current = true; // Ustaw guard
       
       try {
-        // Sync subscription status
         console.log('Syncing subscription status on profile page mount');
         await supabase.functions.invoke('check-subscription-status');
         
@@ -59,9 +62,7 @@ const Profile = () => {
       }
     };
 
-    if (user?.id && !loading) {
-      syncSubscriptionData();
-    }
+    syncSubscriptionData();
   }, [user?.id, loading, refetch]);
 
   // Auto-refresh profile when returning from payment (e.g., URL contains success params)
@@ -247,6 +248,13 @@ const Profile = () => {
         throw error;
       }
 
+      // NAPRAWIONE: Obsługa przekierowania do Customer Portal
+      if (data?.redirect_to_portal && data?.url) {
+        console.log('Redirecting to Stripe Customer Portal for upgrade:', data.url);
+        window.open(data.url, '_blank');
+        return;
+      }
+
       if (data?.url) {
         console.log('Redirecting to Stripe checkout:', data.url);
         // Redirect to Stripe checkout
@@ -314,7 +322,7 @@ const Profile = () => {
     }
   };
 
-  // NAPRAWIONE FUNKCJE dla UI - wyświetlania informacji o subskrypcji
+  // NAPRAWIONE FUNKCJE dla UI - wyświetlania informacji o subskrypcji z fallback
   const getRenewalInfo = () => {
     // NAPRAWIONE: Fallback logic - jeśli brak daty w profilu, użyj danych z subscriptions
     let expiryDate = profile?.subscription_expires_at;
@@ -329,6 +337,10 @@ const Profile = () => {
       return null;
     }
     
+    // Użyj statusu z fallback jeśli potrzeba
+    const currentStatus = profile?.subscription_status || subscriptionData?.subscription_status;
+    const subscriptionType = profile?.subscription_type || 'Free Demo';
+    
     if (subscriptionType === 'Free Demo' || subscriptionType === 'Inactive') return null;
     
     try {
@@ -341,13 +353,16 @@ const Profile = () => {
   };
 
   const getSubscriptionLabel = () => {
-    if (!profile?.subscription_status) return null;
+    // Użyj statusu z profilu lub fallback z subscriptions
+    const currentStatus = profile?.subscription_status || subscriptionData?.subscription_status;
+    const subscriptionType = profile?.subscription_type || 'Free Demo';
+    
+    if (!currentStatus) return null;
     if (subscriptionType === 'Free Demo' || subscriptionType === 'Inactive') return null;
     
-    const subscriptionStatus = profile.subscription_status;
-    if (subscriptionStatus === 'active_cancelled') {
+    if (currentStatus === 'active_cancelled') {
       return 'Expires'; // NAPRAWIONE: Teraz będzie pokazywać "Expires" dla active_cancelled
-    } else if (subscriptionStatus === 'active') {
+    } else if (currentStatus === 'active') {
       return 'Renews';
     }
     return null;
@@ -584,7 +599,7 @@ const Profile = () => {
                   </Badge>
                 </div>
                 
-                {/* NAPRAWIONA SEKCJA - wyświetla informacje o odnowieniu/wygaśnięciu */}
+                {/* NAPRAWIONE SEKCJA - wyświetla informacje o odnowieniu/wygaśnięciu z fallback */}
                 {renewalInfo && subscriptionLabel && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">{subscriptionLabel}</span>
