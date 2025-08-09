@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -65,11 +66,63 @@ const Profile = () => {
     syncSubscriptionData();
   }, [user?.id, loading, refetch]);
 
-  // Auto-refresh profile when returning from payment (e.g., URL contains success params)
+  // FIXED: Auto-refresh profile when returning from payment with upgrade finalization
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('success') === 'true' || urlParams.get('session_id')) {
+    const sessionId = urlParams.get('session_id');
+    const success = urlParams.get('success');
+    
+    if (success === 'true' && sessionId) {
       // User returned from successful payment, show success message
+      toast({
+        title: "Payment successful!",
+        description: "Your subscription is being updated. Please wait a moment...",
+      });
+      
+      // Auto-finalize upgrade after payment
+      setTimeout(async () => {
+        try {
+          console.log('Finalizing upgrade with session ID:', sessionId);
+          
+          // Call finalize-upgrade function
+          const { data: finalizeData, error: finalizeError } = await supabase.functions.invoke('finalize-upgrade', {
+            body: { session_id: sessionId }
+          });
+          
+          if (finalizeError) {
+            console.error('Error finalizing upgrade:', finalizeError);
+            toast({
+              title: "Upgrade Error",
+              description: "There was an issue finalizing your upgrade. Please contact support.",
+              variant: "destructive"
+            });
+          } else {
+            console.log('Upgrade finalized successfully:', finalizeData);
+            toast({
+              title: "Upgrade Complete!",
+              description: `Your subscription has been upgraded to ${finalizeData.new_plan}. ${finalizeData.tokens_added > 0 ? `${finalizeData.tokens_added} tokens added.` : ''}`,
+            });
+          }
+          
+          // Sync subscription status after upgrade
+          await supabase.functions.invoke('check-subscription-status');
+          await refetch();
+          
+        } catch (error) {
+          console.error('Error during upgrade finalization:', error);
+          toast({
+            title: "Sync Error", 
+            description: "Please refresh the page to see your updated subscription.",
+            variant: "destructive"
+          });
+        }
+      }, 2000);
+      
+      // Clean up URL parameters
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    } else if (success === 'true') {
+      // Regular subscription success (not upgrade)
       toast({
         title: "Payment successful!",
         description: "Your subscription has been updated. It may take a few moments to reflect.",
@@ -207,8 +260,15 @@ const Profile = () => {
       // Calculate upgrade pricing
       const upgradePrice = getUpgradePrice(targetPlan);
       const upgradeTokens = getUpgradeTokens(targetPlan);
+      const isUpgrade = currentPlan.type !== 'free';
 
-      console.log('Attempting to create subscription:', { planType, planData, upgradePrice, upgradeTokens });
+      console.log('Attempting to create subscription:', { 
+        planType, 
+        planData, 
+        upgradePrice, 
+        upgradeTokens, 
+        isUpgrade 
+      });
 
       const { data, error } = await supabase.functions.invoke('create-subscription', {
         body: {
@@ -217,7 +277,7 @@ const Profile = () => {
           price: upgradePrice, // Use upgrade price instead of full price
           planName: planData.name,
           upgradeTokens: upgradeTokens, // Pass upgrade tokens
-          isUpgrade: currentPlan.type !== 'free'
+          isUpgrade: isUpgrade
         }
       });
 
@@ -709,3 +769,4 @@ const Profile = () => {
 };
 
 export default Profile;
+
