@@ -91,7 +91,7 @@ serve(async (req) => {
     });
 
     if (existingStripeSubscriptions.data.length > 0 && isUpgrade) {
-      // NAPRAWIONE: Dla upgrade'ów tworzymy sesję checkout z kodami rabatowymi
+      // FIXED: For upgrades, create a one-time payment checkout session for the upgrade price difference
       const existingSubscription = existingStripeSubscriptions.data[0];
       logStep('Creating upgrade checkout session', { 
         subscriptionId: existingSubscription.id,
@@ -117,8 +117,7 @@ serve(async (req) => {
             quantity: 1,
           },
         ],
-        mode: 'payment', // One-time payment for upgrade
-        allow_promotion_codes: true, // NAPRAWIONE: Dodano kody rabatowe dla upgrade'ów
+        mode: 'payment', // FIXED: One-time payment, not subscription
         success_url: `${origin}/profile?success=true&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/pricing?canceled=true`,
         metadata: {

@@ -157,33 +157,20 @@ serve(async (req) => {
       }
     }
 
-    // NAPRAWIONE: Określenie prawidłowego statusu subskrypcji dla tabeli subscriptions
-    let subscriptionStatusForSubscriptionsTable: string;
+    // FIXED: Determine normalized subscription status (active vs active_cancelled)
+    let newSubscriptionStatus: string;
     if (subscription.status === 'active') {
-      // KLUCZOWE: Jeśli subskrypcja jest aktywna ale cancel_at_period_end = true, 
-      // to w tabeli subscriptions ustawiamy active_cancelled
-      subscriptionStatusForSubscriptionsTable = subscription.cancel_at_period_end ? 'active_cancelled' : 'active';
+      newSubscriptionStatus = subscription.cancel_at_period_end ? 'active_cancelled' : 'active';
     } else {
-      subscriptionStatusForSubscriptionsTable = subscription.status;
+      newSubscriptionStatus = subscription.status;
     }
-
-    // Osobny status dla tabeli profiles (zachowujemy obecną logikę)
-    let profileSubscriptionStatus: string;
-    if (subscription.status === 'active') {
-      profileSubscriptionStatus = subscription.cancel_at_period_end ? 'active_cancelled' : 'active';
-    } else {
-      profileSubscriptionStatus = subscription.status;
-    }
-    
-    console.log('[CHECK-SUBSCRIPTION] Computed statuses:', { 
+    console.log('[CHECK-SUBSCRIPTION] Computed status:', { 
       stripeStatus: subscription.status, 
       cancelAtPeriodEnd: subscription.cancel_at_period_end, 
-      subscriptionsTableStatus: subscriptionStatusForSubscriptionsTable,
-      profileStatus: profileSubscriptionStatus
+      newSubscriptionStatus 
     });
 
-    // NAPRAWIONE: Aktualizacja tabeli subscriptions z prawidłowym statusem
-    // Zawsze podajemy current_period_start i current_period_end żeby uniknąć błędów NULL
+    // FIXED: Update subscription record with correct status in BOTH tables
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
@@ -191,7 +178,7 @@ serve(async (req) => {
         email: user.email,
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customerId,
-        subscription_status: subscriptionStatusForSubscriptionsTable, // NAPRAWIONE: używamy właściwego statusu
+        subscription_status: newSubscriptionStatus, // FIXED: correctly sets active_cancelled
         subscription_type: planType,               
         monthly_limit: monthlyLimit,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
@@ -205,7 +192,7 @@ serve(async (req) => {
     if (subError) {
       console.error('[CHECK-SUBSCRIPTION] Error updating subscription:', subError);
     } else {
-      console.log('[CHECK-SUBSCRIPTION] Subscriptions table updated with status:', subscriptionStatusForSubscriptionsTable);
+      console.log('[CHECK-SUBSCRIPTION] Subscriptions table updated with status:', newSubscriptionStatus);
     }
 
     // Update profile - synchronize subscription data and unfreeze tokens
@@ -213,7 +200,7 @@ serve(async (req) => {
       .from('profiles')
       .update({
         subscription_type: subscriptionType,
-        subscription_status: profileSubscriptionStatus, 
+        subscription_status: newSubscriptionStatus, 
         subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
         monthly_worksheet_limit: monthlyLimit,
         is_tokens_frozen: false,
@@ -231,7 +218,7 @@ serve(async (req) => {
       JSON.stringify({
         subscribed: true,
         subscription_type: subscriptionType,
-        subscription_status: profileSubscriptionStatus,
+        subscription_status: newSubscriptionStatus,
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         monthly_limit: monthlyLimit,
         message: 'Subscription status synchronized'
