@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,27 +22,39 @@ const Profile = () => {
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
-  const syncExecutedRef = useRef(false); // NAPRAWIONE: Guard dla sync
+  
+  // NAPRAWIONE: Redukcja logów konsoli - użyj sessionStorage i useRef
+  const syncExecutedRef = useRef(false);
+  const lastSyncTimeRef = useRef<number>(0);
 
-  // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
     if (!loading && !isRegisteredUser) {
       navigate('/');
     }
   }, [loading, isRegisteredUser, navigate]);
 
-  // NAPRAWIONE: Sync subscription status on page mount only once
+  // NAPRAWIONE: Sync subscription status - tylko raz na sesję
   useEffect(() => {
     const syncSubscriptionData = async () => {
       if (!user?.id || loading || syncExecutedRef.current) return;
       
-      syncExecutedRef.current = true; // Ustaw guard
+      // Sprawdź czy sync był już wykonany w tej sesji (w ciągu ostatnich 30 sekund)
+      const now = Date.now();
+      const lastSync = sessionStorage.getItem('lastSubscriptionSync');
+      if (lastSync && (now - parseInt(lastSync)) < 30000) {
+        console.log('Skipping sync - already done recently');
+        return;
+      }
+      
+      syncExecutedRef.current = true;
       
       try {
         console.log('Syncing subscription status on profile page mount');
         await supabase.functions.invoke('check-subscription-status');
         
-        // Fetch fallback subscription data from subscriptions table
+        // Zapisz czas ostatniego sync
+        sessionStorage.setItem('lastSubscriptionSync', now.toString());
+        
         const { data: subData, error: subError } = await supabase
           .from('subscriptions')
           .select('current_period_end, subscription_status')
@@ -55,7 +66,6 @@ const Profile = () => {
           console.log('Fetched subscription data:', subData);
         }
         
-        // Refresh profile data
         await refetch();
       } catch (error) {
         console.error('Error syncing subscription:', error);
@@ -65,17 +75,15 @@ const Profile = () => {
     syncSubscriptionData();
   }, [user?.id, loading, refetch]);
 
-  // Auto-refresh profile when returning from payment (e.g., URL contains success params)
+  // Auto-refresh profile when returning from payment
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('success') === 'true' || urlParams.get('session_id')) {
-      // User returned from successful payment, show success message
       toast({
         title: "Payment successful!",
         description: "Your subscription has been updated. It may take a few moments to reflect.",
       });
       
-      // Auto-sync subscription after payment
       setTimeout(async () => {
         try {
           await supabase.functions.invoke('check-subscription-status');
@@ -85,7 +93,6 @@ const Profile = () => {
         }
       }, 3000);
       
-      // Clean up URL parameters
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
     }
@@ -185,7 +192,6 @@ const Profile = () => {
   };
 
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
-    // Check user authentication first
     const canSubscribe = await checkUserForSubscription();
     if (!canSubscribe) return;
 
@@ -195,7 +201,6 @@ const Profile = () => {
         ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
         : { name: `Full-Time Plan (${selectedFullTimePlan} worksheets)`, price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
 
-      // Find the target plan from plans array
       const targetPlan = planType === 'side-gig' 
         ? plans.find(p => p.id === 'side-gig')
         : plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
@@ -204,7 +209,6 @@ const Profile = () => {
         throw new Error('Target plan not found');
       }
 
-      // Calculate upgrade pricing
       const upgradePrice = getUpgradePrice(targetPlan);
       const upgradeTokens = getUpgradeTokens(targetPlan);
 
@@ -214,9 +218,9 @@ const Profile = () => {
         body: {
           planType: planType,
           monthlyLimit: planData.tokens,
-          price: upgradePrice, // Use upgrade price instead of full price
+          price: upgradePrice,
           planName: planData.name,
-          upgradeTokens: upgradeTokens, // Pass upgrade tokens
+          upgradeTokens: upgradeTokens,
           isUpgrade: currentPlan.type !== 'free'
         }
       });
@@ -224,7 +228,6 @@ const Profile = () => {
       if (error) {
         console.error('Subscription error details:', error);
         
-        // Handle specific error types
         if (error.message?.includes('requiresRegistration') || error.message?.includes('Email required')) {
           toast({
             title: "Registration Required",
@@ -248,16 +251,33 @@ const Profile = () => {
         throw error;
       }
 
-      // NAPRAWIONE: Obsługa przekierowania do Customer Portal
       if (data?.redirect_to_portal && data?.url) {
         console.log('Redirecting to Stripe Customer Portal for upgrade:', data.url);
         window.open(data.url, '_blank');
         return;
       }
 
+      if (data?.success) {
+        toast({
+          title: "Subscription Updated!",
+          description: "Your subscription has been successfully updated.",
+        });
+        
+        // Odśwież dane subskrypcji
+        setTimeout(async () => {
+          try {
+            await supabase.functions.invoke('check-subscription-status');
+            await refetch();
+          } catch (error) {
+            console.error('Error refreshing subscription data:', error);
+          }
+        }, 2000);
+        
+        return;
+      }
+
       if (data?.url) {
         console.log('Redirecting to Stripe checkout:', data.url);
-        // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received from server');
@@ -293,7 +313,6 @@ const Profile = () => {
   };
 
   const handleManageSubscription = async () => {
-    // Check user authentication first
     const canManage = await checkUserForSubscription();
     if (!canManage) return;
 
@@ -322,23 +341,17 @@ const Profile = () => {
     }
   };
 
-  // NAPRAWIONE FUNKCJE dla UI - wyświetlania informacji o subskrypcji z fallback
   const getRenewalInfo = () => {
-    // NAPRAWIONE: Fallback logic - jeśli brak daty w profilu, użyj danych z subscriptions
     let expiryDate = profile?.subscription_expires_at;
     
     if (!expiryDate && subscriptionData?.current_period_end) {
       expiryDate = subscriptionData.current_period_end;
-      console.log('Using fallback expiry date from subscriptions table:', expiryDate);
     }
     
     if (!expiryDate) {
-      console.log('No expiry date available from profile or subscriptions table');
       return null;
     }
     
-    // Użyj statusu z fallback jeśli potrzeba
-    const currentStatus = profile?.subscription_status || subscriptionData?.subscription_status;
     const subscriptionType = profile?.subscription_type || 'Free Demo';
     
     if (subscriptionType === 'Free Demo' || subscriptionType === 'Inactive') return null;
@@ -353,7 +366,6 @@ const Profile = () => {
   };
 
   const getSubscriptionLabel = () => {
-    // Użyj statusu z profilu lub fallback z subscriptions
     const currentStatus = profile?.subscription_status || subscriptionData?.subscription_status;
     const subscriptionType = profile?.subscription_type || 'Free Demo';
     
@@ -361,14 +373,13 @@ const Profile = () => {
     if (subscriptionType === 'Free Demo' || subscriptionType === 'Inactive') return null;
     
     if (currentStatus === 'active_cancelled') {
-      return 'Expires'; // NAPRAWIONE: Teraz będzie pokazywać "Expires" dla active_cancelled
+      return 'Expires';
     } else if (currentStatus === 'active') {
       return 'Renews';
     }
     return null;
   };
 
-  // Show loading spinner while checking auth
   if (loading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -380,7 +391,6 @@ const Profile = () => {
     );
   }
 
-  // Don't render anything if not authenticated - user will be redirected
   if (!isRegisteredUser) {
     return null;
   }
@@ -599,7 +609,6 @@ const Profile = () => {
                   </Badge>
                 </div>
                 
-                {/* NAPRAWIONE SEKCJA - wyświetla informacje o odnowieniu/wygaśnięciu z fallback */}
                 {renewalInfo && subscriptionLabel && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">{subscriptionLabel}</span>
@@ -607,7 +616,6 @@ const Profile = () => {
                   </div>
                 )}
                 
-                {/* Manage Subscription Button - zawsze widoczny dla wszystkich planów */}
                 <div className="pt-2">
                   <Button 
                     variant="outline" 

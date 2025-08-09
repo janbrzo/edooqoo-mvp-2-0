@@ -13,6 +13,15 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CREATE-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
+// NAPRAWIONE: Mapowanie price_ID na plany
+const PLAN_PRICE_IDS = {
+  'side-gig': 'price_1Rr4ajH4Sb5mBNfbqE8tB3Il',
+  'full-time-30': 'price_1Rr4apH4Sb5mBNfbZCKfQyov',
+  'full-time-60': 'price_1RuA1gH4Sb5mBNfbCdkhQkhn',
+  'full-time-90': 'price_1Rr4asH4Sb5mBNfbtF4eGtWF',
+  'full-time-120': 'price_1Ru9x2H4Sb5mBNfbbVRTDR9V'
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -21,13 +30,11 @@ serve(async (req) => {
   try {
     logStep('Function started');
 
-    // Initialize Supabase with anon key for user auth
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    // Get authenticated user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       logStep('No authorization header');
@@ -49,13 +56,11 @@ serve(async (req) => {
 
     logStep('User authenticated', { email: user.email });
 
-    // Parse request body
     const body = await req.json();
     const { planType, monthlyLimit, price, planName, upgradeTokens, isUpgrade } = body;
 
     logStep('Request body parsed', { planType, monthlyLimit, price, planName, upgradeTokens, isUpgrade });
 
-    // Initialize Stripe
     const stripeKey = Deno.env.get('Stripe_Secret_Key');
     if (!stripeKey) {
       logStep('Stripe key not configured');
@@ -80,7 +85,6 @@ serve(async (req) => {
       logStep('Created new customer', { customerId: customer.id });
     }
 
-    // POPRAWIONA LOGIKA: Sprawdź istniejące subskrypcje w Stripe i Supabase
     const existingStripeSubscriptions = await stripe.subscriptions.list({
       customer: customer.id,
       status: 'active',
@@ -90,7 +94,6 @@ serve(async (req) => {
     const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://cdoyjgiyrfziejbrcvpx.supabase.co';
     logStep('Origin determined', { origin });
 
-    // NOWA LOGIKA: Sprawdź rekord w Supabase subscriptions
     const supabaseService = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -114,7 +117,7 @@ serve(async (req) => {
     });
 
     if (existingStripeSubscriptions.data.length > 0 && isUpgrade) {
-      // POPRAWIONA LOGIKA UPGRADE z obsługą błędu inactive product
+      // NAPRAWIONE: Bezpośredni upgrade przez Stripe API
       const existingSubscription = existingStripeSubscriptions.data[0];
       logStep('Upgrading existing subscription', { 
         subscriptionId: existingSubscription.id,
@@ -122,18 +125,34 @@ serve(async (req) => {
       });
 
       try {
-        // POPRAWIONA STRUKTURA STRIPE API - używamy 'product' zamiast 'product_data'
+        // Określ target price_id na podstawie planu
+        let targetPriceId: string;
+        
+        if (planType === 'side-gig') {
+          targetPriceId = PLAN_PRICE_IDS['side-gig'];
+        } else if (planType === 'full-time') {
+          if (monthlyLimit === 30) {
+            targetPriceId = PLAN_PRICE_IDS['full-time-30'];
+          } else if (monthlyLimit === 60) {
+            targetPriceId = PLAN_PRICE_IDS['full-time-60'];
+          } else if (monthlyLimit === 90) {
+            targetPriceId = PLAN_PRICE_IDS['full-time-90'];
+          } else if (monthlyLimit === 120) {
+            targetPriceId = PLAN_PRICE_IDS['full-time-120'];
+          } else {
+            throw new Error(`Unsupported monthly limit: ${monthlyLimit}`);
+          }
+        } else {
+          throw new Error(`Unsupported plan type: ${planType}`);
+        }
+
+        logStep('Determined target price ID', { targetPriceId, planType, monthlyLimit });
+
+        // NAPRAWIONE: Bezpośredni upgrade subskrypcji
         const updatedSubscription = await stripe.subscriptions.update(existingSubscription.id, {
           items: [{
             id: existingSubscription.items.data[0].id,
-            price_data: {
-              currency: 'usd',
-              product: existingSubscription.items.data[0].price.product as string, // Używamy istniejącego produktu
-              unit_amount: price * 100,
-              recurring: {
-                interval: 'month',
-              },
-            },
+            price: targetPriceId,
           }],
           proration_behavior: 'always_invoice',
           metadata: {
@@ -147,15 +166,15 @@ serve(async (req) => {
 
         logStep('Subscription upgraded successfully', { 
           subscriptionId: updatedSubscription.id,
-          newAmount: price * 100
+          newPriceId: targetPriceId
         });
 
-        // Zaktualizuj rekord w Supabase subscriptions jeśli istnieje
+        // Update Supabase subscription record if exists
         if (supabaseSubscription) {
           const { error: updateError } = await supabaseService
             .from('subscriptions')
             .update({
-              subscription_type: planType.toLowerCase().replace(/\s+/g, '-'),
+              subscription_type: planType === 'side-gig' ? 'side-gig' : `full-time-${monthlyLimit}`,
               monthly_limit: monthlyLimit,
               updated_at: new Date().toISOString()
             })
@@ -183,9 +202,9 @@ serve(async (req) => {
           param: stripeError.param
         });
 
-        // NAPRAWIONE: Jeśli upgrade się nie udał z powodu inactive product, przekieruj do Customer Portal
-        if (stripeError.message?.includes('inactive') || stripeError.message?.includes('no new subscriptions')) {
-          logStep('Product inactive - redirecting to customer portal for upgrade');
+        // Fallback do Customer Portal jeśli bezpośredni upgrade się nie uda
+        if (stripeError.message?.includes('inactive') || stripeError.message?.includes('no new subscriptions') || stripeError.code === 'resource_missing') {
+          logStep('Direct upgrade failed - redirecting to customer portal for upgrade');
           
           try {
             const portalSession = await stripe.billingPortal.sessions.create({
@@ -210,22 +229,32 @@ serve(async (req) => {
 
     } else {
       // Create new checkout session
+      let targetPriceId: string;
+      
+      if (planType === 'side-gig') {
+        targetPriceId = PLAN_PRICE_IDS['side-gig'];
+      } else if (planType === 'full-time') {
+        if (monthlyLimit === 30) {
+          targetPriceId = PLAN_PRICE_IDS['full-time-30'];
+        } else if (monthlyLimit === 60) {
+          targetPriceId = PLAN_PRICE_IDS['full-time-60'];
+        } else if (monthlyLimit === 90) {
+          targetPriceId = PLAN_PRICE_IDS['full-time-90'];
+        } else if (monthlyLimit === 120) {
+          targetPriceId = PLAN_PRICE_IDS['full-time-120'];
+        } else {
+          throw new Error(`Unsupported monthly limit: ${monthlyLimit}`);
+        }
+      } else {
+        throw new Error(`Unsupported plan type: ${planType}`);
+      }
+
       const sessionConfig: any = {
         customer: customer.id,
         payment_method_types: ['card'],
         line_items: [
           {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: planName,
-                description: `${monthlyLimit} worksheets per month`,
-              },
-              unit_amount: price * 100,
-              recurring: {
-                interval: 'month',
-              },
-            },
+            price: targetPriceId,
             quantity: 1,
           },
         ],
@@ -242,7 +271,7 @@ serve(async (req) => {
         },
       };
 
-      logStep('Checkout session configuration created');
+      logStep('Checkout session configuration created', { targetPriceId });
 
       const session = await stripe.checkout.sessions.create(sessionConfig);
 

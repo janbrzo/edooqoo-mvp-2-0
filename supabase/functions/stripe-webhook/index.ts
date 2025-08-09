@@ -9,9 +9,8 @@ const corsHeaders = {
 }
 
 const logStep = (step: string, details?: any) => {
-  const timestamp = new Date().toISOString();
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[STRIPE-WEBHOOK] ${timestamp} ${step}${detailsStr}`);
+  console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
@@ -58,7 +57,7 @@ serve(async (req) => {
       throw new Error(`Webhook signature verification failed: ${err.message}`);
     }
 
-    // POPRAWIONA DEDUPLIKACJA: Sprawdź kombinację stripe_event_id + event_type
+    // NAPRAWIONE: Deduplikacja eventów
     const { data: existingEvent, error: eventCheckError } = await supabaseService
       .from('subscription_events')
       .select('id')
@@ -147,37 +146,61 @@ serve(async (req) => {
       let monthlyLimit = 0;
       let tokensToAdd = 0;
 
-      // Determine plan based on amount
-      if (amount === 900) { // $9.00 = Side-Gig
+      // NAPRAWIONE: Mapowanie na podstawie price_ID zamiast amount
+      if (priceId === 'price_1Rr4ajH4Sb5mBNfbqE8tB3Il') { // Side-Gig 15
         subscriptionType = 'Side-Gig';
         monthlyLimit = 15;
         tokensToAdd = 15;
-      } else if (amount === 1900) { // $19.00 = Full-Time 30
+      } else if (priceId === 'price_1Rr4apH4Sb5mBNfbZCKfQyov') { // Full-Time 30
         subscriptionType = 'Full-Time 30';
         monthlyLimit = 30;
         tokensToAdd = 30;
-      } else if (amount === 3900) { // $39.00 = Full-Time 60
+      } else if (priceId === 'price_1RuA1gH4Sb5mBNfbCdkhQkhn') { // Full-Time 60
         subscriptionType = 'Full-Time 60';
         monthlyLimit = 60;
         tokensToAdd = 60;
-      } else if (amount === 5900) { // $59.00 = Full-Time 90
+      } else if (priceId === 'price_1Rr4asH4Sb5mBNfbtF4eGtWF') { // Full-Time 90
         subscriptionType = 'Full-Time 90';
         monthlyLimit = 90;
         tokensToAdd = 90;
-      } else if (amount === 7900) { // $79.00 = Full-Time 120
+      } else if (priceId === 'price_1Ru9x2H4Sb5mBNfbbVRTDR9V') { // Full-Time 120
         subscriptionType = 'Full-Time 120';
         monthlyLimit = 120;
         tokensToAdd = 120;
+      } else {
+        // Fallback na podstawie amount dla starych subskrypcji
+        if (amount === 900) { // $9.00 = Side-Gig
+          subscriptionType = 'Side-Gig';
+          monthlyLimit = 15;
+          tokensToAdd = 15;
+        } else if (amount === 1900) { // $19.00 = Full-Time 30
+          subscriptionType = 'Full-Time 30';
+          monthlyLimit = 30;
+          tokensToAdd = 30;
+        } else if (amount === 3900) { // $39.00 = Full-Time 60
+          subscriptionType = 'Full-Time 60';
+          monthlyLimit = 60;
+          tokensToAdd = 60;
+        } else if (amount === 5900) { // $59.00 = Full-Time 90
+          subscriptionType = 'Full-Time 90';
+          monthlyLimit = 90;
+          tokensToAdd = 90;
+        } else if (amount === 7900) { // $79.00 = Full-Time 120
+          subscriptionType = 'Full-Time 120';
+          monthlyLimit = 120;
+          tokensToAdd = 120;
+        }
       }
 
       logStep('Plan determined', { 
         subscriptionType, 
         monthlyLimit, 
         tokensToAdd, 
+        priceId,
         priceAmount: amount 
       });
 
-      // Validate subscription dates before using them
+      // Validate subscription dates
       let subscriptionExpiresAt = null;
       let currentPeriodStart = null;
       let currentPeriodEnd = null;
@@ -210,14 +233,14 @@ serve(async (req) => {
         }
       }
 
-      // NAPRAWIONE: Determine subscription status based on cancel_at_period_end
+      // NAPRAWIONE: Determine subscription status
       let newSubscriptionStatus: string;
       let shouldFreezeTokens = false;
 
       if (subscription.status === 'active') {
         if (subscription.cancel_at_period_end) {
           newSubscriptionStatus = 'active_cancelled';
-          shouldFreezeTokens = false; // Don't freeze until actually cancelled
+          shouldFreezeTokens = false;
           logStep('Subscription is active but set to cancel at period end');
         } else {
           newSubscriptionStatus = 'active';
@@ -228,55 +251,49 @@ serve(async (req) => {
         shouldFreezeTokens = subscription.status === 'cancelled';
       }
 
-      // NAPRAWIONE: Determine old plan type for events - sprawdź previous_attributes
+      // NAPRAWIONE: Determine old plan type - poprawna logika bez "_cancelled"
       let oldPlanType = 'Free Demo'; // default fallback
       
       if (event.type === 'customer.subscription.updated' && event.data.previous_attributes) {
         const previousAttributes = event.data.previous_attributes as any;
         
-        // Sprawdź czy zmienił się cancel_at_period_end - to znaczy że anulowano lub reaktywowano
         if ('cancel_at_period_end' in previousAttributes) {
           const wasCancelledBefore = previousAttributes.cancel_at_period_end;
           const isNowCancelled = subscription.cancel_at_period_end;
           
           if (wasCancelledBefore && !isNowCancelled) {
-            // Reaktywacja - subskrypcja była anulowana, teraz jest aktywna
-            oldPlanType = profile.subscription_type ? `${profile.subscription_type}_cancelled` : 'Inactive';
-            logStep('Detected reactivation - subscription was cancelled, now active', { oldPlanType });
+            // Reaktywacja - użyj statusu z profilu bez "_cancelled"
+            oldPlanType = profile.subscription_type || 'Inactive';
+            logStep('Detected reactivation', { oldPlanType });
           } else if (!wasCancelledBefore && isNowCancelled) {
-            // Anulowanie - subskrypcja była aktywna, teraz anulowana
+            // Anulowanie - użyj obecnego typu bez dodawania "_cancelled"
             oldPlanType = profile.subscription_type || subscriptionType;
-            logStep('Detected cancellation - subscription was active, now cancelled', { oldPlanType });
+            logStep('Detected cancellation', { oldPlanType });
           } else {
-            // Inne zmiany - użyj obecnego typu z profilu
             oldPlanType = profile.subscription_type || subscriptionType;
           }
         } else {
-          // Inne zmiany w subskrypcji - użyj obecnego typu
           oldPlanType = profile.subscription_type || subscriptionType;
         }
       } else if (event.type === 'customer.subscription.created') {
-        // Nowa subskrypcja
         if (profile.subscription_status === 'cancelled' || profile.subscription_status === null || !profile.subscription_status) {
-          oldPlanType = 'Inactive'; // NAPRAWIONE: Użyj Inactive zamiast Free Demo po cancelled
-          logStep('New subscription after cancelled/no subscription - using Inactive', { oldPlanType });
+          oldPlanType = 'Inactive'; // NAPRAWIONE: Użyj Inactive po wygaśnięciu
+          logStep('New subscription after cancelled/expired subscription', { oldPlanType });
         } else {
           oldPlanType = profile.subscription_type || 'Free Demo';
           logStep('New subscription with existing plan', { oldPlanType });
         }
       }
 
-      // Token deduplication logic - only add tokens for new subscriptions or reactivations
+      // Token logic
       let shouldAddTokens = false;
       let newAvailableTokens = profile.available_tokens;
       let newTotalReceived = profile.total_tokens_received || 0;
 
       if (event.type === 'customer.subscription.created') {
-        // Always add tokens for new subscriptions
         shouldAddTokens = true;
         logStep('Adding tokens for new subscription');
       } else if (event.type === 'customer.subscription.updated') {
-        // Only add tokens if subscription was reactivated (from cancelled to active)
         const wasInactive = !profile.subscription_status || 
                            profile.subscription_status === 'cancelled' || 
                            profile.subscription_status === 'past_due';
@@ -302,7 +319,7 @@ serve(async (req) => {
         logStep('No tokens will be added');
       }
 
-      // Update profile with subscription details
+      // Update profile
       const { error: updateError } = await supabaseService
         .from('profiles')
         .update({
@@ -313,7 +330,7 @@ serve(async (req) => {
           available_tokens: newAvailableTokens,
           total_tokens_received: newTotalReceived,
           is_tokens_frozen: shouldFreezeTokens,
-          monthly_worksheets_used: 0, // Reset monthly usage on subscription changes
+          monthly_worksheets_used: 0,
           updated_at: new Date().toISOString()
         })
         .eq('id', profile.id);
@@ -342,8 +359,8 @@ serve(async (req) => {
           teacher_id: profile.id,
           email: email,
           event_type: event.type,
-          old_plan_type: oldPlanType, // NAPRAWIONE: używa poprawnie wyliczonego old_plan_type
-          new_plan_type: eventNewPlanType, // NAPRAWIONE: dodaje "_cancelled" dla active_cancelled
+          old_plan_type: oldPlanType, // BEZ dodawania "_cancelled"
+          new_plan_type: eventNewPlanType,
           tokens_added: shouldAddTokens ? tokensToAdd : 0,
           stripe_event_id: event.id,
           event_data: {
@@ -364,7 +381,7 @@ serve(async (req) => {
         logStep('Subscription event logged successfully');
       }
 
-      // Add token transaction record only if tokens were added
+      // Add token transaction
       if (shouldAddTokens) {
         const { error: transactionError } = await supabaseService
           .from('token_transactions')
@@ -383,13 +400,13 @@ serve(async (req) => {
         }
       }
 
-      // NAPRAWIONE: Update/Create subscriptions table record z poprawnym statusem
+      // NAPRAWIONE: Update subscriptions table z poprawnym statusem
       const subscriptionData = {
         teacher_id: profile.id,
         email: email,
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customer.id,
-        subscription_status: newSubscriptionStatus, // NAPRAWIONE: używa active_cancelled zamiast cancelled
+        subscription_status: newSubscriptionStatus, // NAPRAWIONE: używa active_cancelled
         subscription_type: subscriptionType.toLowerCase().replace(/\s+/g, '-').replace(/full-time-/g, 'full-time-'),
         monthly_limit: monthlyLimit,
         current_period_start: currentPeriodStart,
@@ -415,7 +432,7 @@ serve(async (req) => {
       }
     }
 
-    // NAPRAWIONE: Handle subscription deletion/cancellation - tylko gdy faktycznie skończyła
+    // Handle subscription deletion/cancellation
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object as Stripe.Subscription;
 
@@ -426,7 +443,6 @@ serve(async (req) => {
         canceledAt: subscription.canceled_at
       });
 
-      // Get customer details
       const customer = await stripe.customers.retrieve(subscription.customer as string) as Stripe.Customer;
       const email = customer.email;
 
@@ -435,7 +451,6 @@ serve(async (req) => {
         throw new Error('No email found for customer');
       }
 
-      // Find user profile by email
       const { data: profile, error: profileError } = await supabaseService
         .from('profiles')
         .select('id, subscription_type')
@@ -449,20 +464,18 @@ serve(async (req) => {
 
       logStep('Processing cancellation for profile', { userId: profile.id, email });
 
-      // NAPRAWIONE: Ustaw status na 'cancelled' tylko gdy subskrypcja faktycznie się skończyła
       const shouldSetCancelled = subscription.ended_at !== null;
       const finalStatus = shouldSetCancelled ? 'cancelled' : 'active_cancelled';
       const finalType = shouldSetCancelled ? 'Inactive' : profile.subscription_type;
 
       logStep('Determining final status', { shouldSetCancelled, finalStatus, finalType });
 
-      // Freeze tokens and update subscription status
       const { error: updateError } = await supabaseService
         .from('profiles')
         .update({
           subscription_status: finalStatus,
           subscription_type: finalType,
-          is_tokens_frozen: shouldSetCancelled, // Freeze only if actually ended
+          is_tokens_frozen: shouldSetCancelled,
           monthly_worksheet_limit: shouldSetCancelled ? 0 : undefined,
           monthly_worksheets_used: shouldSetCancelled ? 0 : undefined,
           updated_at: new Date().toISOString()
@@ -474,7 +487,6 @@ serve(async (req) => {
         throw updateError;
       }
 
-      // Log cancellation event with email
       const { error: eventError } = await supabaseService
         .from('subscription_events')
         .insert({
@@ -499,11 +511,10 @@ serve(async (req) => {
         logStep('Cancellation event logged successfully');
       }
 
-      // NAPRAWIONE: Update subscriptions table status z poprawnym statusem
       const { error: subError } = await supabaseService
         .from('subscriptions')
         .update({
-          subscription_status: finalStatus, // NAPRAWIONE: używa active_cancelled lub cancelled
+          subscription_status: finalStatus, // NAPRAWIONE: active_cancelled lub cancelled
           subscription_type: shouldSetCancelled ? 'inactive' : undefined,
           updated_at: new Date().toISOString()
         })
