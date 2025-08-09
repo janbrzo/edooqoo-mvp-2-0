@@ -179,14 +179,14 @@ serve(async (req) => {
             throw updateError;
           }
 
-          // Update subscriptions table
+          // FIXED: Update subscriptions table with full subscription type name
           const subscriptionData = {
             teacher_id: profile.id,
             email: email,
             stripe_subscription_id: subscriptionId,
             stripe_customer_id: customer.id,
             subscription_status: 'active',
-            subscription_type: session.metadata.target_plan_type || 'full-time',
+            subscription_type: subscriptionType, // FIXED: Use full name like "Full-Time 30"
             monthly_limit: targetMonthlyLimit,
             current_period_start: new Date(updatedSubscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
@@ -203,7 +203,7 @@ serve(async (req) => {
           if (subError) {
             logStep('ERROR: Failed to update subscriptions table', subError);
           } else {
-            logStep('Subscriptions table updated after upgrade');
+            logStep('Subscriptions table updated after upgrade with full type name');
           }
 
           // Log upgrade event
@@ -333,7 +333,7 @@ serve(async (req) => {
       let monthlyLimit = 0;
       let tokensToAdd = 0;
 
-      // Determine plan based on amount
+      // FIXED: Determine plan based on amount with full names
       if (amount === 900) { // $9.00 = Side-Gig
         subscriptionType = 'Side-Gig';
         monthlyLimit = 15;
@@ -396,7 +396,7 @@ serve(async (req) => {
         }
       }
 
-      // NAPRAWIONE: Determine subscription status based on cancel_at_period_end
+      // FIXED: Determine subscription status based on cancel_at_period_end
       let newSubscriptionStatus: string;
       let shouldFreezeTokens = false;
 
@@ -414,41 +414,41 @@ serve(async (req) => {
         shouldFreezeTokens = subscription.status === 'cancelled';
       }
 
-      // NAPRAWIONE: Determine old plan type for events - sprawdź previous_attributes
-      let oldPlanType = 'Free Demo'; // default fallback
+      // FIXED: Determine old plan type for events - check if it's first purchase
+      let oldPlanType = 'Free Demo'; // FIXED: Default for first purchase
       
       if (event.type === 'customer.subscription.updated' && event.data.previous_attributes) {
         const previousAttributes = event.data.previous_attributes as any;
         
-        // Sprawdź czy zmienił się cancel_at_period_end - to znaczy że anulowano lub reaktywowano
+        // Check if cancel_at_period_end changed - means cancellation or reactivation
         if ('cancel_at_period_end' in previousAttributes) {
           const wasCancelledBefore = previousAttributes.cancel_at_period_end;
           const isNowCancelled = subscription.cancel_at_period_end;
           
           if (wasCancelledBefore && !isNowCancelled) {
-            // Reaktywacja - subskrypcja była anulowana, teraz jest aktywna
+            // Reactivation - subscription was cancelled, now active
             oldPlanType = profile.subscription_type ? `${profile.subscription_type}_cancelled` : 'Inactive';
             logStep('Detected reactivation - subscription was cancelled, now active', { oldPlanType });
           } else if (!wasCancelledBefore && isNowCancelled) {
-            // Anulowanie - subskrypcja była aktywna, teraz anulowana
+            // Cancellation - subscription was active, now cancelled
             oldPlanType = profile.subscription_type || subscriptionType;
             logStep('Detected cancellation - subscription was active, now cancelled', { oldPlanType });
           } else {
-            // Inne zmiany - użyj obecnego typu z profilu
+            // Other changes - use current type from profile
             oldPlanType = profile.subscription_type || subscriptionType;
           }
         } else {
-          // Inne zmiany w subskrypcji - użyj obecnego typu
+          // Other subscription changes - use current type
           oldPlanType = profile.subscription_type || subscriptionType;
         }
       } else if (event.type === 'customer.subscription.created') {
-        // Nowa subskrypcja
-        if (profile.subscription_status === 'cancelled' || profile.subscription_status === null || !profile.subscription_status) {
-          oldPlanType = 'Inactive'; // NAPRAWIONE: Użyj Inactive zamiast Free Demo po cancelled
-          logStep('New subscription after cancelled/no subscription - using Inactive', { oldPlanType });
+        // FIXED: For new subscriptions, check if user had previous cancelled subscription
+        if (profile.subscription_status === 'cancelled') {
+          oldPlanType = 'Inactive'; // User had cancelled subscription
+          logStep('New subscription after cancelled subscription - using Inactive', { oldPlanType });
         } else {
-          oldPlanType = profile.subscription_type || 'Free Demo';
-          logStep('New subscription with existing plan', { oldPlanType });
+          oldPlanType = 'Free Demo'; // FIXED: First time purchase
+          logStep('First subscription purchase - using Free Demo', { oldPlanType });
         }
       }
 
@@ -517,7 +517,7 @@ serve(async (req) => {
         tokensFrozen: shouldFreezeTokens
       });
 
-      // NAPRAWIONE: Log subscription event z poprawnym old_plan_type i new_plan_type
+      // Log subscription event with correct old_plan_type and new_plan_type
       const eventNewPlanType = newSubscriptionStatus === 'active_cancelled' 
         ? `${subscriptionType}_cancelled` 
         : subscriptionType;
@@ -528,8 +528,8 @@ serve(async (req) => {
           teacher_id: profile.id,
           email: email,
           event_type: event.type,
-          old_plan_type: oldPlanType, // NAPRAWIONE: używa poprawnie wyliczonego old_plan_type
-          new_plan_type: eventNewPlanType, // NAPRAWIONE: dodaje "_cancelled" dla active_cancelled
+          old_plan_type: oldPlanType, // FIXED: Uses "Free Demo" for first purchase
+          new_plan_type: eventNewPlanType, 
           tokens_added: shouldAddTokens ? tokensToAdd : 0,
           stripe_event_id: event.id,
           event_data: {
@@ -569,14 +569,14 @@ serve(async (req) => {
         }
       }
 
-      // NAPRAWIONE: Update/Create subscriptions table record z poprawnym statusem
+      // FIXED: Update/Create subscriptions table record with correct status and full subscription type
       const subscriptionData = {
         teacher_id: profile.id,
         email: email,
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customer.id,
-        subscription_status: newSubscriptionStatus, // NAPRAWIONE: używa active_cancelled zamiast cancelled
-        subscription_type: subscriptionType.toLowerCase().replace(/\s+/g, '-').replace(/full-time-/g, 'full-time-'),
+        subscription_status: newSubscriptionStatus, // FIXED: correctly uses active_cancelled
+        subscription_type: subscriptionType, // FIXED: uses full plan name like "Full-Time 30"
         monthly_limit: monthlyLimit,
         current_period_start: currentPeriodStart,
         current_period_end: currentPeriodEnd,
@@ -593,15 +593,16 @@ serve(async (req) => {
       if (subError) {
         logStep('ERROR: Failed to upsert subscription record', subError);
       } else {
-        logStep('Subscription record upserted successfully', { 
+        logStep('Subscription record upserted successfully with full type name', { 
           teacherId: profile.id, 
           subscriptionId: subscription.id,
-          status: newSubscriptionStatus
+          status: newSubscriptionStatus,
+          type: subscriptionType
         });
       }
     }
 
-    // NAPRAWIONE: Handle subscription deletion/cancellation - tylko gdy faktycznie skończyła
+    // Handle subscription deletion/cancellation - only when actually finished
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object as Stripe.Subscription;
 
@@ -635,7 +636,7 @@ serve(async (req) => {
 
       logStep('Processing cancellation for profile', { userId: profile.id, email });
 
-      // NAPRAWIONE: Ustaw status na 'cancelled' tylko gdy subskrypcja faktycznie się skończyła
+      // Set status to 'cancelled' only when subscription actually ended
       const shouldSetCancelled = subscription.ended_at !== null;
       const finalStatus = shouldSetCancelled ? 'cancelled' : 'active_cancelled';
       const finalType = shouldSetCancelled ? 'Inactive' : profile.subscription_type;
@@ -685,11 +686,11 @@ serve(async (req) => {
         logStep('Cancellation event logged successfully');
       }
 
-      // NAPRAWIONE: Update subscriptions table status z poprawnym statusem
+      // Update subscriptions table status with correct status
       const { error: subError } = await supabaseService
         .from('subscriptions')
         .update({
-          subscription_status: finalStatus, // NAPRAWIONE: używa active_cancelled lub cancelled
+          subscription_status: finalStatus, // Uses active_cancelled or cancelled
           subscription_type: shouldSetCancelled ? 'inactive' : undefined,
           updated_at: new Date().toISOString()
         })

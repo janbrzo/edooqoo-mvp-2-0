@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@12.18.0'
@@ -120,6 +119,7 @@ serve(async (req) => {
         mode: 'payment', // FIXED: One-time payment, not subscription
         success_url: `${origin}/profile?success=true&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/pricing?canceled=true`,
+        allow_promotion_codes: true, // FIXED: Enable promotion codes for upgrades
         metadata: {
           action: 'upgrade',
           supabase_user_id: user.id,
@@ -132,7 +132,7 @@ serve(async (req) => {
         },
       });
 
-      logStep('Upgrade checkout session created', { sessionId: checkoutSession.id, url: checkoutSession.url });
+      logStep('Upgrade checkout session created with promotion codes enabled', { sessionId: checkoutSession.id, url: checkoutSession.url });
 
       return new Response(
         JSON.stringify({ url: checkoutSession.url }),

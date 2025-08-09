@@ -170,7 +170,7 @@ serve(async (req) => {
       newSubscriptionStatus 
     });
 
-    // FIXED: Update subscription record with correct status in BOTH tables
+    // FIXED: Update subscription record with correct status and full plan name
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
@@ -179,7 +179,7 @@ serve(async (req) => {
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customerId,
         subscription_status: newSubscriptionStatus, // FIXED: correctly sets active_cancelled
-        subscription_type: planType,               
+        subscription_type: subscriptionType, // FIXED: uses full plan name like "Full-Time 30"              
         monthly_limit: monthlyLimit,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
@@ -192,7 +192,7 @@ serve(async (req) => {
     if (subError) {
       console.error('[CHECK-SUBSCRIPTION] Error updating subscription:', subError);
     } else {
-      console.log('[CHECK-SUBSCRIPTION] Subscriptions table updated with status:', newSubscriptionStatus);
+      console.log('[CHECK-SUBSCRIPTION] Subscriptions table updated with status:', newSubscriptionStatus, 'and type:', subscriptionType);
     }
 
     // Update profile - synchronize subscription data and unfreeze tokens
