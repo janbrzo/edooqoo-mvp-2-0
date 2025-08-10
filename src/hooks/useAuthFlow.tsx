@@ -14,10 +14,11 @@ export function useAuthFlow() {
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state change:', event, session?.user?.is_anonymous);
+      const anonymous = session?.user?.is_anonymous === true;
+      console.log(`Auth change: ${event}, anonymous=${anonymous}`);
       setSession(session);
       setUser(session?.user ?? null);
-      setIsAnonymous(session?.user?.is_anonymous === true);
+      setIsAnonymous(anonymous);
       setLoading(false);
     });
 

@@ -2,329 +2,214 @@
 # English Worksheet Generator - Complete User Guide
 
 ## Table of Contents
-1. [Introduction](#introduction)
-2. [Getting Started](#getting-started)
-3. [Creating Your First Worksheet](#creating-your-first-worksheet)
-4. [Understanding Exercise Types](#understanding-exercise-types)
-5. [Student vs Teacher Views](#student-vs-teacher-views)
-6. [Editing Worksheets](#editing-worksheets)
-7. [Download Process](#download-process)
-8. [Payment Information](#payment-information)
-9. [Tips for Best Results](#tips-for-best-results)
+1. [Getting Started](#getting-started)
+2. [Account Types & Pricing](#account-types--pricing)
+3. [Token & Subscription System](#token--subscription-system)
+4. [Download System](#download-system)
+5. [Worksheet Generation](#worksheet-generation)
+6. [Student Management](#student-management)
+7. [Editing & Customization](#editing--customization)
+8. [Export Options](#export-options)
+9. [Subscription Management](#subscription-management)
 10. [Troubleshooting](#troubleshooting)
-
-## Introduction
-
-The English Worksheet Generator is an AI-powered platform specifically designed for English teachers who work with adult students in one-on-one settings. Unlike generic educational tools, this platform focuses on creating high-quality, personalized materials that match your teaching style and your student's specific needs.
-
-### Who is this for?
-- **Private English tutors** working with individual adult students
-- **Corporate English trainers** preparing business-focused lessons
-- **Language school teachers** needing quick, quality materials
-- **Online English teachers** requiring print-ready resources
-
-### What makes it special?
-- **AI-powered personalization** - Each worksheet is uniquely generated
-- **Adult-focused content** - No childish themes or exercises
-- **Professional quality** - Ready to print and use immediately
-- **Dual versions** - Separate student and teacher materials
-- **Completely offline** - Download and use without internet
 
 ## Getting Started
 
-### System Requirements
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- Internet connection for generation and download
-- No software installation required
+### Anonymous Users (Not Logged In)
+- **Generate worksheets for free** - No account required
+- **Preview unlimited** - View both student and teacher versions online
+- **Download requires payment** - $1 one-time payment per session
+- **Session duration** - Download access lasts approximately 24 hours
+- **No data persistence** - Worksheets not saved between sessions
 
-### First Visit
-1. Navigate to the website
-2. You'll see the main form immediately - no registration required
-3. All features are available instantly
+### Registered Users
+- **Email confirmation required** - Must verify email to access full features
+- **2 free tokens on signup** - Start generating immediately
+- **Data persistence** - All worksheets saved to your account
+- **Student management** - Add and organize your students
+- **Automatic download unlock** - No additional payment needed for downloads
 
-## Creating Your First Worksheet
+## Account Types & Pricing
 
-### Step 1: Basic Information
-**Lesson Topic** (Required)
-- Enter the main subject of your lesson
-- Examples: "Job interviews", "Email writing", "Restaurant vocabulary"
-- Be specific for better results
+### Free Demo Plan
+- **Cost**: $0/month
+- **Tokens**: 2 free tokens on signup
+- **Monthly Worksheets**: None
+- **Downloads**: Automatically unlocked for registered users
+- **Features**: Full worksheet generation, student management, editing
 
-**Lesson Goal** (Required)
-- What should the student achieve?
-- Examples: "Improve speaking confidence", "Learn business vocabulary", "Practice past tense"
+### Side-Gig Plan
+- **Cost**: $9/month
+- **Monthly Worksheets**: 15 per month
+- **Rollover**: Unused worksheets carry forward
+- **Cost per worksheet**: $0.60
+- **Perfect for**: Part-time tutors, 1-3 students per week
 
-**English Level** (Required)
-Choose from standard CEFR levels:
-- **A1** - Beginner (basic phrases, everyday situations)
-- **A2** - Elementary (simple conversations, familiar topics)
-- **B1** - Intermediate (clear standard speech, familiar matters)
-- **B2** - Upper-Intermediate (complex text, abstract topics)
-- **C1** - Advanced (long, complex texts, implicit meaning)
-- **C2** - Proficiency (virtually everything with ease)
+### Full-Time Plans
+- **30 worksheets/month**: $19/month ($0.63 per worksheet)
+- **60 worksheets/month**: $39/month ($0.65 per worksheet)
+- **90 worksheets/month**: $59/month ($0.66 per worksheet)
+- **120 worksheets/month**: $79/month ($0.66 per worksheet)
+- **Perfect for**: Professional teachers, language schools
 
-### Step 2: Customization Options
+## Token & Subscription System
 
-**Lesson Duration**
-- 30 minutes - 4-5 exercises, lighter content
-- 45 minutes - 6-7 exercises, balanced approach
-- 60 minutes - 8+ exercises, comprehensive coverage
+### Consumption Priority
+1. **Monthly worksheet allowance used first**
+2. **Available tokens used second** (purchased or rollover)
+3. **System ensures maximum value** from subscription
 
-**Additional Information** (Optional)
-Provide context to make the worksheet more relevant:
-- Student's profession or interests
-- Specific grammar points to focus on
-- Cultural context or preferences
-- Areas where student struggles
+### Rollover System
+- **Unused monthly worksheets** automatically become rollover tokens
+- **Rollover tokens used** after purchased tokens but before new monthly allowance
+- **Never lose unused worksheets** - everything carries forward
 
-**Examples of good additional information:**
-- "Student is a software developer who needs English for technical meetings"
-- "Focus on conditional sentences, student confuses if/when"
-- "Avoid American slang, student prefers British English"
+### Token Management
+- **Purchased tokens never expire**
+- **Monthly worksheets reset** at billing cycle
+- **Total worksheets created** tracked lifetime
 
-### Step 3: Generation
-1. Click "Generate Worksheet"
-2. Wait 30-60 seconds (complex topics may take longer)
-3. The worksheet will appear automatically
+## Download System
 
-## Understanding Exercise Types
+### For Anonymous Users
+1. **Generate worksheet** - Free, unlimited
+2. **Click download button** - Shows payment modal
+3. **Pay $1 via Stripe** - Secure one-time payment
+4. **Downloads unlocked** - Both Student and Teacher versions
+5. **Session expires** - After ~24 hours, payment required again
 
-The AI selects from 8 different exercise types based on your lesson goals:
+### For Registered Users
+- **Automatically unlocked** - No additional payment
+- **Immediate access** - Both Student and Teacher versions
+- **Unlimited downloads** - During subscription period
+- **HTML format recommended** - Best quality, works offline
 
-### 1. Multiple Choice
-- **Purpose**: Vocabulary, grammar, or comprehension testing
-- **Format**: Question with 4 options (A, B, C, D)
-- **Best for**: Quick assessment, specific language points
+## Worksheet Generation
 
-### 2. Fill in the Blanks
-- **Purpose**: Grammar practice, vocabulary reinforcement
-- **Format**: Sentences with missing words
-- **Best for**: Contextual learning, targeted practice
+### Exercise Types Available
+1. **Vocabulary Sheets** - Key terms with definitions
+2. **Grammar Exercises** - Context-specific grammar practice
+3. **Reading Comprehension** - Custom passages with questions
+4. **Fill-in-the-Blanks** - Targeted vocabulary and grammar
+5. **Multiple Choice** - Various difficulty levels
+6. **Matching Exercises** - Terms, definitions, concepts
+7. **Dialogue Practice** - Conversation scenarios
+8. **Mixed Exercises** - Combination of above types
 
-### 3. Reading Comprehension
-- **Purpose**: Text understanding, vocabulary in context
-- **Format**: Text passage followed by questions
-- **Best for**: Developing reading skills, discussion starters
+### Customization Options
+- **English Level**: Beginner to Advanced
+- **Lesson Topic**: Any subject area
+- **Learning Goals**: Specific objectives
+- **Student Context**: Personal or professional focus
+- **Exercise Mix**: Choose preferred exercise types
 
-### 4. Dialogue Practice
-- **Purpose**: Speaking and listening skills, real-world scenarios
-- **Format**: Conversation between two people with missing parts
-- **Best for**: Role-play activities, pronunciation practice
+### Generation Process
+- **Typical time**: 30-60 seconds
+- **AI-powered**: Custom content for each request
+- **Context-aware**: Grammar examples use lesson vocabulary
+- **Quality assured**: Professional educational standards
 
-### 5. Matching Exercises
-- **Purpose**: Vocabulary building, concept connections
-- **Format**: Two columns to be matched (words-definitions, questions-answers)
-- **Best for**: Visual learners, vocabulary expansion
+## Student Management
 
-### 6. Grammar Rules
-- **Purpose**: Understanding language structure
-- **Format**: Clear explanations with examples
-- **Best for**: Reference material, homework support
+### Adding Students
+- **Unlimited students** - No restrictions on registered accounts
+- **Student profiles** - Name, level, notes
+- **Quick selection** - Choose student during generation
+- **Progress tracking** - View worksheet history per student
 
-### 7. Vocabulary Sheet
-- **Purpose**: New word introduction and practice
-- **Format**: Words with definitions, examples, and usage notes
-- **Best for**: Pre-lesson preparation, study materials
+### Organization Features
+- **Student cards** - Visual overview of all students
+- **Recent worksheets** - Quick access to latest work
+- **Generate button** - Direct worksheet creation per student
 
-### 8. Teacher Notes
-- **Purpose**: Lesson guidance and expansion ideas
-- **Format**: Suggestions, tips, and additional activities
-- **Best for**: Lesson planning, inexperienced teachers
+## Editing & Customization
 
-## Student vs Teacher Views
+### Built-in Editor
+- **Full text editing** - Modify any content
+- **Exercise adjustment** - Add, remove, or change exercises
+- **Real-time preview** - See changes immediately
+- **Save changes** - Keep modifications before download
 
-### Student View
-- **Clean layout** - No answers or distractions
-- **Professional appearance** - Suitable for printing and sharing
-- **Clear instructions** - Students understand what to do
-- **Space for answers** - Room to write responses
+### Student vs Teacher Views
+- **Student view**: Clean, answer-free version
+- **Teacher view**: Includes answers, notes, tips
+- **Toggle easily** - Switch between views instantly
+- **Download both** - Get separate files for each
 
-### Teacher View
-- **Answer keys** - Correct answers highlighted in green
-- **Teaching tips** - Suggestions for presenting exercises
-- **Extension activities** - Ideas for further practice
-- **Time estimates** - How long each exercise should take
+## Export Options
 
-### Switching Views
-- Use the buttons at the top: "Student View" / "Teacher View"
-- Switch anytime to see both perspectives
-- Downloads maintain the selected view's formatting
+### HTML Format (Recommended)
+- **Best quality** - Preserves all formatting
+- **Works offline** - No internet required after download
+- **Professional appearance** - Print-ready layout
+- **Fast loading** - Optimized file size
 
-## Editing Worksheets
+### PDF Format
+- **Convenience option** - Universal format
+- **Print-friendly** - Ready for physical distribution
+- **Slightly lower quality** - Due to conversion process
 
-### Making Changes
-1. Click "Edit Worksheet" button
-2. Click on any text to modify it
-3. Make your changes
-4. Click "Save Changes"
+### Download Process
+- **Timestamped filenames** - Easy organization
+- **View-specific names** - Student vs Teacher clearly marked
+- **Multiple downloads** - Re-download as needed
 
-### What You Can Edit
-- **All text content** - Titles, instructions, questions, answers
-- **Exercise content** - Questions, options, passages
-- **Vocabulary items** - Words, definitions, examples
+## Subscription Management
 
-### What You Cannot Edit
-- Overall structure and layout
-- Exercise types (but you can modify their content)
-- Number of exercises (but you can empty unwanted ones)
+### Stripe Customer Portal
+- **Access via Profile** - "Manage Subscription" button
+- **Cancel anytime** - No long-term commitment
+- **Change payment method** - Update credit card
+- **View invoices** - Download payment history
+- **Upgrade/downgrade** - Modify plan as needed
 
-### Best Practices for Editing
-- Make small, targeted changes
-- Keep the original intent of exercises
-- Ensure edited content matches the difficulty level
-- Test changes mentally before saving
-
-## Download Process
-
-### Free Features
-- **Unlimited generation** - Create as many worksheets as you want
-- **Full preview** - See complete worksheets online
-- **Edit capability** - Modify content before downloading
-- **Both views** - Switch between student and teacher versions
-
-### Paid Features ($1 USD)
-- **Student HTML download** - Clean, print-ready file
-- **Teacher HTML download** - Complete with answers and notes
-- **Offline capability** - Works without internet after download
-- **Professional formatting** - Perfect for printing or sharing
-
-### Download Steps
-1. Click either "Download STUDENT" or "Download TEACHER"
-2. Payment popup appears
-3. Pay $1 via Stripe (secure, instant)
-4. Both downloads unlock immediately
-5. Files download automatically
-
-### After Download
-- **File format**: HTML (opens in any browser)
-- **File naming**: Date and version included
-- **Usage**: Double-click to open, Ctrl+P to print
-- **Sharing**: Send file directly to students or colleagues
-
-## Payment Information
-
-### Pricing Model
-- **One-time payment**: $1 USD per worksheet session
-- **No subscription**: Pay only when you download
-- **Both versions included**: Student and Teacher files
-- **24-hour access**: Re-download during the same session
-
-### Payment Security
-- **Stripe processing** - Bank-level security
-- **No stored cards** - Each payment is independent
-- **Instant confirmation** - Immediate access after payment
-- **Receipt provided** - Email confirmation sent
-
-### Session Management
-- Payment unlocks downloads for 24 hours
-- Close browser = lose access (pay again)
-- Generate new worksheet = new payment required
-- Edit existing worksheet = same payment session
-
-## Tips for Best Results
-
-### Writing Effective Prompts
-
-**Be Specific**
-- ❌ "Business English"
-- ✅ "Writing professional emails to clients"
-
-**Include Context**
-- ❌ "Grammar practice"
-- ✅ "Present perfect vs simple past for travel experiences"
-
-**Consider Your Student**
-- ❌ "General conversation"
-- ✅ "Small talk for introverted accountant at work events"
-
-### Optimizing Generation
-
-**For Vocabulary Focus**
-- Mention specific fields or topics
-- Include difficulty level preferences
-- Request real-world examples
-
-**For Grammar Focus**
-- Name specific grammar points
-- Mention common student errors
-- Ask for contextual practice
-
-**For Skills Focus**
-- Specify speaking, writing, reading, or listening
-- Include real-world scenarios
-- Mention student's comfort level
-
-### Using Results Effectively
-
-**Before the Lesson**
-- Download both versions
-- Review teacher notes
-- Prepare any additional materials mentioned
-
-**During the Lesson**
-- Use student version for activities
-- Refer to teacher version for answers
-- Follow suggested timing in teacher notes
-
-**After the Lesson**
-- Give student version as homework
-- Use vocabulary sheet for review
-- Plan follow-up based on teacher suggestions
+### Billing Cycle
+- **Monthly billing** - Automatic renewal
+- **Prorated changes** - Fair pricing on plan changes
+- **Grace period** - Access continues until period end
+- **Renewal notifications** - Email confirmations
 
 ## Troubleshooting
 
-### Generation Issues
+### Common Issues
 
-**Worksheet shows mock data**
-- *Cause*: AI service temporarily unavailable
-- *Solution*: Try again in a few minutes, check internet connection
+#### Cannot Download (Anonymous Users)
+- **Cause**: Not logged in, no payment session
+- **Solution**: Pay $1 for download access or create account
 
-**Generation takes too long**
-- *Cause*: Complex topic or high server load
-- *Solution*: Wait up to 2 minutes, avoid very complex prompts
+#### Cannot Download (Registered Users)
+- **Cause**: Technical issue with session
+- **Solution**: Refresh page, check login status
 
-**Content not relevant**
-- *Cause*: Vague or conflicting prompt information
-- *Solution*: Be more specific, edit the generated content
+#### Generation Failed
+- **Cause**: High server load or invalid parameters
+- **Solution**: Try again in a few minutes, check form inputs
 
-### Payment Issues
+#### Email Not Confirmed
+- **Cause**: Haven't clicked email verification link
+- **Solution**: Check spam folder, request new verification email
 
-**Payment button doesn't work**
-- *Cause*: Browser blocking popups or JavaScript disabled
-- *Solution*: Enable popups, refresh page, try different browser
+#### Payment Issues
+- **Cause**: Credit card declined or Stripe error
+- **Solution**: Try different payment method, contact support
 
-**Payment succeeded but no download**
-- *Cause*: Browser session issues
-- *Solution*: Refresh page, payment should be remembered
+### Contact Support
+- **Email confirmations** - Always provided for payments
+- **Payment verification** - Instant unlock after successful payment
+- **Technical issues** - Check console logs for errors
 
-**Charged but files not downloading**
-- *Cause*: Browser download settings
-- *Solution*: Check download folder, try right-click "Save as"
+## Best Practices
 
-### File Issues
+### For Maximum Efficiency
+1. **Create student profiles** - Save time on repeat generations
+2. **Use specific topics** - More targeted, useful content
+3. **Edit before downloading** - Customize to exact needs
+4. **Download both versions** - Always get Student and Teacher files
+5. **Organize downloads** - Use provided timestamped filenames
 
-**HTML file won't open**
-- *Cause*: File association issues
-- *Solution*: Right-click file, "Open with" → Browser
+### For Cost Effectiveness
+- **Anonymous users**: Generate multiple worksheets, pay once for downloads
+- **Registered users**: Choose plan based on actual monthly usage
+- **Utilize rollover**: Unused monthly worksheets never expire
 
-**Printing looks wrong**
-- *Cause*: Browser print settings
-- *Solution*: Use print preview, adjust margins, try "Print to PDF"
-
-**File too large to email**
-- *Cause*: Images or formatting
-- *Solution*: Use file sharing service, compress file, or copy text content
-
-### Getting Help
-
-If problems persist:
-1. Try a different browser
-2. Clear browser cache
-3. Check internet connection
-4. Try from a different device
-
-For technical issues or billing questions, the payment receipt includes contact information for support.
-
----
-
-*This platform is designed to save you time while maintaining the quality your students deserve. Every worksheet is unique, professional, and ready to use immediately.*
+*Last updated: Current with application features as of latest version*

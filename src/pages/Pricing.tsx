@@ -53,8 +53,16 @@ const Pricing = () => {
 
   const faqItems = [
     {
-      question: "What's the difference between tokens and monthly worksheets?",
-      answer: "Monthly worksheets are included in your subscription plan and reset each month. Unused monthly worksheets now carry forward as rollover tokens! Purchased tokens never expire. The system uses purchased tokens first, then rollover tokens, then monthly worksheets."
+      question: "How does payment work for anonymous users vs. logged-in users?",
+      answer: "Anonymous users can generate worksheets for free but need to pay a one-time $1 fee to download them. This unlocks downloads for about 24 hours. Logged-in users with active subscriptions automatically have downloads unlocked as part of their plan."
+    },
+    {
+      question: "What do I get for the $1 download payment?",
+      answer: "The $1 payment unlocks both the Student and Teacher versions of your worksheet as HTML files. You can download them multiple times during your session (approximately 24 hours). After the session expires, you'll need to pay again for new downloads."
+    },
+    {
+      question: "How are tokens and monthly worksheets consumed?",
+      answer: "The system prioritizes using your monthly worksheet allowance first, then uses available tokens (purchased or rollover). This ensures you get maximum value from your subscription before consuming additional tokens."
     },
     {
       question: "What happens to unused monthly worksheets?",
@@ -62,7 +70,7 @@ const Pricing = () => {
     },
     {
       question: "Can I use the app without a subscription?",
-      answer: "Yes! You get 2 free tokens when you sign up. You can also purchase additional tokens anytime without a subscription. Demo users (not logged in) have limited access to try the worksheet generator."
+      answer: "Yes! You get 2 free tokens when you sign up. You can also purchase additional tokens anytime without a subscription. Anonymous users (not logged in) can generate worksheets for free but need to pay $1 to download them."
     },
     {
       question: "Do I need to confirm my email after signing up?",
@@ -78,7 +86,7 @@ const Pricing = () => {
     },
     {
       question: "Can I export worksheets to PDF?",
-      answer: "Yes, all users can export worksheets to HTML and PDF formats. This feature is available for all plans including the free tokens."
+      answer: "Yes, all users can export worksheets to HTML and PDF formats. HTML format is recommended as it provides the best quality and works offline. PDF export is also available for convenience."
     },
     {
       question: "Is there a limit on students I can manage?",
@@ -90,7 +98,19 @@ const Pricing = () => {
     },
     {
       question: "What happens if I run out of tokens?",
-      answer: "When you run out of tokens, you can either upgrade your subscription plan for more monthly worksheets or purchase additional tokens. Your account and saved data remain accessible regardless of your token balance."
+      answer: "When you run out of tokens and monthly worksheets, you can either upgrade your subscription plan for more monthly worksheets or purchase additional tokens. Your account and saved data remain accessible regardless of your token balance."
+    },
+    {
+      question: "Do you offer promotional codes or discounts?",
+      answer: "Promotional codes and special offers may be available from time to time. Check our website announcements or contact support for current promotions."
+    },
+    {
+      question: "Can I edit worksheets after they're generated?",
+      answer: "Yes! All generated worksheets are fully editable. You can modify any text, add or remove exercises, and customize the content to perfectly match your teaching needs before downloading."
+    },
+    {
+      question: "How can I verify my payment went through?",
+      answer: "After successful payment through Stripe, you'll be redirected to a confirmation page, and download buttons will immediately unlock. For subscription payments, you'll also receive an email confirmation from Stripe."
     }
   ];
 
