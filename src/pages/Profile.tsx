@@ -10,6 +10,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
 import { usePlanLogic } from '@/hooks/usePlanLogic';
 import { EditableProfileField } from '@/components/profile/EditableProfileField';
+import { ConfirmDowngradeDialog } from '@/components/ConfirmDowngradeDialog';
 import { toast } from '@/hooks/use-toast';
 import { User, Coins, CreditCard, Calendar, Zap, GraduationCap, Users, Mail } from 'lucide-react';
 
@@ -27,6 +28,13 @@ const Profile = () => {
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const syncExecutedRef = useRef(false);
   const upgradeProcessedRef = useRef(false);
+
+  // NEW: Downgrade dialog state
+  const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
+  const [pendingDowngrade, setPendingDowngrade] = useState<{
+    planType: 'side-gig' | 'full-time';
+    targetPlan: any;
+  } | null>(null);
 
   // FIXED: Update selectedFullTimePlan only when currentPlan changes and user hasn't manually selected
   useEffect(() => {
@@ -263,6 +271,57 @@ const Profile = () => {
     navigate('/');
   };
 
+  // NEW: Handle downgrade confirmation
+  const handleDowngradeConfirm = async () => {
+    if (!pendingDowngrade) return;
+    
+    setIsLoading(pendingDowngrade.planType);
+    try {
+      const { planType, targetPlan } = pendingDowngrade;
+      
+      console.log('Attempting downgrade:', { planType, targetPlan });
+
+      const { data, error } = await supabase.functions.invoke('downgrade-subscription', {
+        body: {
+          planType: planType,
+          monthlyLimit: targetPlan.tokens || targetPlan.monthlyLimit,
+          price: targetPlan.price,
+          planName: targetPlan.name
+        }
+      });
+
+      if (error) {
+        console.error('Downgrade error details:', error);
+        throw error;
+      }
+
+      if (data?.success) {
+        console.log('Downgrade successful:', data);
+        toast({
+          title: "Plan Changed Successfully!",
+          description: `Your subscription has been changed to ${data.newPlan}. The change is effective immediately.`,
+        });
+
+        // Refresh profile data
+        await supabase.functions.invoke('check-subscription-status');
+        await refetch();
+      } else {
+        throw new Error(data?.error || 'Downgrade failed');
+      }
+    } catch (error: any) {
+      console.error('Downgrade error:', error);
+      toast({
+        title: "Plan Change Error",
+        description: error.message || "Failed to change plan. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(null);
+      setShowDowngradeDialog(false);
+      setPendingDowngrade(null);
+    }
+  };
+
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
     // Check user authentication first
     const canSubscribe = await checkUserForSubscription();
@@ -489,14 +548,15 @@ const Profile = () => {
   // NEW: Determine if it's a downgrade action
   const isFullTimeDowngrade = fullTimePlan && currentPlan.type === 'full-time' && fullTimePlan.tokens < currentPlan.tokens;
 
+  // UPDATED: Button text now shows "Lower Plan" instead of "Downgrade to..."
   const getSideGigButtonText = () => {
-    if (isSideGigLowerPlan) return 'Downgrade to Side-Gig';
+    if (isSideGigLowerPlan) return 'Lower Plan';
     if (!canUpgradeToSideGig) return 'Current Plan';
     return currentPlan.type === 'free' ? 'Upgrade to Side-Gig' : 'Upgrade to Side-Gig';
   };
 
   const getFullTimeButtonText = () => {
-    if (isFullTimeDowngrade) return 'Downgrade to Full-Time';
+    if (isFullTimeDowngrade) return 'Lower Plan';
     if (!canUpgradeToFullTime) return 'Current Plan';
     return currentPlan.type === 'free' ? 'Upgrade to Full-Time' : 'Upgrade to Full-Time';
   };
@@ -511,10 +571,15 @@ const Profile = () => {
     return 'bg-primary hover:bg-primary/90';
   };
 
+  // UPDATED: Handle downgrade actions with confirmation dialog
   const handleSideGigAction = () => {
     if (isSideGigLowerPlan) {
-      // Downgrade action - open customer portal
-      handleManageSubscription();
+      // Show downgrade confirmation dialog
+      setPendingDowngrade({
+        planType: 'side-gig',
+        targetPlan: { ...sideGigPlan, tokens: 15, monthlyLimit: 15 }
+      });
+      setShowDowngradeDialog(true);
     } else {
       // Upgrade action - use existing subscription flow
       handleSubscribe('side-gig');
@@ -523,8 +588,12 @@ const Profile = () => {
 
   const handleFullTimeAction = () => {
     if (isFullTimeDowngrade) {
-      // Downgrade action - open customer portal
-      handleManageSubscription();
+      // Show downgrade confirmation dialog
+      setPendingDowngrade({
+        planType: 'full-time',
+        targetPlan: { ...fullTimePlan, tokens: parseInt(selectedFullTimePlan), monthlyLimit: parseInt(selectedFullTimePlan) }
+      });
+      setShowDowngradeDialog(true);
     } else {
       // Upgrade action - use existing subscription flow
       handleSubscribe('full-time');
@@ -801,6 +870,16 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* NEW: Downgrade confirmation dialog */}
+      <ConfirmDowngradeDialog
+        open={showDowngradeDialog}
+        onOpenChange={setShowDowngradeDialog}
+        currentPlan={currentPlan.name}
+        targetPlan={pendingDowngrade?.targetPlan?.name || ''}
+        onConfirm={handleDowngradeConfirm}
+        isLoading={isLoading !== null}
+      />
     </div>
   );
 };

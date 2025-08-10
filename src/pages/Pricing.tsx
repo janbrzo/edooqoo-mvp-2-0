@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import { usePlanLogic } from '@/hooks/usePlanLogic';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PricingCalculator } from '@/components/PricingCalculator';
+import { ConfirmDowngradeDialog } from '@/components/ConfirmDowngradeDialog';
 
 const Pricing = () => {
   const { user, isRegisteredUser } = useAuthFlow();
@@ -29,6 +29,13 @@ const Pricing = () => {
   const [openFaqItems, setOpenFaqItems] = useState<number[]>([]);
   const [showEmailConfirmationModal, setShowEmailConfirmationModal] = useState(false);
 
+  // NEW: Downgrade dialog state
+  const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
+  const [pendingDowngrade, setPendingDowngrade] = useState<{
+    planType: 'side-gig' | 'full-time';
+    targetPlan: any;
+  } | null>(null);
+
   const fullTimePlans = [
     { tokens: '30', price: 19 },
     { tokens: '60', price: 39 },
@@ -38,7 +45,6 @@ const Pricing = () => {
 
   const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
 
-  // Update recommended plan when profile changes
   useEffect(() => {
     if (!hasManuallyChanged) {
       setSelectedFullTimePlan(getRecommendedFullTimePlan());
@@ -105,6 +111,57 @@ const Pricing = () => {
     setHasManuallyChanged(true);
   };
 
+  // NEW: Handle downgrade confirmation
+  const handleDowngradeConfirm = async () => {
+    if (!pendingDowngrade) return;
+    
+    setIsLoading(pendingDowngrade.planType);
+    try {
+      const { planType, targetPlan } = pendingDowngrade;
+      
+      console.log('Attempting downgrade:', { planType, targetPlan });
+
+      const { data, error } = await supabase.functions.invoke('downgrade-subscription', {
+        body: {
+          planType: planType,
+          monthlyLimit: targetPlan.tokens || targetPlan.monthlyLimit,
+          price: targetPlan.price,
+          planName: targetPlan.name
+        }
+      });
+
+      if (error) {
+        console.error('Downgrade error details:', error);
+        throw error;
+      }
+
+      if (data?.success) {
+        console.log('Downgrade successful:', data);
+        toast({
+          title: "Plan Changed Successfully!",
+          description: `Your subscription has been changed to ${data.newPlan}. The change is effective immediately.`,
+        });
+
+        // Refresh profile data
+        await supabase.functions.invoke('check-subscription-status');
+        // Note: no refetch here since this is pricing page, profile will refresh when user navigates
+      } else {
+        throw new Error(data?.error || 'Downgrade failed');
+      }
+    } catch (error: any) {
+      console.error('Downgrade error:', error);
+      toast({
+        title: "Plan Change Error",
+        description: error.message || "Failed to change plan. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(null);
+      setShowDowngradeDialog(false);
+      setPendingDowngrade(null);
+    }
+  };
+
   const handleSubscribe = async (planType: 'side-gig' | 'full-time') => {
     if (!isRegisteredUser) {
       toast({
@@ -122,7 +179,6 @@ const Pricing = () => {
         ? { name: 'Side-Gig Plan', price: 9, tokens: 15 }
         : { name: `Full-Time Plan (${selectedFullTimePlan} worksheets)`, price: selectedPlan?.price || 19, tokens: parseInt(selectedFullTimePlan) };
 
-      // Find the target plan from plans array
       const targetPlan = planType === 'side-gig' 
         ? plans.find(p => p.id === 'side-gig')
         : plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
@@ -131,7 +187,6 @@ const Pricing = () => {
         throw new Error('Target plan not found');
       }
 
-      // Calculate upgrade pricing
       const upgradePrice = getUpgradePrice(targetPlan);
       const upgradeTokens = getUpgradeTokens(targetPlan);
 
@@ -139,9 +194,9 @@ const Pricing = () => {
         body: {
           planType: planType,
           monthlyLimit: planData.tokens,
-          price: upgradePrice, // Use upgrade price instead of full price
+          price: upgradePrice,
           planName: planData.name,
-          upgradeTokens: upgradeTokens, // Pass upgrade tokens
+          upgradeTokens: upgradeTokens,
           isUpgrade: currentPlan.type !== 'free'
         }
       });
@@ -207,35 +262,31 @@ const Pricing = () => {
     );
   };
 
-  // Get side-gig plan from plans array
   const sideGigPlan = plans.find(p => p.id === 'side-gig');
   const canUpgradeToSideGig = sideGigPlan ? canUpgradeTo(sideGigPlan) : false;
   const sideGigUpgradePrice = sideGigPlan ? getUpgradePrice(sideGigPlan) : 0;
   const isSideGigLowerPlan = currentPlan.type === 'full-time' && !!sideGigPlan;
 
-  // Get full-time plan from plans array
   const fullTimePlan = plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
   const canUpgradeToFullTime = fullTimePlan ? canUpgradeTo(fullTimePlan) : false;
   const fullTimeUpgradePrice = fullTimePlan ? getUpgradePrice(fullTimePlan) : 0;
 
-  // NEW: Determine if it's a downgrade action
   const isFullTimeDowngrade = fullTimePlan && currentPlan.type === 'full-time' && fullTimePlan.tokens < currentPlan.tokens;
 
   const getButtonText = (planType: 'free' | 'side-gig' | 'full-time') => {
     if (planType === 'free') {
-      // For unauthenticated users, always show "Get Started Free"
       if (!isRegisteredUser) return 'Get Started Free';
       return currentPlan.type === 'free' ? 'Current Plan' : 'Get Started Free';
     }
     
     if (planType === 'side-gig') {
-      if (isSideGigLowerPlan) return 'Downgrade to Side-Gig';
+      if (isSideGigLowerPlan) return 'Lower Plan';
       if (!canUpgradeToSideGig) return 'Current Plan';
       return currentPlan.type === 'free' ? 'Choose Side-Gig' : 'Upgrade to Side-Gig';
     }
     
     if (planType === 'full-time') {
-      if (isFullTimeDowngrade) return 'Downgrade to Full-Time';
+      if (isFullTimeDowngrade) return 'Lower Plan';
       if (!canUpgradeToFullTime) return 'Current Plan';
       return currentPlan.type === 'free' ? 'Choose Full-Time' : 'Upgrade to Full-Time';
     }
@@ -245,18 +296,15 @@ const Pricing = () => {
 
   const isButtonDisabled = (planType: 'free' | 'side-gig' | 'full-time') => {
     if (planType === 'free') {
-      // For unauthenticated users, never disable the free plan button
       if (!isRegisteredUser) return false;
-      return currentPlan.type === 'free';
+      return currentPlan.type !== 'free';
     }
     
     if (planType === 'side-gig') {
-      // Allow both upgrade and downgrade for side-gig
       return !isSideGigLowerPlan && !canUpgradeToSideGig;
     }
     
     if (planType === 'full-time') {
-      // Allow both upgrade and downgrade for full-time
       return !isFullTimeDowngrade && !canUpgradeToFullTime;
     }
     
@@ -275,20 +323,24 @@ const Pricing = () => {
 
   const handleSideGigAction = () => {
     if (isSideGigLowerPlan) {
-      // Downgrade action - open customer portal
-      handleManageSubscription();
+      setPendingDowngrade({
+        planType: 'side-gig',
+        targetPlan: { ...sideGigPlan, tokens: 15, monthlyLimit: 15 }
+      });
+      setShowDowngradeDialog(true);
     } else {
-      // Upgrade action - use existing subscription flow
       handleSubscribe('side-gig');
     }
   };
 
   const handleFullTimeAction = () => {
     if (isFullTimeDowngrade) {
-      // Downgrade action - open customer portal
-      handleManageSubscription();
+      setPendingDowngrade({
+        planType: 'full-time',
+        targetPlan: { ...fullTimePlan, tokens: parseInt(selectedFullTimePlan), monthlyLimit: parseInt(selectedFullTimePlan) }
+      });
+      setShowDowngradeDialog(true);
     } else {
-      // Upgrade action - use existing subscription flow
       handleSubscribe('full-time');
     }
   };
@@ -303,7 +355,6 @@ const Pricing = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <div className="max-w-6xl mx-auto">
-        {/* Header Navigation */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex gap-3">
             {isRegisteredUser && (
@@ -344,13 +395,10 @@ const Pricing = () => {
           )}
         </div>
 
-        {/* Pricing Calculator */}
         <PricingCalculator onRecommendation={handleRecommendation} />
 
-        {/* Pricing Cards */}
         <div className="grid lg:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
           
-          {/* Free Demo Plan */}
           <Card className="relative">
             <CardHeader className="text-center pb-6">
               <div className="flex items-center justify-center gap-2 mb-2">
@@ -402,7 +450,6 @@ const Pricing = () => {
             </CardContent>
           </Card>
 
-          {/* Side-Gig Plan */}
           <Card className={`relative ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'side-gig' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -471,7 +518,6 @@ const Pricing = () => {
             </CardContent>
           </Card>
 
-          {/* Full-Time Plan */}
           <Card className={`relative ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : ''}`}>
             {recommendedPlan === 'full-time' && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -561,7 +607,6 @@ const Pricing = () => {
           </Card>
         </div>
 
-        {/* FAQ Section */}
         <Card className="max-w-4xl mx-auto">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Frequently Asked Questions</CardTitle>
@@ -593,7 +638,6 @@ const Pricing = () => {
           </CardContent>
         </Card>
 
-        {/* Email Confirmation Modal */}
         <Dialog open={showEmailConfirmationModal} onOpenChange={setShowEmailConfirmationModal}>
           <DialogContent className="max-w-md">
             <DialogHeader className="text-center">
@@ -618,6 +662,15 @@ const Pricing = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        <ConfirmDowngradeDialog
+          open={showDowngradeDialog}
+          onOpenChange={setShowDowngradeDialog}
+          currentPlan={currentPlan.name}
+          targetPlan={pendingDowngrade?.targetPlan?.name || ''}
+          onConfirm={handleDowngradeConfirm}
+          isLoading={isLoading !== null}
+        />
       </div>
     </div>
   );
