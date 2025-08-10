@@ -69,16 +69,24 @@ export const useWorksheetGeneration = (
       const fullPrompt = formatPromptForAI(data);
       const formDataForStorage = createFormDataForStorage(data);
       
+      // CRITICAL FIX: Only pass userId if it exists, don't use 'anonymous'
+      if (!userId) {
+        console.error('❌ CRITICAL: No authenticated user - cannot generate worksheet');
+        throw new Error("You must be logged in to generate worksheets");
+      }
+      
       // Pass the full prompt to the API
       const worksheetResult = await generateWorksheet({ 
         ...data, 
         fullPrompt,
         formDataForStorage,
         studentId
-      }, userId || 'anonymous');
+      }, userId);
 
       console.log("✅ Generated worksheet result received:", {
         hasData: !!worksheetResult,
+        hasId: !!worksheetResult?.id,
+        realId: worksheetResult?.id,
         hasBackendId: !!worksheetResult?.backendId,
         backendId: worksheetResult?.backendId,
         exerciseCount: worksheetResult?.exercises?.length || 0,
@@ -86,16 +94,23 @@ export const useWorksheetGeneration = (
         hasVocabulary: !!worksheetResult?.vocabulary_sheet
       });
 
-      // CRITICAL FIX: Ensure we ALWAYS have a valid database ID
+      // CRITICAL FIX: Use the correct ID from backend response
       let finalWorksheetId: string;
       
-      if (worksheetResult?.backendId) {
+      // First priority: use 'id' field from worksheetResult
+      if (worksheetResult?.id) {
+        finalWorksheetId = worksheetResult.id;
+        console.log('✅ Using primary backend ID:', finalWorksheetId);
+      } 
+      // Fallback: use 'backendId' field if 'id' doesn't exist
+      else if (worksheetResult?.backendId) {
         finalWorksheetId = worksheetResult.backendId;
-        console.log('✅ Using backend database ID:', finalWorksheetId);
-      } else {
-        // This should not happen - log warning and use temporary ID
-        console.error('❌ CRITICAL: No backend ID received from API! Using temporary ID:', temporaryWorksheetId);
-        finalWorksheetId = temporaryWorksheetId;
+        console.log('✅ Using fallback backend ID:', finalWorksheetId);
+      } 
+      // Error case: no valid ID from backend
+      else {
+        console.error('❌ CRITICAL: No valid ID received from backend!');
+        throw new Error("Failed to save worksheet to database - no ID returned");
       }
 
       // IMPORTANT: Set the final worksheet ID immediately
