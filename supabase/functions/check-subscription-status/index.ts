@@ -75,7 +75,7 @@ serve(async (req) => {
     let subscription = null;
     let shouldUpdateStoredId = false;
 
-    // FIXED: Try to fetch the stored subscription by ID first, but prioritize active ones
+    // Try to fetch the stored subscription by ID first, but prioritize active ones
     if (storedSubscription?.stripe_subscription_id) {
       try {
         const storedSub = await stripe.subscriptions.retrieve(storedSubscription.stripe_subscription_id);
@@ -108,10 +108,21 @@ serve(async (req) => {
       if (subscriptions.data.length === 0) {
         console.log('[CHECK-SUBSCRIPTION] No active subscriptions');
         
+        // FIXED: Check if user ever had a subscription (exists in subscriptions table)
+        const { data: hasSubscriptionHistory } = await supabaseService
+          .from('subscriptions')
+          .select('id')
+          .eq('teacher_id', user.id)
+          .limit(1);
+        
+        // Determine subscription type based on subscription history
+        const subscriptionType = hasSubscriptionHistory && hasSubscriptionHistory.length > 0 ? 'Inactive' : 'Free Demo';
+        console.log('[CHECK-SUBSCRIPTION] Setting subscription type to:', subscriptionType, 'based on history:', hasSubscriptionHistory?.length || 0);
+
         await supabaseService
           .from('profiles')
           .update({
-            subscription_type: 'Free Demo',
+            subscription_type: subscriptionType,
             subscription_status: 'cancelled',
             is_tokens_frozen: true,
             updated_at: new Date().toISOString()
@@ -121,7 +132,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             subscribed: false, 
-            subscription_type: 'Free Demo',
+            subscription_type: subscriptionType,
             message: 'No active subscription found' 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -172,7 +183,7 @@ serve(async (req) => {
       }
     }
 
-    // FIXED: Determine normalized subscription status with consistent "cancelled" spelling
+    // Determine normalized subscription status with consistent "cancelled" spelling
     let newSubscriptionStatus: string;
     if (subscription.status === 'active') {
       newSubscriptionStatus = subscription.cancel_at_period_end ? 'active_cancelled' : 'active';
@@ -189,7 +200,7 @@ serve(async (req) => {
       newSubscriptionStatus 
     });
 
-    // FIXED: Always update subscription record, and update stored ID if needed
+    // Always update subscription record, and update stored ID if needed
     const subscriptionUpsertData = {
       teacher_id: user.id,
       email: user.email,

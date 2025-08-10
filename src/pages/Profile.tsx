@@ -20,17 +20,27 @@ const Profile = () => {
   const { currentPlan, plans, canUpgradeTo, getUpgradePrice, getUpgradeTokens, getRecommendedFullTimePlan } = usePlanLogic(profile?.subscription_type);
   const navigate = useNavigate();
   
-  // FIXED: Initialize with recommended plan (next higher plan)
+  // FIXED: Use ref to track if user manually selected a plan
+  const userSelectedFullTimePlan = useRef(false);
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState(() => getRecommendedFullTimePlan());
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const syncExecutedRef = useRef(false);
   const upgradeProcessedRef = useRef(false);
 
-  // Update selectedFullTimePlan when currentPlan changes
+  // FIXED: Update selectedFullTimePlan only when currentPlan changes and user hasn't manually selected
   useEffect(() => {
-    setSelectedFullTimePlan(getRecommendedFullTimePlan());
-  }, [getRecommendedFullTimePlan]);
+    if (!userSelectedFullTimePlan.current) {
+      const recommendedPlan = getRecommendedFullTimePlan();
+      setSelectedFullTimePlan(recommendedPlan);
+    }
+  }, [getRecommendedFullTimePlan, profile?.subscription_type]);
+
+  // FIXED: Handle manual dropdown change
+  const handleFullTimePlanChange = (value: string) => {
+    userSelectedFullTimePlan.current = true;
+    setSelectedFullTimePlan(value);
+  };
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
@@ -713,7 +723,7 @@ const Profile = () => {
                     <p className="text-xs text-muted-foreground mb-3">Choose worksheets/month</p>
                     
                     <div className="mb-3">
-                      <Select value={selectedFullTimePlan} onValueChange={setSelectedFullTimePlan}>
+                      <Select value={selectedFullTimePlan} onValueChange={handleFullTimePlanChange}>
                         <SelectTrigger className="w-full">
                           <SelectValue />
                         </SelectTrigger>
