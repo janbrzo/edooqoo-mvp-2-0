@@ -23,14 +23,22 @@ export const useTokenSystem = (userId?: string | null) => {
     if (!userId) return;
     
     try {
-      // Get profile data with simplified token system
+      // FIXED: Use maybeSingle() instead of single() to prevent errors when no profile found
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select('available_tokens, is_tokens_frozen, monthly_worksheet_limit, subscription_type, monthly_worksheets_used, total_worksheets_created, total_tokens_consumed, total_tokens_received, subscription_status, subscription_expires_at')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
+      
+      // Handle case when no profile is found
+      if (!profileData) {
+        console.warn('No profile found for user:', userId);
+        setTokenLeft(0);
+        setProfile(null);
+        return;
+      }
       
       // FIXED: Corrected Token Left calculation
       // Token Left = actual available_tokens (what user has)
