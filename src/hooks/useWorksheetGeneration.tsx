@@ -42,10 +42,12 @@ export const useWorksheetGeneration = (
       return;
     }
     
+    // CRITICAL FIX: Clear storage but DON'T set any worksheet ID yet
     worksheetState.clearWorksheetStorage();
 
+    // CRITICAL FIX: Generate temporary ID but DON'T set it in state yet
     const temporaryWorksheetId = uuidv4();
-    console.log('🆔 Generated temporary worksheet ID:', temporaryWorksheetId);
+    console.log('🆔 Generated temporary worksheet ID (for fallback only):', temporaryWorksheetId);
 
     worksheetState.setInputParams(data);
     setIsGenerating(true);
@@ -113,10 +115,6 @@ export const useWorksheetGeneration = (
         throw new Error("Failed to save worksheet to database - no ID returned");
       }
 
-      // IMPORTANT: Set the final worksheet ID immediately
-      worksheetState.setWorksheetId(finalWorksheetId);
-      console.log('🔄 Worksheet ID set in state:', finalWorksheetId);
-
       // Consume token for authenticated users AFTER successful generation
       if (!isDemo && userId) {
         const tokenConsumed = await consumeToken(finalWorksheetId);
@@ -167,11 +165,18 @@ export const useWorksheetGeneration = (
           deepFixedWorksheet.vocabulary_sheet = createSampleVocabulary(15);
         }
         
-        console.log('💾 Setting both worksheets in state with final ID:', finalWorksheetId);
+        console.log('💾 CRITICAL FIX: Setting worksheet ID FIRST, then worksheet data');
         
-        // CRITICAL FIX: Set both states atomically in the same synchronous operation
-        worksheetState.setGeneratedWorksheet(deepFixedWorksheet);
-        worksheetState.setEditableWorksheet(deepFixedWorksheet);
+        // CRITICAL FIX: Set the worksheet ID FIRST before setting worksheet data
+        // This ensures that when WorksheetDisplay tries to save, it has the correct ID
+        worksheetState.setWorksheetId(finalWorksheetId);
+        
+        // CRITICAL FIX: Add small delay to ensure state is updated
+        setTimeout(() => {
+          console.log('💾 Now setting both worksheets in state with final ID:', finalWorksheetId);
+          worksheetState.setGeneratedWorksheet(deepFixedWorksheet);
+          worksheetState.setEditableWorksheet(deepFixedWorksheet);
+        }, 100);
         
         // Track successful worksheet generation
         trackEvent({
@@ -224,12 +229,12 @@ export const useWorksheetGeneration = (
       fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises, data?.lessonTime || '60min', hasGrammar);
       fallbackWorksheet.id = temporaryWorksheetId;
       
-      // CRITICAL FIX: Set both states atomically for fallback case too
-      worksheetState.setGeneratedWorksheet(fallbackWorksheet);
-      worksheetState.setEditableWorksheet(fallbackWorksheet);
-      
-      // Use temporary ID for fallback case
+      // CRITICAL FIX: Set worksheet ID first for fallback case too
       worksheetState.setWorksheetId(temporaryWorksheetId);
+      setTimeout(() => {
+        worksheetState.setGeneratedWorksheet(fallbackWorksheet);
+        worksheetState.setEditableWorksheet(fallbackWorksheet);
+      }, 100);
       
       toast({
         title: "Using sample worksheet",
