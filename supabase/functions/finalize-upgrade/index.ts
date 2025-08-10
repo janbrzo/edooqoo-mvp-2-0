@@ -13,6 +13,19 @@ const logStep = (step: string, details?: any) => {
   console.log(`[FINALIZE-UPGRADE] ${step}${detailsStr}`);
 };
 
+// Helper: normalize target plan name (to match what's displayed elsewhere)
+const normalizePlanName = (planType?: string, monthlyLimit?: number, fallbackName?: string) => {
+  if (planType === 'side-gig') return 'Side-Gig';
+  if (planType === 'full-time') {
+    if (monthlyLimit === 30) return 'Full-Time 30';
+    if (monthlyLimit === 60) return 'Full-Time 60';
+    if (monthlyLimit === 90) return 'Full-Time 90';
+    if (monthlyLimit === 120) return 'Full-Time 120';
+  }
+  // Fallback to provided name (e.g., "Full-Time Plan (30 worksheets)") if normalization unknown
+  return fallbackName || 'Unknown';
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -202,10 +215,10 @@ serve(async (req) => {
       currentPeriodEnd: updatedSubscription.current_period_end
     });
 
-    // Get current profile data
+    // Get current profile data BEFORE update (needed for old_plan_type)
     const { data: profile, error: profileError } = await supabaseService
       .from('profiles')
-      .select('id, available_tokens, total_tokens_received')
+      .select('id, email, available_tokens, total_tokens_received, subscription_type')
       .eq('id', user.id)
       .single();
 
@@ -213,6 +226,8 @@ serve(async (req) => {
       logStep('ERROR: User profile not found', { userId: user.id, error: profileError });
       throw new Error(`User profile not found`);
     }
+
+    const oldPlanType = profile.subscription_type || 'Free Demo';
 
     // Calculate new token amounts
     const newAvailableTokens = profile.available_tokens + upgradeTokens;
@@ -291,12 +306,40 @@ serve(async (req) => {
       logStep('Token transaction logged successfully');
     }
 
-    // IDEMPOTENCY RECORD: Mark this session as processed
+    // NEW: Insert a precise subscription_events upgrade record with correct old_plan_type and tokens_added
+    const normalizedNewPlan = normalizePlanName(targetPlanType, targetMonthlyLimit, targetPlanName);
+    const { error: eventError } = await supabaseService
+      .from('subscription_events')
+      .insert({
+        teacher_id: user.id,
+        email: user.email,
+        event_type: 'upgraded',
+        old_plan_type: oldPlanType,                 // crucial: previous plan, e.g. "Side-Gig"
+        new_plan_type: normalizedNewPlan,           // normalized, e.g. "Full-Time 30"
+        tokens_added: upgradeTokens,                // crucial: e.g. 15 for Side-Gig -> Full-Time 30
+        event_data: {
+          stripe_session_id: session_id,
+          stripe_subscription_id: subscriptionId,
+          target_plan_name: targetPlanName,
+          target_plan_type: targetPlanType,
+          target_monthly_limit: targetMonthlyLimit,
+          target_plan_price: targetPlanPrice
+        }
+      });
+
+    if (eventError) {
+      logStep('WARNING: Failed to log subscription event (upgrade)', eventError);
+    } else {
+      logStep('Subscription event (upgrade) logged successfully', { oldPlanType, newPlan: normalizedNewPlan, tokensAdded: upgradeTokens });
+    }
+
+    // IDEMPOTENCY RECORD: Mark this session as processed (now also storing email)
     const { error: sessionRecordError } = await supabaseService
       .from('processed_upgrade_sessions')
       .insert({
         session_id: session_id,
         teacher_id: user.id,
+        email: user.email,                    // <-- store email as requested
         tokens_added: upgradeTokens,
         upgrade_details: {
           target_plan_name: targetPlanName,

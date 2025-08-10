@@ -121,6 +121,7 @@ export type Database = {
       }
       processed_upgrade_sessions: {
         Row: {
+          email: string | null
           id: string
           processed_at: string
           session_id: string
@@ -129,6 +130,7 @@ export type Database = {
           upgrade_details: Json | null
         }
         Insert: {
+          email?: string | null
           id?: string
           processed_at?: string
           session_id: string
@@ -137,6 +139,7 @@ export type Database = {
           upgrade_details?: Json | null
         }
         Update: {
+          email?: string | null
           id?: string
           processed_at?: string
           session_id?: string
