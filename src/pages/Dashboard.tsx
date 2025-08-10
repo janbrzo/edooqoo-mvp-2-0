@@ -144,7 +144,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* UPDATED: Replace Monthly Limit card with Total Worksheets card */}
           <WorksheetStatsCard 
             totalWorksheetsCreated={totalWorksheetsCreated}
             loading={profileLoading}
@@ -196,7 +195,7 @@ const Dashboard = () => {
                       Manage your student profiles and track their progress
                     </CardDescription>
                   </div>
-                  <AddStudentButton onAddStudent={addStudent} />
+                  <AddStudentButton />
                 </div>
               </CardHeader>
               <CardContent>
@@ -215,15 +214,14 @@ const Dashboard = () => {
                     <p className="text-muted-foreground mb-4">
                       Add your first student to start creating personalized worksheets
                     </p>
-                    <AddStudentButton onAddStudent={addStudent} />
+                    <AddStudentButton />
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {students.map((student) => (
                       <StudentCard 
                         key={student.id} 
-                        student={student} 
-                        onClick={() => handleStudentClick(student)}
+                        student={student}
                       />
                     ))}
                   </div>
@@ -276,7 +274,7 @@ const Dashboard = () => {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Badge variant="secondary">{worksheet.status}</Badge>
+                          <Badge variant="secondary">Generated</Badge>
                         </div>
                       </div>
                     ))}
@@ -288,13 +286,14 @@ const Dashboard = () => {
         </Tabs>
 
         {/* Student Edit Dialog */}
-        <StudentEditDialog
-          open={showEditDialog}
-          onOpenChange={setShowEditDialog}
-          student={selectedStudent}
-          onSave={handleUpdateStudent}
-          onDelete={handleDeleteStudent}
-        />
+        {selectedStudent && (
+          <StudentEditDialog
+            isOpen={showEditDialog}
+            onClose={() => setShowEditDialog(false)}
+            student={selectedStudent}
+            onSave={handleUpdateStudent}
+          />
+        )}
       </div>
     </div>
   );
