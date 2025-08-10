@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -162,6 +163,42 @@ const Pricing = () => {
     }
   };
 
+  const handleManageSubscription = async () => {
+    if (!isRegisteredUser) {
+      toast({
+        title: "Registration Required",
+        description: "Please sign up to manage subscriptions.",
+        variant: "destructive"
+      });
+      navigate('/signup');
+      return;
+    }
+
+    try {
+      console.log('Attempting to open customer portal...');
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      
+      if (error) {
+        console.error('Portal error details:', error);
+        throw error;
+      }
+
+      if (data?.url) {
+        console.log('Opening customer portal:', data.url);
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('No portal URL received');
+      }
+    } catch (error: any) {
+      console.error('Portal error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to open subscription management. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const toggleFaqItem = (index: number) => {
     setOpenFaqItems(prev => 
       prev.includes(index) 
@@ -181,6 +218,9 @@ const Pricing = () => {
   const canUpgradeToFullTime = fullTimePlan ? canUpgradeTo(fullTimePlan) : false;
   const fullTimeUpgradePrice = fullTimePlan ? getUpgradePrice(fullTimePlan) : 0;
 
+  // NEW: Determine if it's a downgrade action
+  const isFullTimeDowngrade = fullTimePlan && currentPlan.type === 'full-time' && fullTimePlan.tokens < currentPlan.tokens;
+
   const getButtonText = (planType: 'free' | 'side-gig' | 'full-time') => {
     if (planType === 'free') {
       // For unauthenticated users, always show "Get Started Free"
@@ -189,12 +229,13 @@ const Pricing = () => {
     }
     
     if (planType === 'side-gig') {
-      if (isSideGigLowerPlan) return 'Lower Plan';
+      if (isSideGigLowerPlan) return 'Downgrade to Side-Gig';
       if (!canUpgradeToSideGig) return 'Current Plan';
       return currentPlan.type === 'free' ? 'Choose Side-Gig' : 'Upgrade to Side-Gig';
     }
     
     if (planType === 'full-time') {
+      if (isFullTimeDowngrade) return 'Downgrade to Full-Time';
       if (!canUpgradeToFullTime) return 'Current Plan';
       return currentPlan.type === 'free' ? 'Choose Full-Time' : 'Upgrade to Full-Time';
     }
@@ -210,14 +251,46 @@ const Pricing = () => {
     }
     
     if (planType === 'side-gig') {
-      return isSideGigLowerPlan || !canUpgradeToSideGig;
+      // Allow both upgrade and downgrade for side-gig
+      return !isSideGigLowerPlan && !canUpgradeToSideGig;
     }
     
     if (planType === 'full-time') {
-      return !canUpgradeToFullTime;
+      // Allow both upgrade and downgrade for full-time
+      return !isFullTimeDowngrade && !canUpgradeToFullTime;
     }
     
     return false;
+  };
+
+  const getButtonStyle = (planType: 'side-gig' | 'full-time') => {
+    if (planType === 'side-gig' && isSideGigLowerPlan) {
+      return 'bg-black text-white hover:bg-black/90';
+    }
+    if (planType === 'full-time' && isFullTimeDowngrade) {
+      return 'bg-black text-white hover:bg-black/90';
+    }
+    return planType === 'full-time' ? 'bg-primary hover:bg-primary/90' : '';
+  };
+
+  const handleSideGigAction = () => {
+    if (isSideGigLowerPlan) {
+      // Downgrade action - open customer portal
+      handleManageSubscription();
+    } else {
+      // Upgrade action - use existing subscription flow
+      handleSubscribe('side-gig');
+    }
+  };
+
+  const handleFullTimeAction = () => {
+    if (isFullTimeDowngrade) {
+      // Downgrade action - open customer portal
+      handleManageSubscription();
+    } else {
+      // Upgrade action - use existing subscription flow
+      handleSubscribe('full-time');
+    }
   };
 
   const handleFreeSignup = () => {
@@ -353,7 +426,7 @@ const Pricing = () => {
               </div>
               <div className="mt-2">
                 <Badge variant="secondary">15 worksheets / month</Badge>
-                {currentPlan.type !== 'free' && canUpgradeToSideGig && (
+                {currentPlan.type !== 'free' && canUpgradeToSideGig && !isSideGigLowerPlan && (
                   <Badge variant="outline" className="mt-1">
                     Upgrade now for ${sideGigUpgradePrice}
                   </Badge>
@@ -389,8 +462,8 @@ const Pricing = () => {
               </div>
               
               <Button 
-                className="w-full h-10" 
-                onClick={() => handleSubscribe('side-gig')}
+                className={`w-full h-10 ${getButtonStyle('side-gig')}`}
+                onClick={handleSideGigAction}
                 disabled={isLoading === 'side-gig' || isButtonDisabled('side-gig')}
               >
                 {isLoading === 'side-gig' ? 'Processing...' : getButtonText('side-gig')}
@@ -439,7 +512,7 @@ const Pricing = () => {
                 </div>
                 <div>
                   <Badge variant="secondary">{selectedFullTimePlan} worksheets / month</Badge>
-                  {currentPlan.type !== 'free' && canUpgradeToFullTime && (
+                  {currentPlan.type !== 'free' && canUpgradeToFullTime && !isFullTimeDowngrade && (
                     <Badge variant="outline" className="mt-1">
                       Upgrade now for ${fullTimeUpgradePrice}
                     </Badge>
@@ -478,8 +551,8 @@ const Pricing = () => {
               </div>
               
               <Button 
-                className="w-full h-10 bg-primary hover:bg-primary/90" 
-                onClick={() => handleSubscribe('full-time')}
+                className={`w-full h-10 ${getButtonStyle('full-time')}`}
+                onClick={handleFullTimeAction}
                 disabled={isLoading === 'full-time' || isButtonDisabled('full-time')}
               >
                 {isLoading === 'full-time' ? 'Processing...' : getButtonText('full-time')}

@@ -486,15 +486,49 @@ const Profile = () => {
   const canUpgradeToFullTime = fullTimePlan ? canUpgradeTo(fullTimePlan) : false;
   const fullTimeUpgradePrice = fullTimePlan ? getUpgradePrice(fullTimePlan) : 0;
 
+  // NEW: Determine if it's a downgrade action
+  const isFullTimeDowngrade = fullTimePlan && currentPlan.type === 'full-time' && fullTimePlan.tokens < currentPlan.tokens;
+
   const getSideGigButtonText = () => {
-    if (isSideGigLowerPlan) return 'Lower Plan';
+    if (isSideGigLowerPlan) return 'Downgrade to Side-Gig';
     if (!canUpgradeToSideGig) return 'Current Plan';
     return currentPlan.type === 'free' ? 'Upgrade to Side-Gig' : 'Upgrade to Side-Gig';
   };
 
   const getFullTimeButtonText = () => {
+    if (isFullTimeDowngrade) return 'Downgrade to Full-Time';
     if (!canUpgradeToFullTime) return 'Current Plan';
     return currentPlan.type === 'free' ? 'Upgrade to Full-Time' : 'Upgrade to Full-Time';
+  };
+
+  const getSideGigButtonStyle = () => {
+    if (isSideGigLowerPlan) return 'bg-black text-white hover:bg-black/90';
+    return '';
+  };
+
+  const getFullTimeButtonStyle = () => {
+    if (isFullTimeDowngrade) return 'bg-black text-white hover:bg-black/90';
+    return 'bg-primary hover:bg-primary/90';
+  };
+
+  const handleSideGigAction = () => {
+    if (isSideGigLowerPlan) {
+      // Downgrade action - open customer portal
+      handleManageSubscription();
+    } else {
+      // Upgrade action - use existing subscription flow
+      handleSubscribe('side-gig');
+    }
+  };
+
+  const handleFullTimeAction = () => {
+    if (isFullTimeDowngrade) {
+      // Downgrade action - open customer portal
+      handleManageSubscription();
+    } else {
+      // Upgrade action - use existing subscription flow
+      handleSubscribe('full-time');
+    }
   };
 
   return (
@@ -704,10 +738,10 @@ const Profile = () => {
                       )}
                     </div>
                     <Button 
-                      className="w-full" 
+                      className={`w-full ${getSideGigButtonStyle()}`}
                       size="sm"
-                      onClick={() => handleSubscribe('side-gig')}
-                      disabled={isLoading === 'side-gig' || isSideGigLowerPlan || !canUpgradeToSideGig}
+                      onClick={handleSideGigAction}
+                      disabled={isLoading === 'side-gig' || (!isSideGigLowerPlan && !canUpgradeToSideGig)}
                     >
                       {isLoading === 'side-gig' ? 'Processing...' : getSideGigButtonText()}
                     </Button>
@@ -745,7 +779,7 @@ const Profile = () => {
                       <p className="text-xs text-muted-foreground">
                         ${((selectedPlan?.price || 19) / parseInt(selectedFullTimePlan)).toFixed(2)} per worksheet
                       </p>
-                      {canUpgradeToFullTime && currentPlan.type !== 'free' && (
+                      {canUpgradeToFullTime && currentPlan.type !== 'free' && !isFullTimeDowngrade && (
                         <p className="text-xs text-muted-foreground">
                           Upgrade now for ${fullTimeUpgradePrice}
                         </p>
@@ -753,10 +787,10 @@ const Profile = () => {
                     </div>
                     
                     <Button 
-                      className="w-full" 
+                      className={`w-full ${getFullTimeButtonStyle()}`}
                       size="sm"
-                      onClick={() => handleSubscribe('full-time')}
-                      disabled={isLoading === 'full-time' || !canUpgradeToFullTime}
+                      onClick={handleFullTimeAction}
+                      disabled={isLoading === 'full-time' || (!isFullTimeDowngrade && !canUpgradeToFullTime)}
                     >
                       {isLoading === 'full-time' ? 'Processing...' : getFullTimeButtonText()}
                     </Button>
