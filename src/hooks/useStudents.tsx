@@ -114,34 +114,6 @@ export const useStudents = () => {
     }
   };
 
-  const deleteStudent = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('students')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setStudents(prevStudents => 
-        prevStudents.filter(student => student.id !== id)
-      );
-
-      toast({
-        title: "Success",
-        description: "Student deleted successfully",
-      });
-    } catch (error: any) {
-      console.error('Error deleting student:', error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-      throw error;
-    }
-  };
-
   const updateStudentActivity = useCallback(async (studentId: string) => {
     try {
       console.log('🔄 UPDATING STUDENT ACTIVITY for:', studentId);
@@ -197,7 +169,6 @@ export const useStudents = () => {
     loading,
     addStudent,
     updateStudent,
-    deleteStudent,
     updateStudentActivity,
     refetch: fetchStudents
   };
