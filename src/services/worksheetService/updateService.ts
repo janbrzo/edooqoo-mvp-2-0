@@ -11,6 +11,8 @@ export async function updateWorksheetAPI(
 ) {
   try {
     console.log('🔄 Updating worksheet in database:', worksheetId);
+    console.log('🔄 User ID:', userId);
+    console.log('🔄 Editable worksheet data:', editableWorksheet);
     
     // Serialize the editable worksheet to JSON string for ai_response
     const updatedAiResponse = JSON.stringify(editableWorksheet);
@@ -29,20 +31,27 @@ export async function updateWorksheetAPI(
       worksheetId, 
       title: updateData.title,
       hasHtmlContent: !!updateData.html_content,
-      htmlLength: updateData.html_content?.length || 0
+      htmlLength: updateData.html_content?.length || 0,
+      aiResponseLength: updateData.ai_response?.length || 0
     });
 
+    // Use maybeSingle() for better error handling
     const { data, error } = await supabase
       .from('worksheets')
       .update(updateData)
       .eq('id', worksheetId)
       .eq('teacher_id', userId) // Ensure user can only update their own worksheets
       .select('id, title, last_modified_at')
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('❌ Error updating worksheet:', error);
       throw new Error(`Failed to update worksheet: ${error.message}`);
+    }
+
+    if (!data) {
+      console.error('❌ No worksheet found with ID:', worksheetId, 'for user:', userId);
+      throw new Error('Worksheet not found or you do not have permission to edit it');
     }
 
     console.log('✅ Worksheet updated successfully:', data);

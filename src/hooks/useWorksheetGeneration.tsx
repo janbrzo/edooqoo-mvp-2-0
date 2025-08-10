@@ -46,7 +46,7 @@ export const useWorksheetGeneration = (
 
     const newWorksheetId = uuidv4();
     worksheetState.setWorksheetId(newWorksheetId);
-    console.log('🆔 Generated worksheet ID:', newWorksheetId);
+    console.log('🆔 Generated temporary worksheet ID:', newWorksheetId);
 
     worksheetState.setInputParams(data);
     setIsGenerating(true);
@@ -71,44 +71,55 @@ export const useWorksheetGeneration = (
       const formDataForStorage = createFormDataForStorage(data);
       
       // Pass the full prompt to the API
-      const worksheetData = await generateWorksheet({ 
+      const worksheetResult = await generateWorksheet({ 
         ...data, 
         fullPrompt,
         formDataForStorage,
         studentId
       }, userId || 'anonymous');
 
+      console.log("✅ Generated worksheet result received:", {
+        hasData: !!worksheetResult,
+        hasBackendId: !!worksheetResult?.backendId,
+        exerciseCount: worksheetResult?.exercises?.length || 0,
+        hasTitle: !!worksheetResult?.title,
+        hasVocabulary: !!worksheetResult?.vocabulary_sheet
+      });
+
+      // CRITICAL FIX: Use the real database ID if available
+      let finalWorksheetId = newWorksheetId;
+      if (worksheetResult?.backendId) {
+        finalWorksheetId = worksheetResult.backendId;
+        console.log('🔄 Using backend ID instead of local ID:', finalWorksheetId);
+        worksheetState.setWorksheetId(finalWorksheetId);
+      } else {
+        console.warn('⚠️ No backend ID received, using local ID');
+      }
+
       // Consume token for authenticated users AFTER successful generation
       if (!isDemo && userId) {
-        const tokenConsumed = await consumeToken(newWorksheetId);
+        const tokenConsumed = await consumeToken(finalWorksheetId);
         if (!tokenConsumed) {
           console.warn('⚠️ Failed to consume token, but worksheet was generated');
         }
       }
       
-      console.log("✅ Generated worksheet data received:", {
-        hasData: !!worksheetData,
-        exerciseCount: worksheetData?.exercises?.length || 0,
-        hasTitle: !!worksheetData?.title,
-        hasVocabulary: !!worksheetData?.vocabulary_sheet
-      });
-      
       const actualGenerationTime = Math.round((Date.now() - startTime) / 1000);
       console.log('⏱️ Generation time:', actualGenerationTime, 'seconds');
       
       worksheetState.setGenerationTime(actualGenerationTime);
-      worksheetState.setSourceCount(worksheetData.sourceCount || Math.floor(Math.random() * (90 - 65) + 65));
+      worksheetState.setSourceCount(worksheetResult.sourceCount || Math.floor(Math.random() * (90 - 65) + 65));
       
       const expectedExerciseCount = getExpectedExerciseCount(data.lessonTime);
       console.log(`🎯 Expected ${expectedExerciseCount} exercises for ${data.lessonTime}`);
       
       console.log('🔍 Starting worksheet validation...');
-      if (validateWorksheet(worksheetData, expectedExerciseCount)) {
+      if (validateWorksheet(worksheetResult, expectedExerciseCount)) {
         console.log('✅ Worksheet validation passed, processing exercises...');
         
         // CRITICAL: Deep fix the entire worksheet before processing
         console.log('🔧 DEEP FIXING entire worksheet before processing...');
-        const deepFixedWorksheet = deepFixTextObjects(worksheetData, 'worksheet');
+        const deepFixedWorksheet = deepFixTextObjects(worksheetResult, 'worksheet');
         console.log('🔧 Worksheet after deep fix:', deepFixedWorksheet);
         
         // Trim exercises if more than expected are returned
@@ -126,7 +137,7 @@ export const useWorksheetGeneration = (
         });
         
         deepFixedWorksheet.exercises = processExercises(deepFixedWorksheet.exercises, data.lessonTime, hasGrammar);
-        deepFixedWorksheet.id = newWorksheetId;
+        deepFixedWorksheet.id = finalWorksheetId; // Use the correct ID here
         
         if (!deepFixedWorksheet.vocabulary_sheet || deepFixedWorksheet.vocabulary_sheet.length === 0) {
           console.log('📝 Creating sample vocabulary sheet...');
@@ -134,7 +145,7 @@ export const useWorksheetGeneration = (
         }
         
         console.log('💾 Setting both worksheets in state ATOMICALLY...');
-        console.log('💾 Final worksheet before setState:', deepFixedWorksheet);
+        console.log('💾 Final worksheet before setState with ID:', finalWorksheetId);
         
         // CRITICAL FIX: Set both states atomically in the same synchronous operation
         worksheetState.setGeneratedWorksheet(deepFixedWorksheet);
@@ -144,7 +155,7 @@ export const useWorksheetGeneration = (
         trackEvent({
           eventType: 'worksheet_generation_complete',
           eventData: {
-            worksheetId: newWorksheetId,
+            worksheetId: finalWorksheetId,
             success: true,
             generationTimeSeconds: actualGenerationTime,
             timestamp: new Date().toISOString()
