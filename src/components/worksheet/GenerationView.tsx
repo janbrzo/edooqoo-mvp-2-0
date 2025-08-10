@@ -14,7 +14,7 @@ interface GenerationViewProps {
   generationTime: number;
   sourceCount: number;
   onBack: () => void;
-  userId: string;
+  userId: string | null;
 }
 
 export default function GenerationView({
@@ -41,6 +41,15 @@ export default function GenerationView({
       toast({
         title: "Error",
         description: "Cannot submit feedback - worksheet ID missing",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!userId) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to submit feedback",
         variant: "destructive"
       });
       return;

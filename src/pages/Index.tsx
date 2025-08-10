@@ -172,7 +172,7 @@ const Index = () => {
           generationTime={worksheetState.generationTime}
           sourceCount={worksheetState.sourceCount}
           onBack={worksheetState.resetWorksheetState}
-          userId={user?.id || null}
+          userId={isRegisteredUser ? user?.id || null : null}
         />
       )}
       
