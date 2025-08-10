@@ -74,9 +74,7 @@ const Dashboard = () => {
   });
 
   const thisMonthCount = monthlyWorksheets.length;
-  const monthlyLimit = profile?.monthly_worksheet_limit || 0;
-  const monthlyUsed = profile?.monthly_worksheets_used || 0;
-  const monthlyRemaining = monthlyLimit > 0 ? Math.max(0, monthlyLimit - monthlyUsed) : 0;
+  const totalWorksheetsCreated = profile?.total_worksheets_created || 0;
 
   const handleGenerateWorksheet = () => {
     sessionStorage.setItem('forceNewWorksheet', 'true');
@@ -175,13 +173,13 @@ const Dashboard = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Limit</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Worksheets created</CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{monthlyLimit > 0 ? monthlyLimit : 'No limit'}</div>
+              <div className="text-2xl font-bold">{totalWorksheetsCreated}</div>
               <p className="text-xs text-muted-foreground">
-                {monthlyLimit > 0 ? `${monthlyRemaining} remaining` : 'Unlimited'}
+                All time
               </p>
             </CardContent>
           </Card>

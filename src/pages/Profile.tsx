@@ -523,15 +523,9 @@ const Profile = () => {
 
   const availableTokens = profile?.available_tokens || 0;
   const rolloverTokens = profile?.rollover_tokens || 0;
-  const monthlyUsed = profile?.monthly_worksheets_used || 0;
-  const monthlyAvailable = monthlyLimit ? Math.max(0, monthlyLimit - monthlyUsed) : 0;
+  const totalWorksheetsCreated = profile?.total_worksheets_created || 0;
   
   const tokensAvailableForUse = profile?.is_tokens_frozen ? 0 : availableTokens;
-
-  const getMonthlyLimitDisplay = () => {
-    if (subscriptionType === 'Free Demo') return 'Not applicable';
-    return monthlyLimit || 'Not set';
-  };
 
   const renewalInfo = getRenewalInfo();
   const subscriptionLabel = getSubscriptionLabel();
@@ -733,12 +727,8 @@ const Profile = () => {
                       <span className="font-medium">{rolloverTokens}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">This month used</span>
-                      <span className="font-medium">{monthlyUsed}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Monthly limit</span>
-                      <span className="font-medium">{getMonthlyLimitDisplay()}</span>
+                      <span className="text-muted-foreground">Total Worksheets created</span>
+                      <span className="font-medium">{totalWorksheetsCreated}</span>
                     </div>
                     {profile?.is_tokens_frozen && (
                       <div className="text-xs text-destructive mt-2 p-2 bg-destructive/10 rounded">
