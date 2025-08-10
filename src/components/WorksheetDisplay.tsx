@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDownloadTracking } from "@/hooks/useDownloadTracking";
 import { usePaymentTracking } from "@/hooks/usePaymentTracking";
+import { updateWorksheet } from "@/services/worksheetService";
 import WorksheetHeader from "./worksheet/WorksheetHeader";
 import InputParamsCard from "./worksheet/InputParamsCard";
 import WorksheetToolbar from "./worksheet/WorksheetToolbar";
@@ -73,6 +73,7 @@ export default function WorksheetDisplay({
 }: WorksheetDisplayProps) {
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { isDownloadUnlocked, userIp, handleDownloadUnlock, trackDownload, checkTokenGeneratedWorksheet } = useDownloadStatus();
   const isMobile = useIsMobile();
@@ -172,12 +173,40 @@ export default function WorksheetDisplay({
     setIsEditing(true);
   };
   
-  const handleSave = () => {
-    setIsEditing(false);
-    toast({
-      title: "Changes saved",
-      description: "Your worksheet has been updated successfully."
-    });
+  const handleSave = async () => {
+    if (!worksheetId || !userId) {
+      toast({
+        title: "Cannot save changes",
+        description: "Missing worksheet ID or user authentication",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    
+    try {
+      console.log('💾 Saving worksheet changes to database...');
+      await updateWorksheet(worksheetId, editableWorksheet, userId);
+      
+      setIsEditing(false);
+      toast({
+        title: "Changes saved successfully",
+        description: "Your worksheet has been updated and saved to the database.",
+        className: "bg-green-50 border-green-200"
+      });
+      
+      console.log('✅ Worksheet changes saved successfully');
+    } catch (error) {
+      console.error('❌ Error saving worksheet changes:', error);
+      toast({
+        title: "Failed to save changes",
+        description: error instanceof Error ? error.message : "An unexpected error occurred while saving.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Enhanced download handler with tracking
@@ -220,6 +249,7 @@ export default function WorksheetDisplay({
             viewMode={viewMode}
             setViewMode={setViewMode}
             isEditing={isEditing}
+            isSaving={isSaving}
             handleEdit={handleEdit}
             handleSave={handleSave}
             worksheetId={worksheetId}

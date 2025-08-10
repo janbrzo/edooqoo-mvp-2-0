@@ -1,7 +1,6 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Edit, Lightbulb, User, Download, Lock } from "lucide-react";
+import { Edit, Lightbulb, User, Download, Lock, Loader2 } from "lucide-react";
 import PaymentPopup from "@/components/PaymentPopup";
 import { exportAsHTML } from "@/utils/htmlExport";
 import { trackWorksheetEvent } from "@/services/worksheetService";
@@ -18,6 +17,7 @@ interface WorksheetToolbarProps {
   viewMode: "student" | "teacher";
   setViewMode: (mode: "student" | "teacher") => void;
   isEditing: boolean;
+  isSaving?: boolean;
   handleEdit: () => void;
   handleSave: () => void;
   worksheetId?: string | null;
@@ -34,6 +34,7 @@ const WorksheetToolbar = ({
   viewMode,
   setViewMode,
   isEditing,
+  isSaving = false,
   handleEdit,
   handleSave,
   worksheetId,
@@ -179,10 +180,18 @@ const WorksheetToolbar = ({
             {isEditing && (
               <Button
                 onClick={handleSave}
+                disabled={isSaving}
                 className={`bg-green-600 hover:bg-green-700 ${isMobile ? '' : 'mr-2'}`}
                 size="sm"
               >
-                Save Changes
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
               </Button>
             )}
             <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'}`}>

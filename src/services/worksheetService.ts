@@ -4,6 +4,7 @@ import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 import { generateWorksheetAPI } from './worksheetService/apiService';
 import { submitFeedbackAPI, updateFeedbackAPI } from './worksheetService/feedbackService';
 import { trackWorksheetEventAPI } from './worksheetService/trackingService';
+import { updateWorksheetAPI } from './worksheetService/updateService';
 
 /**
  * Main service export for worksheet functionality
@@ -12,7 +13,8 @@ export {
   generateWorksheet,
   submitFeedback, 
   updateFeedback, 
-  trackWorksheetEvent 
+  trackWorksheetEvent,
+  updateWorksheet
 };
 
 /**
@@ -20,6 +22,13 @@ export {
  */
 async function generateWorksheet(prompt: WorksheetFormData & { fullPrompt?: string, formDataForStorage?: any, studentId?: string }, userId: string) {
   return generateWorksheetAPI(prompt, userId);
+}
+
+/**
+ * Updates a worksheet with edited content
+ */
+async function updateWorksheet(worksheetId: string, editableWorksheet: any, userId: string) {
+  return updateWorksheetAPI(worksheetId, editableWorksheet, userId);
 }
 
 /**
