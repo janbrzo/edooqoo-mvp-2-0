@@ -73,18 +73,31 @@ serve(async (req) => {
       .single();
 
     let subscription = null;
+    let shouldUpdateStoredId = false;
 
-    // Try to fetch the stored subscription by ID first
+    // FIXED: Try to fetch the stored subscription by ID first, but prioritize active ones
     if (storedSubscription?.stripe_subscription_id) {
       try {
-        subscription = await stripe.subscriptions.retrieve(storedSubscription.stripe_subscription_id);
-        console.log('[CHECK-SUBSCRIPTION] Found stored subscription:', subscription.id);
+        const storedSub = await stripe.subscriptions.retrieve(storedSubscription.stripe_subscription_id);
+        console.log('[CHECK-SUBSCRIPTION] Found stored subscription:', storedSub.id, 'status:', storedSub.status);
+        
+        // If stored subscription is active, use it
+        if (storedSub.status === 'active') {
+          subscription = storedSub;
+          console.log('[CHECK-SUBSCRIPTION] Using stored active subscription');
+        } else {
+          console.log('[CHECK-SUBSCRIPTION] Stored subscription not active, searching for active ones');
+          shouldUpdateStoredId = true; // We'll update to the active one if found
+        }
       } catch (error) {
         console.log('[CHECK-SUBSCRIPTION] Stored subscription not found in Stripe, searching all');
+        shouldUpdateStoredId = true;
       }
+    } else {
+      shouldUpdateStoredId = true; // No stored ID, need to find and store one
     }
 
-    // If stored subscription not found, get all active subscriptions and pick the best one
+    // If no active stored subscription, get all active subscriptions and pick the best one
     if (!subscription) {
       const subscriptions = await stripe.subscriptions.list({
         customer: customerId,
@@ -122,6 +135,8 @@ serve(async (req) => {
       } else {
         subscription = subscriptions.data.sort((a, b) => b.current_period_end - a.current_period_end)[0];
       }
+      
+      shouldUpdateStoredId = true; // Always update since we selected a different subscription
     }
 
     console.log('[CHECK-SUBSCRIPTION] Using subscription:', subscription.id, 'cancel_at_period_end:', subscription.cancel_at_period_end);
@@ -174,21 +189,23 @@ serve(async (req) => {
       newSubscriptionStatus 
     });
 
-    // FIXED: Update subscription record with correct status using the same logic as profiles
+    // FIXED: Always update subscription record, and update stored ID if needed
+    const subscriptionUpsertData = {
+      teacher_id: user.id,
+      email: user.email,
+      stripe_subscription_id: subscription.id,
+      stripe_customer_id: customerId,
+      subscription_status: newSubscriptionStatus, // Use the same status logic as profiles
+      subscription_type: subscriptionType,              
+      monthly_limit: monthlyLimit,
+      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
     const { error: subError } = await supabaseService
       .from('subscriptions')
-      .upsert({
-        teacher_id: user.id,
-        email: user.email,
-        stripe_subscription_id: subscription.id,
-        stripe_customer_id: customerId,
-        subscription_status: newSubscriptionStatus, // Use the same status logic as profiles
-        subscription_type: subscriptionType,              
-        monthly_limit: monthlyLimit,
-        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-        updated_at: new Date().toISOString()
-      }, { 
+      .upsert(subscriptionUpsertData, { 
         onConflict: 'teacher_id',
         ignoreDuplicates: false 
       });
@@ -197,6 +214,9 @@ serve(async (req) => {
       console.error('[CHECK-SUBSCRIPTION] Error updating subscription:', subError);
     } else {
       console.log('[CHECK-SUBSCRIPTION] Subscriptions table updated with status:', newSubscriptionStatus, 'and type:', subscriptionType);
+      if (shouldUpdateStoredId) {
+        console.log('[CHECK-SUBSCRIPTION] Updated stored stripe_subscription_id from', storedSubscription?.stripe_subscription_id, 'to', subscription.id);
+      }
     }
 
     // Update profile - synchronize subscription data and unfreeze tokens

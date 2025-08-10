@@ -363,7 +363,7 @@ serve(async (req) => {
         priceAmount: amount 
       });
 
-      // Validate subscription dates before using them
+      // FIXED: Enhanced fallback logic for billing periods to prevent NULL errors
       let subscriptionExpiresAt = null;
       let currentPeriodStart = null;
       let currentPeriodEnd = null;
@@ -377,8 +377,12 @@ serve(async (req) => {
             current_period_start: subscription.current_period_start,
             error: dateError.message 
           });
-          currentPeriodStart = new Date().toISOString();
+          currentPeriodStart = new Date().toISOString(); // HARD FALLBACK to now
         }
+      } else {
+        // HARD FALLBACK: If Stripe doesn't provide start date, use now
+        currentPeriodStart = new Date().toISOString();
+        logStep('WARNING: No current_period_start from Stripe, using fallback', { fallbackStart: currentPeriodStart });
       }
 
       if (subscription.current_period_end && typeof subscription.current_period_end === 'number') {
@@ -391,9 +395,15 @@ serve(async (req) => {
             current_period_end: subscription.current_period_end,
             error: dateError.message 
           });
+          // HARD FALLBACK: 30 days from now
           subscriptionExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
           currentPeriodEnd = subscriptionExpiresAt;
         }
+      } else {
+        // HARD FALLBACK: If Stripe doesn't provide end date, use 30 days from now
+        subscriptionExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        currentPeriodEnd = subscriptionExpiresAt;
+        logStep('WARNING: No current_period_end from Stripe, using fallback', { fallbackEnd: subscriptionExpiresAt });
       }
 
       // FIXED: Determine subscription status based on cancel_at_period_end
@@ -569,7 +579,7 @@ serve(async (req) => {
         }
       }
 
-      // FIXED: Update/Create subscriptions table record with correct status and full subscription type
+      // FIXED: Update/Create subscriptions table record with enhanced fallback protection
       const subscriptionData = {
         teacher_id: profile.id,
         email: email,
@@ -578,10 +588,19 @@ serve(async (req) => {
         subscription_status: newSubscriptionStatus, // FIXED: correctly uses active_cancelled
         subscription_type: subscriptionType, // FIXED: uses full plan name like "Full-Time 30"
         monthly_limit: monthlyLimit,
-        current_period_start: currentPeriodStart,
-        current_period_end: currentPeriodEnd,
+        current_period_start: currentPeriodStart, // FIXED: Always has a value now
+        current_period_end: currentPeriodEnd, // FIXED: Always has a value now
         updated_at: new Date().toISOString()
       };
+
+      logStep('Attempting to upsert subscriptions table', { 
+        subscriptionData: {
+          ...subscriptionData,
+          // Log the critical fields that were causing NULL errors
+          current_period_start_provided: !!currentPeriodStart,
+          current_period_end_provided: !!currentPeriodEnd
+        }
+      });
 
       const { error: subError } = await supabaseService
         .from('subscriptions')
@@ -592,12 +611,15 @@ serve(async (req) => {
 
       if (subError) {
         logStep('ERROR: Failed to upsert subscription record', subError);
+        // Don't throw here - we want the webhook to succeed even if subscriptions table fails
       } else {
         logStep('Subscription record upserted successfully with full type name', { 
           teacherId: profile.id, 
           subscriptionId: subscription.id,
           status: newSubscriptionStatus,
-          type: subscriptionType
+          type: subscriptionType,
+          periodStart: currentPeriodStart,
+          periodEnd: currentPeriodEnd
         });
       }
     }
