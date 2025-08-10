@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDownloadTracking } from "@/hooks/useDownloadTracking";
@@ -174,15 +175,28 @@ export default function WorksheetDisplay({
   };
   
   const handleSave = async () => {
-    if (!worksheetId || !userId) {
+    if (!worksheetId) {
       toast({
         title: "Cannot save changes",
-        description: "Missing worksheet ID or user authentication",
+        description: "Missing worksheet ID",
         variant: "destructive"
       });
       return;
     }
 
+    // Handle anonymous users - save locally only
+    if (!userId) {
+      setIsEditing(false);
+      toast({
+        title: "Changes saved locally",
+        description: "Your changes have been saved in this browser. Log in to save them to your account.",
+        className: "bg-green-50 border-green-200"
+      });
+      console.log('📝 Anonymous user changes saved locally');
+      return;
+    }
+
+    // Handle logged-in users - save to database
     setIsSaving(true);
     
     try {
