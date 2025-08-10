@@ -198,11 +198,13 @@ serve(async (req) => {
       currentAmount: currentSubscription.items.data[0].price.unit_amount
     });
 
+    // CRITICAL FIX: Set cancel_at_period_end to false to ensure subscription becomes active
     const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
       items: [{
         id: currentSubscription.items.data[0].id,
         price: targetPriceId,
       }],
+      cancel_at_period_end: false,  // FIXED: Ensure subscription becomes active after upgrade
       proration_behavior: 'none',
       billing_cycle_anchor: 'unchanged',
     });
@@ -212,7 +214,8 @@ serve(async (req) => {
       newPriceId: targetPriceId,
       newAmount: targetPlanPrice * 100,
       status: updatedSubscription.status,
-      currentPeriodEnd: updatedSubscription.current_period_end
+      currentPeriodEnd: updatedSubscription.current_period_end,
+      cancelAtPeriodEnd: updatedSubscription.cancel_at_period_end
     });
 
     // Get current profile data BEFORE update (needed for old_plan_type)

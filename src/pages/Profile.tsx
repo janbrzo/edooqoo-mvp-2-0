@@ -17,13 +17,20 @@ const Profile = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
   const { profile, loading: profileLoading, refetch } = useProfile();
   const { tokenLeft } = useTokenSystem(user?.id);
-  const { currentPlan, plans, canUpgradeTo, getUpgradePrice, getUpgradeTokens } = usePlanLogic(profile?.subscription_type);
+  const { currentPlan, plans, canUpgradeTo, getUpgradePrice, getUpgradeTokens, getRecommendedFullTimePlan } = usePlanLogic(profile?.subscription_type);
   const navigate = useNavigate();
-  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState('30');
+  
+  // FIXED: Initialize with recommended plan (next higher plan)
+  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState(() => getRecommendedFullTimePlan());
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const syncExecutedRef = useRef(false);
   const upgradeProcessedRef = useRef(false);
+
+  // Update selectedFullTimePlan when currentPlan changes
+  useEffect(() => {
+    setSelectedFullTimePlan(getRecommendedFullTimePlan());
+  }, [getRecommendedFullTimePlan]);
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {

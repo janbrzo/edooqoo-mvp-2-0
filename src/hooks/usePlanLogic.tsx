@@ -114,6 +114,7 @@ export const usePlanLogic = (currentSubscriptionType?: string) => {
     }
     
     if (currentPlan.type === 'full-time') {
+      // FIXED: Recommend next higher plan, or current if it's the highest
       const nextPlan = getNextAvailablePlan('full-time');
       return nextPlan ? nextPlan.tokens.toString() : currentPlan.tokens.toString();
     }
