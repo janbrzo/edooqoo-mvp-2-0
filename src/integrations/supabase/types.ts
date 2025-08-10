@@ -119,36 +119,6 @@ export type Database = {
         }
         Relationships: []
       }
-      processed_upgrade_sessions: {
-        Row: {
-          id: string
-          new_plan_type: string | null
-          old_plan_type: string | null
-          processed_at: string
-          session_id: string
-          teacher_id: string
-          tokens_added: number
-        }
-        Insert: {
-          id?: string
-          new_plan_type?: string | null
-          old_plan_type?: string | null
-          processed_at?: string
-          session_id: string
-          teacher_id: string
-          tokens_added?: number
-        }
-        Update: {
-          id?: string
-          new_plan_type?: string | null
-          old_plan_type?: string | null
-          processed_at?: string
-          session_id?: string
-          teacher_id?: string
-          tokens_added?: number
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           available_tokens: number

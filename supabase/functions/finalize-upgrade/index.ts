@@ -21,60 +21,74 @@ serve(async (req) => {
   try {
     logStep('Function started');
 
-    const { session_id } = await req.json();
-
+    // Initialize Supabase with anon key for user auth
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
+    // Get authenticated user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      logStep('No authorization header');
       throw new Error('No authorization header');
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    
-    if (userError || !userData.user) {
-      throw new Error('User not authenticated');
+    if (userError) {
+      logStep('User error', userError);
+      throw userError;
     }
 
     const user = userData.user;
+    if (!user?.email) {
+      logStep('User not authenticated');
+      throw new Error('User not authenticated');
+    }
+
     logStep('User authenticated', { email: user.email });
+
+    // Parse request body
+    const body = await req.json();
+    const { session_id } = body;
+
+    if (!session_id) {
+      logStep('Missing session_id');
+      throw new Error('Session ID is required');
+    }
 
     logStep('Processing upgrade for session', { session_id });
 
-    const stripe = new Stripe(Deno.env.get('Stripe_Secret_Key') || '', {
-      apiVersion: '2023-10-16',
-    });
+    // Initialize Stripe
+    const stripeKey = Deno.env.get('Stripe_Secret_Key');
+    if (!stripeKey) {
+      logStep('Stripe key not configured');
+      throw new Error('Stripe key not configured');
+    }
 
-    const supabaseService = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
-    );
+    const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
-    // Get checkout session
+    // Get checkout session details
     const session = await stripe.checkout.sessions.retrieve(session_id);
-    logStep('Retrieved checkout session', {
-      sessionId: session_id,
-      metadata: session.metadata
-    });
+    logStep('Retrieved checkout session', { sessionId: session.id, metadata: session.metadata });
 
-    // Check if this is actually an upgrade session
-    if (session.metadata?.action !== 'upgrade') {
+    if (!session.metadata?.action || session.metadata.action !== 'upgrade') {
       logStep('Not an upgrade session');
       throw new Error('Invalid session - not an upgrade');
     }
 
-    // Extract upgrade parameters from metadata
     const subscriptionId = session.metadata.subscription_id;
     const targetPlanType = session.metadata.target_plan_type;
     const targetPlanName = session.metadata.target_plan_name;
-    const targetPlanPrice = parseInt(session.metadata.target_plan_price);
-    const targetMonthlyLimit = parseInt(session.metadata.target_monthly_limit);
-    const upgradeTokens = parseInt(session.metadata.upgrade_tokens);
+    const targetPlanPrice = parseFloat(session.metadata.target_plan_price || '0');
+    const targetMonthlyLimit = parseInt(session.metadata.target_monthly_limit || '0');
+    const upgradeTokens = parseInt(session.metadata.upgrade_tokens || '0');
+
+    if (!subscriptionId) {
+      logStep('Missing subscription ID in metadata');
+      throw new Error('No subscription ID found in session metadata');
+    }
 
     logStep('Upgrade parameters', {
       subscriptionId,
@@ -85,129 +99,126 @@ serve(async (req) => {
       upgradeTokens
     });
 
-    // Check if this session has already been processed
-    const { data: existingSession } = await supabaseService
-      .from('processed_upgrade_sessions')
-      .select('*')
-      .eq('session_id', session_id)
-      .single();
-
-    if (existingSession) {
-      logStep('Session already processed', existingSession);
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Session already processed',
-          data: existingSession
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // KLUCZOWA CZĘŚĆ: Znajdź lub utwórz stabilny price_id w Stripe
+    let targetPriceId: string;
+    
+    // Sprawdź czy istnieje już produkt z odpowiednią ceną
+    const products = await stripe.products.list({ 
+      limit: 100,
+      expand: ['data.default_price']
+    });
+    
+    logStep('Searching for existing price', { targetPlanName, targetPlanPrice });
+    
+    // Szukaj istniejącej ceny
+    const prices = await stripe.prices.list({ 
+      limit: 100,
+      recurring: { interval: 'month' },
+      type: 'recurring'
+    });
+    
+    const existingPrice = prices.data.find(price => 
+      price.unit_amount === targetPlanPrice * 100 && 
+      price.currency === 'usd' &&
+      price.recurring?.interval === 'month'
+    );
+    
+    if (existingPrice) {
+      targetPriceId = existingPrice.id;
+      logStep('Using existing price', { priceId: targetPriceId, amount: existingPrice.unit_amount });
+    } else {
+      // Utwórz nowy produkt i cenę
+      logStep('Creating new product and price');
+      
+      const product = await stripe.products.create({
+        name: targetPlanName,
+        description: `${targetMonthlyLimit} worksheets per month`,
+      });
+      
+      const price = await stripe.prices.create({
+        currency: 'usd',
+        product: product.id,
+        unit_amount: targetPlanPrice * 100,
+        recurring: {
+          interval: 'month',
+        },
+      });
+      
+      targetPriceId = price.id;
+      logStep('Created new price', { priceId: targetPriceId, productId: product.id });
     }
 
-    // Get current profile data to capture old_plan_type
-    const { data: profile, error: profileError } = await supabaseService
-      .from('profiles')
-      .select('subscription_type, available_tokens, total_tokens_received')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile) {
-      throw new Error('Profile not found');
-    }
-
-    const oldPlanType = profile.subscription_type || 'Unknown';
-    logStep('Current profile data', {
-      oldPlanType,
-      currentAvailableTokens: profile.available_tokens,
-      currentTotalReceived: profile.total_tokens_received
-    });
-
-    // Update Stripe subscription
-    logStep('Updating Stripe subscription', {
-      subscriptionId,
-      newPriceId: getPriceIdForPlan(targetPlanName, targetPlanPrice)
-    });
-
-    // Get existing prices to find the right one
-    const prices = await stripe.prices.list({
-      product: 'prod_RRBthRz3OJKo5m', // Your product ID
-      active: true,
-      limit: 100
-    });
-
-    let targetPriceId = null;
-    for (const price of prices.data) {
-      const priceAmountInDollars = price.unit_amount ? price.unit_amount / 100 : 0;
-      if (priceAmountInDollars === targetPlanPrice && 
-          price.nickname?.includes(targetMonthlyLimit.toString())) {
-        targetPriceId = price.id;
-        break;
-      }
-    }
-
-    if (!targetPriceId) {
-      throw new Error(`Price not found for plan: ${targetPlanName} at $${targetPlanPrice}`);
-    }
-
-    logStep('Searching for existing price', {
-      targetPlanName,
-      targetPlanPrice
-    });
-
-    logStep('Using existing price', {
-      priceId: targetPriceId,
-      amount: targetPlanPrice * 100
-    });
-
-    // Get current subscription to verify before update
+    // KLUCZOWA CZĘŚĆ: Aktualizuj subskrypcję w Stripe
+    logStep('Updating Stripe subscription', { subscriptionId, newPriceId: targetPriceId });
+    
+    // Pobierz aktualną subskrypcję
     const currentSubscription = await stripe.subscriptions.retrieve(subscriptionId);
-    logStep('Current subscription retrieved', {
+    logStep('Current subscription retrieved', { 
       id: currentSubscription.id,
       status: currentSubscription.status,
-      currentPriceId: currentSubscription.items.data[0]?.price?.id,
-      currentAmount: currentSubscription.items.data[0]?.price?.unit_amount
+      currentPriceId: currentSubscription.items.data[0].price.id,
+      currentAmount: currentSubscription.items.data[0].price.unit_amount
     });
 
-    // Update the subscription
+    // Aktualizuj subskrypcję z nowym price_id
     const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
       items: [{
         id: currentSubscription.items.data[0].id,
-        price: targetPriceId,
+        price: targetPriceId, // Użyj stabilnego price_id zamiast price_data
       }],
-      proration_behavior: 'create_prorations',
+      proration_behavior: 'none', // Bez dodatkowego proration - już zapłacone
+      billing_cycle_anchor: 'unchanged', // Zachowaj ten sam cykl rozliczeniowy
     });
 
-    logStep('Subscription updated in Stripe successfully', {
-      subscriptionId,
+    logStep('Subscription updated in Stripe successfully', { 
+      subscriptionId: updatedSubscription.id,
       newPriceId: targetPriceId,
-      newAmount: updatedSubscription.items.data[0]?.price?.unit_amount,
+      newAmount: targetPlanPrice * 100,
       status: updatedSubscription.status,
       currentPeriodEnd: updatedSubscription.current_period_end
     });
 
+    // Use service role to update Supabase
+    const supabaseService = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
+    );
+
+    // Get current profile data
+    const { data: profile, error: profileError } = await supabaseService
+      .from('profiles')
+      .select('id, available_tokens, total_tokens_received')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      logStep('ERROR: User profile not found', { userId: user.id, error: profileError });
+      throw new Error(`User profile not found`);
+    }
+
     // Calculate new token amounts
-    const currentAvailable = profile.available_tokens || 0;
-    const currentTotal = profile.total_tokens_received || 0;
-    const newAvailableTokens = currentAvailable + upgradeTokens;
-    const newTotalReceived = currentTotal + upgradeTokens;
+    const newAvailableTokens = profile.available_tokens + upgradeTokens;
+    const newTotalReceived = (profile.total_tokens_received || 0) + upgradeTokens;
 
     logStep('Token calculations', {
-      currentAvailable,
-      currentTotal,
+      currentAvailable: profile.available_tokens,
+      currentTotal: profile.total_tokens_received,
       upgradeTokens,
       newAvailableTokens,
       newTotalReceived
     });
 
-    // Update profile with new subscription data and tokens
+    // KLUCZOWA CZĘŚĆ: Aktualizuj profile z nowymi danymi planu i tokenami
     const { error: updateError } = await supabaseService
       .from('profiles')
       .update({
-        subscription_type: getSubscriptionTypeFromPrice(updatedSubscription.items.data[0]?.price?.unit_amount || 0),
-        subscription_status: updatedSubscription.status,
+        subscription_type: targetPlanName,
+        subscription_status: 'active', // Upgrade czyni subskrypcję aktywną
         monthly_worksheet_limit: targetMonthlyLimit,
         available_tokens: newAvailableTokens,
         total_tokens_received: newTotalReceived,
+        is_tokens_frozen: false,
         subscription_expires_at: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -220,16 +231,16 @@ serve(async (req) => {
 
     logStep('Profile updated successfully');
 
-    // Update subscriptions table
+    // KLUCZOWA CZĘŚĆ: Aktualizuj tabelę subscriptions z prawidłowymi danymi
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
         teacher_id: user.id,
         email: user.email,
         stripe_subscription_id: subscriptionId,
-        stripe_customer_id: updatedSubscription.customer as string,
-        subscription_status: updatedSubscription.status,
-        subscription_type: getSubscriptionTypeFromPrice(updatedSubscription.items.data[0]?.price?.unit_amount || 0),
+        stripe_customer_id: session.customer as string,
+        subscription_status: 'active',
+        subscription_type: targetPlanName, // Pełna nazwa planu np. "Full-Time 30"
         monthly_limit: targetMonthlyLimit,
         current_period_start: new Date(updatedSubscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
@@ -246,98 +257,58 @@ serve(async (req) => {
 
     logStep('Subscriptions table updated successfully');
 
-    // Record processed session to prevent duplicate processing
-    const { error: sessionError } = await supabaseService
-      .from('processed_upgrade_sessions')
-      .insert({
-        session_id: session_id,
-        teacher_id: user.id,
-        tokens_added: upgradeTokens,
-        old_plan_type: oldPlanType,
-        new_plan_type: targetPlanName
-      });
-
-    if (sessionError) {
-      logStep('ERROR: Failed to log processed session', sessionError);
-      throw sessionError;
-    }
-
-    logStep('Processed session logged successfully');
-
-    // Add token transaction
+    // Add token transaction record
     const { error: transactionError } = await supabaseService
       .from('token_transactions')
       .insert({
         teacher_id: user.id,
         transaction_type: 'purchase',
         amount: upgradeTokens,
-        description: `Upgrade to ${targetPlanName}`,
+        description: `Upgrade to ${targetPlanName} - tokens added`,
         reference_id: null
       });
 
     if (transactionError) {
-      logStep('ERROR: Failed to log token transaction', transactionError);
-      throw transactionError;
+      logStep('WARNING: Failed to log token transaction', transactionError);
+    } else {
+      logStep('Token transaction logged successfully');
     }
 
-    logStep('Token transaction logged successfully');
-
-    // USUNIĘTE: Logowanie subscription_events
-    // Pozostawiamy to tylko stripe-webhook aby uniknąć konfliktów
-
-    const result = {
+    logStep('Upgrade finalized successfully', {
       newPlan: targetPlanName,
       tokensAdded: upgradeTokens,
       newAvailableTokens,
       stripeSubscriptionUpdated: true,
       supabaseDataSynced: true
-    };
-
-    logStep('Upgrade finalized successfully', result);
+    });
 
     return new Response(
-      JSON.stringify({ success: true, ...result }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        success: true,
+        subscription_type: targetPlanName,
+        tokens_added: upgradeTokens,
+        new_available_tokens: newAvailableTokens,
+        stripe_updated: true
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
 
   } catch (error: any) {
     logStep('Error occurred', { 
-      message: error.message,
+      message: error.message, 
       stack: error.stack
     });
-    
     return new Response(
       JSON.stringify({ 
-        success: false, 
-        error: error.message 
+        error: error.message,
+        success: false
       }),
       { 
-        status: 400, 
+        status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
   }
 });
-
-function getPriceIdForPlan(planName: string, priceInDollars: number): string {
-  // This would need to map to actual Stripe price IDs
-  const priceMapping: { [key: string]: string } = {
-    'Side-Gig_9': 'price_1Rr4XjH4Sb5mBNfbWD8VBfFg',
-    'Full-Time Plan (30 worksheets)_19': 'price_1Rr4apH4Sb5mBNfbZCKfQyov', 
-    'Full-Time Plan (60 worksheets)_39': 'price_1RuA1gH4Sb5mBNfbCdkhQkhn',
-    'Full-Time Plan (90 worksheets)_59': 'price_1RuA2QH4Sb5mBNfb8QBdKFMV',
-    'Full-Time Plan (120 worksheets)_79': 'price_1Ru9x2H4Sb5mBNfbbVRTDR9V'
-  };
-  
-  const key = `${planName}_${priceInDollars}`;
-  return priceMapping[key] || '';
-}
-
-function getSubscriptionTypeFromPrice(priceAmount: number): string {
-  if (priceAmount === 900) return 'Side-Gig';
-  if (priceAmount === 1900) return 'Full-Time 30';
-  if (priceAmount === 3900) return 'Full-Time 60';
-  if (priceAmount === 5900) return 'Full-Time 90';
-  if (priceAmount === 7900) return 'Full-Time 120';
-  return 'Unknown';
-}
