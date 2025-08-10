@@ -23,6 +23,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const syncExecutedRef = useRef(false);
+  const upgradeProcessedRef = useRef(false);
 
   // Check if user is properly authenticated (not anonymous) and redirect immediately
   useEffect(() => {
@@ -31,20 +32,35 @@ const Profile = () => {
     }
   }, [loading, isRegisteredUser, navigate]);
 
-  // NAPRAWIONE: Obsługa powrotu ze Stripe - bezpośrednie wywołanie finalize-upgrade
+  // FIXED: Handle Stripe return with idempotency protection
   useEffect(() => {
     const handleStripeReturn = async () => {
-      if (!user?.id || loading) return;
+      if (!user?.id || loading || upgradeProcessedRef.current) return;
 
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('session_id');
       const success = urlParams.get('success');
       
       if (sessionId && success === 'true') {
+        // Prevent multiple processing
+        upgradeProcessedRef.current = true;
+        
+        // Check sessionStorage to prevent duplicate processing
+        const processedKey = `upgrade_processed_${sessionId}`;
+        if (sessionStorage.getItem(processedKey)) {
+          console.log('[Profile] Upgrade already processed for this session, skipping');
+          // Clear URL parameters
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, '', newUrl);
+          return;
+        }
+        
         console.log('[Profile] Detected return from Stripe with session_id:', sessionId);
         
         try {
-          // Najpierw spróbuj finalize-upgrade (dla upgrades)
+          // Mark as processing in sessionStorage
+          sessionStorage.setItem(processedKey, 'true');
+          
           console.log('[Profile] Attempting to finalize upgrade...');
           const { data: upgradeData, error: upgradeError } = await supabase.functions.invoke('finalize-upgrade', {
             body: { session_id: sessionId }
@@ -52,24 +68,31 @@ const Profile = () => {
           
           if (!upgradeError && upgradeData?.success) {
             console.log('[Profile] Upgrade finalized successfully:', upgradeData);
-            toast({
-              title: "Upgrade Successful!",
-              description: `Your subscription has been upgraded! ${upgradeData.tokens_added || 0} tokens added.`,
-            });
+            
+            if (upgradeData.already_processed) {
+              toast({
+                title: "Upgrade Already Processed",
+                description: "Your subscription upgrade has already been processed successfully.",
+              });
+            } else {
+              toast({
+                title: "Upgrade Successful!",
+                description: `Your subscription has been upgraded! ${upgradeData.tokens_added || 0} tokens added.`,
+              });
+            }
           } else {
             console.log('[Profile] Not an upgrade session or upgrade failed:', upgradeError);
-            // Jeśli to nie upgrade, pokazuj ogólny komunikat o sukcesie
             toast({
               title: "Payment Successful!",
               description: "Your payment has been processed successfully.",
             });
           }
           
-          // Zawsze zsynchronizuj status subskrypcji po płatności
+          // Always sync subscription status after payment
           console.log('[Profile] Syncing subscription status...');
           await supabase.functions.invoke('check-subscription-status');
           
-          // Odśwież dane profilu
+          // Refresh profile data
           await refetch();
           
         } catch (error) {
@@ -79,7 +102,7 @@ const Profile = () => {
             description: "Your payment was successful. It may take a moment to update your account.",
           });
           
-          // Mimo błędu, spróbuj zsynchronizować
+          // Still try to sync
           try {
             await supabase.functions.invoke('check-subscription-status');
             await refetch();
@@ -87,7 +110,7 @@ const Profile = () => {
             console.error('[Profile] Error syncing after payment:', syncError);
           }
         } finally {
-          // Wyczyść parametry URL
+          // Clear URL parameters
           const newUrl = window.location.pathname;
           window.history.replaceState({}, '', newUrl);
         }

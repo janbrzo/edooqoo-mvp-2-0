@@ -58,6 +58,42 @@ serve(async (req) => {
       throw new Error('Session ID is required');
     }
 
+    // Use service role for database operations
+    const supabaseService = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
+    );
+
+    // IDEMPOTENCY CHECK: Check if this session was already processed
+    const { data: existingSession, error: sessionCheckError } = await supabaseService
+      .from('processed_upgrade_sessions')
+      .select('*')
+      .eq('session_id', session_id)
+      .eq('teacher_id', user.id)
+      .single();
+
+    if (!sessionCheckError && existingSession) {
+      logStep('Session already processed', { 
+        sessionId: session_id, 
+        processedAt: existingSession.processed_at,
+        tokensAdded: existingSession.tokens_added 
+      });
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          already_processed: true,
+          tokens_added: existingSession.tokens_added,
+          processed_at: existingSession.processed_at,
+          message: 'Upgrade already processed successfully'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     logStep('Processing upgrade for session', { session_id });
 
     // Initialize Stripe
@@ -99,18 +135,9 @@ serve(async (req) => {
       upgradeTokens
     });
 
-    // KLUCZOWA CZĘŚĆ: Znajdź lub utwórz stabilny price_id w Stripe
+    // Find or create stable price_id in Stripe
     let targetPriceId: string;
     
-    // Sprawdź czy istnieje już produkt z odpowiednią ceną
-    const products = await stripe.products.list({ 
-      limit: 100,
-      expand: ['data.default_price']
-    });
-    
-    logStep('Searching for existing price', { targetPlanName, targetPlanPrice });
-    
-    // Szukaj istniejącej ceny
     const prices = await stripe.prices.list({ 
       limit: 100,
       recurring: { interval: 'month' },
@@ -127,7 +154,6 @@ serve(async (req) => {
       targetPriceId = existingPrice.id;
       logStep('Using existing price', { priceId: targetPriceId, amount: existingPrice.unit_amount });
     } else {
-      // Utwórz nowy produkt i cenę
       logStep('Creating new product and price');
       
       const product = await stripe.products.create({
@@ -148,10 +174,9 @@ serve(async (req) => {
       logStep('Created new price', { priceId: targetPriceId, productId: product.id });
     }
 
-    // KLUCZOWA CZĘŚĆ: Aktualizuj subskrypcję w Stripe
+    // Update Stripe subscription
     logStep('Updating Stripe subscription', { subscriptionId, newPriceId: targetPriceId });
     
-    // Pobierz aktualną subskrypcję
     const currentSubscription = await stripe.subscriptions.retrieve(subscriptionId);
     logStep('Current subscription retrieved', { 
       id: currentSubscription.id,
@@ -160,14 +185,13 @@ serve(async (req) => {
       currentAmount: currentSubscription.items.data[0].price.unit_amount
     });
 
-    // Aktualizuj subskrypcję z nowym price_id
     const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
       items: [{
         id: currentSubscription.items.data[0].id,
-        price: targetPriceId, // Użyj stabilnego price_id zamiast price_data
+        price: targetPriceId,
       }],
-      proration_behavior: 'none', // Bez dodatkowego proration - już zapłacone
-      billing_cycle_anchor: 'unchanged', // Zachowaj ten sam cykl rozliczeniowy
+      proration_behavior: 'none',
+      billing_cycle_anchor: 'unchanged',
     });
 
     logStep('Subscription updated in Stripe successfully', { 
@@ -177,13 +201,6 @@ serve(async (req) => {
       status: updatedSubscription.status,
       currentPeriodEnd: updatedSubscription.current_period_end
     });
-
-    // Use service role to update Supabase
-    const supabaseService = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
-    );
 
     // Get current profile data
     const { data: profile, error: profileError } = await supabaseService
@@ -209,12 +226,12 @@ serve(async (req) => {
       newTotalReceived
     });
 
-    // KLUCZOWA CZĘŚĆ: Aktualizuj profile z nowymi danymi planu i tokenami
+    // Update profile with new plan data and tokens
     const { error: updateError } = await supabaseService
       .from('profiles')
       .update({
         subscription_type: targetPlanName,
-        subscription_status: 'active', // Upgrade czyni subskrypcję aktywną
+        subscription_status: 'active',
         monthly_worksheet_limit: targetMonthlyLimit,
         available_tokens: newAvailableTokens,
         total_tokens_received: newTotalReceived,
@@ -231,7 +248,7 @@ serve(async (req) => {
 
     logStep('Profile updated successfully');
 
-    // KLUCZOWA CZĘŚĆ: Aktualizuj tabelę subscriptions z prawidłowymi danymi
+    // Update subscriptions table with correct data
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
@@ -240,7 +257,7 @@ serve(async (req) => {
         stripe_subscription_id: subscriptionId,
         stripe_customer_id: session.customer as string,
         subscription_status: 'active',
-        subscription_type: targetPlanName, // Pełna nazwa planu np. "Full-Time 30"
+        subscription_type: targetPlanName,
         monthly_limit: targetMonthlyLimit,
         current_period_start: new Date(updatedSubscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
@@ -272,6 +289,27 @@ serve(async (req) => {
       logStep('WARNING: Failed to log token transaction', transactionError);
     } else {
       logStep('Token transaction logged successfully');
+    }
+
+    // IDEMPOTENCY RECORD: Mark this session as processed
+    const { error: sessionRecordError } = await supabaseService
+      .from('processed_upgrade_sessions')
+      .insert({
+        session_id: session_id,
+        teacher_id: user.id,
+        tokens_added: upgradeTokens,
+        upgrade_details: {
+          target_plan_name: targetPlanName,
+          target_plan_type: targetPlanType,
+          subscription_id: subscriptionId,
+          stripe_session_id: session_id
+        }
+      });
+
+    if (sessionRecordError) {
+      logStep('WARNING: Failed to record session processing', sessionRecordError);
+    } else {
+      logStep('Session processing recorded successfully');
     }
 
     logStep('Upgrade finalized successfully', {

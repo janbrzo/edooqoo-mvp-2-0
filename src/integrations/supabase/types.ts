@@ -119,6 +119,33 @@ export type Database = {
         }
         Relationships: []
       }
+      processed_upgrade_sessions: {
+        Row: {
+          id: string
+          processed_at: string
+          session_id: string
+          teacher_id: string
+          tokens_added: number
+          upgrade_details: Json | null
+        }
+        Insert: {
+          id?: string
+          processed_at?: string
+          session_id: string
+          teacher_id: string
+          tokens_added?: number
+          upgrade_details?: Json | null
+        }
+        Update: {
+          id?: string
+          processed_at?: string
+          session_id?: string
+          teacher_id?: string
+          tokens_added?: number
+          upgrade_details?: Json | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           available_tokens: number

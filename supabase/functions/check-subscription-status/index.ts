@@ -74,7 +74,7 @@ serve(async (req) => {
 
     let subscription = null;
 
-    // PRIORITY 1: Try to fetch the stored subscription by ID
+    // Try to fetch the stored subscription by ID first
     if (storedSubscription?.stripe_subscription_id) {
       try {
         subscription = await stripe.subscriptions.retrieve(storedSubscription.stripe_subscription_id);
@@ -84,7 +84,7 @@ serve(async (req) => {
       }
     }
 
-    // PRIORITY 2: If stored subscription not found, get all active subscriptions and pick the best one
+    // If stored subscription not found, get all active subscriptions and pick the best one
     if (!subscription) {
       const subscriptions = await stripe.subscriptions.list({
         customer: customerId,
@@ -157,20 +157,24 @@ serve(async (req) => {
       }
     }
 
-    // FIXED: Determine normalized subscription status (active vs active_cancelled)
+    // FIXED: Determine normalized subscription status with consistent "cancelled" spelling
     let newSubscriptionStatus: string;
     if (subscription.status === 'active') {
       newSubscriptionStatus = subscription.cancel_at_period_end ? 'active_cancelled' : 'active';
+    } else if (subscription.status === 'canceled') {
+      // Convert Stripe's "canceled" to our "cancelled" for consistency
+      newSubscriptionStatus = 'cancelled';
     } else {
       newSubscriptionStatus = subscription.status;
     }
+    
     console.log('[CHECK-SUBSCRIPTION] Computed status:', { 
       stripeStatus: subscription.status, 
       cancelAtPeriodEnd: subscription.cancel_at_period_end, 
       newSubscriptionStatus 
     });
 
-    // FIXED: Update subscription record with correct status and full plan name - COPY THE SAME LOGIC FROM PROFILES
+    // FIXED: Update subscription record with correct status using the same logic as profiles
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
@@ -178,8 +182,8 @@ serve(async (req) => {
         email: user.email,
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customerId,
-        subscription_status: newSubscriptionStatus, // FIXED: Use the same logic as profiles
-        subscription_type: subscriptionType, // FIXED: uses full plan name like "Full-Time 30"              
+        subscription_status: newSubscriptionStatus, // Use the same status logic as profiles
+        subscription_type: subscriptionType,              
         monthly_limit: monthlyLimit,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
