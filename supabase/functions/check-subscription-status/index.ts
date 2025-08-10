@@ -21,13 +21,11 @@ serve(async (req) => {
   try {
     logStep('Function started');
 
-    // Initialize Supabase with anon key
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    // Get user from auth header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('No authorization header');
@@ -43,7 +41,6 @@ serve(async (req) => {
     const user = userData.user;
     logStep('User', user.email);
 
-    // Initialize Stripe
     const stripeKey = Deno.env.get('Stripe_Secret_Key');
     if (!stripeKey) {
       throw new Error('Stripe key not configured');
@@ -51,7 +48,6 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
-    // Find customer in Stripe
     const customers = await stripe.customers.list({
       email: user.email,
       limit: 1
@@ -67,7 +63,6 @@ serve(async (req) => {
     const customer = customers.data[0];
     logStep('Found customer', customer.id);
 
-    // Get stored subscription
     const supabaseService = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -83,7 +78,6 @@ serve(async (req) => {
     let subscriptionId = storedSub?.stripe_subscription_id;
 
     if (!subscriptionId) {
-      // Get active subscriptions for customer
       const subscriptions = await stripe.subscriptions.list({
         customer: customer.id,
         status: 'all',
@@ -102,11 +96,10 @@ serve(async (req) => {
 
     logStep('Found stored subscription', subscriptionId);
 
-    // Get subscription details
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     logStep('Using subscription', `${subscriptionId} cancel_at_period_end: ${subscription.cancel_at_period_end}`);
 
-    // NAPRAWIONE: Compute status correctly like in profiles
+    // NAPRAWIONE: Compute status correctly
     const stripeStatus = subscription.status;
     const cancelAtPeriodEnd = subscription.cancel_at_period_end;
     
@@ -143,6 +136,16 @@ serve(async (req) => {
       monthlyLimit = 120;
     }
 
+    // NAPRAWIONE: Poprawiona logika is_tokens_frozen
+    // active_cancelled powinno mieć is_tokens_frozen = FALSE
+    // Tylko canceled i inne nieaktywne statusy powinny mieć TRUE
+    const shouldFreezeTokens = !['active', 'active_cancelled'].includes(newSubscriptionStatus);
+
+    logStep('Token freeze decision', {
+      newSubscriptionStatus,
+      shouldFreezeTokens
+    });
+
     // Update profile
     const { error: profileError } = await supabaseService
       .from('profiles')
@@ -151,7 +154,7 @@ serve(async (req) => {
         subscription_status: newSubscriptionStatus,
         monthly_worksheet_limit: monthlyLimit,
         subscription_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-        is_tokens_frozen: newSubscriptionStatus !== 'active',
+        is_tokens_frozen: shouldFreezeTokens, // NAPRAWIONE: Poprawna logika
         updated_at: new Date().toISOString()
       })
       .eq('id', user.id);
@@ -161,7 +164,7 @@ serve(async (req) => {
       throw profileError;
     }
 
-    // NAPRAWIONE: Update subscriptions table with correct status
+    // Update subscriptions table
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
@@ -169,7 +172,7 @@ serve(async (req) => {
         email: user.email,
         stripe_subscription_id: subscriptionId,
         stripe_customer_id: customer.id,
-        subscription_status: newSubscriptionStatus, // NAPRAWIONE: Używaj tego samego statusu co profiles
+        subscription_status: newSubscriptionStatus,
         subscription_type: subscriptionType,
         monthly_limit: monthlyLimit,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
@@ -182,12 +185,14 @@ serve(async (req) => {
 
     if (subError) {
       logStep('ERROR: Failed to update subscriptions table', subError);
-      // Don't throw - profile was updated successfully
     } else {
       logStep('Subscriptions table updated with status', `${newSubscriptionStatus} and type: ${subscriptionType}`);
     }
 
-    logStep('Successfully synced subscription data');
+    logStep('Successfully synced subscription data', {
+      tokensFrozen: shouldFreezeTokens,
+      subscriptionStatus: newSubscriptionStatus
+    });
 
     return new Response(JSON.stringify({
       subscribed: newSubscriptionStatus === 'active' || newSubscriptionStatus === 'active_cancelled',

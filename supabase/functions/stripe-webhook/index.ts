@@ -33,7 +33,7 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Verify webhook signature
+    // Verify webhook signature - NAPRAWIONE: użycie constructEventAsync
     const body = await req.text();
     const signature = req.headers.get('stripe-signature');
     const endpointSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
@@ -42,7 +42,7 @@ serve(async (req) => {
       throw new Error('Missing signature or webhook secret');
     }
 
-    const event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
+    const event = await stripe.webhooks.constructEventAsync(body, signature, endpointSecret);
     logStep(timestamp, 'Event verified successfully', { type: event.type, id: event.id });
 
     // Handle subscription events
@@ -72,7 +72,7 @@ serve(async (req) => {
       // Find user profile
       const { data: profile, error: profileError } = await supabaseService
         .from('profiles')
-        .select('id, available_tokens, total_tokens_received, subscription_status')
+        .select('id, available_tokens, total_tokens_received, subscription_status, subscription_type')
         .eq('email', customer.email)
         .single();
 
@@ -84,8 +84,12 @@ serve(async (req) => {
         userId: profile.id,
         currentTokens: profile.available_tokens,
         currentTotalReceived: profile.total_tokens_received,
-        currentSubscriptionStatus: profile.subscription_status
+        currentSubscriptionStatus: profile.subscription_status,
+        currentSubscriptionType: profile.subscription_type
       });
+
+      // NAPRAWIONE: Zachowaj old_plan_type PRZED aktualizacją profilu
+      const oldPlanType = profile.subscription_type || 'Free Demo';
 
       // Determine plan from subscription price
       let subscriptionType = 'Unknown';
@@ -122,11 +126,10 @@ serve(async (req) => {
         priceAmount
       });
 
-      // KLUCZOWA ZMIANA: Sprawdź czy finalize-upgrade już przetworzyło upgrade
+      // Check if this upgrade was already processed by finalize-upgrade
       let shouldAddTokens = false;
       let finalTokensToAdd = 0;
 
-      // Check if this is an upgrade that was already processed by finalize-upgrade
       const { data: processedSession } = await supabaseService
         .from('processed_upgrade_sessions')
         .select('*')
@@ -142,7 +145,6 @@ serve(async (req) => {
           tokensAdded: processedSession.tokens_added,
           processedAt: processedSession.processed_at
         });
-        // Nie dodawaj tokenów - już zostały dodane przez finalize-upgrade
         shouldAddTokens = false;
         finalTokensToAdd = 0;
       } else {
@@ -169,7 +171,7 @@ serve(async (req) => {
         }
       }
 
-      // NAPRAWIONE: Determine correct subscription status
+      // Determine correct subscription status
       let newSubscriptionStatus = subscription.status;
       if (subscription.status === 'active' && subscription.cancel_at_period_end) {
         newSubscriptionStatus = 'active_cancelled';
@@ -198,7 +200,7 @@ serve(async (req) => {
         .from('profiles')
         .update({
           subscription_type: subscriptionType,
-          subscription_status: newSubscriptionStatus, // NAPRAWIONE: Poprawny status
+          subscription_status: newSubscriptionStatus,
           monthly_worksheet_limit: monthlyLimit,
           available_tokens: newAvailableTokens,
           total_tokens_received: newTotalReceived,
@@ -240,35 +242,37 @@ serve(async (req) => {
         }
       }
 
-      // Log subscription event (tylko jeśli nie było już logowane przez finalize-upgrade)
-      if (!processedSession) {
-        const { error: eventError } = await supabaseService
-          .from('subscription_events')
-          .insert({
-            teacher_id: profile.id,
-            email: customer.email,
-            event_type: event.type,
-            stripe_event_id: event.id,
-            old_plan_type: profile.subscription_status || 'Unknown',
-            new_plan_type: subscriptionType,
-            tokens_added: finalTokensToAdd,
-            event_data: {
-              subscription_id: subscription.id,
-              customer_id: customerId,
-              status: subscription.status,
-              cancel_at_period_end: subscription.cancel_at_period_end,
-              processed_by: 'stripe-webhook'
-            }
-          });
+      // NAPRAWIONE: Log subscription event z poprawnymi danymi
+      const { error: eventError } = await supabaseService
+        .from('subscription_events')
+        .insert({
+          teacher_id: profile.id,
+          email: customer.email,
+          event_type: event.type,
+          stripe_event_id: event.id,
+          old_plan_type: oldPlanType, // NAPRAWIONE: Używamy zachowanej wartości
+          new_plan_type: subscriptionType,
+          tokens_added: finalTokensToAdd, // NAPRAWIONE: Prawidłowa liczba tokenów
+          event_data: {
+            subscription_id: subscription.id,
+            customer_id: customerId,
+            status: subscription.status,
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            processed_by: 'stripe-webhook'
+          }
+        });
 
-        if (eventError) {
-          logStep(timestamp, 'WARNING: Failed to log subscription event', eventError);
-        } else {
-          logStep(timestamp, 'Subscription event logged successfully');
-        }
+      if (eventError) {
+        logStep(timestamp, 'WARNING: Failed to log subscription event', eventError);
+      } else {
+        logStep(timestamp, 'Subscription event logged successfully', {
+          oldPlanType,
+          newPlanType: subscriptionType,
+          tokensAdded: finalTokensToAdd
+        });
       }
 
-      // NAPRAWIONE: Update subscriptions table with correct status
+      // Update subscriptions table
       const { error: subError } = await supabaseService
         .from('subscriptions')
         .upsert({
@@ -276,7 +280,7 @@ serve(async (req) => {
           email: customer.email,
           stripe_subscription_id: subscription.id,
           stripe_customer_id: customerId,
-          subscription_status: newSubscriptionStatus, // NAPRAWIONE: Użyj poprawnego statusu
+          subscription_status: newSubscriptionStatus,
           subscription_type: subscriptionType,
           monthly_limit: monthlyLimit,
           current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
@@ -289,7 +293,6 @@ serve(async (req) => {
 
       if (subError) {
         logStep(timestamp, 'ERROR: Failed to upsert subscription record', subError);
-        // Don't throw - profile was updated successfully
       } else {
         logStep(timestamp, 'Subscriptions table updated successfully');
       }
