@@ -44,9 +44,8 @@ export const useWorksheetGeneration = (
     
     worksheetState.clearWorksheetStorage();
 
-    const newWorksheetId = uuidv4();
-    worksheetState.setWorksheetId(newWorksheetId);
-    console.log('🆔 Generated temporary worksheet ID:', newWorksheetId);
+    const temporaryWorksheetId = uuidv4();
+    console.log('🆔 Generated temporary worksheet ID:', temporaryWorksheetId);
 
     worksheetState.setInputParams(data);
     setIsGenerating(true);
@@ -58,7 +57,7 @@ export const useWorksheetGeneration = (
     trackEvent({
       eventType: 'worksheet_generation_start',
       eventData: {
-        worksheetId: newWorksheetId,
+        worksheetId: temporaryWorksheetId,
         timestamp: new Date().toISOString()
       }
     });
@@ -81,20 +80,27 @@ export const useWorksheetGeneration = (
       console.log("✅ Generated worksheet result received:", {
         hasData: !!worksheetResult,
         hasBackendId: !!worksheetResult?.backendId,
+        backendId: worksheetResult?.backendId,
         exerciseCount: worksheetResult?.exercises?.length || 0,
         hasTitle: !!worksheetResult?.title,
         hasVocabulary: !!worksheetResult?.vocabulary_sheet
       });
 
-      // CRITICAL FIX: Use the real database ID if available
-      let finalWorksheetId = newWorksheetId;
+      // CRITICAL FIX: Ensure we ALWAYS have a valid database ID
+      let finalWorksheetId: string;
+      
       if (worksheetResult?.backendId) {
         finalWorksheetId = worksheetResult.backendId;
-        console.log('🔄 Using backend ID instead of local ID:', finalWorksheetId);
-        worksheetState.setWorksheetId(finalWorksheetId);
+        console.log('✅ Using backend database ID:', finalWorksheetId);
       } else {
-        console.warn('⚠️ No backend ID received, using local ID');
+        // This should not happen - log warning and use temporary ID
+        console.error('❌ CRITICAL: No backend ID received from API! Using temporary ID:', temporaryWorksheetId);
+        finalWorksheetId = temporaryWorksheetId;
       }
+
+      // IMPORTANT: Set the final worksheet ID immediately
+      worksheetState.setWorksheetId(finalWorksheetId);
+      console.log('🔄 Worksheet ID set in state:', finalWorksheetId);
 
       // Consume token for authenticated users AFTER successful generation
       if (!isDemo && userId) {
@@ -137,15 +143,16 @@ export const useWorksheetGeneration = (
         });
         
         deepFixedWorksheet.exercises = processExercises(deepFixedWorksheet.exercises, data.lessonTime, hasGrammar);
-        deepFixedWorksheet.id = finalWorksheetId; // Use the correct ID here
+        
+        // CRITICAL: Set the correct worksheet ID on the worksheet object
+        deepFixedWorksheet.id = finalWorksheetId;
         
         if (!deepFixedWorksheet.vocabulary_sheet || deepFixedWorksheet.vocabulary_sheet.length === 0) {
           console.log('📝 Creating sample vocabulary sheet...');
           deepFixedWorksheet.vocabulary_sheet = createSampleVocabulary(15);
         }
         
-        console.log('💾 Setting both worksheets in state ATOMICALLY...');
-        console.log('💾 Final worksheet before setState with ID:', finalWorksheetId);
+        console.log('💾 Setting both worksheets in state with final ID:', finalWorksheetId);
         
         // CRITICAL FIX: Set both states atomically in the same synchronous operation
         worksheetState.setGeneratedWorksheet(deepFixedWorksheet);
@@ -162,7 +169,7 @@ export const useWorksheetGeneration = (
           }
         });
         
-        console.log('🎉 Worksheet generation completed successfully!');
+        console.log('🎉 Worksheet generation completed successfully with ID:', finalWorksheetId);
         toast({
           title: "Worksheet generated successfully!",
           description: "Your custom worksheet is now ready to use.",
@@ -179,7 +186,7 @@ export const useWorksheetGeneration = (
       trackEvent({
         eventType: 'worksheet_generation_complete',
         eventData: {
-          worksheetId: newWorksheetId,
+          worksheetId: temporaryWorksheetId,
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString()
@@ -200,11 +207,14 @@ export const useWorksheetGeneration = (
       });
       
       fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises, data?.lessonTime || '60min', hasGrammar);
-      fallbackWorksheet.id = newWorksheetId;
+      fallbackWorksheet.id = temporaryWorksheetId;
       
       // CRITICAL FIX: Set both states atomically for fallback case too
       worksheetState.setGeneratedWorksheet(fallbackWorksheet);
       worksheetState.setEditableWorksheet(fallbackWorksheet);
+      
+      // Use temporary ID for fallback case
+      worksheetState.setWorksheetId(temporaryWorksheetId);
       
       toast({
         title: "Using sample worksheet",

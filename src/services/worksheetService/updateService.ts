@@ -14,6 +14,35 @@ export async function updateWorksheetAPI(
     console.log('🔄 User ID:', userId);
     console.log('🔄 Editable worksheet data:', editableWorksheet);
     
+    // CRITICAL DEBUG: Check if worksheet exists first
+    console.log('🔍 First, checking if worksheet exists...');
+    const { data: existingWorksheet, error: checkError } = await supabase
+      .from('worksheets')
+      .select('id, title, teacher_id')
+      .eq('id', worksheetId)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('❌ Error checking worksheet existence:', checkError);
+      throw new Error(`Failed to check worksheet: ${checkError.message}`);
+    }
+
+    if (!existingWorksheet) {
+      console.error('❌ Worksheet not found with ID:', worksheetId);
+      throw new Error(`Worksheet with ID ${worksheetId} not found in database`);
+    }
+
+    console.log('✅ Worksheet found:', existingWorksheet);
+
+    // Check if user owns this worksheet
+    if (existingWorksheet.teacher_id !== userId) {
+      console.error('❌ User does not own this worksheet:', {
+        worksheetTeacherId: existingWorksheet.teacher_id,
+        currentUserId: userId
+      });
+      throw new Error('You do not have permission to edit this worksheet');
+    }
+
     // Serialize the editable worksheet to JSON string for ai_response
     const updatedAiResponse = JSON.stringify(editableWorksheet);
     
@@ -35,12 +64,12 @@ export async function updateWorksheetAPI(
       aiResponseLength: updateData.ai_response?.length || 0
     });
 
-    // Use maybeSingle() for better error handling
+    // Perform the update
     const { data, error } = await supabase
       .from('worksheets')
       .update(updateData)
       .eq('id', worksheetId)
-      .eq('teacher_id', userId) // Ensure user can only update their own worksheets
+      .eq('teacher_id', userId) // Double-check security
       .select('id, title, last_modified_at')
       .maybeSingle();
 
@@ -50,8 +79,8 @@ export async function updateWorksheetAPI(
     }
 
     if (!data) {
-      console.error('❌ No worksheet found with ID:', worksheetId, 'for user:', userId);
-      throw new Error('Worksheet not found or you do not have permission to edit it');
+      console.error('❌ Update returned no data - this should not happen');
+      throw new Error('Update operation did not return data');
     }
 
     console.log('✅ Worksheet updated successfully:', data);
