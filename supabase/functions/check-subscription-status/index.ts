@@ -41,14 +41,51 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
+    // Use service role to get existing subscription record
+    const supabaseService = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
+    );
+
+    // Check if user ever had a subscription (exists in subscriptions table)
+    const { data: hasSubscriptionHistory } = await supabaseService
+      .from('subscriptions')
+      .select('id')
+      .eq('teacher_id', user.id)
+      .limit(1);
+
+    const userHasSubscriptionHistory = hasSubscriptionHistory && hasSubscriptionHistory.length > 0;
+    
+    console.log('[CHECK-SUBSCRIPTION] User has subscription history:', userHasSubscriptionHistory);
+
     // Find customer in Stripe
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length === 0) {
       console.log('[CHECK-SUBSCRIPTION] No Stripe customer found');
+      
+      // FIXED: For users without Stripe customer, set appropriate status based on subscription history
+      const subscriptionType = userHasSubscriptionHistory ? 'Inactive' : 'Free Demo';
+      const subscriptionStatus = userHasSubscriptionHistory ? 'cancelled' : 'active';
+      const isTokensFrozen = userHasSubscriptionHistory; // Only freeze if they had subscription before
+      
+      console.log('[CHECK-SUBSCRIPTION] Setting subscription type to:', subscriptionType, 'status:', subscriptionStatus, 'frozen:', isTokensFrozen);
+
+      await supabaseService
+        .from('profiles')
+        .update({
+          subscription_type: subscriptionType,
+          subscription_status: subscriptionStatus,
+          is_tokens_frozen: isTokensFrozen,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
       return new Response(
         JSON.stringify({ 
           subscribed: false, 
-          subscription_type: 'Free Demo',
+          subscription_type: subscriptionType,
+          subscription_status: subscriptionStatus,
           message: 'No subscription found' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -57,13 +94,6 @@ serve(async (req) => {
 
     const customerId = customers.data[0].id;
     console.log('[CHECK-SUBSCRIPTION] Found customer:', customerId);
-
-    // Use service role to get existing subscription record
-    const supabaseService = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
-    );
 
     // Get stored subscription record to find stripe_subscription_id
     const { data: storedSubscription } = await supabaseService
@@ -108,23 +138,19 @@ serve(async (req) => {
       if (subscriptions.data.length === 0) {
         console.log('[CHECK-SUBSCRIPTION] No active subscriptions');
         
-        // FIXED: Check if user ever had a subscription (exists in subscriptions table)
-        const { data: hasSubscriptionHistory } = await supabaseService
-          .from('subscriptions')
-          .select('id')
-          .eq('teacher_id', user.id)
-          .limit(1);
+        // FIXED: Determine subscription type based on subscription history
+        const subscriptionType = userHasSubscriptionHistory ? 'Inactive' : 'Free Demo';
+        const subscriptionStatus = userHasSubscriptionHistory ? 'cancelled' : 'active';
+        const isTokensFrozen = userHasSubscriptionHistory; // Only freeze if they had subscription before
         
-        // Determine subscription type based on subscription history
-        const subscriptionType = hasSubscriptionHistory && hasSubscriptionHistory.length > 0 ? 'Inactive' : 'Free Demo';
-        console.log('[CHECK-SUBSCRIPTION] Setting subscription type to:', subscriptionType, 'based on history:', hasSubscriptionHistory?.length || 0);
+        console.log('[CHECK-SUBSCRIPTION] Setting subscription type to:', subscriptionType, 'status:', subscriptionStatus, 'frozen:', isTokensFrozen, 'based on history:', userHasSubscriptionHistory);
 
         await supabaseService
           .from('profiles')
           .update({
             subscription_type: subscriptionType,
-            subscription_status: 'cancelled',
-            is_tokens_frozen: true,
+            subscription_status: subscriptionStatus,
+            is_tokens_frozen: isTokensFrozen,
             updated_at: new Date().toISOString()
           })
           .eq('id', user.id);
@@ -133,6 +159,7 @@ serve(async (req) => {
           JSON.stringify({ 
             subscribed: false, 
             subscription_type: subscriptionType,
+            subscription_status: subscriptionStatus,
             message: 'No active subscription found' 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
