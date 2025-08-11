@@ -43,7 +43,7 @@ const PrivacyPolicy = () => {
             <h2 className="text-2xl font-semibold text-foreground mb-4">2. Data Controller</h2>
             <div className="bg-muted p-4 rounded-lg">
               <p className="text-foreground mb-2"><strong>Company:</strong> Edooqoo</p>
-              <p className="text-foreground mb-2"><strong>Contact:</strong> privacy@edooqoo.com</p>
+              <p className="text-foreground mb-2"><strong>Contact:</strong> contact@edooqoo.com</p>
               <p className="text-foreground">
                 For any privacy-related questions or requests, please contact us at the above email address.
               </p>
@@ -175,7 +175,7 @@ const PrivacyPolicy = () => {
 
             <div className="bg-muted p-4 rounded-lg mt-4">
               <p className="text-foreground">
-                <strong>To exercise your rights:</strong> Contact us at privacy@edooqoo.com or use the account settings in your profile.
+                <strong>To exercise your rights:</strong> Contact us at contact@edooqoo.com or use the account settings in your profile.
               </p>
             </div>
           </section>
@@ -255,7 +255,7 @@ const PrivacyPolicy = () => {
                 If you have any questions about this Privacy Policy or our data practices, please contact us:
               </p>
               <div className="text-foreground">
-                <p className="mb-2"><strong>Email:</strong> privacy@edooqoo.com</p>
+                <p className="mb-2"><strong>Email:</strong> contact@edooqoo.com</p>
                 <p className="mb-2"><strong>Subject Line:</strong> Privacy Policy Inquiry</p>
                 <p><strong>Response Time:</strong> We aim to respond within 72 hours</p>
               </div>
