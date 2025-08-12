@@ -18,7 +18,7 @@ import { ConfirmDowngradeDialog } from '@/components/ConfirmDowngradeDialog';
 const Pricing = () => {
   const { user, isRegisteredUser } = useAuthFlow();
   const { tokenLeft, profile } = useTokenSystem(user?.id);
-  const { currentPlan, plans, canUpgradeTo, getUpgradePrice, getUpgradeTokens, getRecommendedFullTimePlan } = usePlanLogic(profile?.subscription_type);
+  const { currentPlan, plans, canUpgradeTo, getUpgradePrice, getUpgradeTokens, getRecommendedFullTimePlan, getRecommendedPlanByLessons } = usePlanLogic(profile?.subscription_type);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [selectedFullTimePlan, setSelectedFullTimePlan] = useState(getRecommendedFullTimePlan());
@@ -50,6 +50,29 @@ const Pricing = () => {
       setSelectedFullTimePlan(getRecommendedFullTimePlan());
     }
   }, [getRecommendedFullTimePlan, hasManuallyChanged]);
+
+  // NOWA LOGIKA: Obsługa rekomendacji z kalkulatora
+  const handleRecommendation = (plan: 'side-gig' | 'full-time', worksheetsNeeded: number, lessonsPerWeek?: number) => {
+    setRecommendedPlan(plan);
+    setRecommendedWorksheets(worksheetsNeeded);
+    
+    if (plan === 'full-time' && lessonsPerWeek && !hasManuallyChanged) {
+      // Użyj nowej funkcji do rekomendacji planu na podstawie lekcji
+      const recommendedTokens = getRecommendedPlanByLessons(lessonsPerWeek);
+      setSelectedFullTimePlan(recommendedTokens);
+    } else if (plan === 'full-time' && !hasManuallyChanged) {
+      // Fallback do poprzedniej logiki
+      const recommendedPlanOption = fullTimePlans.find(p => parseInt(p.tokens) >= worksheetsNeeded);
+      if (recommendedPlanOption) {
+        setSelectedFullTimePlan(recommendedPlanOption.tokens);
+      }
+    }
+  };
+
+  const handleManualPlanChange = (value: string) => {
+    setSelectedFullTimePlan(value);
+    setHasManuallyChanged(true);
+  };
 
   const faqItems = [
     {
@@ -114,24 +137,6 @@ const Pricing = () => {
     }
   ];
 
-  const handleRecommendation = (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => {
-    setRecommendedPlan(plan);
-    setRecommendedWorksheets(worksheetsNeeded);
-    
-    if (plan === 'full-time' && !hasManuallyChanged) {
-      const recommendedPlanOption = fullTimePlans.find(p => parseInt(p.tokens) >= worksheetsNeeded);
-      if (recommendedPlanOption) {
-        setSelectedFullTimePlan(recommendedPlanOption.tokens);
-      }
-    }
-  };
-
-  const handleManualPlanChange = (value: string) => {
-    setSelectedFullTimePlan(value);
-    setHasManuallyChanged(true);
-  };
-
-  // NEW: Handle downgrade confirmation
   const handleDowngradeConfirm = async () => {
     if (!pendingDowngrade) return;
     

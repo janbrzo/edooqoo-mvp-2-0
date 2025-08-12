@@ -108,6 +108,24 @@ export const usePlanLogic = (currentSubscriptionType?: string) => {
     return false;
   };
 
+  // NOWA FUNKCJA: Rekomenduje plan na podstawie liczby lekcji tygodniowo
+  const getRecommendedPlanByLessons = (lessonsPerWeek: number) => {
+    // Przelicz na miesiąc (4.3 tygodnia średnio w miesiącu)
+    const lessonsPerMonth = Math.ceil(lessonsPerWeek * 4.3);
+    
+    if (lessonsPerMonth <= 15) {
+      return '30'; // Side-gig lub minimum Full-Time
+    } else if (lessonsPerMonth <= 30) {
+      return '30';
+    } else if (lessonsPerMonth <= 60) {
+      return '60';
+    } else if (lessonsPerMonth <= 90) {
+      return '90';
+    } else {
+      return '120';
+    }
+  };
+
   const getRecommendedFullTimePlan = () => {
     if (currentPlan.type === 'free' || currentPlan.type === 'side-gig') {
       return '30';
@@ -130,5 +148,6 @@ export const usePlanLogic = (currentSubscriptionType?: string) => {
     getUpgradeTokens,
     canUpgradeTo,
     getRecommendedFullTimePlan,
+    getRecommendedPlanByLessons, // NOWA FUNKCJA
   };
 };
