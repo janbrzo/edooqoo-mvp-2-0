@@ -4,7 +4,6 @@ import { useToast } from "@/hooks/use-toast";
 import { generateWorksheet } from "@/services/worksheetService";
 import { FormData } from "@/components/WorksheetForm";
 import { v4 as uuidv4 } from 'uuid';
-import { mockWorksheetData } from '@/mockWorksheetData';
 import { formatPromptForAI, createFormDataForStorage } from "@/utils/promptFormatter";
 import { processExercises } from "@/utils/exerciseProcessor";
 import { getExpectedExerciseCount, validateWorksheet, createSampleVocabulary } from "@/utils/worksheetUtils";
@@ -213,36 +212,16 @@ export const useWorksheetGeneration = (
         }
       });
       
-      const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
-      const expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60min');
-      
-      fallbackWorksheet.exercises = fallbackWorksheet.exercises.slice(0, expectedExerciseCount);
-      
-      // FIXED: Pass correct parameters to fallback processExercises too
-      const hasGrammar = !!(data?.teachingPreferences && data.teachingPreferences.trim());
-      console.log('🔧 Processing fallback exercises with parameters:', { 
-        lessonTime: data?.lessonTime || '60min', 
-        hasGrammar,
-        exerciseCount: fallbackWorksheet.exercises.length 
-      });
-      
-      fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises, data?.lessonTime || '60min', hasGrammar);
-      fallbackWorksheet.id = temporaryWorksheetId;
-      
-      // CRITICAL FIX: Set worksheet ID first for fallback case too
-      worksheetState.setWorksheetId(temporaryWorksheetId);
-      setTimeout(() => {
-        worksheetState.setGeneratedWorksheet(fallbackWorksheet);
-        worksheetState.setEditableWorksheet(fallbackWorksheet);
-      }, 100);
-      
+      // REMOVED: Fallback worksheet logic - now just show error and stay on form
       toast({
-        title: "Using sample worksheet",
+        title: "Worksheet generation failed",
         description: error instanceof Error 
-          ? `Generation error: ${error.message}. Using a sample worksheet instead.` 
-          : "An unexpected error occurred. Using a sample worksheet instead.",
+          ? `Error: ${error.message}. Please try again with different parameters.` 
+          : "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
+      
+      // Don't clear the form data - user stays on form with preserved data
     } finally {
       console.log('🏁 Finishing generation process...');
       setIsGenerating(false);

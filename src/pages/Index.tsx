@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuthFlow } from "@/hooks/useAuthFlow";
@@ -26,6 +25,17 @@ const Index = () => {
   const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(user?.id || null, worksheetState, selectedStudentId);
   const { tokenLeft, hasTokens, isDemo, profile } = useTokenSystem(user?.id || null);
   const [showTokenModal, setShowTokenModal] = useState(false);
+
+  // Function to scroll to pricing section
+  const scrollToPricing = () => {
+    const pricingSection = document.getElementById('pricing-section');
+    if (pricingSection) {
+      pricingSection.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
 
   // Check for pre-selected student from student page
   useEffect(() => {
@@ -141,11 +151,9 @@ const Index = () => {
   // Navigation component for anonymous users
   const AnonymousNav = () => (
     <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
-      <Button asChild variant="outline" size="sm">
-        <Link to="/pricing">
-          <DollarSign className="h-4 w-4 mr-2" />
-          Pricing
-        </Link>
+      <Button onClick={scrollToPricing} variant="outline" size="sm">
+        <DollarSign className="h-4 w-4 mr-2" />
+        Pricing
       </Button>
       <Button asChild variant="outline" size="sm">
         <Link to="/login">Login</Link>
@@ -172,7 +180,11 @@ const Index = () => {
           />
           
           {/* Add pricing section below the form for anonymous users */}
-          {!isRegisteredUser && <PricingSection />}
+          {!isRegisteredUser && (
+            <div id="pricing-section">
+              <PricingSection />
+            </div>
+          )}
         </>
       ) : (
         <GenerationView 
