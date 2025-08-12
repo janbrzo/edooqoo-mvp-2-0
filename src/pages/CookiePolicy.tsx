@@ -181,9 +181,8 @@ const CookiePolicy = () => {
               </p>
               <div className="bg-gray-50 dark:bg-gray-900/20 p-4 rounded-lg border">
                 <p className="text-sm">
-                  <strong>Email:</strong> privacy@edooqoo.com<br />
+                  <strong>Email:</strong> contact@edooqoo.com<br />
                   <strong>Website:</strong> https://edooqoo.com<br />
-                  <strong>Address:</strong> [Your Business Address]
                 </p>
               </div>
             </section>
