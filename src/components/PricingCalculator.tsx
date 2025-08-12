@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,7 @@ import { Calculator, TrendingUp, Clock, Plus, Minus, Info } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 
 interface PricingCalculatorProps {
-  onRecommendation: (plan: 'side-gig' | 'full-time', worksheetsNeeded: number) => void;
+  onRecommendation: (plan: 'side-gig' | 'full-time', worksheetsNeeded: number, lessonsPerWeek?: number) => void;
 }
 
 export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommendation }) => {
@@ -91,7 +92,8 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({ onRecommen
     setRecommendedPlan(planType);
     setRecommendedWorksheets(recommendedWorksheetCount);
     
-    onRecommendation(planType, recommendedWorksheetCount);
+    // Pass lessons per week to parent for proper dropdown handling
+    onRecommendation(planType, recommendedWorksheetCount, lessonsPerWeek);
   }, [prepTime, lessonPrice, lessonsPerWeek, onRecommendation, profile]);
 
   const handleIncrement = (field: 'prepTime' | 'lessonPrice' | 'lessonsPerWeek') => {

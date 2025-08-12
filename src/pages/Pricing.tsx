@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Check, User, GraduationCap, Zap, Users, Gift, ChevronDown, ChevronUp, Mail } from 'lucide-react';
+import { Check, User, GraduationCap, Zap, Users, Gift, ChevronDown, ChevronUp, Mail, FileText, DollarSign } from 'lucide-react';
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useTokenSystem } from '@/hooks/useTokenSystem';
 import { usePlanLogic } from '@/hooks/usePlanLogic';
@@ -26,6 +26,7 @@ const Pricing = () => {
   const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
   const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
   const [hasManuallyChanged, setHasManuallyChanged] = useState(false);
+  const [lastInteraction, setLastInteraction] = useState<'calculator' | 'manual' | 'default'>('default');
   const [openFaqItems, setOpenFaqItems] = useState<number[]>([]);
   const [showEmailConfirmationModal, setShowEmailConfirmationModal] = useState(false);
 
@@ -46,25 +47,24 @@ const Pricing = () => {
   const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
 
   useEffect(() => {
-    if (!hasManuallyChanged) {
+    // Only set default on initial load, not when user has manually changed or calculator updated
+    if (lastInteraction === 'default') {
       setSelectedFullTimePlan(getRecommendedFullTimePlan());
     }
-  }, [getRecommendedFullTimePlan, hasManuallyChanged]);
+  }, [getRecommendedFullTimePlan, lastInteraction]);
 
-  // NOWA LOGIKA: Obsługa rekomendacji z kalkulatora
+  // Handle calculator recommendations with proper priority logic
   const handleRecommendation = (plan: 'side-gig' | 'full-time', worksheetsNeeded: number, lessonsPerWeek?: number) => {
     setRecommendedPlan(plan);
     setRecommendedWorksheets(worksheetsNeeded);
     
-    if (plan === 'full-time' && lessonsPerWeek && !hasManuallyChanged) {
-      // Użyj nowej funkcji do rekomendacji planu na podstawie lekcji
+    // Only update dropdown if user hasn't manually overridden or if this is a new calculator interaction
+    if (plan === 'full-time' && lessonsPerWeek && lastInteraction !== 'manual') {
       const recommendedTokens = getRecommendedPlanByLessons(lessonsPerWeek);
-      setSelectedFullTimePlan(recommendedTokens);
-    } else if (plan === 'full-time' && !hasManuallyChanged) {
-      // Fallback do poprzedniej logiki
-      const recommendedPlanOption = fullTimePlans.find(p => parseInt(p.tokens) >= worksheetsNeeded);
-      if (recommendedPlanOption) {
-        setSelectedFullTimePlan(recommendedPlanOption.tokens);
+      if (recommendedTokens !== selectedFullTimePlan) {
+        setSelectedFullTimePlan(recommendedTokens);
+        setLastInteraction('calculator');
+        setHasManuallyChanged(false);
       }
     }
   };
@@ -72,6 +72,7 @@ const Pricing = () => {
   const handleManualPlanChange = (value: string) => {
     setSelectedFullTimePlan(value);
     setHasManuallyChanged(true);
+    setLastInteraction('manual');
   };
 
   const faqItems = [
@@ -399,12 +400,26 @@ const Pricing = () => {
               </>
             )}
             {!isRegisteredUser && (
-              <Button asChild variant="outline">
-                <Link to="/login" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Sign In
-                </Link>
-              </Button>
+              <div className="flex gap-3">
+                <Button asChild variant="outline">
+                  <Link to="/login" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Login
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/signup" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Get Started Free
+                  </Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link to="/" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Generate Worksheet
+                  </Link>
+                </Button>
+              </div>
             )}
           </div>
           

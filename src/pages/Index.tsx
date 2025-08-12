@@ -11,8 +11,9 @@ import GeneratingModal from "@/components/GeneratingModal";
 import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";
 import { TokenPaywallModal } from "@/components/TokenPaywallModal";
+import { PricingSection } from "@/components/PricingSection";
 import { deepFixTextObjects } from "@/utils/textObjectFixer";
-import { User, GraduationCap } from "lucide-react";
+import { User, GraduationCap, DollarSign } from "lucide-react";
 
 /**
  * Main Index page component that handles worksheet generation and display
@@ -141,7 +142,13 @@ const Index = () => {
   const AnonymousNav = () => (
     <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
       <Button asChild variant="outline" size="sm">
-        <Link to="/login">Log in</Link>
+        <Link to="/pricing">
+          <DollarSign className="h-4 w-4 mr-2" />
+          Pricing
+        </Link>
+      </Button>
+      <Button asChild variant="outline" size="sm">
+        <Link to="/login">Login</Link>
       </Button>
       <Button asChild size="sm">
         <Link to="/signup">Get Started Free</Link>
@@ -155,13 +162,18 @@ const Index = () => {
       {isRegisteredUser ? <AuthenticatedNav /> : <AnonymousNav />}
       
       {!bothWorksheetsReady ? (
-        <FormView 
-          onSubmit={handleGenerateWorksheet} 
-          userId={user?.id || null} 
-          onStudentChange={setSelectedStudentId}
-          preSelectedStudent={preSelectedStudent}
-          isRegisteredUser={!!isRegisteredUser}
-        />
+        <>
+          <FormView 
+            onSubmit={handleGenerateWorksheet} 
+            userId={user?.id || null} 
+            onStudentChange={setSelectedStudentId}
+            preSelectedStudent={preSelectedStudent}
+            isRegisteredUser={!!isRegisteredUser}
+          />
+          
+          {/* Add pricing section below the form for anonymous users */}
+          {!isRegisteredUser && <PricingSection />}
+        </>
       ) : (
         <GenerationView 
           worksheetId={worksheetState.worksheetId}
