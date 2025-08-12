@@ -1,206 +1,324 @@
 
-import React from "react";
-import { PricingCalculator } from "@/components/PricingCalculator";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle } from "lucide-react";
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Check, User, GraduationCap, Zap, Users, Gift } from 'lucide-react';
+import { useAuthFlow } from '@/hooks/useAuthFlow';
+import { useTokenSystem } from '@/hooks/useTokenSystem';
+import { usePlanLogic } from '@/hooks/usePlanLogic';
+import { PricingCalculator } from '@/components/PricingCalculator';
 
-const PricingSection = () => {
-  const handleSubscription = async (planType: string, monthlyLimit: number, price: number, planName: string) => {
-    console.log(`Subscribe to ${planName}: ${monthlyLimit} worksheets for $${price}`);
-    // Implementation would go here
+export const PricingSection = () => {
+  const { user, isRegisteredUser } = useAuthFlow();
+  const { tokenLeft, profile } = useTokenSystem(user?.id);
+  const { currentPlan, plans, canUpgradeTo, getUpgradePrice, getUpgradeTokens, getRecommendedFullTimePlan, getRecommendedPlanByLessons } = usePlanLogic(profile?.subscription_type);
+  const [selectedFullTimePlan, setSelectedFullTimePlan] = useState(getRecommendedFullTimePlan());
+  const [recommendedPlan, setRecommendedPlan] = useState<'side-gig' | 'full-time'>('side-gig');
+  const [recommendedWorksheets, setRecommendedWorksheets] = useState(15);
+  const [hasManuallyChanged, setHasManuallyChanged] = useState(false);
+  const [lastInteraction, setLastInteraction] = useState<'calculator' | 'manual'>('calculator');
+
+  const fullTimePlans = [
+    { tokens: '30', price: 19 },
+    { tokens: '60', price: 39 },
+    { tokens: '90', price: 59 },
+    { tokens: '120', price: 79 }
+  ];
+
+  const selectedPlan = fullTimePlans.find(plan => plan.tokens === selectedFullTimePlan);
+
+  const handleRecommendation = (plan: 'side-gig' | 'full-time', worksheetsNeeded: number, lessonsPerWeek?: number) => {
+    setRecommendedPlan(plan);
+    setRecommendedWorksheets(worksheetsNeeded);
+    setLastInteraction('calculator');
+    
+    if (plan === 'full-time' && lessonsPerWeek) {
+      const recommendedTokens = getRecommendedPlanByLessons(lessonsPerWeek);
+      if (recommendedTokens !== selectedFullTimePlan) {
+        setSelectedFullTimePlan(recommendedTokens);
+        setHasManuallyChanged(false);
+      }
+    }
+  };
+
+  const handleManualPlanChange = (value: string) => {
+    setSelectedFullTimePlan(value);
+    setHasManuallyChanged(true);
+    setLastInteraction('manual');
+  };
+
+  const sideGigPlan = plans.find(p => p.id === 'side-gig');
+  const canUpgradeToSideGig = sideGigPlan ? canUpgradeTo(sideGigPlan) : false;
+  const sideGigUpgradePrice = sideGigPlan ? getUpgradePrice(sideGigPlan) : 0;
+  const isSideGigLowerPlan = currentPlan.type === 'full-time' && !!sideGigPlan;
+
+  const fullTimePlan = plans.find(p => p.tokens === parseInt(selectedFullTimePlan) && p.type === 'full-time');
+  const canUpgradeToFullTime = fullTimePlan ? canUpgradeTo(fullTimePlan) : false;
+  const fullTimeUpgradePrice = fullTimePlan ? getUpgradePrice(fullTimePlan) : 0;
+
+  const isFullTimeDowngrade = fullTimePlan && currentPlan.type === 'full-time' && fullTimePlan.tokens < currentPlan.tokens;
+
+  const getButtonText = (planType: 'free' | 'side-gig' | 'full-time') => {
+    if (planType === 'free') {
+      if (!isRegisteredUser) return 'Get Started Free';
+      return currentPlan.type === 'free' ? 'Current Plan' : 'Get Started Free';
+    }
+    
+    if (planType === 'side-gig') {
+      if (isSideGigLowerPlan) return 'Lower Plan';
+      if (!canUpgradeToSideGig) return 'Current Plan';
+      return currentPlan.type === 'free' ? 'Choose Side-Gig' : 'Upgrade to Side-Gig';
+    }
+    
+    if (planType === 'full-time') {
+      if (isFullTimeDowngrade) return 'Lower Plan';
+      if (!canUpgradeToFullTime) return 'Current Plan';
+      return currentPlan.type === 'free' ? 'Choose Full-Time' : 'Upgrade to Full-Time';
+    }
+    
+    return 'Choose Plan';
+  };
+
+  const isButtonDisabled = (planType: 'free' | 'side-gig' | 'full-time') => {
+    if (planType === 'free') {
+      if (!isRegisteredUser) return false;
+      return currentPlan.type !== 'free';
+    }
+    
+    if (planType === 'side-gig') {
+      return !isSideGigLowerPlan && !canUpgradeToSideGig;
+    }
+    
+    if (planType === 'full-time') {
+      return !isFullTimeDowngrade && !canUpgradeToFullTime;
+    }
+    
+    return false;
   };
 
   return (
-    <section id="pricing" className="py-16 bg-gradient-to-b from-gray-50 to-white">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Choose Your Perfect Plan
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Calculate exactly what you need and upgrade anytime. All plans include unlimited editing and downloads.
-          </p>
+    <div className="bg-gradient-to-br from-background to-secondary/20 p-4 mt-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold mb-4">Choose Your Plan</h2>
+          <p className="text-muted-foreground">See how much you can save with our worksheet generator</p>
         </div>
 
-        {/* Pricing Calculator */}
-        <div className="mb-16">
-          <PricingCalculator />
-        </div>
+        <PricingCalculator onRecommendation={handleRecommendation} />
 
-        {/* Plan Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
-          {/* Side-Gig Plan */}
-          <Card className="relative border-2 border-gray-200 hover:border-blue-300 transition-colors">
-            <CardHeader className="text-center pb-8">
-              <CardTitle className="text-2xl font-bold text-gray-900">Side-Gig</CardTitle>
-              <CardDescription className="text-gray-600">Perfect for occasional tutoring</CardDescription>
+        <div className="grid lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          
+          <Card className="relative">
+            <CardHeader className="text-center pb-6">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Gift className="h-5 w-5 text-primary" />
+                <CardTitle className="text-xl">Free Demo</CardTitle>
+              </div>
+              <CardDescription className="text-base">
+                Try our worksheet generator
+              </CardDescription>
               <div className="mt-4">
-                <div className="text-4xl font-bold text-gray-900">$19</div>
-                <div className="text-gray-600">/month</div>
-                <Badge variant="secondary" className="mt-2">20 worksheets</Badge>
+                <span className="text-4xl font-bold">$0</span>
+                <span className="text-lg text-muted-foreground">/forever</span>
+              </div>
+              <div className="mt-2">
+                <Badge variant="secondary">2 free tokens + limited access</Badge>
+              </div>
+              <div className="mt-1">
+                <p className="text-xs text-muted-foreground">Free per worksheet</p>
               </div>
             </CardHeader>
+            
             <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">20 AI worksheets/month</span>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">2 free tokens on signup</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">Unlimited editing & downloads</span>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Worksheets are editable</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">Student progress tracking</span>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Student management</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">Email support</span>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Export to HTML & PDF</span>
                 </div>
               </div>
+              
               <Button 
-                className="w-full mt-6" 
-                onClick={() => handleSubscription('side-gig', 20, 19, 'Side-Gig')}
+                className="w-full h-10" 
+                asChild
+                disabled={isButtonDisabled('free')}
               >
-                Get Started
+                <Link to="/signup">{getButtonText('free')}</Link>
               </Button>
             </CardContent>
           </Card>
 
-          {/* Full-Time Plans */}
-          <Card className="relative border-2 border-blue-300 bg-blue-50 hover:border-blue-400 transition-colors">
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-              <Badge className="bg-blue-500 text-white px-4 py-1">Most Popular</Badge>
-            </div>
-            <CardHeader className="text-center pb-8">
-              <CardTitle className="text-2xl font-bold text-gray-900">Full-Time 30</CardTitle>
-              <CardDescription className="text-gray-600">Great for growing practices</CardDescription>
+          <Card className={`relative ${recommendedPlan === 'side-gig' ? 'border-primary shadow-lg' : ''}`}>
+            {recommendedPlan === 'side-gig' && (
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold whitespace-nowrap">
+                  RECOMMENDED FOR YOU
+                </Badge>
+              </div>
+            )}
+            
+            <CardHeader className="text-center pb-6">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Users className="h-5 w-5 text-primary" />
+                <CardTitle className="text-xl">Side-Gig Plan</CardTitle>
+              </div>
+              <CardDescription className="text-base">
+                Perfect for part-time English teachers
+              </CardDescription>
               <div className="mt-4">
-                <div className="text-4xl font-bold text-gray-900">$39</div>
-                <div className="text-gray-600">/month</div>
-                <Badge variant="secondary" className="mt-2">30 worksheets</Badge>
+                <span className="text-4xl font-bold">$9</span>
+                <span className="text-lg text-muted-foreground">/month</span>
+              </div>
+              <div className="mt-2">
+                <Badge variant="secondary">15 worksheets / month</Badge>
+                {currentPlan.type !== 'free' && canUpgradeToSideGig && !isSideGigLowerPlan && (
+                  <Badge variant="outline" className="mt-1">
+                    Upgrade now for ${sideGigUpgradePrice}
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-1">
+                <p className="text-xs text-muted-foreground">$0.60 per worksheet</p>
               </div>
             </CardHeader>
+            
             <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">30 AI worksheets/month</span>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">15 monthly worksheet credits</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">Everything in Side-Gig</span>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Unused worksheets carry forward</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">Priority support</span>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Worksheets are editable</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">Advanced analytics</span>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Student management</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Export to HTML & PDF</span>
                 </div>
               </div>
+              
               <Button 
-                className="w-full mt-6" 
-                onClick={() => handleSubscription('full-time-30', 30, 39, 'Full-Time 30')}
+                className="w-full h-10"
+                asChild
+                disabled={isButtonDisabled('side-gig')}
               >
-                Get Started
+                <Link to="/pricing">{getButtonText('side-gig')}</Link>
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="relative border-2 border-gray-200 hover:border-blue-300 transition-colors">
-            <CardHeader className="text-center pb-8">
-              <CardTitle className="text-2xl font-bold text-gray-900">Full-Time 60</CardTitle>
-              <CardDescription className="text-gray-600">For busy professionals</CardDescription>
-              <div className="mt-4">
-                <div className="text-4xl font-bold text-gray-900">$69</div>
-                <div className="text-gray-600">/month</div>
-                <Badge variant="secondary" className="mt-2">60 worksheets</Badge>
+          <Card className={`relative ${recommendedPlan === 'full-time' ? 'border-primary shadow-lg' : ''}`}>
+            {recommendedPlan === 'full-time' && (
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold whitespace-nowrap">
+                  RECOMMENDED FOR YOU
+                </Badge>
+              </div>
+            )}
+            
+            <CardHeader className="text-center pb-6">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Zap className="h-5 w-5 text-primary" />
+                <CardTitle className="text-xl">Full-Time Plan</CardTitle>
+              </div>
+              <CardDescription className="text-base">
+                For professional English teachers
+              </CardDescription>
+              
+              <div className="mt-4 space-y-3">
+                <Select value={selectedFullTimePlan} onValueChange={handleManualPlanChange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fullTimePlans.map((plan) => (
+                      <SelectItem key={plan.tokens} value={plan.tokens}>
+                        {plan.tokens} worksheets/month
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <div className="text-center">
+                  <span className="text-4xl font-bold">
+                    ${selectedPlan?.price}
+                  </span>
+                  <span className="text-lg text-muted-foreground">/month</span>
+                </div>
+                <div>
+                  <Badge variant="secondary">{selectedFullTimePlan} worksheets / month</Badge>
+                  {currentPlan.type !== 'free' && canUpgradeToFullTime && !isFullTimeDowngrade && (
+                    <Badge variant="outline" className="mt-1">
+                      Upgrade now for ${fullTimeUpgradePrice}
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-1">
+                  <p className="text-xs text-muted-foreground">
+                    ${((selectedPlan?.price || 19) / parseInt(selectedFullTimePlan)).toFixed(2)} per worksheet
+                  </p>
+                </div>
               </div>
             </CardHeader>
+            
             <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">60 AI worksheets/month</span>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">{selectedFullTimePlan} monthly worksheet credits</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">Everything in Full-Time 30</span>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Unused worksheets carry forward</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">Bulk export features</span>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Worksheets are editable</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">Custom templates</span>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Student management</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Export to HTML & PDF</span>
                 </div>
               </div>
+              
               <Button 
-                className="w-full mt-6" 
-                onClick={() => handleSubscription('full-time-60', 60, 69, 'Full-Time 60')}
+                className="w-full h-10 bg-primary hover:bg-primary/90"
+                asChild
+                disabled={isButtonDisabled('full-time')}
               >
-                Get Started
+                <Link to="/pricing">{getButtonText('full-time')}</Link>
               </Button>
             </CardContent>
           </Card>
-
-          <Card className="relative border-2 border-gray-200 hover:border-blue-300 transition-colors">
-            <CardHeader className="text-center pb-8">
-              <CardTitle className="text-2xl font-bold text-gray-900">Full-Time 90</CardTitle>
-              <CardDescription className="text-gray-600">Maximum productivity</CardDescription>
-              <div className="mt-4">
-                <div className="text-4xl font-bold text-gray-900">$99</div>
-                <div className="text-gray-600">/month</div>
-                <Badge variant="secondary" className="mt-2">90 worksheets</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">90 AI worksheets/month</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">Everything in Full-Time 60</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">API access</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-700">White-label options</span>
-                </div>
-              </div>
-              <Button 
-                className="w-full mt-6" 
-                onClick={() => handleSubscription('full-time-90', 90, 99, 'Full-Time 90')}
-              >
-                Get Started
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Additional Info */}
-        <div className="text-center mt-12">
-          <p className="text-gray-600 mb-4">
-            Need more than 90 worksheets? Contact us for enterprise pricing.
-          </p>
-          <p className="text-sm text-gray-500">
-            All plans include 7-day free trial • Cancel anytime • No setup fees
-          </p>
         </div>
       </div>
-    </section>
+    </div>
   );
 };
-
-export default PricingSection;

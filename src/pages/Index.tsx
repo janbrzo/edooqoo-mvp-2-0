@@ -11,7 +11,7 @@ import GeneratingModal from "@/components/GeneratingModal";
 import FormView from "@/components/worksheet/FormView";
 import GenerationView from "@/components/worksheet/GenerationView";
 import { TokenPaywallModal } from "@/components/TokenPaywallModal";
-import PricingSection from "@/components/PricingSection";
+import { PricingSection } from "@/components/PricingSection";
 import { deepFixTextObjects } from "@/utils/textObjectFixer";
 import { User, GraduationCap, DollarSign } from "lucide-react";
 
@@ -23,7 +23,7 @@ const Index = () => {
   const worksheetState = useWorksheetState(authLoading);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [preSelectedStudent, setPreSelectedStudent] = useState<{id: string, name: string} | null>(null);
-  const { isGenerating, generateWorksheetHandler, generationError, clearError } = useWorksheetGeneration(user?.id || null, worksheetState, selectedStudentId);
+  const { isGenerating, generateWorksheetHandler } = useWorksheetGeneration(user?.id || null, worksheetState, selectedStudentId);
   const { tokenLeft, hasTokens, isDemo, profile } = useTokenSystem(user?.id || null);
   const [showTokenModal, setShowTokenModal] = useState(false);
 
@@ -117,14 +117,6 @@ const Index = () => {
     generateWorksheetHandler(data);
   };
 
-  // Function to scroll to pricing section
-  const scrollToPricing = () => {
-    const pricingSection = document.getElementById('pricing');
-    if (pricingSection) {
-      pricingSection.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   // Navigation component for authenticated users
   const AuthenticatedNav = () => (
     <div className="absolute top-4 right-4 z-50 flex items-center gap-4">
@@ -149,9 +141,11 @@ const Index = () => {
   // Navigation component for anonymous users
   const AnonymousNav = () => (
     <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
-      <Button onClick={scrollToPricing} variant="outline" size="sm">
-        <DollarSign className="h-4 w-4 mr-2" />
-        Pricing
+      <Button asChild variant="outline" size="sm">
+        <Link to="/pricing">
+          <DollarSign className="h-4 w-4 mr-2" />
+          Pricing
+        </Link>
       </Button>
       <Button asChild variant="outline" size="sm">
         <Link to="/login">Login</Link>
@@ -175,8 +169,6 @@ const Index = () => {
             onStudentChange={setSelectedStudentId}
             preSelectedStudent={preSelectedStudent}
             isRegisteredUser={!!isRegisteredUser}
-            generationError={generationError}
-            onClearError={clearError}
           />
           
           {/* Add pricing section below the form for anonymous users */}

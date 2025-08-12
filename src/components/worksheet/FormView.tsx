@@ -9,9 +9,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
-import { User, GraduationCap, AlertTriangle, X } from "lucide-react";
+import { User, GraduationCap } from "lucide-react";
 
 interface FormViewProps {
   onSubmit: (data: FormData) => void;
@@ -19,8 +18,6 @@ interface FormViewProps {
   onStudentChange?: (studentId: string | null) => void;
   preSelectedStudent?: { id: string; name: string } | null;
   isRegisteredUser?: boolean;
-  generationError?: string | null;
-  onClearError?: () => void;
 }
 
 const FormView: React.FC<FormViewProps> = ({ 
@@ -28,9 +25,7 @@ const FormView: React.FC<FormViewProps> = ({
   userId, 
   onStudentChange, 
   preSelectedStudent,
-  isRegisteredUser = false,
-  generationError,
-  onClearError
+  isRegisteredUser = false
 }) => {
   const isMobile = useIsMobile();
   const [couponCode, setCouponCode] = useState("");
@@ -70,30 +65,6 @@ const FormView: React.FC<FormViewProps> = ({
           </div>
         )}
         <div className={`${isMobile ? 'w-full px-2 py-2' : 'w-4/5 px-6 py-6'} form-container relative z-10`}>
-          {/* Error Banner */}
-          {generationError && (
-            <Alert className="mb-6 border-red-200 bg-red-50">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800 flex justify-between items-center">
-                <span>
-                  <strong>Generation Error:</strong> {generationError}
-                  <br />
-                  <em>Please check your input and try again.</em>
-                </span>
-                {onClearError && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onClearError}
-                    className="text-red-600 hover:text-red-800 hover:bg-red-100"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </AlertDescription>
-            </Alert>
-          )}
-          
           <WorksheetForm 
             onSubmit={onSubmit} 
             onStudentChange={onStudentChange} 

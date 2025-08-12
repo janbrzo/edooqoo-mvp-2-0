@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { generateWorksheet } from "@/services/worksheetService";
 import { FormData } from "@/components/WorksheetForm";
 import { v4 as uuidv4 } from 'uuid';
+import { mockWorksheetData } from '@/mockWorksheetData';
 import { formatPromptForAI, createFormDataForStorage } from "@/utils/promptFormatter";
 import { processExercises } from "@/utils/exerciseProcessor";
 import { getExpectedExerciseCount, validateWorksheet, createSampleVocabulary } from "@/utils/worksheetUtils";
@@ -18,7 +19,6 @@ export const useWorksheetGeneration = (
 ) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [startGenerationTime, setStartGenerationTime] = useState<number>(0);
-  const [generationError, setGenerationError] = useState<string | null>(null);
   const { toast } = useToast();
   const { trackEvent } = useEventTracking(userId);
   const { tokenLeft, hasTokens, isDemo, consumeToken } = useTokenSystem(userId);
@@ -31,9 +31,6 @@ export const useWorksheetGeneration = (
       hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim()),
       studentId
     });
-
-    // Clear any previous error
-    setGenerationError(null);
 
     // Check token requirements for authenticated users
     if (!isDemo && !hasTokens) {
@@ -216,16 +213,34 @@ export const useWorksheetGeneration = (
         }
       });
       
-      // NEW: Store error and preserve form data instead of showing mock
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during worksheet generation.';
-      setGenerationError(errorMessage);
+      const fallbackWorksheet = JSON.parse(JSON.stringify(mockWorksheetData));
+      const expectedExerciseCount = getExpectedExerciseCount(data?.lessonTime || '60min');
       
-      // Preserve the input params so form can be restored
-      worksheetState.setInputParams(data);
+      fallbackWorksheet.exercises = fallbackWorksheet.exercises.slice(0, expectedExerciseCount);
+      
+      // FIXED: Pass correct parameters to fallback processExercises too
+      const hasGrammar = !!(data?.teachingPreferences && data.teachingPreferences.trim());
+      console.log('🔧 Processing fallback exercises with parameters:', { 
+        lessonTime: data?.lessonTime || '60min', 
+        hasGrammar,
+        exerciseCount: fallbackWorksheet.exercises.length 
+      });
+      
+      fallbackWorksheet.exercises = processExercises(fallbackWorksheet.exercises, data?.lessonTime || '60min', hasGrammar);
+      fallbackWorksheet.id = temporaryWorksheetId;
+      
+      // CRITICAL FIX: Set worksheet ID first for fallback case too
+      worksheetState.setWorksheetId(temporaryWorksheetId);
+      setTimeout(() => {
+        worksheetState.setGeneratedWorksheet(fallbackWorksheet);
+        worksheetState.setEditableWorksheet(fallbackWorksheet);
+      }, 100);
       
       toast({
-        title: "Worksheet generation failed",
-        description: errorMessage,
+        title: "Using sample worksheet",
+        description: error instanceof Error 
+          ? `Generation error: ${error.message}. Using a sample worksheet instead.` 
+          : "An unexpected error occurred. Using a sample worksheet instead.",
         variant: "destructive"
       });
     } finally {
@@ -249,15 +264,9 @@ export const useWorksheetGeneration = (
     }
   };
 
-  const clearError = () => {
-    setGenerationError(null);
-  };
-
   return {
     isGenerating,
     generateWorksheetHandler,
-    generationError,
-    clearError,
     tokenLeft,
     hasTokens,
     isDemo
