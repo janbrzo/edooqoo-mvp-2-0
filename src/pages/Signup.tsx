@@ -104,7 +104,7 @@ const Signup = () => {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
           <CardDescription className="text-center">
-            Join thousands of English teachers creating amazing worksheets
+            Create Worksheets Tailored to your students. In seconds.
           </CardDescription>
         </CardHeader>
         <CardContent>
