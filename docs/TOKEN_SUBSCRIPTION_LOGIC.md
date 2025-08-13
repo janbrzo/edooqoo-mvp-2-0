@@ -1,29 +1,33 @@
 
-# Token & Subscription System Documentation
+# Token & Subscription System Documentation - ETAP 2
 
 ## Overview
-The application uses a dual-token system combining monthly worksheet allowances with purchasable tokens, designed to maximize value for users while providing flexible payment options.
+The application implements a comprehensive account-based system with subscription plans and token management. Anonymous generation has been removed - all users must create accounts to generate worksheets.
 
-## Core Concepts
+## Core Concepts - ETAP 2
+
+### Account Requirements
+- **Registration mandatory**: All worksheet generation requires user account
+- **Email verification**: Required for full feature access
+- **Student management**: Must add students before generating worksheets
+- **Automatic download unlock**: Registered users get immediate download access
 
 ### Account Types
-1. **Anonymous Users**: Can generate worksheets for free, must pay $1 per download session
-2. **Registered Users**: Get automatic download unlock + token/subscription benefits
-3. **Free Demo**: 2 free tokens on signup, no monthly allowance
-4. **Side-Gig Plan**: 15 monthly worksheets + rollover system
-5. **Full-Time Plans**: 30-120 monthly worksheets + rollover system
+1. **Free Demo Plan**: 2 free tokens on signup, no monthly allowance
+2. **Side-Gig Plan**: 15 monthly worksheets + rollover system ($9/month)
+3. **Full-Time Plans**: 30-120 monthly worksheets + rollover system ($19-79/month)
 
 ## Token Consumption Logic
 
 ### Priority Order (Critical Implementation Detail)
 ```
-1. Monthly worksheet allowance (if available)
+1. Monthly worksheet allowance (if available and > 0)
 2. Available tokens (purchased + rollover)
 3. Block generation if insufficient resources
 ```
 
 ### Database Fields
-- `monthly_worksheet_limit`: Plan allowance (15, 30, 60, 90, 120)
+- `monthly_worksheet_limit`: Plan allowance (0, 15, 30, 60, 90, 120)
 - `monthly_worksheets_used`: Current month consumption
 - `available_tokens`: Purchased tokens + rollover tokens
 - `rollover_tokens`: Carried forward from unused monthly allowances
@@ -32,7 +36,7 @@ The application uses a dual-token system combining monthly worksheet allowances 
 ### Monthly Worksheet Calculation
 ```sql
 monthly_remaining = monthly_worksheet_limit - monthly_worksheets_used
-can_use_monthly = monthly_remaining > 0
+can_use_monthly = monthly_remaining > 0 AND monthly_worksheet_limit > 0
 ```
 
 ### Token Availability Check
@@ -54,49 +58,108 @@ total_available = available_tokens + (
 
 ### Token Integration
 - **Available tokens** = purchased tokens + rollover tokens
-- **Usage priority**: Purchased tokens used before rollover tokens
-- **Expiration**: Rollover tokens never expire
+- **Usage priority**: Monthly allowance → purchased tokens → rollover tokens
+- **Expiration**: Rollover tokens and purchased tokens never expire
 
-## Download Access Control
+## Worksheet Generation Requirements - ETAP 2
 
-### Anonymous Users
-- **Generation**: Free, unlimited
-- **Download**: Requires $1 payment per session (~24 hours)
-- **Session storage**: Uses `downloadToken` and `downloadTokenExpiry`
-- **No auto-unlock**: Must pay regardless of worksheet source
+### Prerequisites
+1. **Valid user account** with confirmed email
+2. **At least one student** added to account
+3. **Sufficient resources** (monthly worksheets or tokens)
+4. **Student selection** during generation process
 
-### Registered Users
-- **Auto-unlock condition**: Valid `userId` (not null, not 'anonymous')
-- **Session duration**: Long-term (1 year token)
-- **No payment required**: Downloads automatically available
-
-### Critical Security Check
+### Generation Flow
 ```typescript
-// In useDownloadStatus.tsx
-const checkTokenGeneratedWorksheet = (worksheetId: string, userId?: string) => {
-  if (!userId || userId === 'anonymous') {
-    console.log('❌ No valid userId - anonymous user must pay');
-    return; // Prevents auto-unlock for anonymous users
-  }
-  // Auto-unlock for authenticated users only
-};
+// Check authentication
+if (!user || !user.email_confirmed_at) {
+  redirect_to_login();
+  return;
+}
+
+// Check student requirement
+if (students.length === 0) {
+  show_add_student_prompt();
+  return;
+}
+
+// Check resource availability
+if (monthly_remaining > 0) {
+  consume_monthly_worksheet();
+} else if (available_tokens > 0) {
+  consume_token();
+} else {
+  show_upgrade_modal();
+  return;
+}
+```
+
+## Download Access Control - ETAP 2
+
+### Registered Users (All Users in ETAP 2)
+- **Auto-unlock condition**: Valid authenticated user
+- **No payment required**: Downloads included with account
+- **Immediate access**: Both Student and Teacher versions
+- **Persistent access**: Re-download anytime
+
+### Download Process
+```typescript
+// All authenticated users get downloads automatically
+const canDownload = !!user?.id && user.email_confirmed_at;
+```
+
+## Subscription Management
+
+### Plan Upgrade Logic
+```typescript
+// Immediate effect for upgrades
+const upgradePrice = (newPlan.price - currentPlan.price) * remainingDays / totalDays;
+const upgradeTokens = Math.max(0, currentPlan.tokens - newPlan.tokens);
+```
+
+### Plan Downgrade Logic
+```typescript
+// Effective at next billing cycle
+const rolloverAmount = monthly_worksheet_limit - monthly_worksheets_used;
+// Unused worksheets become rollover tokens
 ```
 
 ## Database Operations
 
+### Account Creation (`on_signup`)
+```sql
+INSERT INTO profiles (
+  id, 
+  available_tokens, 
+  monthly_worksheet_limit,
+  subscription_type
+) VALUES (
+  NEW.id, 
+  2, -- Free tokens
+  0, -- No monthly limit for free
+  'free'
+);
+```
+
 ### Worksheet Generation (`consume_token`)
 ```sql
 -- Check monthly allowance first
-IF monthly_worksheets_used < monthly_worksheet_limit THEN
-  UPDATE profiles SET monthly_worksheets_used = monthly_worksheets_used + 1
+IF monthly_worksheets_used < monthly_worksheet_limit AND monthly_worksheet_limit > 0 THEN
+  UPDATE profiles SET 
+    monthly_worksheets_used = monthly_worksheets_used + 1,
+    total_worksheets_created = CASE 
+      WHEN total_worksheets_created >= 2 THEN total_worksheets_created + 1
+      ELSE total_worksheets_created + 1
+    END
 ELSE
   -- Use available tokens
-  UPDATE profiles SET available_tokens = available_tokens - 1
+  UPDATE profiles SET 
+    available_tokens = available_tokens - 1,
+    total_worksheets_created = CASE 
+      WHEN total_worksheets_created >= 2 THEN total_worksheets_created + 1
+      ELSE total_worksheets_created + 1
+    END
 END IF;
-
--- Always increment total (excluding first 2 demo worksheets)
-UPDATE profiles SET total_worksheets_created = total_worksheets_created + 1
-WHERE total_worksheets_created >= 2;
 ```
 
 ### Subscription Renewal
@@ -111,77 +174,74 @@ UPDATE profiles SET
   monthly_worksheets_used = 0;
 ```
 
-## Payment Integration
-
-### Stripe Subscription Flow
-1. **Plan selection**: Side-gig or Full-time variants
-2. **Checkout creation**: Via `create-subscription` edge function
-3. **Webhook processing**: Updates subscription status and tokens
-4. **Profile sync**: Automatic token and limit updates
-
-### One-time Payments (Anonymous Downloads)
-1. **Export payment**: Via `create-export-payment` edge function
-2. **Session creation**: 24-hour download window
-3. **Payment verification**: Via `verify-export-payment` edge function
-4. **Access unlock**: Both Student and Teacher versions
-
 ## User Interface Integration
+
+### Dashboard Requirements
+- **Student management**: Add/edit students before generation
+- **Resource display**: Clear token and monthly worksheet counters
+- **Generation access**: Direct links from student cards
+- **History tracking**: Per-student worksheet organization
 
 ### Token Display Logic
 ```typescript
-// Profile page
+const monthlyRemaining = Math.max(0, 
+  (profile?.monthly_worksheet_limit || 0) - (profile?.monthly_worksheets_used || 0)
+);
 const availableTokens = profile?.available_tokens || 0;
-const rolloverTokens = profile?.rollover_tokens || 0;
-const totalWorksheetsCreated = profile?.total_worksheets_created || 0;
-
-// Dashboard stats
-const tokenLeft = hasActiveSubscription ? 
-  availableTokens + monthlyRemaining : 
-  availableTokens;
+const totalAvailable = monthlyRemaining + availableTokens;
 ```
 
-### Download Button States
+### Generation Button States
 ```typescript
-// Anonymous users: Always locked until payment
-const isLocked = !isDownloadUnlocked;
-
-// Registered users: Always unlocked
-const isLocked = false;
+const canGenerate = totalAvailable > 0 && students.length > 0;
+const buttonText = !students.length 
+  ? "Add Student First" 
+  : totalAvailable === 0 
+    ? "Upgrade Plan" 
+    : "Generate Worksheet";
 ```
 
-## Edge Cases & Considerations
+## Error Handling & User Experience
 
-### Demo Worksheets (First 2)
-- **Not counted** toward `total_worksheets_created`
-- **Still consume** monthly allowance or tokens
-- **Purpose**: Allow new users to test without penalty
+### Student Requirement
+- **No students**: Show "Add Student" prompt before generation
+- **Student selection**: Required dropdown in generator form
+- **Auto-fill**: Student level and goals populate automatically
 
-### Anonymous vs Registered Detection
-- **Critical**: Must distinguish between `null` and `'anonymous'` userId
-- **Anonymous**: `userId === null` or `userId === 'anonymous'`
-- **Registered**: `userId` is valid UUID string
+### Resource Depletion
+- **No resources**: Show subscription upgrade modal
+- **Clear messaging**: Exact costs and benefits of each plan
+- **Immediate upgrade**: Prorated billing for instant access
 
-### Subscription Cancellation
-- **Access**: Continues until period end
-- **Token preservation**: Available tokens remain
-- **Rollover**: Final unused monthly worksheets roll over
+### Generation Failures
+- **Form preservation**: All input data retained on error
+- **No token consumption**: Failed generations don't use resources
+- **Retry capability**: Users can attempt generation again
 
-### Error Handling
-- **Insufficient tokens**: Show upgrade modal for registered users
-- **Payment failures**: Clear session storage, retry payment
-- **Auth failures**: Redirect to login with proper error messages
+## Security & Data Protection
 
-## Monitoring & Analytics
+### Account Verification
+- **Email confirmation**: Required for full access
+- **Password requirements**: Secure authentication
+- **Session management**: Proper token handling
+
+### Data Ownership
+- **User worksheets**: Fully owned by account holder
+- **Student data**: Private to account owner
+- **Commercial use**: Permitted for all generated content
+
+## Monitoring & Analytics - ETAP 2
 
 ### Key Metrics
-- `total_worksheets_created`: Lifetime usage per user
-- `monthly_worksheets_used`: Current month consumption
-- Conversion rate: Anonymous → registered users
-- Payment success rate: $1 download payments
+- **User registration**: Account creation rate
+- **Email confirmation**: Verification completion rate
+- **Student addition**: Time to first student
+- **First generation**: Time to first worksheet
+- **Subscription conversion**: Free to paid transitions
 
-### Database Triggers
-- Auto-increment counters on worksheet generation
-- Validation of token consumption logic
-- Audit trail for subscription changes
+### Usage Tracking
+- `total_worksheets_created`: Lifetime per-user generation
+- `monthly_worksheets_used`: Current billing cycle usage
+- Student worksheet assignment and history
 
-*This document reflects the current implementation as of the latest system updates.*
+*This document reflects the ETAP 2 implementation - MVP Accounts and Subscriptions with mandatory authentication and student management.*

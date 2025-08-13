@@ -77,64 +77,64 @@ const Pricing = () => {
 
   const faqItems = [
     {
-      question: "How does payment work for anonymous users vs. logged-in users?",
-      answer: "Anonymous users can generate worksheets for free but need to pay a one-time $1 fee to download them. This unlocks downloads for about 24 hours. Logged-in users with active subscriptions automatically have downloads unlocked as part of their plan."
+      question: "Do I need to be logged in to generate worksheets?",
+      answer: "Yes, you need to create an account and log in to generate worksheets. Anonymous generation is currently not supported. When you sign up, you get 2 free tokens to start creating worksheets immediately."
     },
     {
-      question: "What do I get for the $1 download payment?",
-      answer: "The $1 payment unlocks both the Student and Teacher versions of your worksheet as HTML files. You can download them multiple times during your session (approximately 24 hours). After the session expires, you'll need to pay again for new downloads."
+      question: "What happens when I run out of tokens?",
+      answer: "When you have no tokens or monthly worksheets left, you can either upgrade to a subscription plan for monthly worksheets or purchase additional tokens. The system first uses your monthly allowance, then uses available tokens."
     },
     {
-      question: "How are tokens and monthly worksheets consumed?",
-      answer: "The system prioritizes using your monthly worksheet allowance first, then uses available tokens (purchased or rollover). This ensures you get maximum value from your subscription before consuming additional tokens."
+      question: "How does the upgrade/downgrade system work?",
+      answer: "You can upgrade anytime and pay only the prorated difference. For downgrades, the change takes effect at your next billing cycle. All unused monthly worksheets automatically roll over as tokens so you never lose them."
     },
     {
-      question: "What happens to unused monthly worksheets?",
-      answer: "Great news! Unused monthly worksheets now carry forward to the next month as rollover tokens. These rollover tokens are used after your purchased tokens but before your new monthly worksheets. This means you never lose unused worksheets!"
-    },
-    {
-      question: "Can I use the app without a subscription?",
-      answer: "Yes! You get 2 free tokens when you sign up. You can also purchase additional tokens anytime without a subscription. Anonymous users (not logged in) can generate worksheets for free but need to pay $1 to download them."
-    },
-    {
-      question: "Do I need to confirm my email after signing up?",
-      answer: "Yes, you need to confirm your email address by clicking the link sent to your email after registration. This is required for security and to access all features of your account."
-    },
-    {
-      question: "How do I cancel my subscription?",
-      answer: "You can cancel anytime through your profile page using the 'Manage Subscription' button, which opens the Stripe Customer Portal. Your subscription remains active until the end of your current billing period."
-    },
-    {
-      question: "What worksheet types are available?",
-      answer: "All plans include access to all worksheet types: vocabulary sheets, grammar exercises, reading comprehension, fill-in-the-blanks, multiple choice, matching exercises, and dialogue practice."
-    },
-    {
-      question: "Can I export worksheets to PDF?",
-      answer: "Yes, all users can export worksheets to HTML and PDF formats. HTML format is recommended as it provides the best quality and works offline. PDF export is also available for convenience."
-    },
-    {
-      question: "Is there a limit on students I can manage?",
-      answer: "No, there's no limit on the number of students you can add to your account. The student management feature is available for all registered users."
-    },
-    {
-      question: "How long does it take to generate a worksheet?",
-      answer: "Worksheet generation typically takes 30-60 seconds. The system uses AI to create custom content based on your specifications like English level, lesson topic, and learning goals."
-    },
-    {
-      question: "What happens if I run out of tokens?",
-      answer: "When you run out of tokens and monthly worksheets, you can either upgrade your subscription plan for more monthly worksheets or purchase additional tokens. Your account and saved data remain accessible regardless of your token balance."
-    },
-    {
-      question: "Do you offer promotional codes or discounts?",
-      answer: "Promotional codes and special offers may be available from time to time. Check our website announcements or contact support for current promotions."
+      question: "What are rollover tokens and how do they work?",
+      answer: "Unused monthly worksheets automatically convert to rollover tokens at the end of your billing cycle. These tokens are used after your purchased tokens but before new monthly worksheets. This ensures you never lose unused worksheets!"
     },
     {
       question: "Can I edit worksheets after they're generated?",
-      answer: "Yes! All generated worksheets are fully editable. You can modify any text, add or remove exercises, and customize the content to perfectly match your teaching needs before downloading."
+      answer: "Yes! All generated worksheets are fully editable. You can modify text, add or remove exercises, and customize content before downloading. Both Student and Teacher versions are available."
     },
     {
-      question: "How can I verify my payment went through?",
-      answer: "After successful payment through Stripe, you'll be redirected to a confirmation page, and download buttons will immediately unlock. For subscription payments, you'll also receive an email confirmation from Stripe."
+      question: "What file formats can I download?",
+      answer: "You can download worksheets as HTML files (recommended for best quality) or PDF files. HTML files work offline and preserve all formatting perfectly. All registered users have automatic download access."
+    },
+    {
+      question: "How does student management work?",
+      answer: "You can add unlimited students to your account. Each worksheet gets assigned to a specific student, and you can view all worksheets created for each student. Student selection is required when generating worksheets."
+    },
+    {
+      question: "What exercise types are available?",
+      answer: "All plans include vocabulary sheets, grammar exercises, reading comprehension, fill-in-the-blanks, multiple choice, matching exercises, dialogue practice, and mixed exercise combinations."
+    },
+    {
+      question: "How long does worksheet generation take?",
+      answer: "Worksheet generation typically takes 30-60 seconds. The AI creates custom content based on your specifications like English level, lesson topic, learning goals, and student context."
+    },
+    {
+      question: "Can I cancel my subscription anytime?",
+      answer: "Yes, you can cancel anytime through the 'Manage Subscription' button in your profile, which opens the Stripe Customer Portal. Your subscription remains active until the end of your current billing period."
+    },
+    {
+      question: "What happens if worksheet generation fails?",
+      answer: "If generation fails, you'll see an error message and return to the form with all your input preserved. No tokens are consumed for failed generations, so you can try again without penalty."
+    },
+    {
+      question: "Do you offer refunds or free trials?",
+      answer: "We offer 2 free tokens when you sign up to test the service. For subscription refunds, please contact support. You can also start with our Free Demo plan to evaluate the service."
+    },
+    {
+      question: "Is there a limit on students I can manage?",
+      answer: "No, there's no limit on the number of students you can add to your account. Student management is available for all registered users at no additional cost."
+    },
+    {
+      question: "What's the difference between tokens and monthly worksheets?",
+      answer: "Monthly worksheets are included with subscription plans and reset each billing cycle. Tokens are purchased separately and never expire. The system uses monthly worksheets first, then tokens."
+    },
+    {
+      question: "Can I use the service for commercial purposes?",
+      answer: "Yes, all plans support commercial use including private tutoring, language schools, and corporate training. The worksheets you create are yours to use commercially."
     }
   ];
 

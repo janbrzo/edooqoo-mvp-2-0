@@ -1,421 +1,458 @@
 
-# Technical Documentation - English Worksheet Generator
+# English Worksheet Generator - Technical Documentation
 
-## Architecture Overview
+## System Overview - ETAP 2
 
-### Technology Stack
-- **Frontend**: React 18 + TypeScript + Vite
-- **Styling**: Tailwind CSS + shadcn/ui components
-- **Backend**: Supabase (PostgreSQL + Edge Functions)
-- **Authentication**: Supabase Auth (email/password + anonymous)
-- **Payments**: Stripe (subscriptions + one-time payments)
-- **AI**: Custom worksheet generation API
-- **Deployment**: Lovable platform
+The English Worksheet Generator is a full-featured SaaS platform built on React, TypeScript, and Supabase. After completing ETAP 2, the application provides comprehensive account management, student organization, and subscription-based worksheet generation for English teachers.
 
-### Key Components Structure
-```
-src/
-├── components/
-│   ├── ui/                    # shadcn/ui base components
-│   ├── worksheet/             # Worksheet-specific components
-│   └── [various]/             # Feature-specific components
-├── hooks/                     # Custom React hooks
-├── pages/                     # Route components
-├── services/                  # API and business logic
-├── utils/                     # Utility functions
-└── integrations/supabase/     # Database types and client
-```
+## Architecture Stack
 
-## Database Schema
+### Frontend
+- **React 18.3** with TypeScript for type-safe development
+- **Vite** for fast development and optimized builds
+- **Tailwind CSS** for utility-first styling
+- **shadcn/ui** component library for consistent UI
+- **React Router** for client-side routing
+- **React Query** for server state management
+
+### Backend
+- **Supabase** as Backend-as-a-Service
+- **PostgreSQL** database with Row Level Security
+- **Supabase Auth** for user authentication
+- **Edge Functions** for serverless API endpoints
+- **Stripe** for payment processing and subscription management
+
+### External Integrations
+- **OpenAI/LLM** for AI-powered worksheet generation
+- **Stripe** for payment processing, subscriptions, and billing
+- **Supabase Email** for transactional emails
+
+## Database Schema - ETAP 2
 
 ### Core Tables
 
-#### `profiles` (User Management & Tokens)
+#### profiles
 ```sql
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id),
-  email TEXT,
-  subscription_type TEXT DEFAULT 'Free Demo',
-  subscription_status TEXT DEFAULT 'active',
+  full_name TEXT,
+  subscription_type TEXT DEFAULT 'free',
+  subscription_status TEXT,
+  stripe_customer_id TEXT,
   monthly_worksheet_limit INTEGER DEFAULT 0,
   monthly_worksheets_used INTEGER DEFAULT 0,
   available_tokens INTEGER DEFAULT 2,
   rollover_tokens INTEGER DEFAULT 0,
   total_worksheets_created INTEGER DEFAULT 0,
-  is_tokens_frozen BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
-#### `worksheets` (Generated Content)
-```sql
-CREATE TABLE worksheets (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  teacher_id UUID REFERENCES auth.users(id),
-  student_id UUID REFERENCES students(id),
-  title TEXT NOT NULL,
-  ai_response JSONB,
-  form_data JSONB,
-  generation_time_seconds INTEGER,
-  download_count INTEGER DEFAULT 0,
-  rating INTEGER,
-  feedback TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-#### `students` (Student Management)
+#### students
 ```sql
 CREATE TABLE students (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  teacher_id UUID REFERENCES auth.users(id),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  english_level TEXT,
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
+  english_level TEXT NOT NULL,
+  learning_goal TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
-### Payment Tables
-
-#### `subscriptions` (Stripe Integration)
+#### worksheets
 ```sql
-CREATE TABLE subscriptions (
+CREATE TABLE worksheets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  teacher_id UUID REFERENCES auth.users(id),
-  stripe_subscription_id TEXT UNIQUE,
-  stripe_customer_id TEXT,
-  subscription_status TEXT,
-  subscription_type TEXT,
-  monthly_limit INTEGER,
-  current_period_start TIMESTAMPTZ,
-  current_period_end TIMESTAMPTZ
-);
-```
-
-#### `export_payments` (One-time Downloads)
-```sql
-CREATE TABLE export_payments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  worksheet_id TEXT,
-  stripe_session_id TEXT UNIQUE,
-  user_identifier TEXT,
-  status TEXT DEFAULT 'pending',
-  amount INTEGER,
-  currency TEXT DEFAULT 'usd',
-  created_at TIMESTAMPTZ DEFAULT now()
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES students(id) ON DELETE SET NULL,
+  lesson_topic TEXT NOT NULL,
+  english_level TEXT NOT NULL,
+  learning_goals TEXT,
+  content JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
 ## Authentication System
 
-### User Types & Flow
-1. **Anonymous Users**
-   - No account required for generation
-   - Pay $1 per download session
-   - No data persistence
+### User Registration Flow
+1. **Email/Password signup** through Supabase Auth
+2. **Email confirmation** required for full access
+3. **Profile creation** with 2 free tokens automatically added
+4. **Student addition prompt** before worksheet generation
 
-2. **Registered Users**
-   - Email/password authentication
-   - Email verification required
-   - Persistent data and subscriptions
+### Security Features
+- **Row Level Security (RLS)** on all tables
+- **Email verification** mandatory for account activation
+- **Secure password requirements** enforced by Supabase
+- **JWT-based sessions** with automatic refresh
 
-### Auth State Management
+## Student Management System
+
+### Student Entity
 ```typescript
-// useAuthFlow.tsx
-const { user, session, loading, isAnonymous, isRegisteredUser } = useAuthFlow();
-
-// Key states:
-// - user: Supabase user object
-// - session: Complete session with tokens
-// - isAnonymous: user?.is_anonymous === true
-// - isRegisteredUser: user && !isAnonymous && user.email
-```
-
-### Critical Auth Logic
-```typescript
-// Anonymous detection for download locks
-const isValidUser = userId && userId !== 'anonymous';
-
-// Auto-unlock only for authenticated users
-if (!isValidUser) {
-  // Force payment for anonymous users
-  return;
+interface Student {
+  id: string;
+  user_id: string;
+  name: string;
+  english_level: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+  learning_goal: 'Work' | 'Exam' | 'General English';
+  created_at: string;
+  updated_at: string;
 }
 ```
+
+### Key Features
+- **Unlimited students** per account
+- **CRUD operations** through React hooks
+- **Required for generation**: Must select student before creating worksheet
+- **Auto-population**: Student data fills generator form automatically
+
+## Worksheet Generation System
+
+### Generation Requirements
+```typescript
+// Prerequisites for worksheet generation
+const canGenerate = 
+  user?.email_confirmed_at && 
+  students.length > 0 && 
+  (monthlyRemaining > 0 || availableTokens > 0);
+```
+
+### Content Types
+- **Vocabulary Sheets**: Term definitions and examples
+- **Grammar Exercises**: Context-specific grammar practice
+- **Reading Comprehension**: Custom passages with questions
+- **Fill-in-the-Blanks**: Targeted vocabulary and grammar
+- **Multiple Choice**: Various difficulty levels
+- **Matching Exercises**: Terms, definitions, concepts
+- **Dialogue Practice**: Conversation scenarios
+- **Mixed Exercises**: Combination of multiple types
+
+### Generation Flow
+1. **Student selection** (required dropdown)
+2. **Auto-fill** student level and learning goal
+3. **Topic and objectives** input by teacher
+4. **AI generation** (30-60 seconds)
+5. **Student assignment** and database storage
+6. **Download availability** (both Student/Teacher versions)
 
 ## Token & Subscription System
 
-### Consumption Priority Logic
+### Resource Priority Logic
 ```typescript
-// 1. Check monthly allowance first
-const monthlyRemaining = monthlyLimit - monthlyUsed;
-const canUseMonthly = monthlyRemaining > 0;
-
-// 2. Use available tokens as fallback
-const totalAvailable = availableTokens + (canUseMonthly ? monthlyRemaining : 0);
-
-// 3. Block if insufficient
-if (totalAvailable <= 0) {
-  showTokenModal();
-  return;
-}
-```
-
-### Database Function: `consume_token`
-```sql
-CREATE OR REPLACE FUNCTION consume_token(user_id UUID)
-RETURNS TABLE(success BOOLEAN, remaining_tokens INTEGER, message TEXT)
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  current_monthly_used INTEGER;
-  current_monthly_limit INTEGER;
-  current_available_tokens INTEGER;
-  current_total_worksheets INTEGER;
-BEGIN
-  -- Get current values
-  SELECT monthly_worksheets_used, monthly_worksheet_limit, 
-         available_tokens, total_worksheets_created
-  INTO current_monthly_used, current_monthly_limit, 
-       current_available_tokens, current_total_worksheets
-  FROM profiles WHERE id = user_id;
-
-  -- Use monthly allowance first
-  IF current_monthly_used < current_monthly_limit THEN
-    UPDATE profiles 
-    SET monthly_worksheets_used = monthly_worksheets_used + 1,
-        total_worksheets_created = CASE 
-          WHEN total_worksheets_created >= 2 
-          THEN total_worksheets_created + 1 
-          ELSE total_worksheets_created + 1 
-        END
-    WHERE id = user_id;
-    
-    RETURN QUERY SELECT TRUE, current_available_tokens, 'Used monthly allowance';
-  
-  -- Fallback to available tokens
-  ELSIF current_available_tokens > 0 THEN
-    UPDATE profiles 
-    SET available_tokens = available_tokens - 1,
-        total_worksheets_created = CASE 
-          WHEN total_worksheets_created >= 2 
-          THEN total_worksheets_created + 1 
-          ELSE total_worksheets_created + 1 
-        END
-    WHERE id = user_id;
-    
-    RETURN QUERY SELECT TRUE, current_available_tokens - 1, 'Used available token';
-  
-  -- Insufficient resources
-  ELSE
-    RETURN QUERY SELECT FALSE, current_available_tokens, 'Insufficient tokens';
-  END IF;
-END;
-$$;
-```
-
-## Download Access Control
-
-### Anonymous Users
-- **Generation**: Free via anonymous auth
-- **Download**: Requires $1 Stripe payment
-- **Session**: ~24 hours via sessionStorage
-- **Security**: No auto-unlock regardless of generation method
-
-### Registered Users  
-- **Generation**: Consumes tokens/monthly allowance
-- **Download**: Automatically unlocked
-- **Session**: Long-term (1 year) via sessionStorage
-- **Security**: Auto-unlock only with valid authenticated userId
-
-### Implementation: `useDownloadStatus`
-```typescript
-const checkTokenGeneratedWorksheet = (worksheetId: string, userId?: string) => {
-  // CRITICAL: Prevent auto-unlock for anonymous users
-  if (!userId || userId === 'anonymous') {
-    console.log('❌ Anonymous user must pay for downloads');
-    return;
-  }
-  
-  // Auto-unlock for authenticated users only
-  if (worksheetId && worksheetId !== 'unknown') {
-    const autoToken = `token_${worksheetId}_${userId}_${Date.now()}`;
-    const expiryTime = Date.now() + (365 * 24 * 60 * 60 * 1000);
-    
-    sessionStorage.setItem('downloadToken', autoToken);
-    sessionStorage.setItem('downloadTokenExpiry', expiryTime.toString());
-    setIsDownloadUnlocked(true);
+// Critical consumption order
+const consumeResource = () => {
+  if (monthlyRemaining > 0) {
+    // Use monthly worksheet allowance first
+    updateMonthlyUsage();
+  } else if (availableTokens > 0) {
+    // Use available tokens second
+    consumeToken();
+  } else {
+    // Show upgrade options
+    showPaywall();
   }
 };
 ```
 
-## Edge Functions
+### Subscription Plans
+```typescript
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: number; // USD per month
+  monthlyLimit: number; // Worksheets per month
+  features: string[];
+}
 
-### Worksheet Generation: `generateWorksheet`
-- **Purpose**: AI-powered worksheet creation
-- **Rate limiting**: Per IP and user
-- **Token consumption**: Via `consume_token` function
-- **Security**: Input validation and sanitization
+const plans = [
+  { id: 'free', name: 'Free Demo', price: 0, monthlyLimit: 0 },
+  { id: 'side-gig', name: 'Side-Gig Plan', price: 9, monthlyLimit: 15 },
+  { id: 'full-time-30', name: 'Full-Time 30', price: 19, monthlyLimit: 30 },
+  { id: 'full-time-60', name: 'Full-Time 60', price: 39, monthlyLimit: 60 },
+  { id: 'full-time-90', name: 'Full-Time 90', price: 59, monthlyLimit: 90 },
+  { id: 'full-time-120', name: 'Full-Time 120', price: 79, monthlyLimit: 120 }
+];
+```
 
-### Payment Processing: `create-export-payment`
-- **Purpose**: One-time $1 download payments
-- **Flow**: Create Stripe session → Store payment record
-- **Security**: Rate limiting and user validation
+### Rollover System
+```sql
+-- Automatic rollover at billing cycle
+CREATE OR REPLACE FUNCTION handle_subscription_renewal()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Calculate unused worksheets
+  NEW.rollover_tokens = OLD.rollover_tokens + 
+    (OLD.monthly_worksheet_limit - OLD.monthly_worksheets_used);
+  
+  -- Add to available tokens
+  NEW.available_tokens = OLD.available_tokens + 
+    (OLD.monthly_worksheet_limit - OLD.monthly_worksheets_used);
+  
+  -- Reset monthly usage
+  NEW.monthly_worksheets_used = 0;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
 
-### Subscription Management: `create-subscription`
-- **Purpose**: Recurring subscription checkout
-- **Plans**: Side-gig ($9) and Full-time ($19-79)
-- **Integration**: Stripe subscription + webhook processing
+## Payment Integration
 
-### Webhook Handler: `stripe-webhook`
-- **Purpose**: Process Stripe events
-- **Events**: `customer.subscription.created/updated/deleted`
-- **Actions**: Update user profiles and token balances
+### Stripe Implementation
+```typescript
+// Subscription creation
+const createSubscription = async (planData) => {
+  const { data } = await supabase.functions.invoke('create-subscription', {
+    body: {
+      planType: planData.type,
+      monthlyLimit: planData.monthlyLimit,
+      price: planData.price,
+      planName: planData.name
+    }
+  });
+  
+  if (data?.url) {
+    window.location.href = data.url; // Redirect to Stripe Checkout
+  }
+};
+```
 
-## Frontend Architecture
+### Webhook Handling
+- **Payment success**: Automatic subscription activation
+- **Subscription renewal**: Rollover calculation and reset
+- **Payment failure**: Graceful degradation with notifications
+- **Cancellation**: End-of-period access preservation
+
+## Download System
+
+### Access Control
+```typescript
+// Automatic unlock for all registered users
+const checkDownloadAccess = (userId: string) => {
+  return !!userId && userId !== 'anonymous';
+};
+```
+
+### File Generation
+- **HTML format**: Optimal quality, offline-capable
+- **PDF format**: Universal compatibility
+- **Timestamped filenames**: Easy organization
+- **Separate versions**: Student (clean) and Teacher (with answers)
+
+## User Interface Architecture
+
+### Component Structure
+```
+src/
+├── components/
+│   ├── ui/                    # shadcn/ui components
+│   ├── dashboard/            # Dashboard-specific components
+│   ├── worksheet/            # Worksheet-related components
+│   └── WorksheetForm/        # Generation form components
+├── hooks/                    # Custom React hooks
+├── pages/                    # Route components
+├── services/                 # API and business logic
+└── utils/                    # Utility functions
+```
 
 ### State Management
-- **Global Auth**: `useAuthFlow` hook
-- **Token System**: `useTokenSystem` hook  
-- **Worksheet State**: `useWorksheetState` hook
-- **Download Control**: `useDownloadStatus` hook
+- **React Query**: Server state and caching
+- **React Context**: Global user state
+- **Local State**: Component-specific state
+- **Custom Hooks**: Business logic encapsulation
 
-### Key Hooks
+### Responsive Design
+- **Mobile-first**: Tailwind responsive utilities
+- **Touch-friendly**: Proper button sizes and spacing
+- **Cross-browser**: Tested on major browsers
+- **Accessibility**: ARIA labels and keyboard navigation
 
-#### `useTokenSystem`
-```typescript
-// Calculates available resources
-const tokenLeft = hasActiveSubscription ? 
-  availableTokens + monthlyRemaining : 
-  availableTokens;
+## API Architecture
 
-const hasTokens = tokenLeft > 0;
-const isDemo = !user || (!hasActiveSubscription && availableTokens <= 2);
+### Edge Functions
+```
+supabase/functions/
+├── generateWorksheet/        # AI worksheet generation
+├── create-subscription/      # Stripe subscription creation
+├── stripe-webhook/          # Payment webhook handling
+├── customer-portal/         # Stripe customer portal
+├── downgrade-subscription/  # Plan downgrade logic
+└── check-subscription-status/ # Subscription sync
 ```
 
-#### `useWorksheetGeneration`
-```typescript
-// Handles generation flow with token consumption
-const generateWorksheetHandler = async (formData) => {
-  setIsGenerating(true);
-  
-  try {
-    const response = await supabase.functions.invoke('generateWorksheet', {
-      body: { ...formData, userId, studentId }
-    });
-    
-    if (response.data) {
-      setGeneratedWorksheet(response.data);
-      // Handle success
-    }
-  } catch (error) {
-    // Handle error
-  } finally {
-    setIsGenerating(false);
-  }
-};
-```
-
-### Component Architecture
-
-#### `WorksheetToolbar`
-- **Purpose**: Main action controls (edit, save, download)
-- **Props**: View mode, editing state, download status
-- **Features**: View switching, payment integration, tooltips
-
-#### `PaymentPopup`
-- **Purpose**: $1 download payment flow
-- **Integration**: Stripe Elements
-- **Flow**: Payment → verification → download unlock
-
-#### `GenerationView`
-- **Purpose**: Display generated worksheets
-- **Features**: Live editing, view switching, download controls
-- **State**: Manages editable worksheet content
-
-## Security Considerations
-
-### Row Level Security (RLS)
+### Database Functions
 ```sql
--- Users can only access their own data
-CREATE POLICY "users_own_data" ON profiles
-  FOR ALL USING (auth.uid() = id);
-
-CREATE POLICY "teachers_own_worksheets" ON worksheets
-  FOR ALL USING (auth.uid() = teacher_id);
-
-CREATE POLICY "teachers_own_students" ON students
-  FOR ALL USING (auth.uid() = teacher_id);
-```
-
-### Input Validation
-- **Client-side**: React Hook Form with zod schemas
-- **Server-side**: Edge function validation
-- **SQL injection**: Parameterized queries only
-- **XSS protection**: Content sanitization
-
-### Rate Limiting
-```typescript
-// Per-IP and per-user limits
-const rateLimitKey = `${ip}_${userId}`;
-if (!rateLimiter.isAllowed(rateLimitKey)) {
-  return new Response('Rate limit exceeded', { status: 429 });
-}
+-- Token consumption with priority logic
+CREATE OR REPLACE FUNCTION consume_token(user_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  profile_record profiles%ROWTYPE;
+BEGIN
+  SELECT * INTO profile_record FROM profiles WHERE id = user_id;
+  
+  -- Check monthly allowance first
+  IF profile_record.monthly_worksheets_used < profile_record.monthly_worksheet_limit THEN
+    UPDATE profiles 
+    SET monthly_worksheets_used = monthly_worksheets_used + 1,
+        total_worksheets_created = total_worksheets_created + 1
+    WHERE id = user_id;
+    RETURN TRUE;
+  ELSIF profile_record.available_tokens > 0 THEN
+    UPDATE profiles 
+    SET available_tokens = available_tokens - 1,
+        total_worksheets_created = total_worksheets_created + 1
+    WHERE id = user_id;
+    RETURN TRUE;
+  ELSE
+    RETURN FALSE;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
 ```
 
 ## Performance Optimizations
 
-### Database
-- **Indexes**: On foreign keys and frequently queried fields
-- **Connection pooling**: Supabase managed
-- **Query optimization**: Selective field loading
+### Frontend Optimizations
+- **Code splitting**: Route-based lazy loading
+- **React Query caching**: Reduced API calls
+- **Optimistic updates**: Immediate UI feedback
+- **Memoization**: React.memo and useMemo for expensive operations
 
-### Frontend
-- **Code splitting**: React.lazy for route components
-- **Memoization**: React.memo for expensive components
-- **Debouncing**: Search inputs and API calls
-- **Caching**: TanStack Query for API responses
+### Backend Optimizations
+- **Database indexes**: On frequently queried columns
+- **Row Level Security**: Efficient access control
+- **Edge Functions**: Serverless auto-scaling
+- **CDN delivery**: Fast global content delivery
 
-### Edge Functions
-- **Cold start optimization**: Minimal imports
-- **Response caching**: Where appropriate
-- **Error handling**: Graceful degradation
+### Caching Strategy
+```typescript
+// React Query configuration
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      refetchOnWindowFocus: false
+    }
+  }
+});
+```
+
+## Security Considerations
+
+### Data Protection
+- **Encryption at rest**: Supabase handles database encryption
+- **HTTPS only**: All communications encrypted in transit
+- **Environment variables**: Sensitive data in secure storage
+- **API key rotation**: Regular security key updates
+
+### Access Control
+```sql
+-- Row Level Security example
+CREATE POLICY "Users can only access their own data" ON profiles
+  FOR ALL USING (auth.uid() = id);
+
+CREATE POLICY "Users can only manage their students" ON students
+  FOR ALL USING (auth.uid() = user_id);
+```
+
+### Content Security
+- **Input validation**: All user inputs sanitized
+- **XSS prevention**: Content escaping in templates
+- **CSRF protection**: Built into Supabase Auth
+- **Rate limiting**: API request throttling
+
+## Monitoring & Analytics
+
+### Error Tracking
+```typescript
+// Comprehensive error boundaries
+class WorksheetErrorBoundary extends React.Component {
+  componentDidCatch(error, errorInfo) {
+    console.error('Worksheet generation error:', error, errorInfo);
+    // Report to monitoring service
+  }
+}
+```
+
+### Performance Monitoring
+- **Core Web Vitals**: Loading performance tracking
+- **User interactions**: Button clicks and form submissions
+- **API response times**: Generation and download speeds
+- **Error rates**: Failed generations and payment issues
+
+### Business Metrics
+- **User registration**: Account creation funnel
+- **Feature adoption**: Student addition and generation rates
+- **Revenue tracking**: Subscription conversions and upgrades
+- **Usage patterns**: Worksheets per user and retention
 
 ## Deployment & Infrastructure
 
-### Lovable Platform
-- **Build**: Automatic on code changes
-- **Preview**: Branch-based deployments
-- **Environment**: Production-ready configuration
+### Production Environment
+- **Vercel/Netlify**: Frontend hosting with global CDN
+- **Supabase**: Managed backend with auto-scaling
+- **Stripe**: PCI-compliant payment processing
+- **Domain management**: Custom domains supported
 
-### Supabase
-- **Database**: PostgreSQL with automatic backups
-- **Edge Functions**: Deno runtime
-- **Authentication**: Built-in user management
-- **Storage**: File uploads (if needed)
+### Development Workflow
+```bash
+# Local development
+npm run dev          # Start development server
+npm run build        # Production build
+npm run preview      # Preview production build
+```
 
-### Monitoring
-- **Error tracking**: Console logs and error boundaries
-- **Performance**: Core Web Vitals monitoring
-- **User analytics**: Event tracking system
+### Environment Configuration
+```typescript
+// Environment variables
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+STRIPE_SECRET_KEY=your_stripe_secret_key
+```
 
 ## Testing Strategy
 
-### Frontend Testing
-- **Unit tests**: Component logic and utilities
-- **Integration tests**: User flows and API interactions
-- **E2E tests**: Critical payment and generation flows
+### Unit Testing
+- **Component testing**: React Testing Library
+- **Hook testing**: Custom hook validation
+- **Utility testing**: Pure function verification
+- **Edge case coverage**: Error handling validation
 
-### Backend Testing
-- **Function tests**: Edge function logic
-- **Database tests**: SQL function correctness
-- **Payment tests**: Stripe test mode integration
+### Integration Testing
+- **API endpoint testing**: Full request/response cycles
+- **Database testing**: CRUD operations validation
+- **Payment testing**: Stripe test mode integration
+- **Email testing**: Supabase email functionality
 
-### Security Testing
-- **Authentication**: Auth flow verification
-- **Authorization**: RLS policy testing
-- **Input validation**: Malicious input handling
+### User Acceptance Testing
+- **User journey testing**: Complete workflows
+- **Cross-browser testing**: Major browser compatibility
+- **Mobile testing**: Responsive design validation
+- **Performance testing**: Load and stress testing
 
-*This document is maintained alongside code changes and reflects the current system architecture.*
+## Maintenance & Updates
+
+### Code Maintenance
+- **Dependency updates**: Regular package updates
+- **Security patches**: Immediate security fix deployment
+- **Performance optimization**: Continuous improvement
+- **Refactoring**: Code quality improvement cycles
+
+### Feature Development
+- **Feature flags**: Gradual rollout capabilities
+- **A/B testing**: User experience optimization
+- **Backward compatibility**: Seamless user experience
+- **Documentation updates**: Continuous documentation maintenance
+
+---
+
+**Current Version**: ETAP 2 - MVP Konta i Subskrypcje
+**Last Updated**: ETAP 2 Completion
+**Next Major Release**: ETAP 3 - Advanced Features
+**Maintenance Schedule**: Continuous deployment with weekly reviews
