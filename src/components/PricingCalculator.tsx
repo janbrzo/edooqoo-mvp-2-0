@@ -110,8 +110,8 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
         break;
     }
   };
-  return <Card className="mb-6 bg-white dark:bg-gray-900">
-      <CardHeader className="text-center pb-3 bg-zinc-300">
+  return <Card className="mb-6 bg-white">
+      <CardHeader className="text-center pb-3 bg-white rounded-none">
         <div className="flex items-center justify-center gap-4 mb-2">
           <div className="flex items-center gap-2">
             <Calculator className="h-5 w-5 text-primary" />
