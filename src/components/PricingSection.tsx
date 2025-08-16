@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -225,7 +224,7 @@ export const PricingSection = () => {
                 asChild
                 disabled={isButtonDisabled('side-gig')}
               >
-                <Link to="/pricing">{getButtonText('side-gig')}</Link>
+                <Link to="/signup">{getButtonText('side-gig')}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -313,7 +312,7 @@ export const PricingSection = () => {
                 asChild
                 disabled={isButtonDisabled('full-time')}
               >
-                <Link to="/pricing">{getButtonText('full-time')}</Link>
+                <Link to="/signup">{getButtonText('full-time')}</Link>
               </Button>
             </CardContent>
           </Card>
