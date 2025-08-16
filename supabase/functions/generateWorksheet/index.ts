@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
@@ -88,14 +87,14 @@ serve(async (req) => {
     
     console.log(`Generating 8 exercises, will trim to ${finalExerciseCount} if needed`);
     
-    // CREATE SYSTEM MESSAGE with Golden Prompt content
+    // CREATE SYSTEM MESSAGE with Golden Prompt content - UPDATED EXERCISE ORDER
     const systemMessage = `You are an expert ESL English language teacher specialized in creating context-specific, structured, comprehensive, high-quality English language worksheets for individual (one-on-one) tutoring sessions.
           Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.
           Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits.
 
           CRITICAL RULES AND REQUIREMENTS:
 1. Create EXACTLY 8 exercises. No fewer, no more. Number them Exercise 1 through Exercise 8.
-2. Use EXACTLY these exercise types in this EXACT ORDER: reading, matching, fill-in-blanks, multiple-choice, dialogue, true-false, discussion, error-correction
+2. Use EXACTLY these exercise types in this EXACT ORDER: reading, true-false, matching, fill-in-blanks, multiple-choice, dialogue, discussion, error-correction
 3. All exercises should be closely related to the specified topic and goal
 4. Include specific vocabulary, expressions, and language structures related to the topic.
 5. Keep exercise instructions clear and concise. Students should understand tasks without additional explanation.
@@ -103,11 +102,12 @@ serve(async (req) => {
 7. Write tasks using natural, spoken English that reflects how real people talk. Avoid robotic AI or textbook-style phrases. Use contractions, informal structures, and natural flow. Keep it appropriate for the learner's level, but make it sound like a real-life conversation, not a scripted monologue.
 8. DO NOT include any text outside of the JSON structure.
 9. Exercise 1 (Reading Comprehension) MUST have content more than 300 words. Analyze the lessonTopic, lessonGoal and additionalInformation to determine the most appropriate text format (article, review, interview, story, email, etc.). The reading text should exemplify the format students will encounter or create based on the lesson objectives.
-10. Focus on overall flow, coherence and pedagogical value.
-11. ADAPT TO USER'S INPUT: Carefully analyze all information from the USER MESSAGE. The 'lessonTopic' and 'lessonGoal' must define the theme of all exercises. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale.
+10. Exercise 2 (True or False) MUST be directly based on the reading text from Exercise 1. All statements should test comprehension of specific information, details, and facts mentioned in the reading passage. DO NOT include general knowledge questions.
+11. Focus on overall flow, coherence and pedagogical value.
+12. ADAPT TO USER'S INPUT: Carefully analyze all information from the USER MESSAGE. The 'lessonTopic' and 'lessonGoal' must define the theme of all exercises. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale.
 
 ${hasGrammarFocus ? `
-12. GRAMMAR FOCUS REQUIREMENT: The user has specified a grammar focus: "${grammarFocus}". You MUST:
+13. GRAMMAR FOCUS REQUIREMENT: The user has specified a grammar focus: "${grammarFocus}". You MUST:
     - ENSURE grammar complexity matches CERF level: "${formData.englishLevel}"
     - Include a "grammar_rules" section in the JSON with detailed explanation of this grammar topic
     - Design ALL exercises to practice and reinforce this specific grammar point
@@ -115,10 +115,10 @@ ${hasGrammarFocus ? `
     - Make this grammar topic the central pedagogical focus of the entire worksheet
     -provide a detailed and comprehensive explanation about the grammatical topic, including a thorough introduction explaining its usage, importance, and general overview, written in the style of well-known grammar reference books (such as My Grammar Lab, Cambridge Grammar, or Virginia Evans).
 ` : `
-12. NO GRAMMAR FOCUS: The user has not specified a grammar focus, so create a general worksheet focused on the topic and goal without emphasizing any particular grammar point.
+13. NO GRAMMAR FOCUS: The user has not specified a grammar focus, so create a general worksheet focused on the topic and goal without emphasizing any particular grammar point.
 `}
 
-13. Generate a structured JSON worksheet with this EXACT format:
+14. Generate a structured JSON worksheet with this EXACT format:
 EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
 {
   "title": "In a restaurant",
@@ -156,7 +156,7 @@ EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
       {
         "title": "Using \\"the\\" with Superlatives",
         "explanation": "Superlative adjectives are usually preceded by the definite article \\"the\\" to show that one thing is the highest or lowest in a group.",
-        "examples": ["That was the worst pasta I’ve ever eaten.", "This is the most expensive restaurant in the area."]
+        "examples": ["That was the worst pasta I've ever eaten.", "This is the most expensive restaurant in the area."]
       },
       {
         "title": "Comparing Equality with \\"as...as\\"",
@@ -183,8 +183,28 @@ EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
       "teacher_tip": "Use the comprehension questions as a starting point to ask more personal questions related to your student's life and experiences. Encourage them to share their opinions on the topics and situations mentioned in the text."
     },
     {
+      "type": "true-false",
+      "title": "Exercise 2: True or False",
+      "icon": "fa-balance-scale",
+      "time": 5,
+      "instructions": "Read each statement about the text and decide if it is true or false.",
+      "statements": [
+        {"text": "New York City offers many international cuisines because people from all over the world live there.", "isTrue": true},
+        {"text": "American-style diners are not popular in New York.", "isTrue": false},
+        {"text": "Appetizers are usually bigger than main dishes.", "isTrue": false},
+        {"text": "New York-style pizza is thick and eaten with a fork and knife.", "isTrue": false},
+        {"text": "Food trucks are especially popular for lunch in New York.", "isTrue": true},
+        {"text": "All restaurant visits in New York are perfect according to the text.", "isTrue": false},
+        {"text": "One common complaint is that the food arrives cold.", "isTrue": true},
+        {"text": "Desserts like cheesecake and brownies are common in New York restaurants.", "isTrue": true},
+        {"text": "The text mentions that learning to complain politely is useful for customer service work.", "isTrue": true},
+        {"text": "Main dishes in New York restaurants never include vegetarian options.", "isTrue": false}
+      ],
+      "teacher_tip": "Use this exercise to check reading comprehension and ensure students understood the key details from the text."
+    },
+    {
       "type": "matching",
-      "title": "Exercise 2: Vocabulary Matching",
+      "title": "Exercise 3: Vocabulary Matching",
       "icon": "fa-link",
       "time": 7,
       "instructions": "Match each term with its correct definition.",
@@ -204,7 +224,7 @@ EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
     },
     {
       "type": "fill-in-blanks",
-      "title": "Exercise 3: Fill in the Blanks",
+      "title": "Exercise 4: Fill in the Blanks",
       "icon": "fa-pencil-alt",
       "time": 8,
       "instructions": "Complete each sentence with the correct word from the box.",
@@ -225,7 +245,7 @@ EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
     },
     {
       "type": "multiple-choice",
-      "title": "Exercise 4: Multiple Choice",
+      "title": "Exercise 5: Multiple Choice",
       "icon": "fa-check-square",
       "time": 8,
       "instructions": "Choose the best option to complete each sentence.",
@@ -325,7 +345,7 @@ EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
     },
     {
       "type": "dialogue",
-      "title": "Exercise 5: Dialogue Practice",
+      "title": "Exercise 6: Dialogue Practice",
       "icon": "fa-comments",
       "time": 8,
       "instructions": "Read the dialogue and practice with a partner.",
@@ -357,26 +377,6 @@ EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
       ],
       "expression_instruction": "Practice using these expressions in your own dialogues and real-life situations.",
       "teacher_tip": "Include unexpected issues (e.g., the order is cold, the waiter forgets the drink) to keep the role-play dynamic and spontaneous. Assign students to write a restaurant review or a list of useful expressions they used or learned."
-    },
-    {
-      "type": "true-false",
-      "title": "Exercise 6: True or False",
-      "icon": "fa-balance-scale",
-      "time": 5,
-      "instructions": "Read each statement and decide if it is true or false.",
-      "statements": [
-        {"text": "Comparative adjectives are used to compare two things.", "isTrue": true},
-        {"text": "We always add 'more' to make a comparative adjective, even for short words like 'big'.", "isTrue": false},
-        {"text": "Superlative adjectives are used to compare more than two things.", "isTrue": true},
-        {"text": "The superlative form of 'good' is 'goodest'.", "isTrue": false},
-        {"text": "Adjectives with three or more syllables usually take 'more' or 'most'.", "isTrue": true},
-        {"text": "We use 'than' with superlatives.", "isTrue": false},
-        {"text": "The comparative form of 'happy' is 'happier'.", "isTrue": true},
-        {"text": "To form comparatives, we never change the spelling of the adjective.", "isTrue": false},
-        {"text": "The superlative form of 'bad' is 'the worst'.", "isTrue": true},
-        {"text": "We add 'er' and 'est' to all adjectives to form comparatives and superlatives.", "isTrue": false}
-      ],
-      "teacher_tip": "You can use this exercise to check whether the student has understood the grammar topic."
     },
     {
       "type": "discussion",
@@ -441,11 +441,11 @@ END OF EXAMPLE
 
 CRITICAL REQUIREMENTS VERIFICATION:
 1. Exercise 1 (reading): Content MUST have more than 320 words. Count words carefully.
-2. Exercise 2 (matching): EXACTLY 10 items to match.
-3. Exercise 3 (fill-in-blanks): EXACTLY 10 sentences and 10 words in word bank.
-4. Exercise 4 (multiple-choice): EXACTLY 10 questions with 4 options each. All 4 options must be completely different from each other – no duplicates or similar variations allowed. Only one option per question is correct.
-5. Exercise 5 (dialogue): AT LEAST 10 dialogue exchanges and EXACTLY 10 expressions.
-6. Exercise 6 (true-false): EXACTLY 10 statements.
+2. Exercise 2 (true-false): EXACTLY 10 statements ALL directly based on the reading text from Exercise 1. NO general knowledge questions.
+3. Exercise 3 (matching): EXACTLY 10 items to match.
+4. Exercise 4 (fill-in-blanks): EXACTLY 10 sentences and 10 words in word bank.
+5. Exercise 5 (multiple-choice): EXACTLY 10 questions with 4 options each. All 4 options must be completely different from each other – no duplicates or similar variations allowed. Only one option per question is correct.
+6. Exercise 6 (dialogue): AT LEAST 10 dialogue exchanges and EXACTLY 10 expressions.
 7. Exercise 7 (discussion): EXACTLY 10 discussion questions.
 8. Exercise 8 (error-correction): EXACTLY 10 sentences with errors.
 9. Vocabulary sheet: EXACTLY 15 terms with definitions.
