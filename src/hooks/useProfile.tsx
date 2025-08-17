@@ -21,7 +21,6 @@ export const useProfile = () => {
       }
     };
 
-    // REMOVED: finalize-upgrade handling from window focus - now handled in Profile.tsx
     const handleWindowFocus = () => {
       // Check if we're returning from successful payment (but don't call finalize-upgrade here)
       const urlParams = new URLSearchParams(window.location.search);
@@ -50,7 +49,12 @@ export const useProfile = () => {
   const fetchProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        // For anonymous users, don't fetch profile and don't show errors
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
 
       const { data, error } = await supabase
         .from('profiles')
@@ -62,11 +66,15 @@ export const useProfile = () => {
       setProfile(data);
     } catch (error: any) {
       console.error('Error fetching profile:', error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
+      // Only show toast for authenticated users - suppress for anonymous users
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }
