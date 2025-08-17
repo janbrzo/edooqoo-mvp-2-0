@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuthFlow } from "@/hooks/useAuthFlow";
@@ -121,21 +120,10 @@ const Index = () => {
   const bothWorksheetsReady = worksheetState.generatedWorksheet && worksheetState.editableWorksheet;
 
   const handleGenerateWorksheet = (data: any) => {
-    console.log('🔧 [handleGenerateWorksheet] Debug values:', {
-      userId: user?.id || 'null',
-      isDemo,
-      hasTokens,
-      tokenLeft
-    });
-    
-    // CRITICAL FIX: Check token requirements for authenticated users only
     if (!isDemo && !hasTokens) {
-      console.log('🔧 [handleGenerateWorksheet] Showing token modal for authenticated user without tokens');
       setShowTokenModal(true);
       return;
     }
-    
-    console.log('🔧 [handleGenerateWorksheet] Proceeding with generation');
     generateWorksheetHandler(data);
   };
 

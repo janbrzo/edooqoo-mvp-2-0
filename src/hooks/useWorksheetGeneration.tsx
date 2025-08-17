@@ -29,12 +29,16 @@ export const useWorksheetGeneration = (
       grammarFocus: data.teachingPreferences,
       hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim()),
       studentId,
+      userId,
       isDemo,
-      hasTokens
+      hasTokens,
+      tokenLeft
     });
 
-    // Check token requirements for authenticated users only
-    if (!isDemo && !hasTokens) {
+    // FIXED: Proper token check - only block authenticated users without tokens
+    // Anonymous users (isDemo=true) should always be able to generate demo worksheets
+    if (userId && !hasTokens) {
+      console.log('❌ Authenticated user has no tokens, showing popup');
       toast({
         title: "No tokens available",
         description: "You need tokens to generate worksheets. Please upgrade your plan or purchase tokens.",
@@ -42,6 +46,8 @@ export const useWorksheetGeneration = (
       });
       return;
     }
+    
+    console.log('✅ Token check passed, proceeding with generation');
     
     // CRITICAL FIX: Clear storage but DON'T set any worksheet ID yet
     worksheetState.clearWorksheetStorage();
@@ -72,14 +78,21 @@ export const useWorksheetGeneration = (
       const fullPrompt = formatPromptForAI(data);
       const formDataForStorage = createFormDataForStorage(data);
       
-      // CRITICAL FIX: Pass userId (even if null for anonymous users)
-      // The API will handle anonymous users appropriately
+      // CRITICAL FIX: Handle both authenticated and anonymous users properly
+      let finalUserId = userId;
+      if (!userId) {
+        console.log('⚠️ Anonymous user - will generate demo worksheet with watermark');
+        // For anonymous users, we still need to generate, but it will be watermarked
+        finalUserId = null;
+      }
+      
+      // Pass the full prompt to the API
       const worksheetResult = await generateWorksheet({ 
         ...data, 
         fullPrompt,
         formDataForStorage,
         studentId
-      }, userId || 'anonymous'); // Use 'anonymous' string for null userId
+      }, finalUserId);
 
       console.log("✅ Generated worksheet result received:", {
         hasData: !!worksheetResult,
@@ -188,7 +201,7 @@ export const useWorksheetGeneration = (
         console.log('🎉 Worksheet generation completed successfully with ID:', finalWorksheetId);
         toast({
           title: "Worksheet generated successfully!",
-          description: "Your custom worksheet is now ready to use.",
+          description: isDemo ? "Your demo worksheet is ready to preview. Sign up to download and remove the watermark." : "Your custom worksheet is now ready to use.",
           className: "bg-white border-l-4 border-l-green-500 shadow-lg rounded-xl"
         });
       } else {
