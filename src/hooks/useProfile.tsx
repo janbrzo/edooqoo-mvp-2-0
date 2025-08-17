@@ -50,12 +50,7 @@ export const useProfile = () => {
   const fetchProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      // CRITICAL FIX: Don't try to fetch profile for anonymous users
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+      if (!user) return;
 
       const { data, error } = await supabase
         .from('profiles')
@@ -66,16 +61,12 @@ export const useProfile = () => {
       if (error) throw error;
       setProfile(data);
     } catch (error: any) {
-      // Only show errors for authenticated users
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        console.error('Error fetching profile:', error);
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive"
-        });
-      }
+      console.error('Error fetching profile:', error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

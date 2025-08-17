@@ -30,13 +30,12 @@ export const useWorksheetGeneration = (
       hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim()),
       studentId,
       isDemo,
-      hasTokens
+      userId: userId || 'anonymous'
     });
 
-    // FIXED: Only block authenticated users without tokens
-    // Anonymous users (userId === null) should always be allowed to generate
-    if (userId && !hasTokens) {
-      console.log('🔧 [generateWorksheetHandler] Blocking authenticated user without tokens');
+    // Check token requirements ONLY for authenticated users
+    // Anonymous users (isDemo = true) should always be allowed to generate
+    if (!isDemo && !hasTokens) {
       toast({
         title: "No tokens available",
         description: "You need tokens to generate worksheets. Please upgrade your plan or purchase tokens.",
@@ -44,8 +43,6 @@ export const useWorksheetGeneration = (
       });
       return;
     }
-    
-    console.log('🔧 [generateWorksheetHandler] Proceeding with generation - userId:', !!userId, 'isDemo:', isDemo, 'hasTokens:', hasTokens);
     
     // CRITICAL FIX: Clear storage but DON'T set any worksheet ID yet
     worksheetState.clearWorksheetStorage();
@@ -76,14 +73,17 @@ export const useWorksheetGeneration = (
       const fullPrompt = formatPromptForAI(data);
       const formDataForStorage = createFormDataForStorage(data);
       
-      // CRITICAL FIX: Pass userId (even if null for anonymous users)
-      // The API will handle anonymous users appropriately
+      // FIXED: Allow both authenticated and anonymous users
+      // For anonymous users, userId will be null and that's OK
+      console.log('🔓 Allowing worksheet generation for user:', userId || 'anonymous');
+      
+      // Pass the full prompt to the API
       const worksheetResult = await generateWorksheet({ 
         ...data, 
         fullPrompt,
         formDataForStorage,
         studentId
-      }, userId || 'anonymous'); // Use 'anonymous' string for null userId
+      }, userId); // userId can be null for anonymous users
 
       console.log("✅ Generated worksheet result received:", {
         hasData: !!worksheetResult,

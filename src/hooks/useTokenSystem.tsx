@@ -11,27 +11,21 @@ export const useTokenSystem = (userId?: string | null) => {
 
   useEffect(() => {
     if (userId) {
+      // Authenticated user - fetch real token data
       fetchTokenBalance();
     } else {
-      // For anonymous users, set default values without fetching
-      console.log('🔧 [useTokenSystem] Anonymous user detected, skipping token fetch');
+      // Anonymous user - set demo mode defaults
+      console.log('🔧 Anonymous user detected - setting demo mode defaults');
       setLoading(false);
-      setTokenLeft(0);
+      setTokenLeft(0); // Anonymous users show 0 tokens but can still generate
       setProfile(null);
     }
   }, [userId]);
 
   const fetchTokenBalance = async () => {
-    // CRITICAL FIX: Early return for anonymous users to prevent all database calls
-    if (!userId) {
-      console.log('🔧 [fetchTokenBalance] Early return for anonymous user');
-      setLoading(false);
-      return;
-    }
+    if (!userId) return;
     
     try {
-      console.log('🔧 [fetchTokenBalance] Fetching for authenticated user:', userId);
-      
       // Get profile data with simplified token system
       const { data: profileData, error } = await supabase
         .from('profiles')
@@ -48,17 +42,13 @@ export const useTokenSystem = (userId?: string | null) => {
       
       setTokenLeft(availableTokens);
       setProfile(profileData);
-      console.log('🔧 [fetchTokenBalance] Success - tokens:', availableTokens);
     } catch (error: any) {
-      // CRITICAL FIX: Only show error toasts and logs for authenticated users
-      if (userId) {
-        console.error('Error fetching token balance:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch token balance",
-          variant: "destructive"
-        });
-      }
+      console.error('Error fetching token balance:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch token balance",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -91,24 +81,23 @@ export const useTokenSystem = (userId?: string | null) => {
 
   // Check if user has tokens available for use
   const hasTokens = () => {
-    // CRITICAL FIX: Move demo mode check to the very beginning
     if (!userId) {
-      console.log('🔧 [hasTokens] Anonymous user (demo mode) - returning true');
-      return true; // Demo mode - always allow
+      // Anonymous users are in demo mode - they can generate worksheets
+      // but will get watermarked results
+      console.log('🔧 Anonymous user hasTokens check - returning true for demo mode');
+      return true;
     }
     
-    // For authenticated users: tokens are available if not frozen and count > 0
+    // Authenticated users need actual tokens and tokens must not be frozen
     const result = tokenLeft > 0 && !(profile?.is_tokens_frozen);
-    console.log('🔧 [hasTokens] Authenticated user result:', { tokenLeft, frozen: profile?.is_tokens_frozen, result });
+    console.log('🔧 Authenticated user hasTokens check:', { tokenLeft, frozen: profile?.is_tokens_frozen, result });
     return result;
   };
 
   const isDemo = !userId; // Anonymous users are in demo mode
-  
-  console.log('🔧 [useTokenSystem] Current state:', { userId: !!userId, tokenLeft, isDemo, hasTokensResult: hasTokens() });
 
   return {
-    tokenLeft, // Shows actual available_tokens count
+    tokenLeft, // Shows actual available_tokens count (0 for anonymous)
     profile,
     loading,
     hasTokens: hasTokens(),

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { FormData as WorksheetFormData } from '@/components/WorksheetForm';
 import { toast } from 'sonner';
@@ -12,7 +11,6 @@ const GENERATE_WORKSHEET_URL = 'https://cdoyjgiyrfziejbrcvpx.supabase.co/functio
 export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPrompt?: string, formDataForStorage?: any, studentId?: string }, userId: string) {
   try {
     console.log('Generating worksheet with prompt:', prompt);
-    console.log('User ID:', userId);
     
     // Use the full prompt if provided, otherwise create legacy format
     const formattedPrompt = prompt.fullPrompt || `${prompt.lessonTopic} - ${prompt.lessonGoal}. Teaching preferences: ${prompt.teachingPreferences}${prompt.englishLevel ? `. English level: ${prompt.englishLevel}` : ''}. Lesson duration: ${prompt.lessonTime}.`;
@@ -29,9 +27,6 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPro
     console.log('Sending formatted prompt to API:', formattedPrompt);
     console.log('Student ID being sent:', prompt.studentId);
     
-    // CRITICAL FIX: Handle both authenticated and anonymous users
-    const requestUserId = userId === 'anonymous' ? 'anonymous' : userId;
-    
     const response = await fetch(GENERATE_WORKSHEET_URL, {
       method: 'POST',
       headers: {
@@ -40,7 +35,7 @@ export async function generateWorksheetAPI(prompt: WorksheetFormData & { fullPro
       body: JSON.stringify({
         prompt: formattedPrompt,  // This will be saved as the full prompt in database
         formData: formData,
-        userId: requestUserId,  // Pass the userId (including 'anonymous')
+        userId,
         studentId: prompt.studentId  // Add studentId to the request
       })
     });
