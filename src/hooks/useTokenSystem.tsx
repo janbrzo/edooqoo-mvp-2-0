@@ -14,6 +14,7 @@ export const useTokenSystem = (userId?: string | null) => {
       fetchTokenBalance();
     } else {
       // For anonymous users, set default values without fetching
+      console.log('🔧 [useTokenSystem] Anonymous user detected, skipping token fetch');
       setLoading(false);
       setTokenLeft(0);
       setProfile(null);
@@ -21,9 +22,16 @@ export const useTokenSystem = (userId?: string | null) => {
   }, [userId]);
 
   const fetchTokenBalance = async () => {
-    if (!userId) return;
+    // CRITICAL FIX: Early return for anonymous users to prevent all database calls
+    if (!userId) {
+      console.log('🔧 [fetchTokenBalance] Early return for anonymous user');
+      setLoading(false);
+      return;
+    }
     
     try {
+      console.log('🔧 [fetchTokenBalance] Fetching for authenticated user:', userId);
+      
       // Get profile data with simplified token system
       const { data: profileData, error } = await supabase
         .from('profiles')
@@ -40,8 +48,9 @@ export const useTokenSystem = (userId?: string | null) => {
       
       setTokenLeft(availableTokens);
       setProfile(profileData);
+      console.log('🔧 [fetchTokenBalance] Success - tokens:', availableTokens);
     } catch (error: any) {
-      // Only show error toasts for authenticated users
+      // CRITICAL FIX: Only show error toasts and logs for authenticated users
       if (userId) {
         console.error('Error fetching token balance:', error);
         toast({
@@ -82,14 +91,21 @@ export const useTokenSystem = (userId?: string | null) => {
 
   // Check if user has tokens available for use
   const hasTokens = () => {
-    // CRITICAL FIX: Anonymous users (demo mode) always have "tokens" available
-    if (!userId) return true; // Demo mode - always allow
+    // CRITICAL FIX: Move demo mode check to the very beginning
+    if (!userId) {
+      console.log('🔧 [hasTokens] Anonymous user (demo mode) - returning true');
+      return true; // Demo mode - always allow
+    }
     
     // For authenticated users: tokens are available if not frozen and count > 0
-    return tokenLeft > 0 && !(profile?.is_tokens_frozen);
+    const result = tokenLeft > 0 && !(profile?.is_tokens_frozen);
+    console.log('🔧 [hasTokens] Authenticated user result:', { tokenLeft, frozen: profile?.is_tokens_frozen, result });
+    return result;
   };
 
   const isDemo = !userId; // Anonymous users are in demo mode
+  
+  console.log('🔧 [useTokenSystem] Current state:', { userId: !!userId, tokenLeft, isDemo, hasTokensResult: hasTokens() });
 
   return {
     tokenLeft, // Shows actual available_tokens count
