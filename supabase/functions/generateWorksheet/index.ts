@@ -1,51 +1,11 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
 import { getExerciseTypesForCount, parseAIResponse } from './helpers.ts';
 import { validateExercise } from './validators.ts';
 import { isValidUUID, sanitizeInput, validatePrompt } from './security.ts';
+import { RateLimiter } from './rateLimiter.ts';
 import { getGeolocation } from './geolocation.ts';
-
-// Rate limiter class definition
-class RateLimiter {
-  private requests: Map<string, number[]> = new Map();
-  
-  isAllowed(key: string): boolean {
-    const now = Date.now();
-    const requests = this.requests.get(key) || [];
-    
-    // Remove old requests
-    const validRequests = requests.filter(time => now - time < 3600000); // Keep last hour
-    
-    // Check 3 requests per 5 minutes (300 seconds)
-    const recentRequests5min = validRequests.filter(time => now - time < 300000);
-    if (recentRequests5min.length >= 3) {
-      console.warn(`Rate limit exceeded (3/5min) for key: ${key}`);
-      return false;
-    }
-    
-    // Check 5 requests per 15 minutes (900 seconds)
-    const recentRequests15min = validRequests.filter(time => now - time < 900000);
-    if (recentRequests15min.length >= 5) {
-      console.warn(`Rate limit exceeded (5/15min) for key: ${key}`);
-      return false;
-    }
-    
-    // Check 10 requests per 60 minutes (3600 seconds)
-    const recentRequests60min = validRequests.filter(time => now - time < 3600000);
-    if (recentRequests60min.length >= 10) {
-      console.warn(`Rate limit exceeded (10/60min) for key: ${key}`);
-      return false;
-    }
-    
-    // Add current request
-    validRequests.push(now);
-    this.requests.set(key, validRequests);
-    
-    return true;
-  }
-}
 
 const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
 
@@ -74,8 +34,6 @@ serve(async (req) => {
     const { prompt, formData, userId, studentId } = await req.json();
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || 'unknown';
     
-    console.log('Received request:', { userId, studentId, hasPrompt: !!prompt });
-    
     // Input validation
     const promptValidation = validatePrompt(prompt);
     if (!promptValidation.isValid) {
@@ -85,7 +43,7 @@ serve(async (req) => {
       );
     }
 
-    // Validate userId if provided (but allow null for anonymous users)
+    // Validate userId if provided
     if (userId && !isValidUUID(userId)) {
       return new Response(
         JSON.stringify({ error: 'Invalid user ID format' }),
@@ -223,6 +181,242 @@ EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
         {"text": "What are some common complaints that customers make in New York restaurants?", "answer": "The food is cold, This is not what I ordered, The portion is too small, I waited too long for my food, and The bill is incorrect."}
       ],
       "teacher_tip": "Use the comprehension questions as a starting point to ask more personal questions related to your student's life and experiences. Encourage them to share their opinions on the topics and situations mentioned in the text."
+    },
+    {
+      "type": "true-false",
+      "title": "Exercise 2: True or False",
+      "icon": "fa-balance-scale",
+      "time": 5,
+      "instructions": "Read each statement about the text and decide if it is true or false.",
+      "statements": [
+        {"text": "New York City offers many international cuisines because people from all over the world live there.", "isTrue": true},
+        {"text": "American-style diners are not popular in New York.", "isTrue": false},
+        {"text": "Appetizers are usually bigger than main dishes.", "isTrue": false},
+        {"text": "New York-style pizza is thick and eaten with a fork and knife.", "isTrue": false},
+        {"text": "Food trucks are especially popular for lunch in New York.", "isTrue": true},
+        {"text": "All restaurant visits in New York are perfect according to the text.", "isTrue": false},
+        {"text": "One common complaint is that the food arrives cold.", "isTrue": true},
+        {"text": "Desserts like cheesecake and brownies are common in New York restaurants.", "isTrue": true},
+        {"text": "The text mentions that learning to complain politely is useful for customer service work.", "isTrue": true},
+        {"text": "Main dishes in New York restaurants never include vegetarian options.", "isTrue": false}
+      ],
+      "teacher_tip": "Use this exercise to check reading comprehension and ensure students understood the key details from the text."
+    },
+    {
+      "type": "matching",
+      "title": "Exercise 3: Vocabulary Matching",
+      "icon": "fa-link",
+      "time": 7,
+      "instructions": "Match each term with its correct definition.",
+      "items": [
+        {"term": "Appetizer", "definition": "A small dish served before the main course to stimulate the appetite."},
+        {"term": "Cuisine", "definition": "A style or method of cooking, especially as characteristic of a particular country or region."},
+        {"term": "Portion", "definition": "The amount of food served to one person at a meal."},
+        {"term": "Incorrect", "definition": "Not accurate or wrong; used especially in the context of errors with orders or bills."},
+        {"term": "Complaint", "definition": "A statement that something is wrong or not satisfactory, especially in service or quality."},
+        {"term": "Fine dining", "definition": "A high-end, expensive restaurant experience offering exceptional food, service, and atmosphere."},
+        {"term": "Reservation", "definition": "An arrangement made in advance to secure a table at a restaurant."},
+        {"term": "Signature dish", "definition": "A unique or famous meal that represents a restaurant or chef's style."},
+        {"term": "Undercooked", "definition": "Food that has not been cooked long enough and may be unsafe or unpleasant to eat."},
+        {"term": "Customer service", "definition": "The assistance and advice provided by a restaurant or business to people who use its services."}
+      ],
+      "teacher_tip": "Before the matching activity, introduce and pronounce each term to ensure students feel confident recognizing and understanding them. If needed, translate the most difficult or abstract vocabulary terms into the student's native language. After the exercise, assign students a follow-up task to write 10 original sentences using the new vocabulary."
+    },
+    {
+      "type": "fill-in-blanks",
+      "title": "Exercise 4: Fill in the Blanks",
+      "icon": "fa-pencil-alt",
+      "time": 8,
+      "instructions": "Complete each sentence with the correct word from the box.",
+      "word_bank": ["famous", "international", "incorrect", "small", "popular", "cold", "different", "thin", "expensive", "common"],
+      "sentences": [
+        {"text": "New York is _____ for its wide variety of restaurants and street food.", "answer": "famous"},
+        {"text": "The city offers many _____ cuisines, like Thai, Italian, and Indian.", "answer": "international"},
+        {"text": "Customers often complain when their bill is _____.", "answer": "incorrect"},
+        {"text": "Appetizers are usually _____ dishes served before the main course.", "answer": "small"},
+        {"text": "Pizza is one of the most _____ foods in New York.", "answer": "popular"},
+        {"text": "One common complaint is that the food arrives _____.", "answer": "cold"},
+        {"text": "You can try food from many _____ cultures in New York.", "answer": "different"},
+        {"text": "New York-style pizza is known for its wide and _____ crust.", "answer": "thin"},
+        {"text": "Some restaurants are very _____, but they offer high-quality service.", "answer": "expensive"},
+        {"text": "It is _____ to leave a tip in American restaurants.", "answer": "common"}
+      ],
+      "teacher_tip": "You can use this exercise in the next class as a sentence translation activity—provide the sentences in the student's native language and ask them to translate them into English to practice the new vocabulary."
+    },
+    {
+      "type": "multiple-choice",
+      "title": "Exercise 5: Multiple Choice",
+      "icon": "fa-check-square",
+      "time": 8,
+      "instructions": "Choose the best option to complete each sentence.",
+      "questions": [
+        {
+          "text": "This restaurant is ______ than the one we went to last week.",
+          "options": [
+            {"label": "A", "text": "good", "correct": false},
+            {"label": "B", "text": "better", "correct": true},
+            {"label": "C", "text": "best", "correct": false},
+            {"label": "D", "text": "the better", "correct": false}
+          ]
+        },
+        {
+          "text": "That was the ______ meal I've ever had!",
+          "options": [
+            {"label": "A", "text": "most delicious", "correct": true},
+            {"label": "B", "text": "more delicious", "correct": false},
+            {"label": "C", "text": "deliciouser", "correct": false},
+            {"label": "D", "text": "deliciousest", "correct": false}
+          ]
+        },
+        {
+          "text": "Chinese food is usually ______ than British food.",
+          "options": [
+            {"label": "A", "text": "spicy", "correct": false},
+            {"label": "B", "text": "the spiciest", "correct": false},
+            {"label": "C", "text": "spicier", "correct": true},
+            {"label": "D", "text": "most spicy", "correct": false}
+          ]
+        },
+        {
+          "text": "That's the ______ restaurant in our neighborhood.",
+          "options": [
+            {"label": "A", "text": "expensiver", "correct": false},
+            {"label": "B", "text": "most expensive", "correct": true},
+            {"label": "C", "text": "more expensive", "correct": false},
+            {"label": "D", "text": "expensivest", "correct": false}
+          ]
+        },
+        {
+          "text": "John eats ______ than his brother.",
+          "options": [
+            {"label": "A", "text": "most slowly", "correct": false},
+            {"label": "B", "text": "the slowest", "correct": false},
+            {"label": "C", "text": "slow", "correct": false},
+            {"label": "D", "text": "more slowly", "correct": true}
+          ]
+        },
+        {
+          "text": "This soup is ______ than the one I made yesterday.",
+          "options": [
+            {"label": "A", "text": "tastier", "correct": true},
+            {"label": "B", "text": "the tastiest", "correct": false},
+            {"label": "C", "text": "tasty", "correct": false},
+            {"label": "D", "text": "more tastiest", "correct": false}
+          ]
+        },
+        {
+          "text": "Of all the dishes on the menu, the lasagna is the ______.",
+          "options": [
+            {"label": "A", "text": "good", "correct": false},
+            {"label": "B", "text": "better", "correct": false},
+            {"label": "C", "text": "best", "correct": true},
+            {"label": "D", "text": "more better", "correct": false}
+          ]
+        },
+        {
+          "text": "Pizza is ______ than soup for a quick lunch.",
+          "options": [
+            {"label": "A", "text": "the convenient", "correct": false},
+            {"label": "B", "text": "more convenient", "correct": true},
+            {"label": "C", "text": "convenientest", "correct": false},
+            {"label": "D", "text": "most convenient", "correct": false}
+          ]
+        },
+        {
+          "text": "This is the ______ café in town. Everyone loves it!",
+          "options": [
+            {"label": "A", "text": "more popular", "correct": false},
+            {"label": "B", "text": "popular", "correct": false},
+            {"label": "C", "text": "popularest", "correct": false},
+            {"label": "D", "text": "most popular", "correct": true}
+          ]
+        },
+        {
+          "text": "The weather today is much ______ than it was yesterday.",
+          "options": [
+            {"label": "A", "text": "warmer", "correct": true},
+            {"label": "B", "text": "the warmest", "correct": false},
+            {"label": "C", "text": "warm", "correct": false},
+            {"label": "D", "text": "most warm", "correct": false}
+          ]
+        }
+      ],
+      "teacher_tip": "After choosing an answer, ask students to explain why they picked it. This encourages deeper thinking and grammar awareness. Show tricky or commonly confused forms (more better, the most nicest) and explain why they are incorrect."
+    },
+    {
+      "type": "dialogue",
+      "title": "Exercise 6: Dialogue Practice",
+      "icon": "fa-comments",
+      "time": 8,
+      "instructions": "Read the dialogue and practice with a partner.",
+      "dialogue": [
+        {"speaker": "Waiter", "text": "Good evening! Can I take your order?"},
+        {"speaker": "Customer", "text": "Yes, I'd like the grilled salmon with vegetables, please."},
+        {"speaker": "Waiter", "text": "Of course. Would you like anything to drink?"},
+        {"speaker": "Customer", "text": "A glass of sparkling water, please."},
+        {"speaker": "Waiter", "text": "Great. Your order will be ready shortly."},
+        {"speaker": "Waiter", "text": "Here is your grilled salmon. Enjoy your meal!"},
+        {"speaker": "Customer", "text": "Thank you."},
+        {"speaker": "Customer", "text": "Excuse me, I'm sorry but this isn't what I ordered. I asked for grilled salmon, but this is fried."},
+        {"speaker": "Waiter", "text": "Oh, I'm really sorry about that. Let me fix it right away."},
+        {"speaker": "Customer", "text": "Thank you, I'd appreciate that."},
+        {"speaker": "Waiter", "text": "Please accept our apologies. I'll bring the correct dish in just a few minutes."},
+        {"speaker": "Customer", "text": "No problem. Thank you for your help."}
+      ],
+      "expressions": [
+        "I'd like to order the ……, please.",
+        "Can I see the menu, please?",
+        "Could you recommend something vegetarian?",
+        "I think there's a mistake with my order.",
+        "Excuse me, but this isn't what I asked for.",
+        "Could I get the bill, please?",
+        "Can I have this to go?",
+        "The food was delicious, thank you!",
+        "I'm afraid my dish is cold.",
+        "Can you bring us some more water, please?"
+      ],
+      "expression_instruction": "Practice using these expressions in your own dialogues and real-life situations.",
+      "teacher_tip": "Include unexpected issues (e.g., the order is cold, the waiter forgets the drink) to keep the role-play dynamic and spontaneous. Assign students to write a restaurant review or a list of useful expressions they used or learned."
+    },
+    {
+      "type": "discussion",
+      "title": "Exercise 7: Discussion Questions",
+      "icon": "fa-users",
+      "time": 8,
+      "instructions": "Discuss these questions with your teacher or partner.",
+      "questions": [
+        {"text": "What is your favorite type of restaurant and why?"},
+        {"text": "Have you ever had a bad experience in a restaurant? What happened?"},
+        {"text": "Do you prefer eating at home or dining out? Give reasons using comparatives."},
+        {"text": "What dish would you recommend to someone visiting your country for the first time?"},
+        {"text": "Which restaurant in your city is the most popular? Why do you think it's the best?"},
+        {"text": "How do you usually react if your order is wrong or the food isn't good?"},
+        {"text": "What is more important to you: good food or good service? Why?"},
+        {"text": "Can you describe the most expensive meal you've ever had? Was it worth it?"},
+        {"text": "What makes a restaurant better than others in your opinion?"},
+        {"text": "Have you ever tried a dish that was better than you expected? What was it?"}
+      ],
+      "teacher_tip": "Encourage deeper thinking by asking students to explain, justify, or give examples for their answers.Focus on major errors or repeated mistakes after the discussion, not during."
+    },
+    {
+      "type": "error-correction",
+      "title": "Exercise 8: Error Correction",
+      "icon": "fa-exclamation-triangle",
+      "time": 7,
+      "instructions": "Find and correct the errors in these sentences.",
+      "sentences": [
+        {"text": "This pizza is more better than the one I had yesterday.", "correction": "This pizza is better than the one I had yesterday."},
+        {"text": "She is the most tallest girl in the class.", "correction": "She is the tallest girl in the class."},
+        {"text": "My house is more big than yours.", "correction": "My house is bigger than yours."},
+        {"text": "Today is the most hottest day of the year.", "correction": "Today is the hottest day of the year."},
+        {"text": "This restaurant is more expensiveer than the other one.", "correction": "This restaurant is more expensive than the other one."},
+        {"text": "He is smarter than his brother.", "correction": "He is smarter than his brother."},
+        {"text": "That movie was the most funniest I have ever seen.", "correction": "That movie was the funniest I have ever seen."},
+        {"text": "My car is more faster now after the repair.", "correction": "My car is faster now after the repair."},
+        {"text": "Winter is colder than summer.", "correction": "Winter is colder than summer."},
+        {"text": "She is the more talented singer in our group.", "correction": "She is the most talented singer in our group."}
+      ],
+      "teacher_tip": "Highlight frequent errors with comparatives and superlatives, like double comparatives (e.g., more better) or incorrect superlative forms.Ask students to explain why a sentence is incorrect to deepen comprehension."
     }
   ],
   "vocabulary_sheet": [
@@ -261,8 +455,8 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
 
     // Generate worksheet using OpenAI with complete prompt structure
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4.1-2025-04-14",
-      temperature: 0.2,
+      model: "gpt-4.1-2025-04-14", // Changed back to gpt-4o i można gpt-4.1-2025-04-14
+      temperature: 0.2, // 
       messages: [
         {
           role: "system",
@@ -273,7 +467,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
           content: sanitizedPrompt
         }
       ],
-       max_tokens: 7000
+       max_tokens: 7000 // nowa nazwa parametru  max_completion_tokens: 7500
     });
 
     const jsonContent = aiResponse.choices[0].message.content;
@@ -339,39 +533,19 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
       // Sanitize form data
       const sanitizedFormData = formData ? JSON.parse(JSON.stringify(formData)) : {};
       
-      // Get teacher email if userId is provided
-      let teacherEmail = null;
-      if (userId) {
-        try {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('id', userId)
-            .single();
-          
-          if (!profileError && profileData) {
-            teacherEmail = profileData.email;
-            console.log('Retrieved teacher email for worksheet:', teacherEmail);
-          }
-        } catch (emailError) {
-          console.warn('Could not retrieve teacher email:', emailError);
-        }
-      }
-      
       const { data: worksheet, error: worksheetError } = await supabase
         .from('worksheets')
         .insert({
-          prompt: fullPrompt,
+          prompt: fullPrompt, // NOW SAVING FULL PROMPT (SYSTEM + USER)
           form_data: sanitizedFormData,
-          ai_response: jsonContent?.substring(0, 50000) || '',
+          ai_response: jsonContent?.substring(0, 50000) || '', // Limit response size
           html_content: JSON.stringify(worksheetData),
           user_id: userId || null,
-          teacher_id: userId || null,
-          teacher_email: teacherEmail, // Add teacher email to the insert
-          student_id: studentId || null,
+          teacher_id: userId || null, // Add teacher_id for authenticated users
+          student_id: studentId || null, // Add student_id if provided
           ip_address: ip,
           status: 'created',
-          title: worksheetData.title?.substring(0, 255) || 'Generated Worksheet',
+          title: worksheetData.title?.substring(0, 255) || 'Generated Worksheet', // Limit title length
           generation_time_seconds: generationTimeSeconds,
           country: geoData.country || null,
           city: geoData.city || null
@@ -389,7 +563,6 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
         console.log('Worksheet generated and saved successfully with ID:', worksheetId);
         console.log(`Generation time: ${generationTimeSeconds} seconds`);
         console.log(`Geo data: ${geoData.country || 'unknown'}, ${geoData.city || 'unknown'}`);
-        console.log(`Teacher email: ${teacherEmail || 'anonymous'}`);
       }
     } catch (dbError) {
       console.error('Database operation failed:', dbError);

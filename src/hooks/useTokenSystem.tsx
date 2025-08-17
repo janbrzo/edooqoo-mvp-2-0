@@ -13,7 +13,6 @@ export const useTokenSystem = (userId?: string | null) => {
     if (userId) {
       fetchTokenBalance();
     } else {
-      // For anonymous users, set loading to false immediately and don't fetch anything
       setLoading(false);
       setTokenLeft(0);
       setProfile(null);
@@ -33,21 +32,20 @@ export const useTokenSystem = (userId?: string | null) => {
       
       if (error) throw error;
       
+      // FIXED: Corrected Token Left calculation
       // Token Left = actual available_tokens (what user has)
+      // This shows the real token count regardless of frozen state
       const availableTokens = profileData?.available_tokens || 0;
       
       setTokenLeft(availableTokens);
       setProfile(profileData);
     } catch (error: any) {
       console.error('Error fetching token balance:', error);
-      // Only show toast for authenticated users - suppress for anonymous users
-      if (userId) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch token balance",
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: "Error",
+        description: "Failed to fetch token balance",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -80,7 +78,7 @@ export const useTokenSystem = (userId?: string | null) => {
 
   // Check if user has tokens available for use
   const hasTokens = () => {
-    if (!userId) return true; // Demo mode - allow worksheet generation (will be watermarked)
+    if (!userId) return false; // Demo mode - no tokens
     // Tokens are available if not frozen and count > 0
     return tokenLeft > 0 && !(profile?.is_tokens_frozen);
   };

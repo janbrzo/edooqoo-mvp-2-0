@@ -28,12 +28,10 @@ export const useWorksheetGeneration = (
       lessonTime: data.lessonTime, 
       grammarFocus: data.teachingPreferences,
       hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim()),
-      studentId,
-      isDemo,
-      userId
+      studentId
     });
 
-    // Check token requirements for authenticated users only
+    // Check token requirements for authenticated users
     if (!isDemo && !hasTokens) {
       toast({
         title: "No tokens available",
@@ -43,10 +41,10 @@ export const useWorksheetGeneration = (
       return;
     }
     
-    // Clear storage but DON'T set any worksheet ID yet
+    // CRITICAL FIX: Clear storage but DON'T set any worksheet ID yet
     worksheetState.clearWorksheetStorage();
 
-    // Generate temporary ID but DON'T set it in state yet
+    // CRITICAL FIX: Generate temporary ID but DON'T set it in state yet
     const temporaryWorksheetId = uuidv4();
     console.log('🆔 Generated temporary worksheet ID (for fallback only):', temporaryWorksheetId);
 
@@ -68,17 +66,23 @@ export const useWorksheetGeneration = (
     try {
       console.log('📡 Calling generateWorksheet API...');
       
-      // Create full prompt for ChatGPT and save it to database
+      // NEW: Create full prompt for ChatGPT and save it to database
       const fullPrompt = formatPromptForAI(data);
       const formDataForStorage = createFormDataForStorage(data);
       
-      // Pass userId (can be null for anonymous users)
+      // CRITICAL FIX: Only pass userId if it exists, don't use 'anonymous'
+      if (!userId) {
+        console.error('❌ CRITICAL: No authenticated user - cannot generate worksheet');
+        throw new Error("You must be logged in to generate worksheets");
+      }
+      
+      // Pass the full prompt to the API
       const worksheetResult = await generateWorksheet({ 
         ...data, 
         fullPrompt,
         formDataForStorage,
         studentId
-      }, userId); // userId can be null - edge function will handle it
+      }, userId);
 
       console.log("✅ Generated worksheet result received:", {
         hasData: !!worksheetResult,
@@ -91,7 +95,7 @@ export const useWorksheetGeneration = (
         hasVocabulary: !!worksheetResult?.vocabulary_sheet
       });
 
-      // Use the correct ID from backend response
+      // CRITICAL FIX: Use the correct ID from backend response
       let finalWorksheetId: string;
       
       // First priority: use 'id' field from worksheetResult
@@ -131,7 +135,7 @@ export const useWorksheetGeneration = (
       if (validateWorksheet(worksheetResult, expectedExerciseCount)) {
         console.log('✅ Worksheet validation passed, processing exercises...');
         
-        // Deep fix the entire worksheet before processing
+        // CRITICAL: Deep fix the entire worksheet before processing
         console.log('🔧 DEEP FIXING entire worksheet before processing...');
         const deepFixedWorksheet = deepFixTextObjects(worksheetResult, 'worksheet');
         console.log('🔧 Worksheet after deep fix:', deepFixedWorksheet);
@@ -142,7 +146,7 @@ export const useWorksheetGeneration = (
           deepFixedWorksheet.exercises = deepFixedWorksheet.exercises.slice(0, expectedExerciseCount);
         }
         
-        // Process exercises with correct parameters
+        // FIXED: Pass correct lessonTime and hasGrammar parameters
         const hasGrammar = !!(data.teachingPreferences && data.teachingPreferences.trim());
         console.log('🔧 Processing exercises with parameters:', { 
           lessonTime: data.lessonTime, 
@@ -152,7 +156,7 @@ export const useWorksheetGeneration = (
         
         deepFixedWorksheet.exercises = processExercises(deepFixedWorksheet.exercises, data.lessonTime, hasGrammar);
         
-        // Set the correct worksheet ID on the worksheet object
+        // CRITICAL: Set the correct worksheet ID on the worksheet object
         deepFixedWorksheet.id = finalWorksheetId;
         
         if (!deepFixedWorksheet.vocabulary_sheet || deepFixedWorksheet.vocabulary_sheet.length === 0) {
@@ -160,12 +164,13 @@ export const useWorksheetGeneration = (
           deepFixedWorksheet.vocabulary_sheet = createSampleVocabulary(15);
         }
         
-        console.log('💾 Setting worksheet ID FIRST, then worksheet data');
+        console.log('💾 CRITICAL FIX: Setting worksheet ID FIRST, then worksheet data');
         
-        // Set the worksheet ID FIRST before setting worksheet data
+        // CRITICAL FIX: Set the worksheet ID FIRST before setting worksheet data
+        // This ensures that when WorksheetDisplay tries to save, it has the correct ID
         worksheetState.setWorksheetId(finalWorksheetId);
         
-        // Add small delay to ensure state is updated
+        // CRITICAL FIX: Add small delay to ensure state is updated
         setTimeout(() => {
           console.log('💾 Now setting both worksheets in state with final ID:', finalWorksheetId);
           worksheetState.setGeneratedWorksheet(deepFixedWorksheet);
@@ -207,6 +212,7 @@ export const useWorksheetGeneration = (
         }
       });
       
+      // REMOVED: Fallback worksheet logic - now just show error and stay on form
       toast({
         title: "Worksheet generation failed",
         description: error instanceof Error 
@@ -220,7 +226,7 @@ export const useWorksheetGeneration = (
       console.log('🏁 Finishing generation process...');
       setIsGenerating(false);
       
-      // Update student activity if studentId is provided - AT THE VERY END
+      // MOVED HERE: Update student activity if studentId is provided - AT THE VERY END
       if (studentId) {
         console.log('🔄 FINAL STEP: Updating student activity for:', studentId);
         
