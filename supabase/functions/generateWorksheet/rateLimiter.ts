@@ -39,3 +39,9 @@ export class RateLimiter {
     return true;
   }
 }
+
+// Export function for backward compatibility
+export function checkRateLimit(key: string): boolean {
+  const rateLimiter = new RateLimiter();
+  return rateLimiter.isAllowed(key);
+}
