@@ -121,7 +121,7 @@ const Index = () => {
 
   const handleGenerateWorksheet = (data: any) => {
     console.log('🔍 POPUP DECISION DEBUG:', {
-      userId,
+      userId: user?.id,
       isAnonymous,
       isRegisteredUser,
       isDemo,
