@@ -28,10 +28,12 @@ export const useWorksheetGeneration = (
       lessonTime: data.lessonTime, 
       grammarFocus: data.teachingPreferences,
       hasGrammar: !!(data.teachingPreferences && data.teachingPreferences.trim()),
-      studentId
+      studentId,
+      isDemo,
+      hasTokens
     });
 
-    // Check token requirements for authenticated users
+    // Check token requirements for authenticated users only
     if (!isDemo && !hasTokens) {
       toast({
         title: "No tokens available",
@@ -70,19 +72,14 @@ export const useWorksheetGeneration = (
       const fullPrompt = formatPromptForAI(data);
       const formDataForStorage = createFormDataForStorage(data);
       
-      // CRITICAL FIX: Only pass userId if it exists, don't use 'anonymous'
-      if (!userId) {
-        console.error('❌ CRITICAL: No authenticated user - cannot generate worksheet');
-        throw new Error("You must be logged in to generate worksheets");
-      }
-      
-      // Pass the full prompt to the API
+      // CRITICAL FIX: Pass userId (even if null for anonymous users)
+      // The API will handle anonymous users appropriately
       const worksheetResult = await generateWorksheet({ 
         ...data, 
         fullPrompt,
         formDataForStorage,
         studentId
-      }, userId);
+      }, userId || 'anonymous'); // Use 'anonymous' string for null userId
 
       console.log("✅ Generated worksheet result received:", {
         hasData: !!worksheetResult,
