@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -228,6 +228,7 @@ export type Database = {
           id: string
           main_goal: string
           name: string
+          teacher_email: string | null
           teacher_id: string
           updated_at: string
         }
@@ -237,6 +238,7 @@ export type Database = {
           id?: string
           main_goal: string
           name: string
+          teacher_email?: string | null
           teacher_id: string
           updated_at?: string
         }
@@ -246,6 +248,7 @@ export type Database = {
           id?: string
           main_goal?: string
           name?: string
+          teacher_email?: string | null
           teacher_id?: string
           updated_at?: string
         }
@@ -358,6 +361,7 @@ export type Database = {
           description: string | null
           id: string
           reference_id: string | null
+          teacher_email: string | null
           teacher_id: string
           transaction_type: string
         }
@@ -367,6 +371,7 @@ export type Database = {
           description?: string | null
           id?: string
           reference_id?: string | null
+          teacher_email?: string | null
           teacher_id: string
           transaction_type: string
         }
@@ -376,6 +381,7 @@ export type Database = {
           description?: string | null
           id?: string
           reference_id?: string | null
+          teacher_email?: string | null
           teacher_id?: string
           transaction_type?: string
         }
@@ -562,10 +568,10 @@ export type Database = {
     Functions: {
       add_tokens: {
         Args: {
-          p_teacher_id: string
           p_amount: number
           p_description: string
           p_reference_id?: string
+          p_teacher_id: string
         }
         Returns: undefined
       }
@@ -579,8 +585,8 @@ export type Database = {
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
@@ -590,21 +596,21 @@ export type Database = {
       }
       insert_worksheet_bypass_limit: {
         Args: {
-          p_prompt: string
-          p_form_data: Json
           p_ai_response: string
+          p_city?: string
+          p_country?: string
+          p_form_data: Json
+          p_generation_time_seconds: number
           p_html_content: string
-          p_user_id: string
           p_ip_address: string
+          p_prompt: string
           p_status: string
           p_title: string
-          p_generation_time_seconds: number
-          p_country?: string
-          p_city?: string
+          p_user_id: string
         }
         Returns: {
-          id: string
           created_at: string
+          id: string
           title: string
         }[]
       }
@@ -618,12 +624,12 @@ export type Database = {
       }
       track_user_event: {
         Args: {
-          p_user_identifier: string
-          p_event_type: string
           p_event_data?: Json
+          p_event_type: string
           p_ip_address?: string
-          p_user_agent?: string
           p_session_id?: string
+          p_user_agent?: string
+          p_user_identifier: string
         }
         Returns: string
       }
