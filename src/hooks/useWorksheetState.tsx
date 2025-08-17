@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { FormData } from "@/components/WorksheetForm";
@@ -14,7 +13,7 @@ export const useWorksheetState = (authLoading: boolean) => {
 
   // Restore worksheet state from sessionStorage on component mount
   useEffect(() => {
-    const restoreWorksheetState = () => {
+    const restoreWorksheetState = async () => {
       try {
         // Check if user wants to force new worksheet generation
         const forceNewWorksheet = sessionStorage.getItem('forceNewWorksheet');
@@ -30,6 +29,20 @@ export const useWorksheetState = (authLoading: boolean) => {
         if (returningFromPayment) {
           sessionStorage.removeItem('returningFromPayment');
           console.log('User returning from payment, skipping restore message but proceeding with restoration.');
+        }
+
+        // Check current user status
+        const { data: { user } } = await import('@/integrations/supabase/client').then(m => m.supabase.auth.getUser());
+        
+        // If user is anonymous but there's saved worksheet data, clear it
+        // This prevents showing worksheets from previous logged-in sessions
+        if (!user || user.is_anonymous) {
+          const savedWorksheet = sessionStorage.getItem('currentWorksheet');
+          if (savedWorksheet) {
+            console.log('Anonymous user detected with saved worksheet - clearing session storage');
+            clearWorksheetStorage();
+            return;
+          }
         }
 
         const savedWorksheet = sessionStorage.getItem('currentWorksheet');

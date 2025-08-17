@@ -50,7 +50,18 @@ export const useProfile = () => {
   const fetchProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      // Don't try to fetch profile for anonymous users
+      if (user.is_anonymous) {
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
 
       const { data, error } = await supabase
         .from('profiles')
@@ -58,15 +69,32 @@ export const useProfile = () => {
         .eq('id', user.id)
         .single();
 
-      if (error) throw error;
-      setProfile(data);
+      if (error) {
+        // Only show error for non-anonymous users and non-PGRST116 errors
+        if (error.code !== 'PGRST116') {
+          console.error('Error fetching profile:', error);
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
+        setProfile(null);
+      } else {
+        setProfile(data);
+      }
     } catch (error: any) {
       console.error('Error fetching profile:', error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
+      // Don't show toast for anonymous users
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && !user.is_anonymous) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+      setProfile(null);
     } finally {
       setLoading(false);
     }
