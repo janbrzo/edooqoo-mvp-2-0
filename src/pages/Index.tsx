@@ -120,10 +120,36 @@ const Index = () => {
   const bothWorksheetsReady = worksheetState.generatedWorksheet && worksheetState.editableWorksheet;
 
   const handleGenerateWorksheet = (data: any) => {
-    if (!isDemo && !hasTokens) {
+    console.log('🔍 POPUP DECISION DEBUG:', {
+      userId,
+      isAnonymous,
+      isRegisteredUser,
+      isDemo,
+      hasTokens,
+      tokenLeft,
+      userEmail: user?.email || '',
+      userIsAnonymous: user?.is_anonymous
+    });
+
+    // FIXED: Only show popup for registered (non-anonymous) users who don't have tokens
+    const shouldShowPopup = isRegisteredUser && !hasTokens;
+    
+    console.log('🔍 POPUP DECISION:', {
+      shouldShowPopup,
+      reason: shouldShowPopup 
+        ? "Registered user without tokens" 
+        : isDemo 
+          ? "Demo user - can generate" 
+          : "Anonymous user - can generate demo"
+    });
+
+    if (shouldShowPopup) {
+      console.log('❌ Showing token popup');
       setShowTokenModal(true);
       return;
     }
+    
+    console.log('✅ Proceeding with worksheet generation');
     generateWorksheetHandler(data);
   };
 
