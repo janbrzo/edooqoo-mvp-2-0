@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuthFlow } from "@/hooks/useAuthFlow";
@@ -113,17 +114,43 @@ const Index = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin h-8 w-8 border-4 border-worksheet-purple border-t-transparent rounded-full"></div>
-      </div>
     );
   }
 
   const bothWorksheetsReady = worksheetState.generatedWorksheet && worksheetState.editableWorksheet;
 
   const handleGenerateWorksheet = (data: any) => {
-    if (!isDemo && !hasTokens) {
+    // DETAILED LOGGING FOR POPUP DECISION
+    console.log('🔍 POPUP DECISION ANALYSIS:');
+    console.log('📊 Current state:', {
+      userId: user?.id ? 'exists' : 'null',
+      isAnonymous,
+      isRegisteredUser,
+      isDemo,
+      hasTokens,
+      tokenLeft,
+      userEmail: user?.email
+    });
+
+    // FIXED LOGIC: Only show popup for AUTHENTICATED users without tokens
+    // Anonymous users (isDemo=true) should NEVER see the popup
+    const shouldShowPopup = !isDemo && isRegisteredUser && !hasTokens;
+    
+    console.log('🎯 Popup decision logic:', {
+      isDemo,
+      isRegisteredUser, 
+      hasTokens,
+      calculation: `!${isDemo} && ${isRegisteredUser} && !${hasTokens}`,
+      shouldShowPopup
+    });
+
+    if (shouldShowPopup) {
+      console.log('🚫 SHOWING TOKEN POPUP - authenticated user without tokens');
       setShowTokenModal(true);
       return;
     }
+
+    console.log('✅ PROCEEDING WITH GENERATION - anonymous user or user with tokens');
     generateWorksheetHandler(data);
   };
 
