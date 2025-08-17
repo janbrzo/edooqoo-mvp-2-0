@@ -11,13 +11,10 @@ export const useTokenSystem = (userId?: string | null) => {
 
   useEffect(() => {
     if (userId) {
-      // Authenticated user - fetch real token data
       fetchTokenBalance();
     } else {
-      // Anonymous user - set demo mode defaults
-      console.log('🔧 Anonymous user detected - setting demo mode defaults');
       setLoading(false);
-      setTokenLeft(0); // Anonymous users show 0 tokens but can still generate
+      setTokenLeft(0);
       setProfile(null);
     }
   }, [userId]);
@@ -81,23 +78,15 @@ export const useTokenSystem = (userId?: string | null) => {
 
   // Check if user has tokens available for use
   const hasTokens = () => {
-    if (!userId) {
-      // Anonymous users are in demo mode - they can generate worksheets
-      // but will get watermarked results
-      console.log('🔧 Anonymous user hasTokens check - returning true for demo mode');
-      return true;
-    }
-    
-    // Authenticated users need actual tokens and tokens must not be frozen
-    const result = tokenLeft > 0 && !(profile?.is_tokens_frozen);
-    console.log('🔧 Authenticated user hasTokens check:', { tokenLeft, frozen: profile?.is_tokens_frozen, result });
-    return result;
+    if (!userId) return false; // Demo mode - no tokens
+    // Tokens are available if not frozen and count > 0
+    return tokenLeft > 0 && !(profile?.is_tokens_frozen);
   };
 
   const isDemo = !userId; // Anonymous users are in demo mode
 
   return {
-    tokenLeft, // Shows actual available_tokens count (0 for anonymous)
+    tokenLeft, // Shows actual available_tokens count
     profile,
     loading,
     hasTokens: hasTokens(),
