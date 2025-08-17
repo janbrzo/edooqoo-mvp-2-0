@@ -48,17 +48,13 @@ export const useStudents = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Get user email from user object
-      const userEmail = user.email;
-
       const { data, error } = await supabase
         .from('students')
         .insert([{
           name,
           english_level: englishLevel,
           main_goal: mainGoal,
-          teacher_id: user.id,
-          teacher_email: userEmail // Add teacher email
+          teacher_id: user.id
         }])
         .select()
         .single();
@@ -86,19 +82,9 @@ export const useStudents = () => {
 
   const updateStudent = async (id: string, updates: Partial<Pick<Student, 'name' | 'english_level' | 'main_goal'>>) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      // Get user email and include it in updates if needed
-      const userEmail = user.email;
-      const updatesWithEmail = {
-        ...updates,
-        teacher_email: userEmail // Ensure teacher_email is always up to date
-      };
-
       const { data, error } = await supabase
         .from('students')
-        .update(updatesWithEmail)
+        .update(updates)
         .eq('id', id)
         .select()
         .single();
@@ -132,17 +118,9 @@ export const useStudents = () => {
     try {
       console.log('🔄 UPDATING STUDENT ACTIVITY for:', studentId);
       
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const userEmail = user.email;
-      
       const { data, error } = await supabase
         .from('students')
-        .update({ 
-          updated_at: new Date().toISOString(),
-          teacher_email: userEmail // Ensure teacher_email is always up to date
-        })
+        .update({ updated_at: new Date().toISOString() })
         .eq('id', studentId)
         .select()
         .single();
