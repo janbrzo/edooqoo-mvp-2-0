@@ -10,9 +10,11 @@ export const useTokenSystem = (userId?: string | null) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('🔧 useTokenSystem effect triggered, userId:', userId);
     if (userId) {
       fetchTokenBalance();
     } else {
+      console.log('🔧 No userId - setting demo mode defaults');
       setLoading(false);
       setTokenLeft(0);
       setProfile(null);
@@ -22,6 +24,8 @@ export const useTokenSystem = (userId?: string | null) => {
   const fetchTokenBalance = async () => {
     if (!userId) return;
     
+    console.log('🔧 Fetching token balance for userId:', userId);
+    
     try {
       // Get profile data with simplified token system
       const { data: profileData, error } = await supabase
@@ -30,7 +34,24 @@ export const useTokenSystem = (userId?: string | null) => {
         .eq('id', userId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.log('🔧 Profile fetch error:', error);
+        // Don't show toast for "no profile" errors for anonymous users
+        if (error.code !== 'PGRST116') {
+          throw error;
+        }
+        // For anonymous users or users without profiles, just set defaults
+        setTokenLeft(0);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+      
+      console.log('🔧 Profile data fetched:', {
+        available_tokens: profileData?.available_tokens,
+        is_tokens_frozen: profileData?.is_tokens_frozen,
+        subscription_type: profileData?.subscription_type
+      });
       
       // FIXED: Corrected Token Left calculation
       // Token Left = actual available_tokens (what user has)
@@ -78,12 +99,27 @@ export const useTokenSystem = (userId?: string | null) => {
 
   // Check if user has tokens available for use
   const hasTokens = () => {
+    console.log('🔧 hasTokens() check:', {
+      userId,
+      tokenLeft,
+      is_tokens_frozen: profile?.is_tokens_frozen,
+      result: userId ? (tokenLeft > 0 && !(profile?.is_tokens_frozen)) : false
+    });
+    
     if (!userId) return false; // Demo mode - no tokens
     // Tokens are available if not frozen and count > 0
     return tokenLeft > 0 && !(profile?.is_tokens_frozen);
   };
 
   const isDemo = !userId; // Anonymous users are in demo mode
+  
+  console.log('🔧 useTokenSystem final state:', {
+    userId,
+    tokenLeft,
+    isDemo,
+    hasTokens: hasTokens(),
+    loading
+  });
 
   return {
     tokenLeft, // Shows actual available_tokens count
