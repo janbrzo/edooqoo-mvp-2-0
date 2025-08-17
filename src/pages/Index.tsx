@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuthFlow } from "@/hooks/useAuthFlow";
@@ -121,34 +120,10 @@ const Index = () => {
   const bothWorksheetsReady = worksheetState.generatedWorksheet && worksheetState.editableWorksheet;
 
   const handleGenerateWorksheet = (data: any) => {
-    // FIXED: Detailed logging for debugging popup decision
-    console.log('🔍 POPUP DECISION DEBUG:', {
-      userId: user?.id,
-      isAnonymous,
-      isRegisteredUser,
-      isDemo,
-      hasTokens,
-      tokenLeft,
-      userEmail: user?.email,
-      userIsAnonymous: user?.is_anonymous
-    });
-
-    // FIXED: Use isAnonymous directly instead of relying on isDemo
-    // Anonymous users should NEVER see the token popup
-    const shouldShowPopup = !isAnonymous && isRegisteredUser && !hasTokens;
-    
-    console.log('🔍 POPUP DECISION:', {
-      shouldShowPopup,
-      reason: shouldShowPopup ? 'Registered user without tokens' : 'Anonymous user or has tokens'
-    });
-
-    if (shouldShowPopup) {
-      console.log('🚨 Showing token popup for registered user without tokens');
+    if (!isDemo && !hasTokens) {
       setShowTokenModal(true);
       return;
     }
-
-    console.log('✅ Proceeding with worksheet generation');
     generateWorksheetHandler(data);
   };
 
