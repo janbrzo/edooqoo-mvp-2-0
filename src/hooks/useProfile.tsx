@@ -52,21 +52,42 @@ export const useProfile = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Check if user is anonymous
+      const isAnonymous = user.is_anonymous === true || !user.email;
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // FIXED: Don't show toast errors for anonymous users or "no profile" errors
+        if (!isAnonymous && error.code !== 'PGRST116') {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
+        return;
+      }
+      
       setProfile(data);
     } catch (error: any) {
       console.error('Error fetching profile:', error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
+      
+      // Check if user is anonymous before showing toast
+      const { data: { user } } = await supabase.auth.getUser();
+      const isAnonymous = user?.is_anonymous === true || !user?.email;
+      
+      if (!isAnonymous) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }

@@ -86,11 +86,15 @@ export const useTokenSystem = (userId?: string | null) => {
       setProfile(profileData);
     } catch (error: any) {
       console.error('Error fetching token balance:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch token balance",
-        variant: "destructive"
-      });
+      
+      // FIXED: Don't show toast errors for anonymous users
+      if (!isAnonymousUser) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch token balance",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }
