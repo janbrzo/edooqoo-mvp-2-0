@@ -33,8 +33,10 @@ export const useWorksheetGeneration = (
       hasTokens
     });
 
-    // Check token requirements for authenticated users only
-    if (!isDemo && !hasTokens) {
+    // FIXED: Only block authenticated users without tokens
+    // Anonymous users (userId === null) should always be allowed to generate
+    if (userId && !hasTokens) {
+      console.log('🔧 [generateWorksheetHandler] Blocking authenticated user without tokens');
       toast({
         title: "No tokens available",
         description: "You need tokens to generate worksheets. Please upgrade your plan or purchase tokens.",
@@ -42,6 +44,8 @@ export const useWorksheetGeneration = (
       });
       return;
     }
+    
+    console.log('🔧 [generateWorksheetHandler] Proceeding with generation - userId:', !!userId, 'isDemo:', isDemo, 'hasTokens:', hasTokens);
     
     // CRITICAL FIX: Clear storage but DON'T set any worksheet ID yet
     worksheetState.clearWorksheetStorage();
