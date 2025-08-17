@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -12,7 +13,6 @@ export const useTokenSystem = (userId?: string | null) => {
     if (userId) {
       fetchTokenBalance();
     } else {
-      // For anonymous users, don't try to fetch anything - just set defaults
       setLoading(false);
       setTokenLeft(0);
       setProfile(null);
@@ -30,18 +30,7 @@ export const useTokenSystem = (userId?: string | null) => {
         .eq('id', userId)
         .single();
       
-      if (error) {
-        // Only show error toast if it's not a "no rows returned" error for registered users
-        if (error.code !== 'PGRST116') {
-          console.error('Error fetching token balance:', error);
-          toast({
-            title: "Error",
-            description: "Failed to fetch token balance",
-            variant: "destructive"
-          });
-        }
-        return;
-      }
+      if (error) throw error;
       
       // FIXED: Corrected Token Left calculation
       // Token Left = actual available_tokens (what user has)
@@ -52,14 +41,11 @@ export const useTokenSystem = (userId?: string | null) => {
       setProfile(profileData);
     } catch (error: any) {
       console.error('Error fetching token balance:', error);
-      // Don't show toast for anonymous users or profile not found errors
-      if (userId) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch token balance",
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: "Error",
+        description: "Failed to fetch token balance",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

@@ -471,7 +471,6 @@ export type Database = {
           session_id: string | null
           status: string
           student_id: string | null
-          teacher_email: string | null
           teacher_id: string | null
           title: string | null
           user_agent: string | null
@@ -495,7 +494,6 @@ export type Database = {
           session_id?: string | null
           status?: string
           student_id?: string | null
-          teacher_email?: string | null
           teacher_id?: string | null
           title?: string | null
           user_agent?: string | null
@@ -519,7 +517,6 @@ export type Database = {
           session_id?: string | null
           status?: string
           student_id?: string | null
-          teacher_email?: string | null
           teacher_id?: string | null
           title?: string | null
           user_agent?: string | null
@@ -598,34 +595,19 @@ export type Database = {
         Returns: number
       }
       insert_worksheet_bypass_limit: {
-        Args:
-          | {
-              p_ai_response: string
-              p_city?: string
-              p_country?: string
-              p_form_data: Json
-              p_generation_time_seconds: number
-              p_html_content: string
-              p_ip_address: string
-              p_prompt: string
-              p_status: string
-              p_teacher_email?: string
-              p_title: string
-              p_user_id: string
-            }
-          | {
-              p_ai_response: string
-              p_city?: string
-              p_country?: string
-              p_form_data: Json
-              p_generation_time_seconds: number
-              p_html_content: string
-              p_ip_address: string
-              p_prompt: string
-              p_status: string
-              p_title: string
-              p_user_id: string
-            }
+        Args: {
+          p_ai_response: string
+          p_city?: string
+          p_country?: string
+          p_form_data: Json
+          p_generation_time_seconds: number
+          p_html_content: string
+          p_ip_address: string
+          p_prompt: string
+          p_status: string
+          p_title: string
+          p_user_id: string
+        }
         Returns: {
           created_at: string
           id: string
