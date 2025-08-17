@@ -39,23 +39,13 @@ export const useTokenSystem = (userId?: string | null) => {
       
       setTokenLeft(availableTokens);
       setProfile(profileData);
-
-      console.log('🔧 [useTokenSystem] Token data fetched:', {
-        userId: !!userId,
-        availableTokens,
-        isFrozen: profileData?.is_tokens_frozen,
-        subscriptionType: profileData?.subscription_type
-      });
     } catch (error: any) {
       console.error('Error fetching token balance:', error);
-      // Only show toast if it's not a "no profile" error for anonymous users
-      if (error.code !== 'PGRST116') {
-        toast({
-          title: "Error",
-          description: "Failed to fetch token balance",
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: "Error",
+        description: "Failed to fetch token balance",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -88,27 +78,12 @@ export const useTokenSystem = (userId?: string | null) => {
 
   // Check if user has tokens available for use
   const hasTokens = () => {
-    const result = userId ? (tokenLeft > 0 && !(profile?.is_tokens_frozen)) : false;
-    
-    console.log('🔧 [hasTokens] Decision:', {
-      userId: !!userId,
-      tokenLeft,
-      isFrozen: profile?.is_tokens_frozen,
-      result
-    });
-    
-    return result;
+    if (!userId) return false; // Demo mode - no tokens
+    // Tokens are available if not frozen and count > 0
+    return tokenLeft > 0 && !(profile?.is_tokens_frozen);
   };
 
   const isDemo = !userId; // Anonymous users are in demo mode
-
-  console.log('🔧 [useTokenSystem] Current state:', {
-    userId: !!userId,
-    tokenLeft,
-    isDemo,
-    hasTokensResult: hasTokens(),
-    loading
-  });
 
   return {
     tokenLeft, // Shows actual available_tokens count
