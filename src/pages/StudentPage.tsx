@@ -7,8 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useStudents } from '@/hooks/useStudents';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { StudentEditDialog } from '@/components/StudentEditDialog';
-import { DeleteWorksheetDialog } from '@/components/DeleteWorksheetDialog';
-import { ArrowLeft, FileText, Calendar, User, BookOpen, Target, Edit, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, User, BookOpen, Target, Edit, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { deepFixTextObjects } from '@/utils/textObjectFixer';
 
@@ -16,17 +15,8 @@ const StudentPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { students, updateStudent } = useStudents();
-  const { worksheets, loading, deleteWorksheet } = useWorksheetHistory(id || '');
+  const { worksheets, loading } = useWorksheetHistory(id || '');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [deleteDialog, setDeleteDialog] = useState<{
-    isOpen: boolean;
-    worksheetId: string;
-    worksheetTitle: string;
-  }>({
-    isOpen: false,
-    worksheetId: '',
-    worksheetTitle: ''
-  });
 
   const student = students.find(s => s.id === id);
 
@@ -77,28 +67,6 @@ const StudentPage = () => {
     }));
     sessionStorage.setItem('forceNewWorksheet', 'true');
     navigate('/');
-  };
-
-  const handleDeleteClick = (worksheet: any, event: React.MouseEvent) => {
-    event.stopPropagation(); // Prevent worksheet opening
-    setDeleteDialog({
-      isOpen: true,
-      worksheetId: worksheet.id,
-      worksheetTitle: worksheet.title || 'Untitled Worksheet'
-    });
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (deleteDialog.worksheetId) {
-      const success = await deleteWorksheet(deleteDialog.worksheetId);
-      if (success) {
-        setDeleteDialog({ isOpen: false, worksheetId: '', worksheetTitle: '' });
-      }
-    }
-  };
-
-  const handleDeleteCancel = () => {
-    setDeleteDialog({ isOpen: false, worksheetId: '', worksheetTitle: '' });
   };
 
   const formatGoal = (goal: string) => {
@@ -229,23 +197,13 @@ const StudentPage = () => {
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="text-right">
-                            <div className="text-sm font-medium">
-                              {format(new Date(worksheet.created_at), 'MMM dd, yyyy')}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {format(new Date(worksheet.created_at), 'HH:mm')}
-                            </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium">
+                            {format(new Date(worksheet.created_at), 'MMM dd, yyyy')}
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => handleDeleteClick(worksheet, e)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(worksheet.created_at), 'HH:mm')}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -269,13 +227,6 @@ const StudentPage = () => {
           isOpen={isEditDialogOpen}
           onClose={() => setIsEditDialogOpen(false)}
           onSave={updateStudent}
-        />
-
-        <DeleteWorksheetDialog
-          isOpen={deleteDialog.isOpen}
-          onClose={handleDeleteCancel}
-          onConfirm={handleDeleteConfirm}
-          worksheetTitle={deleteDialog.worksheetTitle}
         />
       </div>
     </div>
