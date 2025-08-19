@@ -6,6 +6,7 @@ import ExerciseSection from "./ExerciseSection";
 import VocabularySheet from "./VocabularySheet";
 import TeacherNotes from "./TeacherNotes";
 import RatingSection from "./RatingSection";
+import { useState } from "react";
 
 interface WorksheetContentProps {
   editableWorksheet: any;
@@ -30,6 +31,16 @@ export default function WorksheetContent({
   inputParams,
   isSharedView = false
 }: WorksheetContentProps) {
+  const [rating, setRating] = useState(0);
+  const [feedback, setFeedback] = useState('');
+
+  const handleSubmitRating = () => {
+    if (onFeedbackSubmit) {
+      onFeedbackSubmit(rating, feedback);
+    }
+    console.log('Rating submitted:', { rating, feedback });
+  };
+
   if (!editableWorksheet) {
     return null;
   }
@@ -70,6 +81,9 @@ export default function WorksheetContent({
             <GrammarRules 
               grammarRules={editableWorksheet.grammar_rules}
               isEditing={isEditing}
+              editableWorksheet={editableWorksheet}
+              setEditableWorksheet={setEditableWorksheet}
+              inputParams={inputParams}
             />
           )}
 
@@ -81,6 +95,8 @@ export default function WorksheetContent({
               index={index}
               isEditing={isEditing}
               viewMode={viewMode}
+              editableWorksheet={editableWorksheet}
+              setEditableWorksheet={setEditableWorksheet}
             />
           ))}
 
@@ -89,6 +105,9 @@ export default function WorksheetContent({
             <VocabularySheet 
               vocabularySheet={editableWorksheet.vocabulary_sheet}
               isEditing={isEditing}
+              viewMode={viewMode}
+              editableWorksheet={editableWorksheet}
+              setEditableWorksheet={setEditableWorksheet}
             />
           )}
 
@@ -99,7 +118,13 @@ export default function WorksheetContent({
 
           {/* Rating Section - only show if not in shared view */}
           {!isSharedView && (
-            <RatingSection />
+            <RatingSection 
+              rating={rating}
+              setRating={setRating}
+              feedback={feedback}
+              setFeedback={setFeedback}
+              handleSubmitRating={handleSubmitRating}
+            />
           )}
         </div>
       </Card>
