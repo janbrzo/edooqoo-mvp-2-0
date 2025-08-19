@@ -458,7 +458,6 @@ export type Database = {
           city: string | null
           country: string | null
           created_at: string
-          deleted_at: string | null
           download_count: number
           form_data: Json
           generation_time_seconds: number | null
@@ -470,11 +469,8 @@ export type Database = {
           referrer_url: string | null
           sequence_number: number
           session_id: string | null
-          share_expires_at: string | null
-          share_token: string | null
           status: string
           student_id: string | null
-          teacher_email: string | null
           teacher_id: string | null
           title: string | null
           user_agent: string | null
@@ -485,7 +481,6 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string
-          deleted_at?: string | null
           download_count?: number
           form_data: Json
           generation_time_seconds?: number | null
@@ -497,11 +492,8 @@ export type Database = {
           referrer_url?: string | null
           sequence_number?: number
           session_id?: string | null
-          share_expires_at?: string | null
-          share_token?: string | null
           status?: string
           student_id?: string | null
-          teacher_email?: string | null
           teacher_id?: string | null
           title?: string | null
           user_agent?: string | null
@@ -512,7 +504,6 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string
-          deleted_at?: string | null
           download_count?: number
           form_data?: Json
           generation_time_seconds?: number | null
@@ -524,11 +515,8 @@ export type Database = {
           referrer_url?: string | null
           sequence_number?: number
           session_id?: string | null
-          share_expires_at?: string | null
-          share_token?: string | null
           status?: string
           student_id?: string | null
-          teacher_email?: string | null
           teacher_id?: string | null
           title?: string | null
           user_agent?: string | null
@@ -591,28 +579,9 @@ export type Database = {
         Args: { p_teacher_id: string; p_worksheet_id: string }
         Returns: boolean
       }
-      generate_worksheet_share_token: {
-        Args: {
-          p_expires_hours?: number
-          p_teacher_id: string
-          p_worksheet_id: string
-        }
-        Returns: string
-      }
       get_token_balance: {
         Args: { p_teacher_id: string }
         Returns: number
-      }
-      get_worksheet_by_share_token: {
-        Args: { p_share_token: string }
-        Returns: {
-          ai_response: string
-          created_at: string
-          html_content: string
-          id: string
-          teacher_email: string
-          title: string
-        }[]
       }
       has_role: {
         Args: {
@@ -626,34 +595,19 @@ export type Database = {
         Returns: number
       }
       insert_worksheet_bypass_limit: {
-        Args:
-          | {
-              p_ai_response: string
-              p_city?: string
-              p_country?: string
-              p_form_data: Json
-              p_generation_time_seconds: number
-              p_html_content: string
-              p_ip_address: string
-              p_prompt: string
-              p_status: string
-              p_teacher_email?: string
-              p_title: string
-              p_user_id: string
-            }
-          | {
-              p_ai_response: string
-              p_city?: string
-              p_country?: string
-              p_form_data: Json
-              p_generation_time_seconds: number
-              p_html_content: string
-              p_ip_address: string
-              p_prompt: string
-              p_status: string
-              p_title: string
-              p_user_id: string
-            }
+        Args: {
+          p_ai_response: string
+          p_city?: string
+          p_country?: string
+          p_form_data: Json
+          p_generation_time_seconds: number
+          p_html_content: string
+          p_ip_address: string
+          p_prompt: string
+          p_status: string
+          p_title: string
+          p_user_id: string
+        }
         Returns: {
           created_at: string
           id: string
@@ -666,10 +620,6 @@ export type Database = {
       }
       soft_delete_user_account: {
         Args: { user_id: string }
-        Returns: boolean
-      }
-      soft_delete_worksheet: {
-        Args: { p_teacher_id: string; p_worksheet_id: string }
         Returns: boolean
       }
       track_user_event: {
