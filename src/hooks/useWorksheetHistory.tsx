@@ -57,11 +57,13 @@ export const useWorksheetHistory = (studentId?: string) => {
         return false;
       }
 
-      // Use the existing soft_delete_worksheet function
-      const { data, error } = await supabase.rpc('soft_delete_worksheet', {
-        p_worksheet_id: worksheetId,
-        p_teacher_id: user.id
-      });
+      // Soft delete by setting deleted_at timestamp
+      const { error } = await supabase
+        .from('worksheets')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', worksheetId)
+        .eq('teacher_id', user.id)
+        .is('deleted_at', null); // Only delete if not already deleted
 
       if (error) {
         console.error('Error deleting worksheet:', error);
@@ -69,15 +71,10 @@ export const useWorksheetHistory = (studentId?: string) => {
         return false;
       }
 
-      if (data) {
-        // Remove from local state immediately
-        setWorksheets(prev => prev.filter(w => w.id !== worksheetId));
-        toast.success('Worksheet deleted successfully');
-        return true;
-      } else {
-        toast.error('Worksheet not found or already deleted');
-        return false;
-      }
+      // Remove from local state immediately
+      setWorksheets(prev => prev.filter(w => w.id !== worksheetId));
+      toast.success('Worksheet deleted successfully');
+      return true;
     } catch (error: any) {
       console.error('Error deleting worksheet:', error);
       toast.error('Failed to delete worksheet');
@@ -93,7 +90,7 @@ export const useWorksheetHistory = (studentId?: string) => {
     worksheets,
     loading,
     getRecentWorksheets,
-    deleteWorksheet, // New function for soft delete
+    deleteWorksheet,
     refetch: fetchWorksheets
   };
 };
