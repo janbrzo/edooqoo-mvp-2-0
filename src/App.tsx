@@ -19,7 +19,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CookiePolicy from "./pages/CookiePolicy";
 import NotFound from "./pages/NotFound";
-import { CookieBanner } from "./components/CookieBanner";
+import CookieBanner from "./components/CookieBanner";
 
 const queryClient = new QueryClient();
 

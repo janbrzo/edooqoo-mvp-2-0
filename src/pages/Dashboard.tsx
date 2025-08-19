@@ -7,7 +7,7 @@ import { FileText, User, BookOpen, GraduationCap, Plus, Share, Trash2 } from 'lu
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useStudents } from '@/hooks/useStudents';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
-import { Sidebar } from '@/components/Sidebar';
+import Sidebar from '@/components/Sidebar';
 import { deepFixTextObjects } from '@/utils/textObjectFixer';
 import { ShareWorksheetDialog } from '@/components/ShareWorksheetDialog';
 import { DeleteWorksheetDialog } from '@/components/DeleteWorksheetDialog';

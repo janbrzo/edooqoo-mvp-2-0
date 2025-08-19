@@ -36,9 +36,11 @@ export default function WorksheetContent({
 
   return (
     <>
-      {!isSharedView && (
+      {!isSharedView && worksheetId && (
         <WorksheetViewTracking worksheetId={worksheetId} userId={undefined}>
-          {/* Content wrapper for tracking - only for regular worksheets */}
+          <div>
+            {/* Empty children to satisfy the component requirements */}
+          </div>
         </WorksheetViewTracking>
       )}
       
@@ -68,12 +70,6 @@ export default function WorksheetContent({
             <GrammarRules 
               grammarRules={editableWorksheet.grammar_rules}
               isEditing={isEditing}
-              onChange={(value) => 
-                setEditableWorksheet({
-                  ...editableWorksheet,
-                  grammar_rules: value
-                })
-              }
             />
           )}
 
@@ -85,14 +81,6 @@ export default function WorksheetContent({
               index={index}
               isEditing={isEditing}
               viewMode={viewMode}
-              onChange={(updatedExercise) => {
-                const updatedExercises = [...editableWorksheet.exercises];
-                updatedExercises[index] = updatedExercise;
-                setEditableWorksheet({
-                  ...editableWorksheet,
-                  exercises: updatedExercises
-                });
-              }}
             />
           ))}
 
@@ -101,12 +89,6 @@ export default function WorksheetContent({
             <VocabularySheet 
               vocabularySheet={editableWorksheet.vocabulary_sheet}
               isEditing={isEditing}
-              onChange={(value) => 
-                setEditableWorksheet({
-                  ...editableWorksheet,
-                  vocabulary_sheet: value
-                })
-              }
             />
           )}
 
@@ -117,12 +99,7 @@ export default function WorksheetContent({
 
           {/* Rating Section - only show if not in shared view */}
           {!isSharedView && (
-            <RatingSection
-              worksheetId={worksheetId}
-              onFeedbackSubmit={onFeedbackSubmit}
-              isDownloadUnlocked={isDownloadUnlocked}
-              inputParams={inputParams}
-            />
+            <RatingSection />
           )}
         </div>
       </Card>
