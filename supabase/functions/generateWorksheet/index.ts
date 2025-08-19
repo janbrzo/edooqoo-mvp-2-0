@@ -68,6 +68,24 @@ serve(async (req) => {
     
     console.log('Received validated prompt:', sanitizedPrompt.substring(0, 100) + '...');
 
+    // Get teacher email if userId is provided
+    let teacherEmail = null;
+    if (userId) {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', userId)
+          .single();
+        
+        teacherEmail = profile?.email || null;
+        console.log('Teacher email fetched:', teacherEmail);
+      } catch (error) {
+        console.warn('Could not fetch teacher email:', error);
+        // Continue without email - not critical for worksheet generation
+      }
+    }
+
     // Check if grammarFocus is provided in the prompt
     const hasGrammarFocus = sanitizedPrompt.includes('grammarFocus:');
     const grammarFocusMatch = sanitizedPrompt.match(/grammarFocus:\s*(.+?)(?:\n|$)/);
@@ -542,6 +560,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
           html_content: JSON.stringify(worksheetData),
           user_id: userId || null,
           teacher_id: userId || null, // Add teacher_id for authenticated users
+          teacher_email: teacherEmail, // Add teacher_email
           student_id: studentId || null, // Add student_id if provided
           ip_address: ip,
           status: 'created',
@@ -563,6 +582,7 @@ RETURN ONLY VALID JSON. NO MARKDOWN. NO ADDITIONAL TEXT.`;
         console.log('Worksheet generated and saved successfully with ID:', worksheetId);
         console.log(`Generation time: ${generationTimeSeconds} seconds`);
         console.log(`Geo data: ${geoData.country || 'unknown'}, ${geoData.city || 'unknown'}`);
+        console.log(`Teacher email saved: ${teacherEmail || 'no email'}`);
       }
     } catch (dbError) {
       console.error('Database operation failed:', dbError);
