@@ -5,9 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tables } from '@/integrations/supabase/types';
-import { User, BookOpen, ChevronDown, ChevronRight, FileText, Calendar, ExternalLink, Trash2 } from 'lucide-react';
+import { User, BookOpen, ChevronDown, ChevronRight, FileText, Calendar, ExternalLink } from 'lucide-react';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
-import { DeleteWorksheetDialog } from '@/components/worksheet/DeleteWorksheetDialog';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 
@@ -21,16 +20,7 @@ interface StudentCardProps {
 
 export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: StudentCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { worksheets, loading, getRecentWorksheets, deleteWorksheet } = useWorksheetHistory(student.id);
-  const [deleteDialog, setDeleteDialog] = useState<{
-    isOpen: boolean;
-    worksheet: any;
-    isDeleting: boolean;
-  }>({
-    isOpen: false,
-    worksheet: null,
-    isDeleting: false
-  });
+  const { worksheets, loading, getRecentWorksheets } = useWorksheetHistory(student.id);
   const recentWorksheets = getRecentWorksheets(3);
 
   const formatGoal = (goal: string) => {
@@ -51,141 +41,94 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
     }
   };
 
-  const handleDeleteClick = (worksheet: any, event: React.MouseEvent) => {
-    event.stopPropagation();
-    setDeleteDialog({
-      isOpen: true,
-      worksheet,
-      isDeleting: false
-    });
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteDialog.worksheet) return;
-
-    setDeleteDialog(prev => ({ ...prev, isDeleting: true }));
-    
-    const success = await deleteWorksheet(deleteDialog.worksheet.id);
-    
-    if (success) {
-      setDeleteDialog({
-        isOpen: false,
-        worksheet: null,
-        isDeleting: false
-      });
-    } else {
-      setDeleteDialog(prev => ({ ...prev, isDeleting: false }));
-    }
-  };
-
   return (
-    <>
-      <Card className="hover:shadow-md transition-shadow">
-        <CardHeader className="pb-1 pt-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <Link to={`/student/${student.id}`} className="hover:underline">
-                <CardTitle className="text-lg hover:text-primary transition-colors cursor-pointer">
-                  {student.name}
-                </CardTitle>
+    <Card className="hover:shadow-md transition-shadow">
+      <CardHeader className="pb-1 pt-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <Link to={`/student/${student.id}`} className="hover:underline">
+              <CardTitle className="text-lg hover:text-primary transition-colors cursor-pointer">
+                {student.name}
+              </CardTitle>
+            </Link>
+          </div>
+          <Badge variant="secondary">{student.english_level}</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-1 pt-1 pb-3">
+        <div className="text-sm text-muted-foreground">
+          <strong>Goal:</strong> {formatGoal(student.main_goal)}
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+            <BookOpen className="h-4 w-4" />
+            <span>{worksheets.length} worksheets</span>
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/student/${student.id}`}>
+                <ExternalLink className="h-4 w-4 mr-1" />
+                View Profile
               </Link>
-            </div>
-            <Badge variant="secondary">{student.english_level}</Badge>
+            </Button>
+            <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" size="sm">
+                  {isOpen ? <ChevronDown className="h-4 w-4 mr-1" /> : <ChevronRight className="h-4 w-4 mr-1" />}
+                  Recent
+                </Button>
+              </CollapsibleTrigger>
+            </Collapsible>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-1 pt-1 pb-3">
-          <div className="text-sm text-muted-foreground">
-            <strong>Goal:</strong> {formatGoal(student.main_goal)}
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-              <BookOpen className="h-4 w-4" />
-              <span>{worksheets.length} worksheets</span>
-            </div>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/student/${student.id}`}>
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  View Profile
-                </Link>
-              </Button>
-              <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-                <CollapsibleTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    {isOpen ? <ChevronDown className="h-4 w-4 mr-1" /> : <ChevronRight className="h-4 w-4 mr-1" />}
-                    Recent
-                  </Button>
-                </CollapsibleTrigger>
-              </Collapsible>
-            </div>
-          </div>
-          
-          <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-            <CollapsibleContent>
-              {loading ? (
-                <div className="text-center py-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto"></div>
-                </div>
-              ) : recentWorksheets.length > 0 ? (
-                <div className="space-y-2 mt-2">
-                  {recentWorksheets.map((worksheet) => (
-                    <div
-                      key={worksheet.id}
-                      className="flex items-center justify-between p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors"
-                      onClick={(e) => handleWorksheetClick(worksheet, e)}
-                    >
-                      <div className="flex items-center space-x-2 flex-1 min-w-0">
-                        <FileText className="h-3 w-3 flex-shrink-0" />
-                        <span className="text-xs font-medium truncate">
-                          {worksheet.title || 'Untitled Worksheet'}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1 flex-shrink-0 ml-2">
-                        <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          <span>{format(new Date(worksheet.created_at), 'MMM dd')}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleDeleteClick(worksheet, e)}
-                          className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="w-full text-xs mt-1"
-                    asChild
+        </div>
+        
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          <CollapsibleContent>
+            {loading ? (
+              <div className="text-center py-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto"></div>
+              </div>
+            ) : recentWorksheets.length > 0 ? (
+              <div className="space-y-2 mt-2">
+                {recentWorksheets.map((worksheet) => (
+                  <div
+                    key={worksheet.id}
+                    className="flex items-center justify-between p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors"
+                    onClick={(e) => handleWorksheetClick(worksheet, e)}
                   >
-                    <Link to={`/student/${student.id}`}>
-                      View All ({worksheets.length} total)
-                    </Link>
-                  </Button>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground text-center py-2 mt-2">
-                  No worksheets generated yet
-                </p>
-              )}
-            </CollapsibleContent>
-          </Collapsible>
-        </CardContent>
-      </Card>
-
-      <DeleteWorksheetDialog
-        isOpen={deleteDialog.isOpen}
-        onClose={() => setDeleteDialog({ isOpen: false, worksheet: null, isDeleting: false })}
-        onConfirm={handleDeleteConfirm}
-        worksheetTitle={deleteDialog.worksheet?.title || 'Untitled Worksheet'}
-        isDeleting={deleteDialog.isDeleting}
-      />
-    </>
+                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                      <FileText className="h-3 w-3 flex-shrink-0" />
+                      <span className="text-xs font-medium truncate">
+                        {worksheet.title || 'Untitled Worksheet'}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-1 text-xs text-muted-foreground flex-shrink-0 ml-2">
+                      <Calendar className="h-3 w-3" />
+                      <span>{format(new Date(worksheet.created_at), 'MMM dd')}</span>
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="w-full text-xs mt-1"
+                  asChild
+                >
+                  <Link to={`/student/${student.id}`}>
+                    View All ({worksheets.length} total)
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-2 mt-2">
+                No worksheets generated yet
+              </p>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
+      </CardContent>
+    </Card>
   );
 };
