@@ -7,16 +7,24 @@ import { Badge } from '@/components/ui/badge';
 import { useStudents } from '@/hooks/useStudents';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { StudentEditDialog } from '@/components/StudentEditDialog';
-import { ArrowLeft, FileText, Calendar, User, BookOpen, Target, Edit, Plus } from 'lucide-react';
+import { ShareWorksheetDialog } from '@/components/ShareWorksheetDialog';
+import { DeleteWorksheetDialog } from '@/components/DeleteWorksheetDialog';
+import { ArrowLeft, FileText, Calendar, User, BookOpen, Target, Edit, Plus, Share, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { deepFixTextObjects } from '@/utils/textObjectFixer';
+import { useToast } from '@/hooks/use-toast';
 
 const StudentPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { students, updateStudent } = useStudents();
-  const { worksheets, loading } = useWorksheetHistory(id || '');
+  const { worksheets, loading, refetch: refetchWorksheets, deleteWorksheet } = useWorksheetHistory(id || '');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedWorksheet, setSelectedWorksheet] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { toast } = useToast();
 
   const student = students.find(s => s.id === id);
 
@@ -37,13 +45,9 @@ const StudentPage = () => {
 
   const handleWorksheetClick = (worksheet: any) => {
     try {
-      // Parse the AI response to get the worksheet data
       const worksheetData = JSON.parse(worksheet.ai_response);
-      
-      // Apply deepFixTextObjects to fix {text: "..."} objects
       const fixedWorksheetData = deepFixTextObjects(worksheetData, 'studentPage');
       
-      // Store worksheet data in sessionStorage for restoration
       const restoredWorksheet = {
         ...worksheet,
         ai_response: JSON.stringify(fixedWorksheetData)
@@ -60,13 +64,50 @@ const StudentPage = () => {
   };
 
   const handleGenerateWorksheet = () => {
-    // Store the student data for pre-selection in the form
     sessionStorage.setItem('preSelectedStudent', JSON.stringify({
       id: student.id,
       name: student.name
     }));
     sessionStorage.setItem('forceNewWorksheet', 'true');
     navigate('/');
+  };
+
+  const handleShareWorksheet = (worksheet: any) => {
+    setSelectedWorksheet(worksheet);
+    setShareDialogOpen(true);
+  };
+
+  const handleDeleteWorksheet = (worksheet: any) => {
+    setSelectedWorksheet(worksheet);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteWorksheet = async () => {
+    if (!selectedWorksheet) return;
+    
+    try {
+      setIsDeleting(true);
+      const success = await deleteWorksheet(selectedWorksheet.id);
+      
+      if (success) {
+        toast({
+          title: "Worksheet deleted",
+          description: "The worksheet has been successfully deleted.",
+          className: "bg-green-50 border-green-200"
+        });
+        refetchWorksheets();
+      } else {
+        throw new Error('Delete operation failed');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Failed to delete worksheet",
+        description: error.message || "An error occurred while deleting the worksheet.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const formatGoal = (goal: string) => {
@@ -182,10 +223,12 @@ const StudentPage = () => {
                     {worksheets.map((worksheet) => (
                       <div
                         key={worksheet.id}
-                        className="flex items-center justify-between p-4 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => handleWorksheetClick(worksheet)}
+                        className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
                       >
-                        <div className="flex items-center space-x-3">
+                        <div 
+                          className="flex items-center space-x-3 flex-1 cursor-pointer"
+                          onClick={() => handleWorksheetClick(worksheet)}
+                        >
                           <FileText className="h-5 w-5 text-primary" />
                           <div>
                             <h3 className="font-medium">
@@ -197,13 +240,37 @@ const StudentPage = () => {
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium">
-                            {format(new Date(worksheet.created_at), 'MMM dd, yyyy')}
+                        <div className="flex items-center gap-2">
+                          <div className="text-right mr-4">
+                            <div className="text-sm font-medium">
+                              {format(new Date(worksheet.created_at), 'MMM dd, yyyy')}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(new Date(worksheet.created_at), 'HH:mm')}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {format(new Date(worksheet.created_at), 'HH:mm')}
-                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShareWorksheet(worksheet);
+                            }}
+                            className="text-primary hover:text-primary/80"
+                          >
+                            <Share className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteWorksheet(worksheet);
+                            }}
+                            className="text-destructive hover:text-destructive/80"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -228,6 +295,26 @@ const StudentPage = () => {
           onClose={() => setIsEditDialogOpen(false)}
           onSave={updateStudent}
         />
+
+        {/* Dialogs */}
+        {selectedWorksheet && (
+          <>
+            <ShareWorksheetDialog
+              isOpen={shareDialogOpen}
+              onClose={() => setShareDialogOpen(false)}
+              worksheetId={selectedWorksheet.id}
+              worksheetTitle={selectedWorksheet.title}
+            />
+            
+            <DeleteWorksheetDialog
+              isOpen={deleteDialogOpen}
+              onClose={() => setDeleteDialogOpen(false)}
+              onConfirm={confirmDeleteWorksheet}
+              worksheetTitle={selectedWorksheet.title}
+              isDeleting={isDeleting}
+            />
+          </>
+        )}
       </div>
     </div>
   );

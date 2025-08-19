@@ -30,6 +30,7 @@ export const useWorksheetHistory = (studentId?: string) => {
         .from('worksheets')
         .select('id, title, created_at, form_data, ai_response, html_content, student_id, generation_time_seconds')
         .eq('teacher_id', user.id)
+        .is('deleted_at', null) // Filter out soft-deleted worksheets
         .order('created_at', { ascending: false });
 
       if (studentId) {
@@ -47,6 +48,31 @@ export const useWorksheetHistory = (studentId?: string) => {
     }
   };
 
+  const deleteWorksheet = async (worksheetId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .rpc('soft_delete_worksheet', {
+          p_worksheet_id: worksheetId,
+          p_teacher_id: user.id
+        });
+
+      if (error) throw error;
+      
+      if (data) {
+        // Remove from local state
+        setWorksheets(prev => prev.filter(w => w.id !== worksheetId));
+        return true;
+      }
+      return false;
+    } catch (error: any) {
+      console.error('Error deleting worksheet:', error);
+      throw error;
+    }
+  };
+
   const getRecentWorksheets = (limit: number = 3) => {
     return worksheets.slice(0, limit);
   };
@@ -55,6 +81,7 @@ export const useWorksheetHistory = (studentId?: string) => {
     worksheets,
     loading,
     getRecentWorksheets,
-    refetch: fetchWorksheets
+    refetch: fetchWorksheets,
+    deleteWorksheet
   };
 };
