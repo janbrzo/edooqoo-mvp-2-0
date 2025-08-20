@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useStudents } from '@/hooks/useStudents';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { StudentEditDialog } from '@/components/StudentEditDialog';
+import { DeleteWorksheetButton } from '@/components/DeleteWorksheetButton';
 import { ArrowLeft, FileText, Calendar, User, BookOpen, Target, Edit, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { deepFixTextObjects } from '@/utils/textObjectFixer';
@@ -15,7 +16,7 @@ const StudentPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { students, updateStudent } = useStudents();
-  const { worksheets, loading } = useWorksheetHistory(id || '');
+  const { worksheets, loading, deleteWorksheet } = useWorksheetHistory(id || '');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const student = students.find(s => s.id === id);
@@ -182,10 +183,12 @@ const StudentPage = () => {
                     {worksheets.map((worksheet) => (
                       <div
                         key={worksheet.id}
-                        className="flex items-center justify-between p-4 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => handleWorksheetClick(worksheet)}
+                        className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
                       >
-                        <div className="flex items-center space-x-3">
+                        <div 
+                          className="flex items-center space-x-3 cursor-pointer flex-1"
+                          onClick={() => handleWorksheetClick(worksheet)}
+                        >
                           <FileText className="h-5 w-5 text-primary" />
                           <div>
                             <h3 className="font-medium">
@@ -197,13 +200,20 @@ const StudentPage = () => {
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium">
-                            {format(new Date(worksheet.created_at), 'MMM dd, yyyy')}
+                        <div className="flex items-center space-x-2">
+                          <div className="text-right">
+                            <div className="text-sm font-medium">
+                              {format(new Date(worksheet.created_at), 'MMM dd, yyyy')}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(new Date(worksheet.created_at), 'HH:mm')}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {format(new Date(worksheet.created_at), 'HH:mm')}
-                          </div>
+                          <DeleteWorksheetButton
+                            worksheetId={worksheet.id}
+                            worksheetTitle={worksheet.title || 'Untitled Worksheet'}
+                            onDelete={deleteWorksheet}
+                          />
                         </div>
                       </div>
                     ))}

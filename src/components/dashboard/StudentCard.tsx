@@ -7,6 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tables } from '@/integrations/supabase/types';
 import { User, BookOpen, ChevronDown, ChevronRight, FileText, Calendar, ExternalLink } from 'lucide-react';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
+import { DeleteWorksheetButton } from '@/components/DeleteWorksheetButton';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 
@@ -20,7 +21,7 @@ interface StudentCardProps {
 
 export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: StudentCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { worksheets, loading, getRecentWorksheets } = useWorksheetHistory(student.id);
+  const { worksheets, loading, getRecentWorksheets, deleteWorksheet } = useWorksheetHistory(student.id);
   const recentWorksheets = getRecentWorksheets(3);
 
   const formatGoal = (goal: string) => {
@@ -96,17 +97,27 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
                   <div
                     key={worksheet.id}
                     className="flex items-center justify-between p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors"
-                    onClick={(e) => handleWorksheetClick(worksheet, e)}
                   >
-                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                    <div
+                      className="flex items-center space-x-2 flex-1 min-w-0"
+                      onClick={(e) => handleWorksheetClick(worksheet, e)}
+                    >
                       <FileText className="h-3 w-3 flex-shrink-0" />
                       <span className="text-xs font-medium truncate">
                         {worksheet.title || 'Untitled Worksheet'}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-1 text-xs text-muted-foreground flex-shrink-0 ml-2">
-                      <Calendar className="h-3 w-3" />
-                      <span>{format(new Date(worksheet.created_at), 'MMM dd')}</span>
+                    <div className="flex items-center space-x-1 flex-shrink-0 ml-2">
+                      <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        <span>{format(new Date(worksheet.created_at), 'MMM dd')}</span>
+                      </div>
+                      <DeleteWorksheetButton
+                        worksheetId={worksheet.id}
+                        worksheetTitle={worksheet.title || 'Untitled Worksheet'}
+                        onDelete={deleteWorksheet}
+                        size="sm"
+                      />
                     </div>
                   </div>
                 ))}
