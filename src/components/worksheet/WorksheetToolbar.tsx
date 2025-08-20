@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Edit, Lightbulb, User, Download, Lock, Loader2 } from "lucide-react";
+import { Edit, Lightbulb, User, Download, Lock, Loader2, Share2 } from "lucide-react";
 import PaymentPopup from "@/components/PaymentPopup";
+import ShareWorksheetModal from "@/components/ShareWorksheetModal";
 import { exportAsHTML } from "@/utils/htmlExport";
 import { trackWorksheetEvent } from "@/services/worksheetService";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -47,6 +48,7 @@ const WorksheetToolbar = ({
   userId,
 }: WorksheetToolbarProps) => {
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<'html-student' | 'html-teacher' | 'pdf' | null>(null);
   const isMobile = useIsMobile();
   const { trackDownloadAttempt } = useDownloadTracking(userId);
@@ -142,6 +144,10 @@ const WorksheetToolbar = ({
     setPendingAction(null);
   };
 
+  const handleShareClick = () => {
+    setShowShareModal(true);
+  };
+
   return (
     <TooltipProvider>
       <div className="sticky top-0 z-10 bg-white border-b mb-6 py-3 px-4">
@@ -168,14 +174,27 @@ const WorksheetToolbar = ({
           </div>
           <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center'}`}>
             {!isEditing && (
-              <Button
-                variant="outline"
-                onClick={handleEdit}
-                className={`border-worksheet-purple text-worksheet-purple ${isMobile ? '' : 'mr-2'}`}
-                size="sm"
-              >
-                <Edit className="mr-2 h-4 w-4" /> Edit Worksheet
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleEdit}
+                  className={`border-worksheet-purple text-worksheet-purple ${isMobile ? '' : 'mr-2'}`}
+                  size="sm"
+                >
+                  <Edit className="mr-2 h-4 w-4" /> Edit Worksheet
+                </Button>
+                
+                {userId && worksheetId && (
+                  <Button
+                    variant="outline"
+                    onClick={handleShareClick}
+                    className={`border-worksheet-purple text-worksheet-purple ${isMobile ? '' : 'mr-2'}`}
+                    size="sm"
+                  >
+                    <Share2 className="mr-2 h-4 w-4" /> Share Worksheet
+                  </Button>
+                )}
+              </>
             )}
             {isEditing && (
               <Button
@@ -249,6 +268,15 @@ const WorksheetToolbar = ({
         worksheetId={worksheetId}
         userIp={userIp}
       />
+
+      {worksheetId && (
+        <ShareWorksheetModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          worksheetId={worksheetId}
+          worksheetTitle={editableWorksheet?.title || 'English Worksheet'}
+        />
+      )}
     </TooltipProvider>
   );
 };
