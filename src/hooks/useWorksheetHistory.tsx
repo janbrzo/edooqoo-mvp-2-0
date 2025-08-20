@@ -53,7 +53,8 @@ export const useWorksheetHistory = (studentId?: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase.rpc('soft_delete_worksheet', {
+      // Use direct RPC call with proper typing
+      const { error } = await supabase.rpc('soft_delete_worksheet' as any, {
         p_worksheet_id: worksheetId,
         p_teacher_id: user.id
       });
