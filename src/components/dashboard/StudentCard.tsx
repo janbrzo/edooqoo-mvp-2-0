@@ -1,7 +1,7 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { StudentEditDialog } from "@/components/StudentEditDialog";
 import { DeleteWorksheetDialog } from "@/components/worksheet/DeleteWorksheetDialog";
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { User, Calendar, FileText, Eye, Clock } from 'lucide-react';
@@ -10,11 +10,13 @@ import { useNavigate } from 'react-router-dom';
 
 interface Student {
   id: string;
-  first_name: string;
-  last_name: string;
+  name: string;
   english_level: string;
-  notes?: string;
+  main_goal: string;
+  teacher_id: string;
+  teacher_email?: string;
   created_at: string;
+  updated_at: string;
 }
 
 interface StudentCardProps {
@@ -35,6 +37,15 @@ export const StudentCard = ({ student }: StudentCardProps) => {
     // Navigate to worksheet view or open modal
   };
 
+  // Get initials from name
+  const getInitials = (name: string) => {
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`;
+    }
+    return `${parts[0]?.charAt(0) || ''}${parts[0]?.charAt(1) || ''}`;
+  };
+
   return (
     <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer group" onClick={handleViewStudent}>
       <CardContent className="p-6">
@@ -42,11 +53,11 @@ export const StudentCard = ({ student }: StudentCardProps) => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-              {student.first_name.charAt(0)}{student.last_name.charAt(0)}
+              {getInitials(student.name)}
             </div>
             <div>
               <h3 className="font-semibold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
-                {student.first_name} {student.last_name}
+                {student.name}
               </h3>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Badge variant="secondary" className="text-xs">
@@ -59,17 +70,7 @@ export const StudentCard = ({ student }: StudentCardProps) => {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <StudentEditDialog student={student} />
-          </div>
         </div>
-
-        {/* Notes */}
-        {student.notes && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm text-amber-800 line-clamp-2">{student.notes}</p>
-          </div>
-        )}
 
         {/* Recent Worksheets */}
         <div className="space-y-3">

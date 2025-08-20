@@ -1,12 +1,12 @@
+
 import { useParams, Navigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { useStudents } from '@/hooks/useStudents';
-import { Sidebar } from '@/components/Sidebar';
-import { WorksheetDisplay } from '@/components/WorksheetDisplay';
-import { StudentEditDialog } from '@/components/StudentEditDialog';
+import Sidebar from '@/components/Sidebar';
+import WorksheetDisplay from '@/components/WorksheetDisplay';
 import { DeleteWorksheetDialog } from '@/components/worksheet/DeleteWorksheetDialog';
 import { formatDistanceToNow } from 'date-fns';
 import { useState } from 'react';
@@ -42,6 +42,18 @@ export default function StudentPage() {
     );
   }
 
+  // Get first and last name from the student.name field
+  const getDisplayName = (name: string) => {
+    const parts = name.split(' ');
+    return {
+      first: parts[0] || '',
+      last: parts.slice(1).join(' ') || parts[0] || '',
+      initials: parts.length >= 2 ? `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}` : `${parts[0]?.charAt(0) || ''}${parts[0]?.charAt(1) || ''}`
+    };
+  };
+
+  const displayName = getDisplayName(student.name);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <Sidebar />
@@ -52,11 +64,11 @@ export default function StudentPage() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                  {student.first_name.charAt(0)}{student.last_name.charAt(0)}
+                  {displayName.initials}
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">
-                    {student.first_name} {student.last_name}
+                    {student.name}
                   </h1>
                   <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
                     <div className="flex items-center gap-1">
@@ -70,16 +82,7 @@ export default function StudentPage() {
                   </div>
                 </div>
               </div>
-              <StudentEditDialog student={student} />
             </div>
-            
-            {student.notes && (
-              <Card className="bg-amber-50 border-amber-200">
-                <CardContent className="pt-4">
-                  <p className="text-sm text-amber-800">{student.notes}</p>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
           {/* Worksheets Section */}

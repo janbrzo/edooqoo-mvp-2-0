@@ -53,13 +53,11 @@ export const useWorksheetHistory = (studentId?: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Use direct SQL UPDATE instead of RPC to avoid TypeScript issues
-      const { error } = await supabase
-        .from('worksheets')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', worksheetId)
-        .eq('teacher_id', user.id)
-        .is('deleted_at', null);
+      // Use direct SQL UPDATE to set deleted_at timestamp
+      const { error } = await supabase.rpc('soft_delete_worksheet', {
+        p_worksheet_id: worksheetId,
+        p_teacher_id: user.id
+      });
 
       if (error) throw error;
       
