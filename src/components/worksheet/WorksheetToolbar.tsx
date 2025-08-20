@@ -7,6 +7,7 @@ import { exportAsHTML } from "@/utils/htmlExport";
 import { trackWorksheetEvent } from "@/services/worksheetService";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDownloadTracking } from "@/hooks/useDownloadTracking";
+import { useAuthFlow } from "@/hooks/useAuthFlow";
 import {
   Tooltip,
   TooltipContent,
@@ -52,6 +53,7 @@ const WorksheetToolbar = ({
   const [pendingAction, setPendingAction] = useState<'html-student' | 'html-teacher' | 'pdf' | null>(null);
   const isMobile = useIsMobile();
   const { trackDownloadAttempt } = useDownloadTracking(userId);
+  const { user, isRegisteredUser } = useAuthFlow();
 
   const handleDownloadHTML = async (downloadViewMode: "student" | "teacher") => {
     const originalViewMode = viewMode;
@@ -145,8 +147,16 @@ const WorksheetToolbar = ({
   };
 
   const handleShareClick = () => {
+    console.log('Share button clicked');
+    console.log('User:', user);
+    console.log('Is registered user:', isRegisteredUser);
+    console.log('Worksheet ID:', worksheetId);
+    
     setShowShareModal(true);
   };
+
+  // Check if user can share worksheets (registered user with valid worksheetId)
+  const canShareWorksheet = isRegisteredUser && worksheetId && !user?.is_anonymous;
 
   return (
     <TooltipProvider>
@@ -184,7 +194,7 @@ const WorksheetToolbar = ({
                   <Edit className="mr-2 h-4 w-4" /> Edit Worksheet
                 </Button>
                 
-                {userId && worksheetId && (
+                {canShareWorksheet && (
                   <Button
                     variant="outline"
                     onClick={handleShareClick}
@@ -269,11 +279,11 @@ const WorksheetToolbar = ({
         userIp={userIp}
       />
 
-      {worksheetId && (
+      {canShareWorksheet && (
         <ShareWorksheetModal
           isOpen={showShareModal}
           onClose={() => setShowShareModal(false)}
-          worksheetId={worksheetId}
+          worksheetId={worksheetId!}
           worksheetTitle={editableWorksheet?.title || 'English Worksheet'}
         />
       )}
