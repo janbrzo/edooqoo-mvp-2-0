@@ -5,10 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tables } from '@/integrations/supabase/types';
-import { User, BookOpen, ChevronDown, ChevronRight, FileText, Calendar, ExternalLink } from 'lucide-react';
+import { User, BookOpen, ChevronDown, ChevronRight, FileText, Calendar, ExternalLink, Trash2 } from 'lucide-react';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
+import { DeleteWorksheetDialog } from '@/components/worksheet/DeleteWorksheetDialog';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 type Student = Tables<'students'>;
 
@@ -20,8 +22,19 @@ interface StudentCardProps {
 
 export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: StudentCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { worksheets, loading, getRecentWorksheets } = useWorksheetHistory(student.id);
+  const { toast } = useToast();
+  const { worksheets, loading, getRecentWorksheets, deleteWorksheet } = useWorksheetHistory(student.id);
   const recentWorksheets = getRecentWorksheets(3);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    worksheetId: string;
+    worksheetTitle: string;
+  }>({
+    isOpen: false,
+    worksheetId: '',
+    worksheetTitle: ''
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const formatGoal = (goal: string) => {
     const goalMap: Record<string, string> = {
@@ -38,6 +51,38 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
     event.stopPropagation();
     if (onOpenWorksheet) {
       onOpenWorksheet(worksheet);
+    }
+  };
+
+  const handleDeleteClick = (worksheet: any, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setDeleteDialog({
+      isOpen: true,
+      worksheetId: worksheet.id,
+      worksheetTitle: worksheet.title || 'Untitled Worksheet'
+    });
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      setIsDeleting(true);
+      await deleteWorksheet(deleteDialog.worksheetId);
+      
+      toast({
+        title: "Worksheet deleted",
+        description: "The worksheet has been successfully deleted.",
+      });
+      
+      setDeleteDialog({ isOpen: false, worksheetId: '', worksheetTitle: '' });
+    } catch (error) {
+      console.error('Error deleting worksheet:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete worksheet. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -104,9 +149,19 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
                         {worksheet.title || 'Untitled Worksheet'}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-1 text-xs text-muted-foreground flex-shrink-0 ml-2">
-                      <Calendar className="h-3 w-3" />
-                      <span>{format(new Date(worksheet.created_at), 'MMM dd')}</span>
+                    <div className="flex items-center space-x-1 flex-shrink-0 ml-2">
+                      <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        <span>{format(new Date(worksheet.created_at), 'MMM dd')}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleDeleteClick(worksheet, e)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 p-1 h-6 w-6"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -129,6 +184,14 @@ export const StudentCard = ({ student, onViewHistory, onOpenWorksheet }: Student
           </CollapsibleContent>
         </Collapsible>
       </CardContent>
+
+      <DeleteWorksheetDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, worksheetId: '', worksheetTitle: '' })}
+        onConfirm={handleDeleteConfirm}
+        worksheetTitle={deleteDialog.worksheetTitle}
+        isDeleting={isDeleting}
+      />
     </Card>
   );
 };

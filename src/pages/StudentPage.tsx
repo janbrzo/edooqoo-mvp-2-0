@@ -7,16 +7,29 @@ import { Badge } from '@/components/ui/badge';
 import { useStudents } from '@/hooks/useStudents';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { StudentEditDialog } from '@/components/StudentEditDialog';
-import { ArrowLeft, FileText, Calendar, User, BookOpen, Target, Edit, Plus } from 'lucide-react';
+import { DeleteWorksheetDialog } from '@/components/worksheet/DeleteWorksheetDialog';
+import { ArrowLeft, FileText, Calendar, User, BookOpen, Target, Edit, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { deepFixTextObjects } from '@/utils/textObjectFixer';
+import { useToast } from '@/hooks/use-toast';
 
 const StudentPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { students, updateStudent } = useStudents();
-  const { worksheets, loading } = useWorksheetHistory(id || '');
+  const { worksheets, loading, deleteWorksheet } = useWorksheetHistory(id || '');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    worksheetId: string;
+    worksheetTitle: string;
+  }>({
+    isOpen: false,
+    worksheetId: '',
+    worksheetTitle: ''
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const student = students.find(s => s.id === id);
 
@@ -67,6 +80,38 @@ const StudentPage = () => {
     }));
     sessionStorage.setItem('forceNewWorksheet', 'true');
     navigate('/');
+  };
+
+  const handleDeleteClick = (worksheet: any, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setDeleteDialog({
+      isOpen: true,
+      worksheetId: worksheet.id,
+      worksheetTitle: worksheet.title || 'Untitled Worksheet'
+    });
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      setIsDeleting(true);
+      await deleteWorksheet(deleteDialog.worksheetId);
+      
+      toast({
+        title: "Worksheet deleted",
+        description: "The worksheet has been successfully deleted.",
+      });
+      
+      setDeleteDialog({ isOpen: false, worksheetId: '', worksheetTitle: '' });
+    } catch (error) {
+      console.error('Error deleting worksheet:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete worksheet. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const formatGoal = (goal: string) => {
@@ -185,7 +230,7 @@ const StudentPage = () => {
                         className="flex items-center justify-between p-4 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
                         onClick={() => handleWorksheetClick(worksheet)}
                       >
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-3 flex-1">
                           <FileText className="h-5 w-5 text-primary" />
                           <div>
                             <h3 className="font-medium">
@@ -197,13 +242,23 @@ const StudentPage = () => {
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium">
-                            {format(new Date(worksheet.created_at), 'MMM dd, yyyy')}
+                        <div className="flex items-center space-x-2">
+                          <div className="text-right">
+                            <div className="text-sm font-medium">
+                              {format(new Date(worksheet.created_at), 'MMM dd, yyyy')}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(new Date(worksheet.created_at), 'HH:mm')}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {format(new Date(worksheet.created_at), 'HH:mm')}
-                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => handleDeleteClick(worksheet, e)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -227,6 +282,14 @@ const StudentPage = () => {
           isOpen={isEditDialogOpen}
           onClose={() => setIsEditDialogOpen(false)}
           onSave={updateStudent}
+        />
+
+        <DeleteWorksheetDialog
+          isOpen={deleteDialog.isOpen}
+          onClose={() => setDeleteDialog({ isOpen: false, worksheetId: '', worksheetTitle: '' })}
+          onConfirm={handleDeleteConfirm}
+          worksheetTitle={deleteDialog.worksheetTitle}
+          isDeleting={isDeleting}
         />
       </div>
     </div>
