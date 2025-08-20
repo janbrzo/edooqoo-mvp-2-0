@@ -1,18 +1,19 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useStudents } from '@/hooks/useStudents';
-import { Edit } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 
 type Student = Tables<'students'>;
 
 interface StudentEditDialogProps {
   student: Student;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (id: string, updates: Partial<Pick<Student, 'name' | 'english_level' | 'main_goal'>>) => Promise<any>;
 }
 
 const englishLevels = [
@@ -33,8 +34,12 @@ const mainGoals = [
   { value: 'custom', label: 'Custom' }
 ];
 
-export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({ student }) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({
+  student,
+  isOpen,
+  onClose,
+  onSave
+}) => {
   const [name, setName] = useState(student.name);
   const [englishLevel, setEnglishLevel] = useState(student.english_level);
   const [mainGoal, setMainGoal] = useState(student.main_goal);
@@ -42,18 +47,17 @@ export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({ student })
     mainGoals.find(goal => goal.value === student.main_goal) ? '' : student.main_goal
   );
   const [isLoading, setIsLoading] = useState(false);
-  const { updateStudent } = useStudents();
 
   const handleSave = async () => {
     setIsLoading(true);
     try {
       const goalToSave = mainGoal === 'custom' ? customGoal : mainGoal;
-      await updateStudent(student.id, {
+      await onSave(student.id, {
         name,
         english_level: englishLevel,
         main_goal: goalToSave
       });
-      setIsOpen(false);
+      onClose();
     } catch (error) {
       console.error('Error updating student:', error);
     } finally {
@@ -67,17 +71,11 @@ export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({ student })
     setEnglishLevel(student.english_level);
     setMainGoal(student.main_goal);
     setCustomGoal(mainGoals.find(goal => goal.value === student.main_goal) ? '' : student.main_goal);
-    setIsOpen(false);
+    onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1">
-          <Edit className="h-4 w-4" />
-          Edit
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Student Details</DialogTitle>

@@ -1,161 +1,236 @@
 
-import { useParams, Navigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
+import React, { useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useStudents } from '@/hooks/useStudents';
-import Sidebar from '@/components/Sidebar';
-import WorksheetDisplay from '@/components/WorksheetDisplay';
-import { DeleteWorksheetDialog } from '@/components/worksheet/DeleteWorksheetDialog';
-import { formatDistanceToNow } from 'date-fns';
-import { useState } from 'react';
-import { Calendar, Clock, FileText, User, Edit, Eye, Download } from 'lucide-react';
+import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
+import { StudentEditDialog } from '@/components/StudentEditDialog';
+import { ArrowLeft, FileText, Calendar, User, BookOpen, Target, Edit, Plus } from 'lucide-react';
+import { format } from 'date-fns';
+import { deepFixTextObjects } from '@/utils/textObjectFixer';
 
-export default function StudentPage() {
-  const { studentId } = useParams();
-  const { students } = useStudents();
-  const { worksheets, loading, deleteWorksheet } = useWorksheetHistory(studentId);
-  const [selectedWorksheet, setSelectedWorksheet] = useState<any>(null);
-  
-  const student = students.find(s => s.id === studentId);
-  
+const StudentPage = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { students, updateStudent } = useStudents();
+  const { worksheets, loading } = useWorksheetHistory(id || '');
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  const student = students.find(s => s.id === id);
+
   if (!student) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  const handleViewWorksheet = (worksheet: any) => {
-    setSelectedWorksheet(worksheet);
-  };
-
-  const handleCloseWorksheet = () => {
-    setSelectedWorksheet(null);
-  };
-
-  if (selectedWorksheet) {
     return (
-      <WorksheetDisplay 
-        worksheet={selectedWorksheet} 
-        onClose={handleCloseWorksheet}
-        showToolbar={true}
-      />
-    );
-  }
-
-  // Get first and last name from the student.name field
-  const getDisplayName = (name: string) => {
-    const parts = name.split(' ');
-    return {
-      first: parts[0] || '',
-      last: parts.slice(1).join(' ') || parts[0] || '',
-      initials: parts.length >= 2 ? `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}` : `${parts[0]?.charAt(0) || ''}${parts[0]?.charAt(1) || ''}`
-    };
-  };
-
-  const displayName = getDisplayName(student.name);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <Sidebar />
-      <div className="pl-64">
-        <div className="container mx-auto px-6 py-8">
-          {/* Student Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                  {displayName.initials}
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    {student.name}
-                  </h1>
-                  <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>Level: {student.english_level}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <FileText className="h-4 w-4" />
-                      <span>{worksheets.length} worksheets</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Worksheets Section */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">Student Worksheets</h2>
-              <Badge variant="secondary" className="px-3 py-1">
-                {worksheets.length} total
-              </Badge>
-            </div>
-
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-gray-600 mt-2">Loading worksheets...</p>
-              </div>
-            ) : worksheets.length === 0 ? (
-              <Card className="text-center py-12">
-                <CardContent>
-                  <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No worksheets yet</h3>
-                  <p className="text-gray-600 mb-4">Create the first worksheet for this student</p>
-                  <Button onClick={() => window.location.href = '/'}>
-                    Create Worksheet
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4">
-                {worksheets.map((worksheet) => (
-                  <Card key={worksheet.id} className="hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-lg mb-1">{worksheet.title}</CardTitle>
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-4 w-4" />
-                              <span>{formatDistanceToNow(new Date(worksheet.created_at), { addSuffix: true })}</span>
-                            </div>
-                            {worksheet.generation_time_seconds && (
-                              <div className="flex items-center gap-1">
-                                <span>Generated in {worksheet.generation_time_seconds}s</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewWorksheet(worksheet)}
-                            className="gap-1"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View
-                          </Button>
-                          <DeleteWorksheetDialog
-                            worksheetId={worksheet.id}
-                            worksheetTitle={worksheet.title}
-                            onDelete={deleteWorksheet}
-                            variant="icon"
-                          />
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                ))}
-              </div>
-            )}
+      <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center py-8">
+            <h1 className="text-2xl font-bold mb-4">Student not found</h1>
+            <Button asChild>
+              <Link to="/dashboard">Back to Dashboard</Link>
+            </Button>
           </div>
         </div>
       </div>
+    );
+  }
+
+  const handleWorksheetClick = (worksheet: any) => {
+    try {
+      // Parse the AI response to get the worksheet data
+      const worksheetData = JSON.parse(worksheet.ai_response);
+      
+      // Apply deepFixTextObjects to fix {text: "..."} objects
+      const fixedWorksheetData = deepFixTextObjects(worksheetData, 'studentPage');
+      
+      // Store worksheet data in sessionStorage for restoration
+      const restoredWorksheet = {
+        ...worksheet,
+        ai_response: JSON.stringify(fixedWorksheetData)
+      };
+      
+      sessionStorage.setItem('restoredWorksheet', JSON.stringify(restoredWorksheet));
+      sessionStorage.setItem('worksheetStudentName', student.name);
+      
+      console.log('📱 Navigating to Index with restored worksheet for student:', student.name);
+      navigate('/');
+    } catch (error) {
+      console.error('Error opening worksheet:', error);
+    }
+  };
+
+  const handleGenerateWorksheet = () => {
+    // Store the student data for pre-selection in the form
+    sessionStorage.setItem('preSelectedStudent', JSON.stringify({
+      id: student.id,
+      name: student.name
+    }));
+    sessionStorage.setItem('forceNewWorksheet', 'true');
+    navigate('/');
+  };
+
+  const formatGoal = (goal: string) => {
+    const goalMap: Record<string, string> = {
+      'work': 'Work/Business',
+      'exam': 'Exam Preparation',
+      'general': 'General English',
+      'travel': 'Travel',
+      'academic': 'Academic'
+    };
+    return goalMap[goal] || goal;
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/dashboard">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold flex items-center">
+                <User className="h-8 w-8 mr-3" />
+                {student.name}
+              </h1>
+              <p className="text-muted-foreground">Student Profile & Worksheets</p>
+            </div>
+          </div>
+          <Button onClick={handleGenerateWorksheet}>
+            Generate New Worksheet
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Student Info Card */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <User className="h-5 w-5 mr-2" />
+                    Student Details
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditDialogOpen(true)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">English Level</label>
+                  <Badge variant="secondary" className="ml-2">{student.english_level}</Badge>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Main Goal</label>
+                  <div className="flex items-center mt-1">
+                    <Target className="h-4 w-4 mr-2 text-primary" />
+                    <span>{formatGoal(student.main_goal)}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Total Worksheets</label>
+                  <div className="flex items-center mt-1">
+                    <BookOpen className="h-4 w-4 mr-2 text-primary" />
+                    <span className="font-semibold">{worksheets.length}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Student Since</label>
+                  <div className="flex items-center mt-1">
+                    <Calendar className="h-4 w-4 mr-2 text-primary" />
+                    <span>{format(new Date(student.created_at), 'MMM dd, yyyy')}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Worksheets List */}
+          <div className="lg:col-span-3">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <FileText className="h-5 w-5 mr-2" />
+                    All Worksheets ({worksheets.length})
+                  </CardTitle>
+                  {worksheets.length > 0 && (
+                    <Button onClick={handleGenerateWorksheet} size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Generate another Worksheet
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-4 text-muted-foreground">Loading worksheets...</p>
+                  </div>
+                ) : worksheets.length > 0 ? (
+                  <div className="space-y-3">
+                    {worksheets.map((worksheet) => (
+                      <div
+                        key={worksheet.id}
+                        className="flex items-center justify-between p-4 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => handleWorksheetClick(worksheet)}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <FileText className="h-5 w-5 text-primary" />
+                          <div>
+                            <h3 className="font-medium">
+                              {worksheet.title || 'Untitled Worksheet'}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {worksheet.form_data?.lessonTopic && `Topic: ${worksheet.form_data.lessonTopic}`}
+                              {worksheet.form_data?.lessonGoal && ` • Goal: ${worksheet.form_data.lessonGoal}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium">
+                            {format(new Date(worksheet.created_at), 'MMM dd, yyyy')}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(worksheet.created_at), 'HH:mm')}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                    <p className="text-muted-foreground">No worksheets generated yet</p>
+                    <Button onClick={handleGenerateWorksheet} className="mt-4">
+                      Generate First Worksheet
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <StudentEditDialog
+          student={student}
+          isOpen={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+          onSave={updateStudent}
+        />
+      </div>
     </div>
   );
-}
+};
+
+export default StudentPage;
