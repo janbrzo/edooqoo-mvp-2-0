@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Edit, Lightbulb, User, Download, Lock, Loader2 } from "lucide-react";
+import { Edit, Lightbulb, User, Download, Lock, Loader2, Share2 } from "lucide-react";
 import PaymentPopup from "@/components/PaymentPopup";
+import ShareWorksheetModal from "@/components/ShareWorksheetModal";
 import { exportAsHTML } from "@/utils/htmlExport";
 import { trackWorksheetEvent } from "@/services/worksheetService";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -47,6 +48,7 @@ const WorksheetToolbar = ({
   userId,
 }: WorksheetToolbarProps) => {
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<'html-student' | 'html-teacher' | 'pdf' | null>(null);
   const isMobile = useIsMobile();
   const { trackDownloadAttempt } = useDownloadTracking(userId);
@@ -195,6 +197,23 @@ const WorksheetToolbar = ({
               </Button>
             )}
             <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'}`}>
+              {userId && worksheetId && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => setShowShareModal(true)}
+                      className={`bg-blue-600 hover:bg-blue-700 ${isMobile ? 'w-full' : ''}`}
+                      size="sm"
+                    >
+                      <Share2 className="mr-2 h-4 w-4" />
+                      Share
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Generate a public link to share this worksheet</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -248,6 +267,13 @@ const WorksheetToolbar = ({
         onPaymentSuccess={handlePaymentSuccess}
         worksheetId={worksheetId}
         userIp={userIp}
+      />
+
+      <ShareWorksheetModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        worksheetId={worksheetId || ''}
+        worksheetTitle={editableWorksheet?.title || 'English Worksheet'}
       />
     </TooltipProvider>
   );
