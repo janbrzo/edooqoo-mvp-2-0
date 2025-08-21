@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, AlertCircle, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import SharedWorksheetContent from '@/components/shared/SharedWorksheetContent';
 
 interface SharedWorksheetData {
   id: string;
@@ -70,7 +71,7 @@ const SharedWorksheet = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-worksheet-purple" />
           <p className="text-gray-600">Loading shared worksheet...</p>
@@ -81,7 +82,7 @@ const SharedWorksheet = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center max-w-md mx-auto p-6">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h1 className="text-xl font-semibold text-gray-900 mb-2">
@@ -98,7 +99,7 @@ const SharedWorksheet = () => {
 
   if (!worksheet) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600">No worksheet data available</p>
@@ -107,25 +108,26 @@ const SharedWorksheet = () => {
     );
   }
 
-  // Parse the AI response to get the worksheet structure
+  // Parse the AI response to get the worksheet title if needed
   let parsedWorksheet;
   try {
     parsedWorksheet = JSON.parse(worksheet.ai_response);
   } catch (error) {
-    console.error('Error parsing worksheet data:', error);
     parsedWorksheet = null;
   }
+
+  const worksheetTitle = worksheet.title || parsedWorksheet?.title || 'English Worksheet';
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-white border-b shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center gap-3">
             <FileText className="h-6 w-6 text-worksheet-purple" />
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                {worksheet.title || parsedWorksheet?.title || 'English Worksheet'}
+                {worksheetTitle}
               </h1>
               <p className="text-sm text-gray-500">
                 Shared by: {worksheet.teacher_email} • 
@@ -136,65 +138,26 @@ const SharedWorksheet = () => {
         </div>
       </div>
 
-      {/* Worksheet Content */}
+      {/* Main Content - styled to match HTML export */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          {worksheet.html_content ? (
-            <div 
-              id="shared-worksheet-content"
-              dangerouslySetInnerHTML={{ __html: worksheet.html_content }}
-              className="prose max-w-none"
-            />
-          ) : parsedWorksheet ? (
-            <div id="shared-worksheet-content">
-              <h2 className="text-xl font-bold mb-4">{parsedWorksheet.title}</h2>
-              {parsedWorksheet.subtitle && (
-                <p className="text-gray-600 mb-4">{parsedWorksheet.subtitle}</p>
-              )}
-              {parsedWorksheet.introduction && (
-                <p className="mb-6">{parsedWorksheet.introduction}</p>
-              )}
-              
-              {parsedWorksheet.exercises?.map((exercise: any, index: number) => (
-                <div key={index} className="mb-8 p-4 border rounded-lg">
-                  <h3 className="font-semibold text-lg mb-2">
-                    Exercise {index + 1}: {exercise.title}
-                  </h3>
-                  <p className="text-gray-600 mb-3">{exercise.instructions}</p>
-                  
-                  {exercise.content && (
-                    <div className="mb-3">
-                      <p>{exercise.content}</p>
-                    </div>
-                  )}
-                  
-                  {exercise.questions?.map((question: any, qIndex: number) => (
-                    <div key={qIndex} className="mb-2">
-                      <p><strong>{qIndex + 1}.</strong> {question.question || question}</p>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Unable to display worksheet content</p>
-            </div>
-          )}
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+          {/* Content wrapper with proper styling */}
+          <div className="worksheet-content p-6">
+            <SharedWorksheetContent worksheet={worksheet} />
+          </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="bg-white border-t py-4">
+      <div className="bg-white border-t py-6 mt-8">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <p className="text-sm text-gray-500">
             This is a read-only view of a shared worksheet. 
             <a 
               href="/" 
-              className="text-worksheet-purple hover:underline ml-1"
+              className="text-worksheet-purple hover:underline ml-1 font-medium"
             >
-              Create your own worksheets
+              Create your own worksheets at edooqoo.com
             </a>
           </p>
         </div>
