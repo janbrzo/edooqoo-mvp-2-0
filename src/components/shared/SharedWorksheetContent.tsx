@@ -1,11 +1,6 @@
 
 import React from 'react';
-import { AlertCircle } from 'lucide-react';
-import ExerciseSection from '../worksheet/ExerciseSection';
-import VocabularySheet from '../worksheet/VocabularySheet';
-import TeacherNotes from '../worksheet/TeacherNotes';
-import GrammarRules from '../worksheet/GrammarRules';
-import WarmupSection from '../worksheet/WarmupSection';
+import { AlertCircle, MessageCircle, BookOpen, Clock, FileText } from 'lucide-react';
 
 interface SharedWorksheetContentProps {
   worksheet: {
@@ -39,34 +34,30 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
   let worksheetData = null;
   let shouldUseHtml = false;
 
-  try {
-    // Check html_content first
-    if (worksheet.html_content && worksheet.html_content.trim()) {
-      if (isHtmlContent(worksheet.html_content)) {
-        // Valid HTML - use dangerouslySetInnerHTML
-        shouldUseHtml = true;
-      } else if (isJsonContent(worksheet.html_content)) {
-        // HTML content contains JSON - parse it
-        try {
-          worksheetData = JSON.parse(worksheet.html_content);
-          console.log('Parsed worksheet data from html_content (JSON):', worksheetData);
-        } catch (error) {
-          console.error('Error parsing JSON from html_content:', error);
-        }
-      }
-    }
-
-    // Fallback to ai_response if html_content didn't work
-    if (!worksheetData && !shouldUseHtml && worksheet.ai_response) {
+  // Check html_content first
+  if (worksheet.html_content && worksheet.html_content.trim()) {
+    if (isHtmlContent(worksheet.html_content)) {
+      // Valid HTML - use dangerouslySetInnerHTML
+      shouldUseHtml = true;
+    } else if (isJsonContent(worksheet.html_content)) {
+      // HTML content contains JSON - parse it
       try {
-        worksheetData = JSON.parse(worksheet.ai_response);
-        console.log('Parsed worksheet data from ai_response:', worksheetData);
+        worksheetData = JSON.parse(worksheet.html_content);
+        console.log('Parsed worksheet data from html_content (JSON):', worksheetData);
       } catch (error) {
-        console.error('Error parsing ai_response:', error);
+        console.error('Error parsing JSON from html_content:', error);
       }
     }
-  } catch (error) {
-    console.error('Error in SharedWorksheetContent:', error);
+  }
+
+  // Fallback to ai_response if html_content didn't work
+  if (!worksheetData && !shouldUseHtml && worksheet.ai_response) {
+    try {
+      worksheetData = JSON.parse(worksheet.ai_response);
+      console.log('Parsed worksheet data from ai_response:', worksheetData);
+    } catch (error) {
+      console.error('Error parsing ai_response:', error);
+    }
   }
 
   // If we have valid HTML content, render it directly (this would be the ideal case)
@@ -86,52 +77,13 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
       <div className="text-center py-8">
         <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-4" />
         <p className="text-gray-600">Unable to display worksheet content</p>
-        <p className="text-sm text-gray-500 mt-2">
-          Debug info: html_content={worksheet.html_content ? 'present' : 'missing'}, 
-          ai_response={worksheet.ai_response ? 'present' : 'missing'}
-        </p>
       </div>
     );
   }
 
-  // Validate worksheetData structure
-  if (!worksheetData || typeof worksheetData !== 'object') {
-    return (
-      <div className="text-center py-8">
-        <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-600">Invalid worksheet data structure</p>
-      </div>
-    );
-  }
+  const worksheetTitle = worksheet.title || worksheetData.title || 'English Worksheet';
 
-  // Mock functions for read-only shared worksheet
-  const mockSetEditableWorksheet = () => {};
-  const viewMode = 'student';
-  const isEditing = false;
-  const isDownloadUnlocked = true;
-
-  // Create input params from worksheet data for WarmupSection
-  const inputParams = worksheetData.input_params || {
-    lessonTopic: worksheetData.topic || 'General English',
-    englishLevel: worksheetData.level || 'B1',
-    lessonTime: worksheetData.lesson_time || '60min'
-  };
-
-  // Safe rendering with try-catch for each section
-  const renderSection = (sectionName: string, renderFn: () => React.ReactNode) => {
-    try {
-      return renderFn();
-    } catch (error) {
-      console.error(`Error rendering ${sectionName}:`, error);
-      return (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <p className="text-red-600 text-sm">Error rendering {sectionName}</p>
-        </div>
-      );
-    }
-  };
-
-  // Render using IDENTICAL components and structure as WorksheetContent.tsx
+  // Render using IDENTICAL structure and classes as WorksheetContent.tsx
   return (
     <div className="worksheet-content mb-8" id="shared-worksheet-content">
       <div className="page-number"></div>
@@ -160,62 +112,175 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
         )}
       </div>
 
-      {/* Warmup Section - safely rendered */}
-      {(worksheetData.warmup_questions || inputParams) && renderSection('WarmupSection', () => (
-        <WarmupSection
-          inputParams={inputParams}
-          isEditing={isEditing}
-          editableWorksheet={worksheetData}
-          setEditableWorksheet={mockSetEditableWorksheet}
-          isDownloadUnlocked={isDownloadUnlocked}
-        />
+      {/* Warmup Questions - identical structure to WarmupSection */}
+      {worksheetData.warmup_questions && worksheetData.warmup_questions.length > 0 && (
+        <div className="bg-white border rounded-lg shadow-sm mb-6">
+          <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center rounded-t-lg">
+            <div className="flex items-center">
+              <div className="p-2 bg-white/20 rounded-full mr-3">
+                <MessageCircle className="h-5 w-5" />
+              </div>
+              <h3 className="text-lg font-semibold">Warmup Questions</h3>
+            </div>
+            <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
+              <Clock className="h-4 w-4 mr-1" />
+              <span className="text-sm">5 min</span>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <p className="font-medium mb-4 leading-snug">
+              Start the lesson with these conversation questions to engage the student and introduce the topic.
+            </p>
+            
+            <div className="space-y-3">
+              {worksheetData.warmup_questions.map((question: string, index: number) => (
+                <div key={index} className="flex items-start">
+                  <span className="text-worksheet-purple font-semibold mr-3 mt-1">
+                    {index + 1}.
+                  </span>
+                  <p className="flex-1 leading-relaxed">{question}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Grammar Rules - identical structure to GrammarRules */}
+      {worksheetData.grammar_rules && (
+        <div className="bg-white border rounded-lg shadow-sm mb-6 overflow-hidden">
+          <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center">
+            <div className="flex items-center">
+              <div className="p-2 bg-white/20 rounded-full mr-3">
+                <BookOpen className="h-5 w-5" />
+              </div>
+              <h3 className="text-lg font-semibold">Grammar Rules</h3>
+            </div>
+            <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
+              <Clock className="h-4 w-4 mr-1" />
+              <span className="text-sm">10 min</span>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <h3 className="text-xl font-semibold text-worksheet-purpleDark">
+                {worksheetData.grammar_rules.title}
+              </h3>
+            </div>
+            
+            {worksheetData.grammar_rules.introduction && (
+              <div className="mb-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-md">
+                <p className="leading-snug text-blue-800">{worksheetData.grammar_rules.introduction}</p>
+              </div>
+            )}
+
+            {worksheetData.grammar_rules.rules && (
+              <div className="space-y-4">
+                {worksheetData.grammar_rules.rules.map((rule: any, index: number) => (
+                  <div key={index} className="border-l-2 border-worksheet-purple pl-4">
+                    <h4 className="font-medium text-worksheet-purpleDark mb-2">
+                      {rule.title}
+                    </h4>
+                    
+                    <p className="text-gray-700 mb-3">
+                      {rule.explanation}
+                    </p>
+                    
+                    {rule.examples && rule.examples.length > 0 && (
+                      <div className="bg-gray-50 p-3 rounded-md">
+                        <p className="text-sm font-medium text-gray-600 mb-2">Examples:</p>
+                        <ul className="space-y-1">
+                          {rule.examples.map((example: string, exIndex: number) => (
+                            <li key={exIndex} className="text-sm text-gray-700">
+                              <span>• {example}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Exercises - identical structure to ExerciseSection */}
+      {worksheetData.exercises && worksheetData.exercises.map((exercise: any, index: number) => (
+        <div key={index} className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
+          <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center exercise-header">
+            <div className="flex items-center">
+              <div className="p-2 bg-white/20 rounded-full mr-3">
+                <span className="text-lg">{exercise.icon || '📝'}</span>
+              </div>
+              <h3 className="text-lg font-semibold">
+                {exercise.title || `Exercise ${index + 1}`}
+              </h3>
+            </div>
+            <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
+              <Clock className="h-4 w-4 mr-1" />
+              <span className="text-sm">{exercise.time || 10} min</span>
+            </div>
+          </div>
+          
+          <div className="p-5">
+            {exercise.instructions && (
+              <p className="font-medium mb-4 leading-snug">
+                {exercise.instructions}
+              </p>
+            )}
+            
+            {exercise.content && (
+              <div className="mb-4">
+                <div dangerouslySetInnerHTML={{ __html: exercise.content }} />
+              </div>
+            )}
+            
+            {exercise.questions && exercise.questions.map((question: any, qIndex: number) => (
+              <div key={qIndex} className="mb-4 p-4 bg-gray-50 rounded-md">
+                <p className="font-medium">
+                  {qIndex + 1}. {question.question || question.text || question}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       ))}
 
-      {/* Grammar Rules - safely rendered */}
-      {worksheetData.grammar_rules && renderSection('GrammarRules', () => (
-        <GrammarRules
-          grammarRules={worksheetData.grammar_rules}
-          isEditing={isEditing}
-          editableWorksheet={worksheetData}
-          setEditableWorksheet={mockSetEditableWorksheet}
-          inputParams={inputParams}
-        />
-      ))}
+      {/* Vocabulary Sheet - identical structure to VocabularySheet */}
+      {worksheetData.vocabulary_sheet && worksheetData.vocabulary_sheet.length > 0 && (
+        <div className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
+          <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center exercise-header">
+            <div className="flex items-center">
+              <div className="p-2 bg-white/20 rounded-full mr-3">
+                <FileText className="h-5 w-5" />
+              </div>
+              <h3 className="text-lg font-semibold">Vocabulary Sheet</h3>
+            </div>
+          </div>
 
-      {/* Exercises - safely rendered */}
-      {worksheetData.exercises && Array.isArray(worksheetData.exercises) && 
-        worksheetData.exercises.map((exercise: any, index: number) => (
-          renderSection(`Exercise-${index}`, () => (
-            <ExerciseSection
-              key={index}
-              exercise={exercise}
-              index={index}
-              isEditing={isEditing}
-              viewMode={viewMode}
-              editableWorksheet={worksheetData}
-              setEditableWorksheet={mockSetEditableWorksheet}
-            />
-          ))
-        ))
-      }
+          <div className="p-5">
+            <p className="font-medium mb-4">
+              Learn and practice these key vocabulary terms related to the topic.
+            </p>
 
-      {/* Vocabulary Sheet - safely rendered */}
-      {worksheetData.vocabulary_sheet && 
-       Array.isArray(worksheetData.vocabulary_sheet) && 
-       worksheetData.vocabulary_sheet.length > 0 && renderSection('VocabularySheet', () => (
-        <VocabularySheet
-          vocabularySheet={worksheetData.vocabulary_sheet}
-          isEditing={isEditing}
-          viewMode={viewMode}
-          editableWorksheet={worksheetData}
-          setEditableWorksheet={mockSetEditableWorksheet}
-        />
-      ))}
-
-      {/* Teacher Notes - safely rendered */}
-      {renderSection('TeacherNotes', () => (
-        <TeacherNotes />
-      ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {worksheetData.vocabulary_sheet.map((item: any, index: number) => (
+                <div key={index} className="border rounded-md p-4 vocabulary-card">
+                  <p className="font-semibold text-worksheet-purple">
+                    {item.term || ''}
+                  </p>
+                  <span className="vocabulary-definition-label">Definition or translation:</span>
+                  <span className="text-sm text-gray-500">_____________________</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
