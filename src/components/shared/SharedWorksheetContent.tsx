@@ -1,6 +1,11 @@
 
 import React from 'react';
-import { AlertCircle, MessageCircle, BookOpen, Clock, FileText } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import ExerciseSection from '../worksheet/ExerciseSection';
+import VocabularySheet from '../worksheet/VocabularySheet';
+import TeacherNotes from '../worksheet/TeacherNotes';
+import GrammarRules from '../worksheet/GrammarRules';
+import WarmupSection from '../worksheet/WarmupSection';
 
 interface SharedWorksheetContentProps {
   worksheet: {
@@ -81,9 +86,20 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
     );
   }
 
-  const worksheetTitle = worksheet.title || worksheetData.title || 'English Worksheet';
+  // Mock functions for read-only shared worksheet
+  const mockSetEditableWorksheet = () => {};
+  const viewMode = 'student';
+  const isEditing = false;
+  const isDownloadUnlocked = true;
 
-  // Render using IDENTICAL structure and classes as WorksheetContent.tsx
+  // Create input params from worksheet data for WarmupSection
+  const inputParams = worksheetData.input_params || {
+    lessonTopic: worksheetData.topic || 'General English',
+    englishLevel: worksheetData.level || 'B1',
+    lessonTime: worksheetData.lesson_time || '60min'
+  };
+
+  // Render using IDENTICAL components and structure as WorksheetContent.tsx
   return (
     <div className="worksheet-content mb-8" id="shared-worksheet-content">
       <div className="page-number"></div>
@@ -112,175 +128,54 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
         )}
       </div>
 
-      {/* Warmup Questions - identical structure to WarmupSection */}
-      {worksheetData.warmup_questions && worksheetData.warmup_questions.length > 0 && (
-        <div className="bg-white border rounded-lg shadow-sm mb-6">
-          <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center rounded-t-lg">
-            <div className="flex items-center">
-              <div className="p-2 bg-white/20 rounded-full mr-3">
-                <MessageCircle className="h-5 w-5" />
-              </div>
-              <h3 className="text-lg font-semibold">Warmup Questions</h3>
-            </div>
-            <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
-              <Clock className="h-4 w-4 mr-1" />
-              <span className="text-sm">5 min</span>
-            </div>
-          </div>
-
-          <div className="p-6">
-            <p className="font-medium mb-4 leading-snug">
-              Start the lesson with these conversation questions to engage the student and introduce the topic.
-            </p>
-            
-            <div className="space-y-3">
-              {worksheetData.warmup_questions.map((question: string, index: number) => (
-                <div key={index} className="flex items-start">
-                  <span className="text-worksheet-purple font-semibold mr-3 mt-1">
-                    {index + 1}.
-                  </span>
-                  <p className="flex-1 leading-relaxed">{question}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      {/* Warmup Section - using original WarmupSection component */}
+      {(worksheetData.warmup_questions || inputParams) && (
+        <WarmupSection
+          inputParams={inputParams}
+          isEditing={isEditing}
+          editableWorksheet={worksheetData}
+          setEditableWorksheet={mockSetEditableWorksheet}
+          isDownloadUnlocked={isDownloadUnlocked}
+        />
       )}
 
-      {/* Grammar Rules - identical structure to GrammarRules */}
+      {/* Grammar Rules - using original GrammarRules component */}
       {worksheetData.grammar_rules && (
-        <div className="bg-white border rounded-lg shadow-sm mb-6 overflow-hidden">
-          <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center">
-            <div className="flex items-center">
-              <div className="p-2 bg-white/20 rounded-full mr-3">
-                <BookOpen className="h-5 w-5" />
-              </div>
-              <h3 className="text-lg font-semibold">Grammar Rules</h3>
-            </div>
-            <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
-              <Clock className="h-4 w-4 mr-1" />
-              <span className="text-sm">10 min</span>
-            </div>
-          </div>
-
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <h3 className="text-xl font-semibold text-worksheet-purpleDark">
-                {worksheetData.grammar_rules.title}
-              </h3>
-            </div>
-            
-            {worksheetData.grammar_rules.introduction && (
-              <div className="mb-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-md">
-                <p className="leading-snug text-blue-800">{worksheetData.grammar_rules.introduction}</p>
-              </div>
-            )}
-
-            {worksheetData.grammar_rules.rules && (
-              <div className="space-y-4">
-                {worksheetData.grammar_rules.rules.map((rule: any, index: number) => (
-                  <div key={index} className="border-l-2 border-worksheet-purple pl-4">
-                    <h4 className="font-medium text-worksheet-purpleDark mb-2">
-                      {rule.title}
-                    </h4>
-                    
-                    <p className="text-gray-700 mb-3">
-                      {rule.explanation}
-                    </p>
-                    
-                    {rule.examples && rule.examples.length > 0 && (
-                      <div className="bg-gray-50 p-3 rounded-md">
-                        <p className="text-sm font-medium text-gray-600 mb-2">Examples:</p>
-                        <ul className="space-y-1">
-                          {rule.examples.map((example: string, exIndex: number) => (
-                            <li key={exIndex} className="text-sm text-gray-700">
-                              <span>• {example}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <GrammarRules
+          grammarRules={worksheetData.grammar_rules}
+          isEditing={isEditing}
+          editableWorksheet={worksheetData}
+          setEditableWorksheet={mockSetEditableWorksheet}
+          inputParams={inputParams}
+        />
       )}
 
-      {/* Exercises - identical structure to ExerciseSection */}
+      {/* Exercises - using original ExerciseSection component */}
       {worksheetData.exercises && worksheetData.exercises.map((exercise: any, index: number) => (
-        <div key={index} className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
-          <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center exercise-header">
-            <div className="flex items-center">
-              <div className="p-2 bg-white/20 rounded-full mr-3">
-                <span className="text-lg">{exercise.icon || '📝'}</span>
-              </div>
-              <h3 className="text-lg font-semibold">
-                {exercise.title || `Exercise ${index + 1}`}
-              </h3>
-            </div>
-            <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
-              <Clock className="h-4 w-4 mr-1" />
-              <span className="text-sm">{exercise.time || 10} min</span>
-            </div>
-          </div>
-          
-          <div className="p-5">
-            {exercise.instructions && (
-              <p className="font-medium mb-4 leading-snug">
-                {exercise.instructions}
-              </p>
-            )}
-            
-            {exercise.content && (
-              <div className="mb-4">
-                <div dangerouslySetInnerHTML={{ __html: exercise.content }} />
-              </div>
-            )}
-            
-            {exercise.questions && exercise.questions.map((question: any, qIndex: number) => (
-              <div key={qIndex} className="mb-4 p-4 bg-gray-50 rounded-md">
-                <p className="font-medium">
-                  {qIndex + 1}. {question.question || question.text || question}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+        <ExerciseSection
+          key={index}
+          exercise={exercise}
+          index={index}
+          isEditing={isEditing}
+          viewMode={viewMode}
+          editableWorksheet={worksheetData}
+          setEditableWorksheet={mockSetEditableWorksheet}
+        />
       ))}
 
-      {/* Vocabulary Sheet - identical structure to VocabularySheet */}
+      {/* Vocabulary Sheet - using original VocabularySheet component */}
       {worksheetData.vocabulary_sheet && worksheetData.vocabulary_sheet.length > 0 && (
-        <div className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
-          <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center exercise-header">
-            <div className="flex items-center">
-              <div className="p-2 bg-white/20 rounded-full mr-3">
-                <FileText className="h-5 w-5" />
-              </div>
-              <h3 className="text-lg font-semibold">Vocabulary Sheet</h3>
-            </div>
-          </div>
-
-          <div className="p-5">
-            <p className="font-medium mb-4">
-              Learn and practice these key vocabulary terms related to the topic.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {worksheetData.vocabulary_sheet.map((item: any, index: number) => (
-                <div key={index} className="border rounded-md p-4 vocabulary-card">
-                  <p className="font-semibold text-worksheet-purple">
-                    {item.term || ''}
-                  </p>
-                  <span className="vocabulary-definition-label">Definition or translation:</span>
-                  <span className="text-sm text-gray-500">_____________________</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <VocabularySheet
+          vocabularySheet={worksheetData.vocabulary_sheet}
+          isEditing={isEditing}
+          viewMode={viewMode}
+          editableWorksheet={worksheetData}
+          setEditableWorksheet={mockSetEditableWorksheet}
+        />
       )}
+
+      {/* Teacher Notes - using original TeacherNotes component */}
+      <TeacherNotes />
     </div>
   );
 };
