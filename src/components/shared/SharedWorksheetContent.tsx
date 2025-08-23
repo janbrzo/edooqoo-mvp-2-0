@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, MessageCircle, BookOpen, Clock, FileText } from 'lucide-react';
 
 interface SharedWorksheetContentProps {
   worksheet: {
@@ -60,7 +60,7 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
     }
   }
 
-  // If we have valid HTML content, render it directly
+  // If we have valid HTML content, render it directly (this would be the ideal case)
   if (shouldUseHtml) {
     return (
       <div 
@@ -83,499 +83,204 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
 
   const worksheetTitle = worksheet.title || worksheetData.title || 'English Worksheet';
 
-  // COMPLETE CSS copied from htmlExport.ts - all 350+ lines
-  const completeCSS = `
-    /* Complete CSS styles matching htmlExport.ts exactly */
-    body {
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-      line-height: 1.6;
-      color: #333;
-      margin: 0;
-      padding: 20px;
-      background-color: #f8f9fa;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .worksheet-content {
-      background: white;
-      padding: 20px;
-    }
-    
-    /* Hide elements not meant for export, like the rating section */
-    [data-no-pdf="true"]:not([data-teacher-tip="true"]) {
-      display: none !important;
-    }
-    
-    /* Print styles */
-    @media print {
-      @page {
-        margin: 0.5cm 1.5cm 0.5cm 1.5cm !important;
-        size: A4 !important;
-        
-        @top-left { content: none !important; }
-        @top-center { content: none !important; }
-        @top-right { content: none !important; }
-        @bottom-left { content: none !important; }
-        @bottom-center { 
-          content: counter(page) " / " counter(pages) !important;
-          font-size: 10px !important;
-          color: #666 !important;
-        }
-        @bottom-right { content: none !important; }
-      }
-      
-      html, body {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        margin: 0 !important;
-        padding: 0 !important;
-      }
-      
-      * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-    }
-    
-    /* Tailwind-like utility classes for fallback */
-    .bg-white { background-color: #ffffff; }
-    .p-6 { padding: 1.5rem; }
-    .mb-6 { margin-bottom: 1.5rem; }
-    .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
-    .font-bold { font-weight: 700; }
-    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
-    .border { border-width: 1px; border-color: #d1d5db; }
-    .rounded-lg { border-radius: 0.5rem; }
-    .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
-    
-    /* Version header identical to htmlExport.ts */
-    .version-header {
-      text-align: center;
-      padding: 20px 0;
-      border-bottom: 2px solid #3d348b;
-      margin-bottom: 20px;
-      color: #3d348b;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    
-    /* Main header section */
-    .main-header {
-      text-align: center;
-      margin-bottom: 32px;
-      padding-bottom: 24px;
-      border-bottom: 2px solid #d1d5db;
-    }
-    
-    .main-title {
-      font-size: 1.875rem;
-      line-height: 2.25rem;
-      font-weight: 700;
-      margin-bottom: 12px;
-      color: #111827;
-    }
-    
-    .main-subtitle {
-      font-size: 1.25rem;
-      line-height: 1.75rem;
-      color: #6b7280;
-      margin-bottom: 16px;
-    }
-    
-    .intro-box {
-      background-color: #fef7cd;
-      border-left: 4px solid #fbbf24;
-      padding: 16px;
-      border-radius: 6px;
-      max-width: 1024px;
-      margin: 0 auto;
-    }
-    
-    .intro-text {
-      color: #374151;
-      line-height: 1.625;
-    }
-    
-    /* Section styling */
-    .section-container {
-      margin-bottom: 32px;
-      padding: 24px;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      background: white;
-      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    }
-    
-    .section-header {
-      padding: 16px;
-      border-radius: 8px;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    
-    .section-header.warmup {
-      background-color: #dbeafe;
-    }
-    
-    .section-header.grammar {
-      background-color: #d1fae5;
-    }
-    
-    .section-header.exercise {
-      background-color: #e0e7ff;
-    }
-    
-    .section-header.vocabulary {
-      background-color: #e0e7ff;
-    }
-    
-    .section-title {
-      font-size: 1.125rem;
-      line-height: 1.75rem;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-    
-    .section-title.warmup {
-      color: #1e40af;
-    }
-    
-    .section-title.grammar {
-      color: #065f46;
-    }
-    
-    .section-title.exercise {
-      color: #3730a3;
-    }
-    
-    .section-title.vocabulary {
-      color: #3730a3;
-    }
-    
-    .section-time {
-      font-size: 0.875rem;
-      line-height: 1.25rem;
-    }
-    
-    .section-time.warmup {
-      color: #2563eb;
-    }
-    
-    .section-time.grammar {
-      color: #059669;
-    }
-    
-    .section-time.exercise {
-      color: #5b21b6;
-    }
-    
-    .section-time.vocabulary {
-      color: #5b21b6;
-    }
-    
-    /* Questions and content */
-    .question-list {
-      margin-top: 12px;
-    }
-    
-    .question-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    
-    .question-number {
-      font-weight: 600;
-      color: #374151;
-      margin-top: 4px;
-    }
-    
-    .question-text {
-      color: #374151;
-      line-height: 1.625;
-    }
-    
-    /* Grammar rules */
-    .grammar-rule {
-      margin-bottom: 24px;
-      padding: 16px;
-      background-color: #f9fafb;
-      border-radius: 8px;
-    }
-    
-    .grammar-rule-title {
-      font-weight: 600;
-      font-size: 1.125rem;
-      line-height: 1.75rem;
-      margin-bottom: 8px;
-      color: #1f2937;
-    }
-    
-    .grammar-rule-explanation {
-      margin-bottom: 12px;
-      color: #374151;
-    }
-    
-    .grammar-examples {
-      margin-top: 12px;
-    }
-    
-    .grammar-examples-title {
-      font-weight: 500;
-      margin-bottom: 8px;
-      color: #1f2937;
-    }
-    
-    .grammar-examples-list {
-      list-style: disc;
-      list-style-position: inside;
-      margin-top: 4px;
-    }
-    
-    .grammar-example-item {
-      color: #374151;
-      margin-bottom: 4px;
-    }
-    
-    /* Exercise content */
-    .exercise-instructions {
-      margin-bottom: 16px;
-      color: #374151;
-      font-weight: 500;
-    }
-    
-    .exercise-content {
-      margin-bottom: 16px;
-      color: #374151;
-      line-height: 1.625;
-    }
-    
-    .exercise-question {
-      margin-bottom: 12px;
-      padding: 12px;
-      background-color: #f9fafb;
-      border-radius: 6px;
-    }
-    
-    .exercise-question-text {
-      color: #1f2937;
-    }
-    
-    /* Vocabulary table */
-    .vocabulary-table {
-      width: 100%;
-      border-collapse: collapse;
-      border: 1px solid #d1d5db;
-    }
-    
-    .vocabulary-table thead {
-      background-color: #f3f4f6;
-    }
-    
-    .vocabulary-table th {
-      border: 1px solid #d1d5db;
-      padding: 16px 12px;
-      text-align: left;
-      font-weight: 600;
-      color: #1f2937;
-    }
-    
-    .vocabulary-table td {
-      border: 1px solid #d1d5db;
-      padding: 12px;
-      color: #374151;
-    }
-    
-    .vocabulary-table tbody tr:hover {
-      background-color: #f9fafb;
-    }
-    
-    .vocabulary-term {
-      font-weight: 500;
-    }
-    
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-      body {
-        padding: 10px;
-      }
-      
-      .container {
-        padding: 15px;
-      }
-      
-      .section-container {
-        padding: 16px;
-      }
-    }
-  `;
-
-  // Render with IDENTICAL structure and styling to htmlExport.ts
+  // Render using IDENTICAL structure and classes as WorksheetContent.tsx
   return (
-    <div id="shared-worksheet-content">
-      {/* Inject the complete CSS from htmlExport.ts */}
-      <style>{completeCSS}</style>
-
-      {/* Identical container structure as htmlExport.ts */}
-      <div className="container">
-        {/* Version header identical to HTML export */}
-        <div className="version-header">
-          {worksheetTitle} - Student Version
+    <div className="worksheet-content mb-8" id="shared-worksheet-content">
+      <div className="page-number"></div>
+      
+      {/* Main header - identical to WorksheetContent.tsx */}
+      <div className="bg-white p-6 border rounded-lg shadow-sm mb-6 relative">
+        {/* Simple edooqoo link - positioned in top right */}
+        <div className="absolute top-4 right-4 hidden sm:block">
+          <span className="text-sm text-gray-500">
+            Shared worksheet from edooqoo.com
+          </span>
         </div>
+        
+        <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight pr-24">
+          {worksheetData.title || 'Untitled Worksheet'}
+        </h1>
+        
+        <h2 className="text-xl text-worksheet-purple mb-3 leading-tight pr-24">
+          {worksheetData.subtitle || ''}
+        </h2>
 
-        {/* Main header section */}
-        <div className="main-header">
-          <h1 className="main-title">
-            {worksheetData.title || 'English Worksheet'}
-          </h1>
-          {worksheetData.subtitle && (
-            <h2 className="main-subtitle">{worksheetData.subtitle}</h2>
-          )}
-          {worksheetData.introduction && (
-            <div className="intro-box">
-              <p className="intro-text">{worksheetData.introduction}</p>
-            </div>
-          )}
-        </div>
+        {worksheetData.introduction && (
+          <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-md">
+            <p className="leading-snug">{worksheetData.introduction}</p>
+          </div>
+        )}
+      </div>
 
-        {/* Warmup Questions */}
-        {worksheetData.warmup_questions && worksheetData.warmup_questions.length > 0 && (
-          <div className="section-container">
-            <div className="section-header warmup">
-              <div>
-                <h3 className="section-title warmup">🗣️ Warmup Questions</h3>
+      {/* Warmup Questions - identical structure to WarmupSection */}
+      {worksheetData.warmup_questions && worksheetData.warmup_questions.length > 0 && (
+        <div className="bg-white border rounded-lg shadow-sm mb-6">
+          <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center rounded-t-lg">
+            <div className="flex items-center">
+              <div className="p-2 bg-white/20 rounded-full mr-3">
+                <MessageCircle className="h-5 w-5" />
               </div>
-              <div className="section-time warmup">⏱️ 5 minutes</div>
+              <h3 className="text-lg font-semibold">Warmup Questions</h3>
             </div>
-            <div className="question-list">
+            <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
+              <Clock className="h-4 w-4 mr-1" />
+              <span className="text-sm">5 min</span>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <p className="font-medium mb-4 leading-snug">
+              Start the lesson with these conversation questions to engage the student and introduce the topic.
+            </p>
+            
+            <div className="space-y-3">
               {worksheetData.warmup_questions.map((question: string, index: number) => (
-                <div key={index} className="question-item">
-                  <span className="question-number">{index + 1}.</span>
-                  <p className="question-text">{question}</p>
+                <div key={index} className="flex items-start">
+                  <span className="text-worksheet-purple font-semibold mr-3 mt-1">
+                    {index + 1}.
+                  </span>
+                  <p className="flex-1 leading-relaxed">{question}</p>
                 </div>
               ))}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Grammar Rules */}
-        {worksheetData.grammar_rules && (
-          <div className="section-container">
-            <div className="section-header grammar">
-              <div>
-                <h3 className="section-title grammar">📚 Grammar Focus</h3>
+      {/* Grammar Rules - identical structure to GrammarRules */}
+      {worksheetData.grammar_rules && (
+        <div className="bg-white border rounded-lg shadow-sm mb-6 overflow-hidden">
+          <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center">
+            <div className="flex items-center">
+              <div className="p-2 bg-white/20 rounded-full mr-3">
+                <BookOpen className="h-5 w-5" />
               </div>
-              <div className="section-time grammar">⏱️ 10 minutes</div>
+              <h3 className="text-lg font-semibold">Grammar Rules</h3>
+            </div>
+            <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
+              <Clock className="h-4 w-4 mr-1" />
+              <span className="text-sm">10 min</span>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <h3 className="text-xl font-semibold text-worksheet-purpleDark">
+                {worksheetData.grammar_rules.title}
+              </h3>
             </div>
             
-            {worksheetData.grammar_rules.title && (
-              <h4 className="grammar-rule-title">
-                {worksheetData.grammar_rules.title}
-              </h4>
-            )}
-            
             {worksheetData.grammar_rules.introduction && (
-              <p className="grammar-rule-explanation">
-                {worksheetData.grammar_rules.introduction}
+              <div className="mb-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-md">
+                <p className="leading-snug text-blue-800">{worksheetData.grammar_rules.introduction}</p>
+              </div>
+            )}
+
+            {worksheetData.grammar_rules.rules && (
+              <div className="space-y-4">
+                {worksheetData.grammar_rules.rules.map((rule: any, index: number) => (
+                  <div key={index} className="border-l-2 border-worksheet-purple pl-4">
+                    <h4 className="font-medium text-worksheet-purpleDark mb-2">
+                      {rule.title}
+                    </h4>
+                    
+                    <p className="text-gray-700 mb-3">
+                      {rule.explanation}
+                    </p>
+                    
+                    {rule.examples && rule.examples.length > 0 && (
+                      <div className="bg-gray-50 p-3 rounded-md">
+                        <p className="text-sm font-medium text-gray-600 mb-2">Examples:</p>
+                        <ul className="space-y-1">
+                          {rule.examples.map((example: string, exIndex: number) => (
+                            <li key={exIndex} className="text-sm text-gray-700">
+                              <span>• {example}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Exercises - identical structure to ExerciseSection */}
+      {worksheetData.exercises && worksheetData.exercises.map((exercise: any, index: number) => (
+        <div key={index} className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
+          <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center exercise-header">
+            <div className="flex items-center">
+              <div className="p-2 bg-white/20 rounded-full mr-3">
+                <span className="text-lg">{exercise.icon || '📝'}</span>
+              </div>
+              <h3 className="text-lg font-semibold">
+                {exercise.title || `Exercise ${index + 1}`}
+              </h3>
+            </div>
+            <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
+              <Clock className="h-4 w-4 mr-1" />
+              <span className="text-sm">{exercise.time || 10} min</span>
+            </div>
+          </div>
+          
+          <div className="p-5">
+            {exercise.instructions && (
+              <p className="font-medium mb-4 leading-snug">
+                {exercise.instructions}
               </p>
             )}
             
-            {worksheetData.grammar_rules.rules && worksheetData.grammar_rules.rules.map((rule: any, index: number) => (
-              <div key={index} className="grammar-rule">
-                <h5 className="grammar-rule-title">{rule.title}</h5>
-                <p className="grammar-rule-explanation">{rule.explanation}</p>
-                {rule.examples && rule.examples.length > 0 && (
-                  <div className="grammar-examples">
-                    <p className="grammar-examples-title">Examples:</p>
-                    <ul className="grammar-examples-list">
-                      {rule.examples.map((example: string, exIndex: number) => (
-                        <li key={exIndex} className="grammar-example-item">{example}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Exercises */}
-        {worksheetData.exercises && worksheetData.exercises.map((exercise: any, index: number) => (
-          <div key={index} className="section-container">
-            <div className="section-header exercise">
-              <div>
-                <h3 className="section-title exercise">
-                  {exercise.icon || '📝'} {exercise.title || `Exercise ${index + 1}`}
-                </h3>
-              </div>
-              <div className="section-time exercise">
-                ⏱️ {exercise.time || 10} minutes
-              </div>
-            </div>
-            
-            {exercise.instructions && (
-              <p className="exercise-instructions">{exercise.instructions}</p>
-            )}
-            
             {exercise.content && (
-              <div className="exercise-content">
+              <div className="mb-4">
                 <div dangerouslySetInnerHTML={{ __html: exercise.content }} />
               </div>
             )}
             
             {exercise.questions && exercise.questions.map((question: any, qIndex: number) => (
-              <div key={qIndex} className="exercise-question">
-                <p className="exercise-question-text">
-                  <span className="question-number">{qIndex + 1}.</span> {question.question || question.text || question}
+              <div key={qIndex} className="mb-4 p-4 bg-gray-50 rounded-md">
+                <p className="font-medium">
+                  {qIndex + 1}. {question.question || question.text || question}
                 </p>
               </div>
             ))}
           </div>
-        ))}
+        </div>
+      ))}
 
-        {/* Vocabulary Sheet */}
-        {worksheetData.vocabulary_sheet && worksheetData.vocabulary_sheet.length > 0 && (
-          <div className="section-container">
-            <div className="section-header vocabulary">
-              <h3 className="section-title vocabulary">📖 Vocabulary</h3>
-            </div>
-            
-            <div style={{ overflowX: 'auto' }}>
-              <table className="vocabulary-table">
-                <thead>
-                  <tr>
-                    <th>Term</th>
-                    <th>Meaning</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {worksheetData.vocabulary_sheet.map((item: any, index: number) => (
-                    <tr key={index}>
-                      <td className="vocabulary-term">
-                        {item.term || ''}
-                      </td>
-                      <td>
-                        {item.meaning || ''}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {/* Vocabulary Sheet - identical structure to VocabularySheet */}
+      {worksheetData.vocabulary_sheet && worksheetData.vocabulary_sheet.length > 0 && (
+        <div className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
+          <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center exercise-header">
+            <div className="flex items-center">
+              <div className="p-2 bg-white/20 rounded-full mr-3">
+                <FileText className="h-5 w-5" />
+              </div>
+              <h3 className="text-lg font-semibold">Vocabulary Sheet</h3>
             </div>
           </div>
-        )}
-      </div>
+
+          <div className="p-5">
+            <p className="font-medium mb-4">
+              Learn and practice these key vocabulary terms related to the topic.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {worksheetData.vocabulary_sheet.map((item: any, index: number) => (
+                <div key={index} className="border rounded-md p-4 vocabulary-card">
+                  <p className="font-semibold text-worksheet-purple">
+                    {item.term || ''}
+                  </p>
+                  <span className="vocabulary-definition-label">Definition or translation:</span>
+                  <span className="text-sm text-gray-500">_____________________</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
