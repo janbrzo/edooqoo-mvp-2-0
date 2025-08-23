@@ -39,30 +39,34 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
   let worksheetData = null;
   let shouldUseHtml = false;
 
-  // Check html_content first
-  if (worksheet.html_content && worksheet.html_content.trim()) {
-    if (isHtmlContent(worksheet.html_content)) {
-      // Valid HTML - use dangerouslySetInnerHTML
-      shouldUseHtml = true;
-    } else if (isJsonContent(worksheet.html_content)) {
-      // HTML content contains JSON - parse it
-      try {
-        worksheetData = JSON.parse(worksheet.html_content);
-        console.log('Parsed worksheet data from html_content (JSON):', worksheetData);
-      } catch (error) {
-        console.error('Error parsing JSON from html_content:', error);
+  try {
+    // Check html_content first
+    if (worksheet.html_content && worksheet.html_content.trim()) {
+      if (isHtmlContent(worksheet.html_content)) {
+        // Valid HTML - use dangerouslySetInnerHTML
+        shouldUseHtml = true;
+      } else if (isJsonContent(worksheet.html_content)) {
+        // HTML content contains JSON - parse it
+        try {
+          worksheetData = JSON.parse(worksheet.html_content);
+          console.log('Parsed worksheet data from html_content (JSON):', worksheetData);
+        } catch (error) {
+          console.error('Error parsing JSON from html_content:', error);
+        }
       }
     }
-  }
 
-  // Fallback to ai_response if html_content didn't work
-  if (!worksheetData && !shouldUseHtml && worksheet.ai_response) {
-    try {
-      worksheetData = JSON.parse(worksheet.ai_response);
-      console.log('Parsed worksheet data from ai_response:', worksheetData);
-    } catch (error) {
-      console.error('Error parsing ai_response:', error);
+    // Fallback to ai_response if html_content didn't work
+    if (!worksheetData && !shouldUseHtml && worksheet.ai_response) {
+      try {
+        worksheetData = JSON.parse(worksheet.ai_response);
+        console.log('Parsed worksheet data from ai_response:', worksheetData);
+      } catch (error) {
+        console.error('Error parsing ai_response:', error);
+      }
     }
+  } catch (error) {
+    console.error('Error in SharedWorksheetContent:', error);
   }
 
   // If we have valid HTML content, render it directly (this would be the ideal case)
@@ -82,6 +86,20 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
       <div className="text-center py-8">
         <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-4" />
         <p className="text-gray-600">Unable to display worksheet content</p>
+        <p className="text-sm text-gray-500 mt-2">
+          Debug info: html_content={worksheet.html_content ? 'present' : 'missing'}, 
+          ai_response={worksheet.ai_response ? 'present' : 'missing'}
+        </p>
+      </div>
+    );
+  }
+
+  // Validate worksheetData structure
+  if (!worksheetData || typeof worksheetData !== 'object') {
+    return (
+      <div className="text-center py-8">
+        <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-600">Invalid worksheet data structure</p>
       </div>
     );
   }
@@ -97,6 +115,20 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
     lessonTopic: worksheetData.topic || 'General English',
     englishLevel: worksheetData.level || 'B1',
     lessonTime: worksheetData.lesson_time || '60min'
+  };
+
+  // Safe rendering with try-catch for each section
+  const renderSection = (sectionName: string, renderFn: () => React.ReactNode) => {
+    try {
+      return renderFn();
+    } catch (error) {
+      console.error(`Error rendering ${sectionName}:`, error);
+      return (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <p className="text-red-600 text-sm">Error rendering {sectionName}</p>
+        </div>
+      );
+    }
   };
 
   // Render using IDENTICAL components and structure as WorksheetContent.tsx
@@ -128,8 +160,8 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
         )}
       </div>
 
-      {/* Warmup Section - using original WarmupSection component */}
-      {(worksheetData.warmup_questions || inputParams) && (
+      {/* Warmup Section - safely rendered */}
+      {(worksheetData.warmup_questions || inputParams) && renderSection('WarmupSection', () => (
         <WarmupSection
           inputParams={inputParams}
           isEditing={isEditing}
@@ -137,10 +169,10 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
           setEditableWorksheet={mockSetEditableWorksheet}
           isDownloadUnlocked={isDownloadUnlocked}
         />
-      )}
+      ))}
 
-      {/* Grammar Rules - using original GrammarRules component */}
-      {worksheetData.grammar_rules && (
+      {/* Grammar Rules - safely rendered */}
+      {worksheetData.grammar_rules && renderSection('GrammarRules', () => (
         <GrammarRules
           grammarRules={worksheetData.grammar_rules}
           isEditing={isEditing}
@@ -148,23 +180,29 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
           setEditableWorksheet={mockSetEditableWorksheet}
           inputParams={inputParams}
         />
-      )}
-
-      {/* Exercises - using original ExerciseSection component */}
-      {worksheetData.exercises && worksheetData.exercises.map((exercise: any, index: number) => (
-        <ExerciseSection
-          key={index}
-          exercise={exercise}
-          index={index}
-          isEditing={isEditing}
-          viewMode={viewMode}
-          editableWorksheet={worksheetData}
-          setEditableWorksheet={mockSetEditableWorksheet}
-        />
       ))}
 
-      {/* Vocabulary Sheet - using original VocabularySheet component */}
-      {worksheetData.vocabulary_sheet && worksheetData.vocabulary_sheet.length > 0 && (
+      {/* Exercises - safely rendered */}
+      {worksheetData.exercises && Array.isArray(worksheetData.exercises) && 
+        worksheetData.exercises.map((exercise: any, index: number) => (
+          renderSection(`Exercise-${index}`, () => (
+            <ExerciseSection
+              key={index}
+              exercise={exercise}
+              index={index}
+              isEditing={isEditing}
+              viewMode={viewMode}
+              editableWorksheet={worksheetData}
+              setEditableWorksheet={mockSetEditableWorksheet}
+            />
+          ))
+        ))
+      }
+
+      {/* Vocabulary Sheet - safely rendered */}
+      {worksheetData.vocabulary_sheet && 
+       Array.isArray(worksheetData.vocabulary_sheet) && 
+       worksheetData.vocabulary_sheet.length > 0 && renderSection('VocabularySheet', () => (
         <VocabularySheet
           vocabularySheet={worksheetData.vocabulary_sheet}
           isEditing={isEditing}
@@ -172,10 +210,12 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
           editableWorksheet={worksheetData}
           setEditableWorksheet={mockSetEditableWorksheet}
         />
-      )}
+      ))}
 
-      {/* Teacher Notes - using original TeacherNotes component */}
-      <TeacherNotes />
+      {/* Teacher Notes - safely rendered */}
+      {renderSection('TeacherNotes', () => (
+        <TeacherNotes />
+      ))}
     </div>
   );
 };
