@@ -1,11 +1,6 @@
 
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
-import ExerciseSection from '../worksheet/ExerciseSection';
-import VocabularySheet from '../worksheet/VocabularySheet';
-import TeacherNotes from '../worksheet/TeacherNotes';
-import GrammarRules from '../worksheet/GrammarRules';
-import WarmupSection from '../worksheet/WarmupSection';
 
 interface SharedWorksheetContentProps {
   worksheet: {
@@ -16,230 +11,240 @@ interface SharedWorksheetContentProps {
 }
 
 const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ worksheet }) => {
-  console.log('SharedWorksheetContent: Starting render with worksheet:', {
+  console.log('🔍 SharedWorksheetContent: Component started rendering');
+  console.log('🔍 SharedWorksheetContent: Worksheet data:', {
     hasHtmlContent: !!worksheet.html_content,
+    htmlContentLength: worksheet.html_content?.length || 0,
     hasAiResponse: !!worksheet.ai_response,
+    aiResponseLength: worksheet.ai_response?.length || 0,
     title: worksheet.title
   });
 
-  // Helper function to detect if content is HTML
-  const isHtmlContent = (content: string): boolean => {
-    if (!content || !content.trim()) return false;
-    const trimmed = content.trim();
-    return trimmed.includes('<!DOCTYPE html') || 
-           trimmed.includes('<html') || 
-           trimmed.includes('<div') ||
-           trimmed.includes('<p>') ||
-           trimmed.includes('<h1>');
-  };
-
-  // Try to get valid worksheet data with comprehensive error handling
-  let worksheetData = null;
-  let shouldUseHtml = false;
-  let renderError = null;
-
   try {
-    // Check html_content first
+    // Helper function to detect if content is HTML
+    const isHtmlContent = (content: string): boolean => {
+      if (!content || !content.trim()) return false;
+      const trimmed = content.trim();
+      return trimmed.includes('<!DOCTYPE html') || 
+             trimmed.includes('<html') || 
+             trimmed.includes('<div') ||
+             trimmed.includes('<p>') ||
+             trimmed.includes('<h1>');
+    };
+
+    // Check if we should use HTML content directly (safest option)
     if (worksheet.html_content && worksheet.html_content.trim()) {
       if (isHtmlContent(worksheet.html_content)) {
-        console.log('SharedWorksheetContent: Using HTML content');
-        shouldUseHtml = true;
-      } else {
-        try {
-          worksheetData = JSON.parse(worksheet.html_content);
-          console.log('SharedWorksheetContent: Parsed JSON from html_content:', worksheetData);
-        } catch (error) {
-          console.error('Error parsing JSON from html_content:', error);
-        }
+        console.log('🔍 SharedWorksheetContent: Using HTML content (safest option)');
+        return (
+          <div 
+            id="shared-worksheet-content"
+            dangerouslySetInnerHTML={{ __html: worksheet.html_content }}
+            className="worksheet-content w-full max-w-none"
+          />
+        );
       }
     }
 
-    // Fallback to ai_response if html_content didn't work
-    if (!worksheetData && !shouldUseHtml && worksheet.ai_response) {
+    // Try to parse AI response as JSON
+    let worksheetData = null;
+    if (worksheet.ai_response) {
       try {
         worksheetData = JSON.parse(worksheet.ai_response);
-        console.log('SharedWorksheetContent: Parsed JSON from ai_response:', worksheetData);
+        console.log('🔍 SharedWorksheetContent: Successfully parsed AI response as JSON');
       } catch (error) {
-        console.error('Error parsing ai_response:', error);
+        console.error('🔍 SharedWorksheetContent: Error parsing AI response as JSON:', error);
       }
     }
-  } catch (error) {
-    console.error('Error in data processing:', error);
-    renderError = error;
-  }
 
-  // If we have valid HTML content, render it directly (safest option)
-  if (shouldUseHtml) {
-    console.log('SharedWorksheetContent: Rendering HTML content');
-    return (
-      <div 
-        id="shared-worksheet-content"
-        dangerouslySetInnerHTML={{ __html: worksheet.html_content }}
-        className="worksheet-content w-full max-w-none"
-      />
-    );
-  }
+    // If we have JSON data, try to render a simple version
+    if (worksheetData) {
+      console.log('🔍 SharedWorksheetContent: Rendering simple JSON version');
+      return (
+        <div className="w-full max-w-none">
+          <div className="worksheet-content" id="shared-worksheet-content">
+            {/* Title */}
+            <h1 className="text-3xl font-bold mb-2 text-purple-800">
+              {worksheetData.title || 'English Worksheet'}
+            </h1>
+            
+            {/* Subtitle */}
+            {worksheetData.subtitle && (
+              <h2 className="text-xl text-purple-600 mb-4">
+                {worksheetData.subtitle}
+              </h2>
+            )}
 
-  // If no valid data found, show error
-  if (!worksheetData) {
-    console.error('SharedWorksheetContent: No valid worksheet data found');
+            {/* Introduction */}
+            {worksheetData.introduction && (
+              <div className="mb-6 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-md">
+                <p>{worksheetData.introduction}</p>
+              </div>
+            )}
+
+            {/* Warmup Questions */}
+            {worksheetData.warmup_questions && worksheetData.warmup_questions.length > 0 && (
+              <div className="mb-6 p-4 border rounded-lg bg-purple-50">
+                <h3 className="text-lg font-semibold mb-3 text-purple-800">Warmup Questions</h3>
+                <div className="space-y-2">
+                  {worksheetData.warmup_questions.map((question: any, index: number) => {
+                    const questionText = typeof question === 'string' ? question : question.text || `Question ${index + 1}`;
+                    return (
+                      <div key={index} className="flex">
+                        <span className="text-purple-600 font-semibold mr-3">{index + 1}.</span>
+                        <span>{questionText}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Grammar Rules */}
+            {worksheetData.grammar_rules && (
+              <div className="mb-6 p-4 border rounded-lg bg-blue-50">
+                <h3 className="text-lg font-semibold mb-3 text-blue-800">
+                  {worksheetData.grammar_rules.title || 'Grammar Rules'}
+                </h3>
+                {worksheetData.grammar_rules.introduction && (
+                  <p className="mb-4 text-blue-700">{worksheetData.grammar_rules.introduction}</p>
+                )}
+                {worksheetData.grammar_rules.rules && worksheetData.grammar_rules.rules.map((rule: any, index: number) => (
+                  <div key={index} className="mb-4">
+                    <h4 className="font-medium text-blue-800 mb-2">{rule.title}</h4>
+                    <p className="text-gray-700 mb-2">{rule.explanation}</p>
+                    {rule.examples && rule.examples.length > 0 && (
+                      <div className="pl-4">
+                        <p className="text-sm font-medium mb-1">Examples:</p>
+                        <ul className="text-sm text-gray-600">
+                          {rule.examples.map((example: string, exIndex: number) => (
+                            <li key={exIndex}>• {example}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Exercises */}
+            {worksheetData.exercises && worksheetData.exercises.length > 0 && (
+              <div className="space-y-4">
+                {worksheetData.exercises.map((exercise: any, index: number) => (
+                  <div key={index} className="border rounded-lg overflow-hidden">
+                    <div className="bg-purple-600 text-white p-3">
+                      <h3 className="text-lg font-semibold">{exercise.title || `Exercise ${index + 1}`}</h3>
+                    </div>
+                    <div className="p-4">
+                      {exercise.instructions && (
+                        <p className="mb-3 font-medium">{exercise.instructions}</p>
+                      )}
+                      {exercise.content && (
+                        <div className="mb-4 p-3 bg-gray-50 rounded">
+                          <pre className="whitespace-pre-wrap text-sm">{exercise.content}</pre>
+                        </div>
+                      )}
+                      
+                      {/* Exercise Questions */}
+                      {exercise.questions && exercise.questions.length > 0 && (
+                        <div className="space-y-2">
+                          {exercise.questions.map((question: any, qIndex: number) => (
+                            <div key={qIndex}>
+                              <p className="font-medium">
+                                {qIndex + 1}. {typeof question === 'string' ? question : question.text}
+                              </p>
+                              {question.answer && (
+                                <p className="text-green-600 text-sm italic ml-4">
+                                  ({question.answer})
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Vocabulary Sheet */}
+            {worksheetData.vocabulary_sheet && worksheetData.vocabulary_sheet.length > 0 && (
+              <div className="mt-6 p-4 border rounded-lg bg-green-50">
+                <h3 className="text-lg font-semibold mb-3 text-green-800">Vocabulary Sheet</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {worksheetData.vocabulary_sheet.map((item: any, index: number) => (
+                    <div key={index} className="border rounded-md p-3 bg-white">
+                      <p className="font-semibold text-purple-600">{item.term}</p>
+                      <p className="text-sm text-gray-500 mt-1">_____________________</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Final fallback: render raw HTML if available
+    if (worksheet.html_content && worksheet.html_content.trim()) {
+      console.log('🔍 SharedWorksheetContent: Using HTML content as final fallback');
+      return (
+        <div 
+          id="shared-worksheet-content"
+          dangerouslySetInnerHTML={{ __html: worksheet.html_content }}
+          className="worksheet-content w-full max-w-none"
+        />
+      );
+    }
+
+    // No valid content found
+    console.error('🔍 SharedWorksheetContent: No valid content found to render');
     return (
       <div className="text-center py-8">
         <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-4" />
         <p className="text-gray-600">Unable to display worksheet content</p>
-        {renderError && (
-          <p className="text-sm text-red-500 mt-2">Error: {renderError.message}</p>
-        )}
+        <p className="text-sm text-gray-500 mt-2">No valid data found in worksheet</p>
       </div>
     );
-  }
 
-  // Safely convert worksheetData to editableWorksheet format with validation
-  let editableWorksheet;
-  try {
-    editableWorksheet = {
-      title: worksheetData.title || 'Untitled Worksheet',
-      subtitle: worksheetData.subtitle || '',
-      introduction: worksheetData.introduction || '',
-      warmup_questions: Array.isArray(worksheetData.warmup_questions) ? worksheetData.warmup_questions : [],
-      grammar_rules: worksheetData.grammar_rules || null,
-      exercises: Array.isArray(worksheetData.exercises) ? worksheetData.exercises : [],
-      vocabulary_sheet: Array.isArray(worksheetData.vocabulary_sheet) ? worksheetData.vocabulary_sheet : []
-    };
-    console.log('SharedWorksheetContent: Created editableWorksheet:', editableWorksheet);
   } catch (error) {
-    console.error('Error creating editableWorksheet:', error);
+    console.error('🔍 SharedWorksheetContent: Critical error in rendering:', error);
+    
     return (
       <div className="text-center py-8">
-        <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-600">Error processing worksheet data</p>
+        <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Content Display Error</h3>
+        <p className="text-gray-600 mb-4">There was an error displaying the worksheet content.</p>
+        <details className="text-left bg-gray-50 p-4 rounded max-w-md mx-auto">
+          <summary className="cursor-pointer font-medium">Error Details</summary>
+          <pre className="text-xs mt-2 text-red-600 whitespace-pre-wrap">
+            {error instanceof Error ? error.message : String(error)}
+          </pre>
+        </details>
+        
+        {/* Emergency fallback: raw HTML */}
+        {worksheet.html_content && (
+          <div className="mt-6">
+            <button 
+              onClick={() => {
+                const container = document.getElementById('emergency-fallback');
+                if (container) {
+                  container.innerHTML = worksheet.html_content;
+                }
+              }}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Try Emergency Fallback
+            </button>
+            <div id="emergency-fallback" className="mt-4 text-left"></div>
+          </div>
+        )}
       </div>
     );
   }
-
-  // Mock setEditableWorksheet function for read-only mode
-  const setEditableWorksheet = () => {
-    // Do nothing in shared mode
-  };
-
-  // Create mock inputParams for components that need it
-  const mockInputParams = {
-    lessonTopic: 'English Lesson',
-    englishLevel: 'B1',
-    lessonGoal: 'Practice English skills'
-  };
-
-  // Safe component render function
-  const SafeComponent = ({ children, fallback = null }: { children: () => React.ReactNode, fallback?: React.ReactNode }) => {
-    try {
-      return <>{children()}</>;
-    } catch (error) {
-      console.error('Component render error:', error);
-      return fallback;
-    }
-  };
-
-  // Render using the same components as WorksheetContent.tsx but with error boundaries
-  return (
-    <div className="w-full">
-      <div className="worksheet-content mb-8 max-w-none" id="shared-worksheet-content">
-        <div className="page-number"></div>
-        
-        {/* Main header */}
-        <SafeComponent fallback={<div>Error loading header</div>}>
-          {() => (
-            <div className="bg-white p-6 border rounded-lg shadow-sm mb-6 relative">
-              <div className="absolute top-4 right-4 hidden sm:block">
-                <span className="text-sm text-gray-500">
-                  Shared worksheet from edooqoo.com
-                </span>
-              </div>
-              
-              <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight pr-24">
-                {editableWorksheet.title}
-              </h1>
-              
-              <h2 className="text-xl text-worksheet-purple mb-3 leading-tight pr-24">
-                {editableWorksheet.subtitle}
-              </h2>
-
-              {editableWorksheet.introduction && (
-                <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-md">
-                  <p className="leading-snug">{editableWorksheet.introduction}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </SafeComponent>
-
-        {/* Warmup Section */}
-        {editableWorksheet.warmup_questions && editableWorksheet.warmup_questions.length > 0 && (
-          <SafeComponent fallback={<div>Error loading warmup section</div>}>
-            {() => (
-              <WarmupSection
-                inputParams={mockInputParams}
-                isEditing={false}
-                editableWorksheet={editableWorksheet}
-                setEditableWorksheet={setEditableWorksheet}
-                isDownloadUnlocked={true}
-              />
-            )}
-          </SafeComponent>
-        )}
-
-        {/* Grammar Rules */}
-        {editableWorksheet.grammar_rules && (
-          <SafeComponent fallback={<div>Error loading grammar rules</div>}>
-            {() => (
-              <GrammarRules
-                grammarRules={editableWorksheet.grammar_rules}
-                isEditing={false}
-                editableWorksheet={editableWorksheet}
-                setEditableWorksheet={setEditableWorksheet}
-                inputParams={mockInputParams}
-              />
-            )}
-          </SafeComponent>
-        )}
-
-        {/* Exercises */}
-        {editableWorksheet.exercises && editableWorksheet.exercises.map((exercise: any, index: number) => (
-          <SafeComponent key={index} fallback={<div>Error loading exercise {index + 1}</div>}>
-            {() => (
-              <ExerciseSection
-                exercise={exercise}
-                index={index}
-                isEditing={false}
-                viewMode="student"
-                editableWorksheet={editableWorksheet}
-                setEditableWorksheet={setEditableWorksheet}
-              />
-            )}
-          </SafeComponent>
-        ))}
-
-        {/* Vocabulary Sheet */}
-        {editableWorksheet.vocabulary_sheet && editableWorksheet.vocabulary_sheet.length > 0 && (
-          <SafeComponent fallback={<div>Error loading vocabulary sheet</div>}>
-            {() => (
-              <VocabularySheet
-                vocabularySheet={editableWorksheet.vocabulary_sheet}
-                isEditing={false}
-                viewMode="student"
-                editableWorksheet={editableWorksheet}
-                setEditableWorksheet={setEditableWorksheet}
-              />
-            )}
-          </SafeComponent>
-        )}
-
-        {/* Teacher Notes */}
-        <SafeComponent fallback={null}>
-          {() => <TeacherNotes />}
-        </SafeComponent>
-      </div>
-    </div>
-  );
 };
 
 export default SharedWorksheetContent;
