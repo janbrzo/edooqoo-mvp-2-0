@@ -111,35 +111,17 @@ const WarmupSection: React.FC<WarmupSectionProps> = ({
   setEditableWorksheet,
   isDownloadUnlocked
 }) => {
-  console.log('🔥 WarmupSection received editableWorksheet:', editableWorksheet);
-
-  // DEFENSIVE: Get questions from existing data first, generate only if needed
-  let questions = editableWorksheet.warmup_questions;
-  
-  // Only generate if no questions exist and we're in editable mode
-  if (!questions || !Array.isArray(questions) || questions.length === 0) {
-    console.log('🔥 Generating warmup questions because none exist');
-    questions = generateWarmupQuestions(inputParams);
-    
-    // Only try to update if setEditableWorksheet is a real function (not our mock)
-    if (isEditing && typeof setEditableWorksheet === 'function') {
-      try {
-        setEditableWorksheet({
-          ...editableWorksheet,
-          warmup_questions: questions
-        });
-      } catch (error) {
-        console.error('❌ Error updating warmup questions:', error);
-      }
-    }
+  // Initialize warmup questions if not present
+  if (!editableWorksheet.warmup_questions) {
+    const generatedQuestions = generateWarmupQuestions(inputParams);
+    setEditableWorksheet({
+      ...editableWorksheet,
+      warmup_questions: generatedQuestions
+    });
   }
 
-  console.log('🔥 Using warmup questions:', questions);
-
   const handleQuestionChange = (index: number, value: string) => {
-    if (!isEditing) return;
-    
-    const updatedQuestions = [...(questions || [])];
+    const updatedQuestions = [...(editableWorksheet.warmup_questions || [])];
     updatedQuestions[index] = value;
     setEditableWorksheet({
       ...editableWorksheet,
@@ -147,13 +129,7 @@ const WarmupSection: React.FC<WarmupSectionProps> = ({
     });
   };
 
-  // Ensure we have valid questions array
-  const safeQuestions = Array.isArray(questions) ? questions : [];
-  
-  if (safeQuestions.length === 0) {
-    console.log('🔥 No warmup questions available, not rendering WarmupSection');
-    return null;
-  }
+  const questions = editableWorksheet.warmup_questions || generateWarmupQuestions(inputParams);
 
   return (
     <div className="bg-white border rounded-lg shadow-sm mb-6 relative">
@@ -178,7 +154,7 @@ const WarmupSection: React.FC<WarmupSectionProps> = ({
         </p>
         
         <div className="space-y-3">
-          {safeQuestions.map((question, index) => (
+          {questions.map((question, index) => (
             <div key={index} className="flex items-start">
               <span className="text-worksheet-purple font-semibold mr-3 mt-1">
                 {index + 1}.
