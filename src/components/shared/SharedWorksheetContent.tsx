@@ -15,77 +15,54 @@ interface SharedWorksheetContentProps {
 }
 
 const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ worksheet }) => {
-  // Helper function to detect if content is JSON
-  const isJsonContent = (content: string): boolean => {
-    if (!content || !content.trim()) return false;
-    const trimmed = content.trim();
-    return (trimmed.startsWith('{') && trimmed.endsWith('}')) || 
-           (trimmed.startsWith('[') && trimmed.endsWith(']'));
-  };
+  console.log('🔧 SharedWorksheetContent: Starting data parsing...');
+  console.log('🔧 ai_response length:', worksheet.ai_response?.length || 0);
+  console.log('🔧 html_content length:', worksheet.html_content?.length || 0);
 
-  // Helper function to detect if content is HTML
-  const isHtmlContent = (content: string): boolean => {
-    if (!content || !content.trim()) return false;
-    const trimmed = content.trim();
-    return trimmed.includes('<!DOCTYPE html') || 
-           trimmed.includes('<html') || 
-           trimmed.includes('<div') ||
-           trimmed.includes('<p>') ||
-           trimmed.includes('<h1>');
-  };
-
-  // Try to get valid worksheet data
   let worksheetData = null;
-  let shouldUseHtml = false;
 
-  // Check html_content first
-  if (worksheet.html_content && worksheet.html_content.trim()) {
-    if (isHtmlContent(worksheet.html_content)) {
-      // Valid HTML - use dangerouslySetInnerHTML
-      shouldUseHtml = true;
-    } else if (isJsonContent(worksheet.html_content)) {
-      // HTML content contains JSON - parse it
-      try {
-        worksheetData = JSON.parse(worksheet.html_content);
-        console.log('Parsed worksheet data from html_content (JSON):', worksheetData);
-      } catch (error) {
-        console.error('Error parsing JSON from html_content:', error);
-      }
-    }
-  }
-
-  // Fallback to ai_response if html_content didn't work
-  if (!worksheetData && !shouldUseHtml && worksheet.ai_response) {
+  // FIXED: Try ai_response first (contains complete data), then html_content as fallback
+  if (worksheet.ai_response && worksheet.ai_response.trim()) {
     try {
+      console.log('🔧 Attempting to parse ai_response...');
       worksheetData = JSON.parse(worksheet.ai_response);
-      console.log('Parsed worksheet data from ai_response:', worksheetData);
+      console.log('✅ Successfully parsed ai_response:', worksheetData);
     } catch (error) {
-      console.error('Error parsing ai_response:', error);
+      console.error('❌ Error parsing ai_response:', error);
     }
   }
 
-  // If we have valid HTML content, render it directly (this would be the ideal case)
-  if (shouldUseHtml) {
-    return (
-      <div 
-        id="shared-worksheet-content"
-        dangerouslySetInnerHTML={{ __html: worksheet.html_content }}
-        className="worksheet-content"
-      />
-    );
+  // Fallback to html_content if ai_response failed
+  if (!worksheetData && worksheet.html_content && worksheet.html_content.trim()) {
+    try {
+      console.log('🔧 Fallback: Attempting to parse html_content...');
+      worksheetData = JSON.parse(worksheet.html_content);
+      console.log('✅ Successfully parsed html_content:', worksheetData);
+    } catch (error) {
+      console.error('❌ Error parsing html_content:', error);
+    }
   }
 
   // If no valid data found, show error
   if (!worksheetData) {
+    console.error('❌ No valid worksheet data found');
     return (
       <div className="text-center py-8">
         <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-4" />
         <p className="text-gray-600">Unable to display worksheet content</p>
+        <p className="text-sm text-gray-500 mt-2">
+          Failed to parse worksheet data from both ai_response and html_content
+        </p>
       </div>
     );
   }
 
-  const worksheetTitle = worksheet.title || worksheetData.title || 'English Worksheet';
+  console.log('✅ Using worksheet data:', {
+    title: worksheetData.title,
+    hasExercises: worksheetData.exercises?.length || 0,
+    hasWarmup: worksheetData.warmup_questions?.length || 0,
+    hasGrammar: !!worksheetData.grammar_rules
+  });
 
   // Render using IDENTICAL structure to HTML export with proper container width
   return (
@@ -213,151 +190,155 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
       )}
 
       {/* Exercises - using proper React components with type-aware rendering */}
-      {worksheetData.exercises && worksheetData.exercises.map((exercise: any, index: number) => (
-        <div key={index} className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
-          <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center exercise-header">
-            <div className="flex items-center">
-              <div className="p-2 bg-white/20 rounded-full mr-3">
-                <span className="text-lg">{exercise.icon || '📝'}</span>
+      {worksheetData.exercises && worksheetData.exercises.map((exercise: any, index: number) => {
+        console.log(`🔧 Rendering exercise ${index + 1}: ${exercise.type}`, exercise);
+        
+        return (
+          <div key={index} className="mb-6 bg-white border rounded-lg overflow-hidden shadow-sm">
+            <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center exercise-header">
+              <div className="flex items-center">
+                <div className="p-2 bg-white/20 rounded-full mr-3">
+                  <span className="text-lg">{exercise.icon || '📝'}</span>
+                </div>
+                <h3 className="text-lg font-semibold">
+                  {exercise.title || `Exercise ${index + 1}`}
+                </h3>
               </div>
-              <h3 className="text-lg font-semibold">
-                {exercise.title || `Exercise ${index + 1}`}
-              </h3>
+              <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
+                <Clock className="h-4 w-4 mr-1" />
+                <span className="text-sm">{exercise.time || 10} min</span>
+              </div>
             </div>
-            <div className="flex items-center bg-white/20 px-3 py-1 rounded-md">
-              <Clock className="h-4 w-4 mr-1" />
-              <span className="text-sm">{exercise.time || 10} min</span>
-            </div>
-          </div>
-          
-          <div className="p-5">
-            {exercise.instructions && (
-              <p className="font-medium mb-4 leading-snug">
-                {exercise.instructions}
-              </p>
-            )}
             
-            {exercise.content && (
-              <div className="mb-4 p-4 bg-gray-50 rounded-md">
-                <p className="whitespace-pre-line leading-snug">{exercise.content}</p>
-              </div>
-            )}
-            
-            {/* Type-aware exercise rendering using React components */}
-            {exercise.type === 'reading' && exercise.questions && (
-              <ExerciseReading
-                questions={exercise.questions}
-                isEditing={false}
-                viewMode="student"
-                onQuestionChange={() => {}} // No-op for shared view
-              />
-            )}
+            <div className="p-5">
+              {exercise.instructions && (
+                <p className="font-medium mb-4 leading-snug">
+                  {exercise.instructions}
+                </p>
+              )}
+              
+              {exercise.content && (
+                <div className="mb-4 p-4 bg-gray-50 rounded-md">
+                  <p className="whitespace-pre-line leading-snug">{exercise.content}</p>
+                </div>
+              )}
+              
+              {/* Type-aware exercise rendering using React components */}
+              {exercise.type === 'reading' && exercise.questions && (
+                <ExerciseReading
+                  questions={exercise.questions}
+                  isEditing={false}
+                  viewMode="student"
+                  onQuestionChange={() => {}} // No-op for shared view
+                />
+              )}
 
-            {exercise.type === 'matching' && exercise.items && (
-              <ExerciseMatching
-                items={exercise.items}
-                isEditing={false}
-                viewMode="student"
-                getMatchedItems={() => exercise.items}
-                onItemChange={() => {}} // No-op for shared view
-              />
-            )}
+              {exercise.type === 'matching' && exercise.items && (
+                <ExerciseMatching
+                  items={exercise.items}
+                  isEditing={false}
+                  viewMode="student"
+                  getMatchedItems={() => exercise.items}
+                  onItemChange={() => {}} // No-op for shared view
+                />
+              )}
 
-            {exercise.type === 'fill-in-blanks' && exercise.sentences && (
-              <ExerciseFillInBlanks
-                word_bank={exercise.word_bank}
-                sentences={exercise.sentences}
-                isEditing={false}
-                viewMode="student"
-                onWordBankChange={() => {}} // No-op for shared view
-                onSentenceChange={() => {}} // No-op for shared view
-              />
-            )}
+              {exercise.type === 'fill-in-blanks' && exercise.sentences && (
+                <ExerciseFillInBlanks
+                  word_bank={exercise.word_bank}
+                  sentences={exercise.sentences}
+                  isEditing={false}
+                  viewMode="student"
+                  onWordBankChange={() => {}} // No-op for shared view
+                  onSentenceChange={() => {}} // No-op for shared view
+                />
+              )}
 
-            {exercise.type === 'multiple-choice' && exercise.questions && (
-              <ExerciseMultipleChoice
-                questions={exercise.questions}
-                isEditing={false}
-                viewMode="student"
-                onQuestionTextChange={() => {}} // No-op for shared view
-                onOptionTextChange={() => {}} // No-op for shared view
-              />
-            )}
+              {exercise.type === 'multiple-choice' && exercise.questions && (
+                <ExerciseMultipleChoice
+                  questions={exercise.questions}
+                  isEditing={false}
+                  viewMode="student"
+                  onQuestionTextChange={() => {}} // No-op for shared view
+                  onOptionTextChange={() => {}} // No-op for shared view
+                />
+              )}
 
-            {exercise.type === 'dialogue' && exercise.dialogue && (
-              <ExerciseDialogue
-                dialogue={exercise.dialogue}
-                expressions={exercise.expressions}
-                expression_instruction={exercise.expression_instruction}
-                isEditing={false}
-                viewMode="student"
-                onDialogueChange={() => {}} // No-op for shared view
-                onExpressionChange={() => {}} // No-op for shared view
-                onExpressionInstructionChange={() => {}} // No-op for shared view
-              />
-            )}
+              {exercise.type === 'dialogue' && exercise.dialogue && (
+                <ExerciseDialogue
+                  dialogue={exercise.dialogue}
+                  expressions={exercise.expressions}
+                  expression_instruction={exercise.expression_instruction}
+                  isEditing={false}
+                  viewMode="student"
+                  onDialogueChange={() => {}} // No-op for shared view
+                  onExpressionChange={() => {}} // No-op for shared view
+                  onExpressionInstructionChange={() => {}} // No-op for shared view
+                />
+              )}
 
-            {/* Discussion questions - simple rendering */}
-            {exercise.type === 'discussion' && exercise.questions && (
-              <div className="space-y-0.5">
-                <h3 className="font-medium text-gray-700 mb-2">Discussion Questions:</h3>
-                {exercise.questions.map((question: string, qIndex: number) => (
-                  <div key={qIndex} className="p-1 border-b">
-                    <p className="leading-snug">
-                      {qIndex + 1}. {question}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Other exercise types - use existing simple rendering */}
-            {(exercise.type === 'error-correction' || exercise.type === 'word-formation' || exercise.type === 'word-order') && 
-              exercise.sentences && (
+              {/* Discussion questions - simple rendering */}
+              {exercise.type === 'discussion' && exercise.questions && (
                 <div className="space-y-0.5">
-                  {exercise.sentences.map((sentence: any, sIndex: number) => (
-                    <div key={sIndex} className="border-b pb-1">
+                  <h3 className="font-medium text-gray-700 mb-2">Discussion Questions:</h3>
+                  {exercise.questions.map((question: string, qIndex: number) => (
+                    <div key={qIndex} className="p-1 border-b">
                       <p className="leading-snug">
-                        {sIndex + 1}. {
-                          exercise.type === 'word-formation' 
-                            ? sentence.text.replace(/_+/g, "_______________") 
-                            : sentence.text
-                        }
+                        {qIndex + 1}. {question}
                       </p>
                     </div>
                   ))}
                 </div>
               )}
 
-            {/* True/False exercise type */}
-            {exercise.type === 'true-false' && exercise.statements && (
-              <div className="space-y-2">
-                {exercise.statements.map((statement: any, sIndex: number) => (
-                  <div key={sIndex} className="border-b pb-2">
-                    <div className="flex flex-row items-start">
-                      <div className="flex-grow">
+              {/* Other exercise types - use existing simple rendering */}
+              {(exercise.type === 'error-correction' || exercise.type === 'word-formation' || exercise.type === 'word-order') && 
+                exercise.sentences && (
+                  <div className="space-y-0.5">
+                    {exercise.sentences.map((sentence: any, sIndex: number) => (
+                      <div key={sIndex} className="border-b pb-1">
                         <p className="leading-snug">
-                          {sIndex + 1}. {statement.text}
+                          {sIndex + 1}. {
+                            exercise.type === 'word-formation' 
+                              ? sentence.text.replace(/_+/g, "_______________") 
+                              : sentence.text
+                          }
                         </p>
                       </div>
-                      <div className="ml-4 flex space-x-4">
-                        <label className="inline-flex items-center">
-                          <input type="radio" name={`statement-${sIndex}`} className="form-radio h-4 w-4" disabled />
-                          <span className="ml-2">True</span>
-                        </label>
-                        <label className="inline-flex items-center">
-                          <input type="radio" name={`statement-${sIndex}`} className="form-radio h-4 w-4" disabled />
-                          <span className="ml-2">False</span>
-                        </label>
+                    ))}
+                  </div>
+                )}
+
+              {/* True/False exercise type */}
+              {exercise.type === 'true-false' && exercise.statements && (
+                <div className="space-y-2">
+                  {exercise.statements.map((statement: any, sIndex: number) => (
+                    <div key={sIndex} className="border-b pb-2">
+                      <div className="flex flex-row items-start">
+                        <div className="flex-grow">
+                          <p className="leading-snug">
+                            {sIndex + 1}. {statement.text}
+                          </p>
+                        </div>
+                        <div className="ml-4 flex space-x-4">
+                          <label className="inline-flex items-center">
+                            <input type="radio" name={`statement-${sIndex}`} className="form-radio h-4 w-4" disabled />
+                            <span className="ml-2">True</span>
+                          </label>
+                          <label className="inline-flex items-center">
+                            <input type="radio" name={`statement-${sIndex}`} className="form-radio h-4 w-4" disabled />
+                            <span className="ml-2">False</span>
+                          </label>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* Vocabulary Sheet - identical structure to VocabularySheet */}
       {worksheetData.vocabulary_sheet && worksheetData.vocabulary_sheet.length > 0 && (
