@@ -7,6 +7,7 @@ import ExerciseMultipleChoice from '../worksheet/ExerciseMultipleChoice';
 import ExerciseReading from '../worksheet/ExerciseReading';
 import ExerciseDialogue from '../worksheet/ExerciseDialogue';
 import { deepFixTextObjects } from '../../utils/textObjectFixer';
+import { getIconComponent } from '../../utils/iconUtils';
 
 interface SharedWorksheetContentProps {
   worksheet: {
@@ -74,18 +75,23 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
     hasGrammar: !!worksheetData.grammar_rules
   });
 
-  // Render using IDENTICAL structure to HTML export with proper container width
+  // Render using IDENTICAL structure to HTML export with WIDER container (60% smaller margins)
   return (
-    <div className="worksheet-content mb-8" style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }} id="shared-worksheet-content">
+    <div className="worksheet-content mb-8" style={{ maxWidth: '1400px', margin: '0 auto', padding: '12px' }} id="shared-worksheet-content">
       <div className="page-number"></div>
       
       {/* Main header - identical to WorksheetContent.tsx */}
       <div className="bg-white p-6 border rounded-lg shadow-sm mb-6 relative">
-        {/* Simple edooqoo link - positioned in top right */}
+        {/* Clickable edooqoo link - positioned in top right */}
         <div className="absolute top-4 right-4 hidden sm:block">
-          <span className="text-sm text-gray-500">
+          <a 
+            href="https://edooqoo.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm text-gray-500 hover:text-worksheet-purple transition-colors duration-200 hover:underline"
+          >
             Shared worksheet from edooqoo.com
-          </span>
+          </a>
         </div>
         
         <h1 className="text-3xl font-bold mb-2 text-worksheet-purpleDark leading-tight pr-24">
@@ -199,7 +205,7 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
         </div>
       )}
 
-      {/* Exercises - using proper React components with type-aware rendering */}
+      {/* Exercises - using proper React components with FIXED ICONS */}
       {worksheetData.exercises && worksheetData.exercises.map((exercise: any, index: number) => {
         console.log(`🔧 Rendering exercise ${index + 1}: ${exercise.type}`, exercise);
         
@@ -208,7 +214,8 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
             <div className="bg-worksheet-purple text-white p-2 flex justify-between items-center exercise-header">
               <div className="flex items-center">
                 <div className="p-2 bg-white/20 rounded-full mr-3">
-                  <span className="text-lg">{exercise.icon || '📝'}</span>
+                  {/* FIXED: Use getIconComponent instead of text */}
+                  {getIconComponent(exercise.icon || 'fa-book-open')}
                 </div>
                 <h3 className="text-lg font-semibold">
                   {exercise.title || `Exercise ${index + 1}`}

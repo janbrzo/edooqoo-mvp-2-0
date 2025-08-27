@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, AlertCircle, FileText } from 'lucide-react';
+import { Loader2, AlertCircle, FileText, ArrowUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import SharedWorksheetContent from '@/components/shared/SharedWorksheetContent';
 
@@ -20,6 +20,7 @@ const SharedWorksheet = () => {
   const [worksheet, setWorksheet] = useState<SharedWorksheetData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,6 +32,23 @@ const SharedWorksheet = () => {
 
     loadSharedWorksheet();
   }, [token]);
+
+  // Handle scroll-to-top button visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
   const loadSharedWorksheet = async () => {
     try {
@@ -139,7 +157,7 @@ const SharedWorksheet = () => {
       </div>
 
       {/* Main Content - styled to match HTML export */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-2 py-8">
         <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
           {/* Content wrapper with proper styling */}
           <div className="worksheet-content p-6">
@@ -147,6 +165,17 @@ const SharedWorksheet = () => {
           </div>
         </div>
       </div>
+
+      {/* Scroll to top button */}
+      {showScrollTop && (
+        <button 
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 rounded-full bg-worksheet-purple text-white p-3 shadow-lg cursor-pointer opacity-80 hover:opacity-100 transition-opacity z-50"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </button>
+      )}
 
       {/* Footer */}
       <div className="bg-white border-t py-6 mt-8">
