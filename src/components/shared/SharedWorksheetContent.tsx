@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AlertCircle, MessageCircle, BookOpen, Clock, FileText } from 'lucide-react';
 import ExerciseMatching from '../worksheet/ExerciseMatching';
@@ -5,6 +6,7 @@ import ExerciseFillInBlanks from '../worksheet/ExerciseFillInBlanks';
 import ExerciseMultipleChoice from '../worksheet/ExerciseMultipleChoice';
 import ExerciseReading from '../worksheet/ExerciseReading';
 import ExerciseDialogue from '../worksheet/ExerciseDialogue';
+import { deepFixTextObjects } from '../../utils/textObjectFixer';
 
 interface SharedWorksheetContentProps {
   worksheet: {
@@ -21,12 +23,16 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
 
   let worksheetData = null;
 
-  // FIXED: Try ai_response first (contains complete data), then html_content as fallback
+  // Try ai_response first (contains complete data), then html_content as fallback
   if (worksheet.ai_response && worksheet.ai_response.trim()) {
     try {
       console.log('🔧 Attempting to parse ai_response...');
-      worksheetData = JSON.parse(worksheet.ai_response);
-      console.log('✅ Successfully parsed ai_response:', worksheetData);
+      const rawData = JSON.parse(worksheet.ai_response);
+      console.log('✅ Successfully parsed ai_response, now fixing text objects:', rawData);
+      
+      // CRITICAL FIX: Apply deepFixTextObjects to fix {text: "..."} objects
+      worksheetData = deepFixTextObjects(rawData, 'ai_response');
+      console.log('✅ Text objects fixed:', worksheetData);
     } catch (error) {
       console.error('❌ Error parsing ai_response:', error);
     }
@@ -36,8 +42,12 @@ const SharedWorksheetContent: React.FC<SharedWorksheetContentProps> = ({ workshe
   if (!worksheetData && worksheet.html_content && worksheet.html_content.trim()) {
     try {
       console.log('🔧 Fallback: Attempting to parse html_content...');
-      worksheetData = JSON.parse(worksheet.html_content);
-      console.log('✅ Successfully parsed html_content:', worksheetData);
+      const rawData = JSON.parse(worksheet.html_content);
+      console.log('✅ Successfully parsed html_content, now fixing text objects:', rawData);
+      
+      // CRITICAL FIX: Apply deepFixTextObjects to fix {text: "..."} objects
+      worksheetData = deepFixTextObjects(rawData, 'html_content');
+      console.log('✅ Text objects fixed:', worksheetData);
     } catch (error) {
       console.error('❌ Error parsing html_content:', error);
     }
