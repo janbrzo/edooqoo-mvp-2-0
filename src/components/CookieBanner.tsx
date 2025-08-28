@@ -42,9 +42,9 @@ const CookieBanner = () => {
             <div className="flex items-center gap-3 flex-1">
               <Cookie className="h-5 w-5 text-primary flex-shrink-0" />
               <div className="text-sm">
-                <p className="font-medium mb-1">We use cookies</p>
+                <p className="font-medium mb-1">Cookies</p>
                 <p className="text-muted-foreground">
-                  We use essential cookies to ensure our website functions properly and optional cookies to improve your experience. 
+                  We use cookies to improve your experience and for analysis. You can deactivate them anytime.
                   <Link to="/cookie-policy" className="text-primary hover:underline ml-1">
                     Learn more in our Cookie Policy
                   </Link>
