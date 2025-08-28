@@ -6,6 +6,7 @@ import { LessonTime, EnglishLevel, FormData, WorksheetFormProps } from './types'
 import { getRandomPlaceholderSet, PlaceholderSet } from './placeholderSets';
 import { getRandomSuggestionSets, getSuggestionSetMatchingPlaceholder, SuggestionSet } from './suggestionSets';
 import FormField from './FormField';
+import LanguageStyleSlider from './LanguageStyleSlider';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEventTracking } from "@/hooks/useEventTracking";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
@@ -26,6 +27,7 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
   const [grammarFocus, setGrammarFocus] = useState("");
   const [additionalInformation, setAdditionalInformation] = useState("");
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
+  const [languageStyle, setLanguageStyle] = useState<number>(5); // Default neutral style
   const [selectedStudentId, setSelectedStudentId] = useState<string>("no-student");
 
   
@@ -109,6 +111,7 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
         grammarFocus,
         additionalInformation,
         englishLevel,
+        languageStyle,
         timestamp: new Date().toISOString()
       }
     });
@@ -120,6 +123,7 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
       teachingPreferences: grammarFocus,
       additionalInformation,
       englishLevel,
+      languageStyle,
       studentId: selectedStudentId === "no-student" ? undefined : selectedStudentId || undefined
     });
   };
@@ -210,6 +214,14 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Language Style Slider */}
+              <div className={`mb-6 ${isMobile ? 'flex justify-center' : 'flex justify-end'}`}>
+                <LanguageStyleSlider 
+                  value={languageStyle} 
+                  onChange={setLanguageStyle} 
+                />
               </div>
               
               <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>

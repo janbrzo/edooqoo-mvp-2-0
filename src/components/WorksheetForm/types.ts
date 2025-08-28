@@ -14,6 +14,7 @@ export interface FormData {
   teachingPreferences: string;
   additionalInformation?: string;
   englishLevel?: EnglishLevel;
+  languageStyle?: number; // 1-10 scale: 1=very casual, 10=very formal
   fullPrompt?: string;
   formDataForStorage?: any;
   studentId?: string;
