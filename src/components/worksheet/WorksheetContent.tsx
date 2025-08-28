@@ -1,4 +1,3 @@
-
 import React from "react";
 import ExerciseSection from "./ExerciseSection";
 import VocabularySheet from "./VocabularySheet";
@@ -7,7 +6,9 @@ import TeacherNotes from "./TeacherNotes";
 import GrammarRules from "./GrammarRules";
 import DemoWatermark from "./DemoWatermark";
 import WarmupSection from "./WarmupSection";
+import DraggableExerciseList from "./DraggableExerciseList";
 import { useWorksheetTimes } from "@/hooks/useWorksheetTimes";
+import { useExerciseReordering } from "@/hooks/useExerciseReordering";
 
 interface WorksheetContentProps {
   editableWorksheet: any;
@@ -33,6 +34,12 @@ export default function WorksheetContent({
   // Check if worksheet has grammar rules
   const hasGrammar = Boolean(editableWorksheet?.grammar_rules);
   const worksheetTimes = useWorksheetTimes(inputParams?.lessonTime, hasGrammar);
+  
+  // Exercise reordering functionality
+  const exerciseReordering = useExerciseReordering({
+    editableWorksheet,
+    setEditableWorksheet
+  });
   
   // CRITICAL FIX: Add safety check to prevent rendering with null worksheet
   if (!editableWorksheet) {
@@ -145,19 +152,38 @@ export default function WorksheetContent({
         </div>
       )}
 
-      {editableWorksheet.exercises && editableWorksheet.exercises.map((exercise: any, index: number) => (
-        <div key={index} className="relative">
+      {editableWorksheet.exercises && editableWorksheet.exercises.length > 0 && (
+        <div className="relative">
           {!isDownloadUnlocked && <DemoWatermark />}
-          <ExerciseSection
-            exercise={exercise}
-            index={index}
-            isEditing={isEditing}
-            viewMode={viewMode}
-            editableWorksheet={editableWorksheet}
-            setEditableWorksheet={setEditableWorksheet}
-          />
+          
+          {isEditing ? (
+            <DraggableExerciseList
+              exercises={editableWorksheet.exercises}
+              isEditing={isEditing}
+              viewMode={viewMode}
+              editableWorksheet={editableWorksheet}
+              setEditableWorksheet={setEditableWorksheet}
+              isReorderingEnabled={exerciseReordering.isReorderingEnabled}
+              onDragEnd={exerciseReordering.handleDragEnd}
+            />
+          ) : (
+            // For non-editing mode, render exercises normally
+            editableWorksheet.exercises.map((exercise: any, index: number) => (
+              <div key={index} className="relative">
+                {!isDownloadUnlocked && <DemoWatermark />}
+                <ExerciseSection
+                  exercise={exercise}
+                  index={index}
+                  isEditing={isEditing}
+                  viewMode={viewMode}
+                  editableWorksheet={editableWorksheet}
+                  setEditableWorksheet={setEditableWorksheet}
+                />
+              </div>
+            ))
+          )}
         </div>
-      ))}
+      )}
 
       {editableWorksheet.vocabulary_sheet && editableWorksheet.vocabulary_sheet.length > 0 && (
         <div className="relative">
