@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -21,10 +22,6 @@ import {
   Share2
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { generateDownloadToken } from "@/services/userService";
-import { useSession } from "next-auth/react";
-import { isMobile } from 'react-device-detect';
-import DownloadPopup from './DownloadPopup';
 import ExerciseReorderToggle from './ExerciseReorderToggle';
 import { useExerciseReordering } from '@/hooks/useExerciseReordering';
 
@@ -42,6 +39,7 @@ interface WorksheetToolbarProps {
   onTrackDownload: () => void;
   showPdfButton: boolean;
   editableWorksheet: any;
+  setEditableWorksheet: React.Dispatch<React.SetStateAction<any>>;
   userId?: string;
 }
 
@@ -59,80 +57,27 @@ export default function WorksheetToolbar({
   onTrackDownload,
   showPdfButton,
   editableWorksheet,
+  setEditableWorksheet,
   userId
 }: WorksheetToolbarProps) {
-  const isMobileDevice = isMobile;
-  const [downloadPopup, setDownloadPopup] = useState(false);
   const { toast } = useToast();
-  const { data: session } = useSession();
 
   const exerciseReordering = useExerciseReordering({
     editableWorksheet,
-    setEditableWorksheet: () => {} // This will be handled by parent component
+    setEditableWorksheet
   });
 
   const handleGenerateDownloadToken = async () => {
-    if (!session?.user?.email) {
-      toast({
-        title: "Not authenticated",
-        description: "You must be logged in to download the worksheet.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!worksheetId) {
-      toast({
-        title: "Missing worksheet ID",
-        description: "Worksheet ID is missing, cannot generate download token.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const tokenData = await generateDownloadToken(session.user.email, worksheetId, userIp || 'unknown');
-      onDownloadUnlock(tokenData.token);
-      toast({
-        title: "Download unlocked",
-        description: "You can now download the worksheet.",
-        className: "bg-green-50 border-green-200"
-      });
-    } catch (error) {
-      console.error("Error generating download token:", error);
-      toast({
-        title: "Failed to unlock download",
-        description: "An error occurred while unlocking the download.",
-        variant: "destructive"
-      });
-    }
+    toast({
+      title: "Download feature",
+      description: "Download functionality will be implemented soon.",
+      className: "bg-blue-50 border-blue-200"
+    });
   };
 
   return (
     <div className="mb-6 bg-white border rounded-lg shadow-sm">
       <div className="p-4">
-        <Label htmlFor="view-mode" className="inline-flex items-center text-sm font-medium mr-4">
-          View Mode:
-        </Label>
-        <div className="inline-flex items-center space-x-2">
-          <Button
-            variant={viewMode === 'student' ? 'default' : 'outline'}
-            onClick={() => setViewMode('student')}
-            size="sm"
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            Student
-          </Button>
-          <Button
-            variant={viewMode === 'teacher' ? 'default' : 'outline'}
-            onClick={() => setViewMode('teacher')}
-            size="sm"
-          >
-            <EyeOff className="h-4 w-4 mr-2" />
-            Teacher
-          </Button>
-        </div>
-        
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
             <Label htmlFor="view-mode" className="inline-flex items-center text-sm font-medium mr-4">
@@ -203,10 +148,7 @@ export default function WorksheetToolbar({
             {isDownloadUnlocked ? (
               <Button
                 variant="default"
-                onClick={() => {
-                  onTrackDownload();
-                  setDownloadPopup(true);
-                }}
+                onClick={onTrackDownload}
                 size="sm"
               >
                 <Download className="mr-2 h-4 w-4" />
@@ -235,15 +177,6 @@ export default function WorksheetToolbar({
           </div>
         </div>
       </div>
-
-      {downloadPopup && (
-        <DownloadPopup
-          worksheetId={worksheetId}
-          onClose={() => setDownloadPopup(false)}
-          showPdfButton={showPdfButton}
-          editableWorksheet={editableWorksheet}
-        />
-      )}
     </div>
   );
 }
