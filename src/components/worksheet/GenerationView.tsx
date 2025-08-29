@@ -75,17 +75,20 @@ export default function GenerationView({
   return (
     <div className="min-h-screen bg-gray-100">
       <WorksheetDisplay
-        worksheet={generatedWorksheet}
         editableWorksheet={editableWorksheet}
         setEditableWorksheet={setEditableWorksheet}
-        inputParams={inputParams}
-        generationTime={generationTime}
-        sourceCount={sourceCount}
-        onBack={onBack}
+        isEditing={false}
+        setIsEditing={() => {}}
+        isSaving={false}
+        handleSave={() => {}}
         worksheetId={worksheetId}
+        isDownloadUnlocked={false}
+        onDownloadUnlock={() => {}}
+        onTrackDownload={() => {}}
+        showPdfButton={false}
+        inputParams={inputParams}
         onFeedbackSubmit={handleFeedbackSubmit}
-        userId={userId}
-        studentName={studentName}
+        userId={userId || undefined}
       />
     </div>
   );

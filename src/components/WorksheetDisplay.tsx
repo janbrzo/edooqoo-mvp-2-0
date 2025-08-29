@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
-import WorksheetToolbar from './WorksheetToolbar';
-import WorksheetContent from './WorksheetContent';
+import WorksheetToolbar from './worksheet/WorksheetToolbar';
+import WorksheetContent from './worksheet/WorksheetContent';
 
 interface WorksheetDisplayProps {
   editableWorksheet: any;
