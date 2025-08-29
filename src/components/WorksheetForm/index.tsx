@@ -6,7 +6,7 @@ import { LessonTime, EnglishLevel, FormData, WorksheetFormProps } from './types'
 import { getRandomPlaceholderSet, PlaceholderSet } from './placeholderSets';
 import { getRandomSuggestionSets, getSuggestionSetMatchingPlaceholder, SuggestionSet } from './suggestionSets';
 import FormField from './FormField';
-import LanguageStyleSlider from './LanguageStyleSlider';
+import AdvancedOptions from './AdvancedOptions';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEventTracking } from "@/hooks/useEventTracking";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
@@ -30,7 +30,6 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
   const [languageStyle, setLanguageStyle] = useState<number>(5); // Default neutral style
   const [selectedStudentId, setSelectedStudentId] = useState<string>("no-student");
 
-  
   const [currentPlaceholders, setCurrentPlaceholders] = useState<PlaceholderSet>(getRandomPlaceholderSet());
   const [currentSuggestions, setCurrentSuggestions] = useState<SuggestionSet[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -41,20 +40,17 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
   const { userId } = useAnonymousAuth();
   const { students } = useStudents();
 
-  // Handle preSelectedStudent
   useEffect(() => {
     if (preSelectedStudent) {
       setSelectedStudentId(preSelectedStudent.id);
     }
   }, [preSelectedStudent]);
 
-  // Auto-adjust English level when student is selected
   useEffect(() => {
     if (selectedStudentId && selectedStudentId !== "no-student") {
       const selectedStudent = students.find(s => s.id === selectedStudentId);
       if (selectedStudent) {
         const studentLevel = selectedStudent.english_level;
-        // Map individual levels to our grouped levels
         if (studentLevel === 'A1' || studentLevel === 'A2') {
           setEnglishLevel('A1/A2');
         } else if (studentLevel === 'B1' || studentLevel === 'B2') {
@@ -66,7 +62,6 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
     }
   }, [selectedStudentId, students]);
 
-  // Call onStudentChange when selectedStudentId changes
   useEffect(() => {
     if (onStudentChange) {
       const studentId = selectedStudentId === "no-student" ? null : selectedStudentId;
@@ -76,7 +71,6 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
 
   useEffect(() => {
     if (isInitialLoad) {
-      // Na początku: pierwszy zestaw jak placeholder, drugi losowy
       const matchingSet = getSuggestionSetMatchingPlaceholder(currentPlaceholders);
       const randomSets = getRandomSuggestionSets(1);
       
@@ -101,7 +95,6 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
       return;
     }
 
-    // Track form submission
     trackEvent({
       eventType: 'form_submit',
       eventData: {
@@ -129,7 +122,6 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
   };
 
   const refreshSuggestions = () => {
-    // Po refresh: oba zestawy losowe
     setCurrentPlaceholders(getRandomPlaceholderSet());
     setCurrentSuggestions(getRandomSuggestionSets(2));
   };
@@ -216,14 +208,6 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
                 </div>
               </div>
 
-              {/* Language Style Slider */}
-              <div className={`mb-6 ${isMobile ? 'flex justify-center' : 'flex justify-end'}`}>
-                <LanguageStyleSlider 
-                  value={languageStyle} 
-                  onChange={setLanguageStyle} 
-                />
-              </div>
-              
               <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 gap-6'} mb-6`}>
                 <FormField 
                   label="Lesson topic: General theme or real‑life scenario"
@@ -287,6 +271,12 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
                   </div>
                 </div>
               )}
+
+              {/* Advanced Options Section */}
+              <AdvancedOptions 
+                languageStyle={languageStyle}
+                onLanguageStyleChange={setLanguageStyle}
+              />
 
               <div className={`mb-6 ${isMobile ? 'text-center' : ''}`}>
                 <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>
