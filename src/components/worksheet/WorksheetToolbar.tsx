@@ -1,216 +1,180 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Edit, Lightbulb, User, Download, Lock, Loader2, Share2 } from "lucide-react";
-import PaymentPopup from "@/components/PaymentPopup";
-import ShareWorksheetModal from "@/components/ShareWorksheetModal";
-import { exportAsHTML } from "@/utils/htmlExport";
-import { trackWorksheetEvent } from "@/services/worksheetService";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useDownloadTracking } from "@/hooks/useDownloadTracking";
-import { useAuthFlow } from "@/hooks/useAuthFlow";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { 
+  Download, 
+  Eye, 
+  EyeOff, 
+  Edit, 
+  Save, 
+  Loader2,
+  Sliders,
+  Share2
+} from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { generateDownloadToken } from "@/services/userService";
+import { useSession } from "next-auth/react";
+import { isMobile } from 'react-device-detect';
+import DownloadPopup from './DownloadPopup';
+import ExerciseReorderToggle from './ExerciseReorderToggle';
+import { useExerciseReordering } from '@/hooks/useExerciseReordering';
 
 interface WorksheetToolbarProps {
-  viewMode: "student" | "teacher";
-  setViewMode: (mode: "student" | "teacher") => void;
+  viewMode: 'student' | 'teacher';
+  setViewMode: (mode: 'student' | 'teacher') => void;
   isEditing: boolean;
-  isSaving?: boolean;
+  isSaving: boolean;
   handleEdit: () => void;
   handleSave: () => void;
   worksheetId?: string | null;
-  userIp?: string | null;
-  isDownloadUnlocked?: boolean;
-  onDownloadUnlock?: (token: string) => void;
-  onTrackDownload?: () => void;
-  showPdfButton?: boolean;
+  userIp?: string;
+  isDownloadUnlocked: boolean;
+  onDownloadUnlock: (token: string) => void;
+  onTrackDownload: () => void;
+  showPdfButton: boolean;
   editableWorksheet: any;
   userId?: string;
 }
 
-const WorksheetToolbar = ({
+export default function WorksheetToolbar({
   viewMode,
   setViewMode,
   isEditing,
-  isSaving = false,
+  isSaving,
   handleEdit,
   handleSave,
   worksheetId,
   userIp,
-  isDownloadUnlocked = false,
+  isDownloadUnlocked,
   onDownloadUnlock,
   onTrackDownload,
-  showPdfButton = false,
+  showPdfButton,
   editableWorksheet,
-  userId,
-}: WorksheetToolbarProps) => {
-  const [showPaymentPopup, setShowPaymentPopup] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'html-student' | 'html-teacher' | 'pdf' | null>(null);
-  const isMobile = useIsMobile();
-  const { trackDownloadAttempt } = useDownloadTracking(userId);
-  const { user, isRegisteredUser } = useAuthFlow();
+  userId
+}: WorksheetToolbarProps) {
+  const isMobileDevice = isMobile;
+  const [downloadPopup, setDownloadPopup] = useState(false);
+  const { toast } = useToast();
+  const { data: session } = useSession();
 
-  const handleDownloadHTML = async (downloadViewMode: "student" | "teacher") => {
-    const originalViewMode = viewMode;
+  const exerciseReordering = useExerciseReordering({
+    editableWorksheet,
+    setEditableWorksheet: () => {} // This will be handled by parent component
+  });
 
-    const performExport = async () => {
-      // Get the actual worksheet title from editableWorksheet
-      const title = editableWorksheet?.title || 'English Worksheet';
-      
-      const timestamp = new Date().toISOString().split('T')[0];
-      const viewModeText = downloadViewMode === 'teacher' ? 'Teacher' : 'Student';
-      const sanitizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-      const filename = `${timestamp}-${viewModeText}-${sanitizedTitle}.html`;
-      
-      console.log(`Preparing to download HTML for ${downloadViewMode} view.`);
-      
-      const success = await exportAsHTML('worksheet-content', filename, downloadViewMode, title);
-      
-      if (success) {
-        if (onTrackDownload) {
-          onTrackDownload();
-        }
-        
-        if (worksheetId) {
-          try {
-            console.log(`Attempting to track download for worksheet: ${worksheetId}`);
-            await trackWorksheetEvent('download', worksheetId, userIp || 'anonymous');
-            console.log('Download tracked successfully in worksheets table');
-          } catch (error) {
-            console.error('Failed to track download in worksheets table:', error);
-          }
-        } else {
-          console.log('No worksheetId provided, skipping worksheet table tracking');
-        }
-      }
-      if (!success) {
-        console.error('Failed to export HTML');
-      }
-    };
+  const handleGenerateDownloadToken = async () => {
+    if (!session?.user?.email) {
+      toast({
+        title: "Not authenticated",
+        description: "You must be logged in to download the worksheet.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    if (originalViewMode === downloadViewMode) {
-      await performExport();
-    } else {
-      // Switch view, wait for DOM update, export, then switch back.
-      setViewMode(downloadViewMode);
-      // Use a short timeout to allow React to re-render the component tree.
-      await new Promise(resolve => setTimeout(resolve, 200)); 
-      try {
-        await performExport();
-      } finally {
-        // Switch back to the original view mode.
-        setViewMode(originalViewMode);
-      }
+    if (!worksheetId) {
+      toast({
+        title: "Missing worksheet ID",
+        description: "Worksheet ID is missing, cannot generate download token.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const tokenData = await generateDownloadToken(session.user.email, worksheetId, userIp || 'unknown');
+      onDownloadUnlock(tokenData.token);
+      toast({
+        title: "Download unlocked",
+        description: "You can now download the worksheet.",
+        className: "bg-green-50 border-green-200"
+      });
+    } catch (error) {
+      console.error("Error generating download token:", error);
+      toast({
+        title: "Failed to unlock download",
+        description: "An error occurred while unlocking the download.",
+        variant: "destructive"
+      });
     }
   };
-
-  const handleDownloadClick = async (type: 'html-student' | 'html-teacher' | 'pdf') => {
-    // Track download attempt with proper locked/unlocked distinction
-    trackDownloadAttempt(!isDownloadUnlocked, worksheetId || 'unknown', {
-      downloadType: type
-    });
-
-    if (isDownloadUnlocked) {
-      if (type === 'html-student') {
-        handleDownloadHTML('student');
-      } else if (type === 'html-teacher') {
-        handleDownloadHTML('teacher');
-      }
-    } else {
-      setPendingAction(type);
-      setShowPaymentPopup(true);
-    }
-  };
-
-  const handlePaymentSuccess = (token: string) => {
-    if (onDownloadUnlock) {
-      onDownloadUnlock(token);
-    }
-    
-    if (pendingAction === 'html-student') {
-      handleDownloadHTML('student');
-    } else if (pendingAction === 'html-teacher') {
-      handleDownloadHTML('teacher');
-    }
-    
-    setPendingAction(null);
-  };
-
-  const handlePaymentPopupClose = () => {
-    setShowPaymentPopup(false);
-    setPendingAction(null);
-  };
-
-  const handleShareClick = () => {
-    console.log('Share button clicked');
-    console.log('User:', user);
-    console.log('Is registered user:', isRegisteredUser);
-    console.log('Worksheet ID:', worksheetId);
-    
-    setShowShareModal(true);
-  };
-
-  // Check if user can share worksheets (registered user with valid worksheetId)
-  const canShareWorksheet = isRegisteredUser && worksheetId && !user?.is_anonymous;
 
   return (
-    <TooltipProvider>
-      <div className="sticky top-0 z-10 bg-white border-b mb-6 py-3 px-4">
-        <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between items-center'} max-w-[98%] mx-auto`}>
-          <div className={`flex ${isMobile ? 'justify-center' : ''} space-x-2`}>
-            <Button
-              variant={viewMode === 'student' ? 'default' : 'outline'}
-              onClick={() => setViewMode('student')}
-              className={viewMode === 'student' ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' : ''}
-              size="sm"
-            >
-              <User className="mr-2 h-4 w-4" />
-              Student View
-            </Button>
-            <Button
-              variant={viewMode === 'teacher' ? 'default' : 'outline'}
-              onClick={() => setViewMode('teacher')}
-              className={viewMode === 'teacher' ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' : ''}
-              size="sm"
-            >
-              <Lightbulb className="mr-2 h-4 w-4" />
-              Teacher View
-            </Button>
-          </div>
-          <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center'}`}>
-            {!isEditing && (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={handleEdit}
-                  className={`border-worksheet-purple text-worksheet-purple ${isMobile ? '' : 'mr-2'}`}
-                  size="sm"
-                >
-                  <Edit className="mr-2 h-4 w-4" /> Edit Worksheet
-                </Button>
-                
-                {canShareWorksheet && (
-                  <Button
-                    variant="outline"
-                    onClick={handleShareClick}
-                    className={`border-worksheet-purple text-worksheet-purple ${isMobile ? '' : 'mr-2'}`}
-                    size="sm"
-                  >
-                    <Share2 className="mr-2 h-4 w-4" /> Share Worksheet
-                  </Button>
-                )}
-              </>
-            )}
-            {isEditing && (
+    <div className="mb-6 bg-white border rounded-lg shadow-sm">
+      <div className="p-4">
+        <Label htmlFor="view-mode" className="inline-flex items-center text-sm font-medium mr-4">
+          View Mode:
+        </Label>
+        <div className="inline-flex items-center space-x-2">
+          <Button
+            variant={viewMode === 'student' ? 'default' : 'outline'}
+            onClick={() => setViewMode('student')}
+            size="sm"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Student
+          </Button>
+          <Button
+            variant={viewMode === 'teacher' ? 'default' : 'outline'}
+            onClick={() => setViewMode('teacher')}
+            size="sm"
+          >
+            <EyeOff className="h-4 w-4 mr-2" />
+            Teacher
+          </Button>
+        </div>
+        
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Label htmlFor="view-mode" className="inline-flex items-center text-sm font-medium mr-4">
+              View Mode:
+            </Label>
+            <div className="inline-flex items-center space-x-2">
               <Button
+                variant={viewMode === 'student' ? 'default' : 'outline'}
+                onClick={() => setViewMode('student')}
+                size="sm"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Student
+              </Button>
+              <Button
+                variant={viewMode === 'teacher' ? 'default' : 'outline'}
+                onClick={() => setViewMode('teacher')}
+                size="sm"
+              >
+                <EyeOff className="h-4 w-4 mr-2" />
+                Teacher
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Exercise Reordering Toggle - only show in editing mode */}
+            {isEditing && (
+              <ExerciseReorderToggle
+                isReorderingEnabled={exerciseReordering.isReorderingEnabled}
+                onEnableReordering={exerciseReordering.enableReordering}
+                onDisableReordering={exerciseReordering.disableReordering}
+                onResetOrder={exerciseReordering.resetToOriginalOrder}
+                hasOriginalOrder={exerciseReordering.hasOriginalOrder}
+              />
+            )}
+
+            {isEditing ? (
+              <Button
+                variant="secondary"
                 onClick={handleSave}
                 disabled={isSaving}
-                className={`bg-green-600 hover:bg-green-700 ${isMobile ? '' : 'mr-2'}`}
                 size="sm"
               >
                 {isSaving ? (
@@ -219,76 +183,67 @@ const WorksheetToolbar = ({
                     Saving...
                   </>
                 ) : (
-                  'Save Changes'
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Changes
+                  </>
                 )}
               </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                onClick={handleEdit}
+                size="sm"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Worksheet
+              </Button>
             )}
-            <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'}`}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={() => handleDownloadClick('html-student')}
-                    className={`${isDownloadUnlocked 
-                      ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
-                      : 'bg-gray-400 hover:bg-gray-500'} ${isMobile ? 'w-full' : ''}`}
-                    size="sm"
-                  >
-                    {isDownloadUnlocked ? (
-                      <Download className="mr-2 h-4 w-4" />
-                    ) : (
-                      <Lock className="mr-2 h-4 w-4" />
-                    )}
-                    {isMobile ? 'Student (HTML)' : 'Download STUDENT'}
+
+            {isDownloadUnlocked ? (
+              <Button
+                variant="default"
+                onClick={() => {
+                  onTrackDownload();
+                  setDownloadPopup(true);
+                }}
+                size="sm"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </Button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Options
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Download as HTML file. Best quality, works offline. Double-click to open.</p>
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={() => handleDownloadClick('html-teacher')}
-                    className={`${isDownloadUnlocked 
-                      ? 'bg-worksheet-purple hover:bg-worksheet-purpleDark' 
-                      : 'bg-gray-400 hover:bg-gray-500'} ${isMobile ? 'w-full' : ''}`}
-                    size="sm"
-                  >
-                    {isDownloadUnlocked ? (
-                      <Download className="mr-2 h-4 w-4" />
-                    ) : (
-                      <Lock className="mr-2 h-4 w-4" />
-                    )}
-                    {isMobile ? 'Teacher (HTML)' : 'Download TEACHER'}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Download as HTML file. Best quality, works offline. Double-click to open.</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  <DropdownMenuLabel>Download Worksheet</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleGenerateDownloadToken}>
+                    Unlock with Token
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled={true}>
+                    Purchase Access (Coming Soon)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </div>
 
-      <PaymentPopup
-        isOpen={showPaymentPopup}
-        onClose={handlePaymentPopupClose}
-        onPaymentSuccess={handlePaymentSuccess}
-        worksheetId={worksheetId}
-        userIp={userIp}
-      />
-
-      {canShareWorksheet && (
-        <ShareWorksheetModal
-          isOpen={showShareModal}
-          onClose={() => setShowShareModal(false)}
-          worksheetId={worksheetId!}
-          worksheetTitle={editableWorksheet?.title || 'English Worksheet'}
+      {downloadPopup && (
+        <DownloadPopup
+          worksheetId={worksheetId}
+          onClose={() => setDownloadPopup(false)}
+          showPdfButton={showPdfButton}
+          editableWorksheet={editableWorksheet}
         />
       )}
-    </TooltipProvider>
+    </div>
   );
-};
-
-export default WorksheetToolbar;
+}
