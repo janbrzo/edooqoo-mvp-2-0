@@ -7,6 +7,11 @@ import Profile from "@/pages/Profile";
 import Dashboard from "@/pages/Dashboard";
 import StudentPage from "@/pages/StudentPage";
 import SharedWorksheet from "@/pages/SharedWorksheet";
+import Signup from "@/pages/Signup";
+import Login from "@/pages/Login";
+import Auth from "@/pages/Auth";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from 'sonner';
 import {
@@ -36,6 +41,11 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/student/:id" element={<StudentPage />} />
             <Route path="/shared/:token" element={<SharedWorksheet />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
           </Routes>
         </BrowserRouter>
         
