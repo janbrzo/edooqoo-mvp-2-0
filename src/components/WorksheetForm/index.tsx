@@ -27,7 +27,7 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
   const [grammarFocus, setGrammarFocus] = useState("");
   const [additionalInformation, setAdditionalInformation] = useState("");
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("B1/B2");
-  const [languageStyle, setLanguageStyle] = useState<number>(5); // Default neutral style
+  const [languageStyle, setLanguageStyle] = useState<number>(3); // Default neutral style
   const [selectedStudentId, setSelectedStudentId] = useState<string>("no-student");
 
   const [currentPlaceholders, setCurrentPlaceholders] = useState<PlaceholderSet>(getRandomPlaceholderSet());
