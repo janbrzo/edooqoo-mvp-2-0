@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { UserSwitch2, Check } from 'lucide-react';
+import { Users, Check } from 'lucide-react';
 import { useStudents } from '@/hooks/useStudents';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -71,7 +71,7 @@ export const StudentSelector = ({
       <Select open={isOpen} onOpenChange={setIsOpen} onValueChange={updateWorksheetStudent}>
         <SelectTrigger className={`w-fit ${size === 'sm' ? 'h-8 text-xs' : ''}`}>
           <div className="flex items-center gap-2">
-            <UserSwitch2 className={`${size === 'sm' ? 'h-3 w-3' : 'h-4 w-4'}`} />
+            <Users className={`${size === 'sm' ? 'h-3 w-3' : 'h-4 w-4'}`} />
             <span>{currentStudent?.name || 'Unassigned'}</span>
           </div>
         </SelectTrigger>
@@ -103,7 +103,7 @@ export const StudentSelector = ({
           size={size === 'sm' ? 'sm' : 'default'}
           className={`${size === 'sm' ? 'h-6 w-6 p-0' : 'h-8 w-8 p-0'} hover:bg-muted`}
         >
-          <UserSwitch2 className={`${size === 'sm' ? 'h-3 w-3' : 'h-4 w-4'}`} />
+          <Users className={`${size === 'sm' ? 'h-3 w-3' : 'h-4 w-4'}`} />
         </Button>
       </SelectTrigger>
       <SelectContent>

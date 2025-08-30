@@ -47,7 +47,11 @@ export const useOnboardingProgress = () => {
       if (error) throw error;
 
       if (data?.onboarding_progress) {
-        setProgress(data.onboarding_progress as OnboardingProgress);
+        // Type assertion with proper validation
+        const progressData = data.onboarding_progress as unknown;
+        if (progressData && typeof progressData === 'object' && progressData !== null) {
+          setProgress(progressData as OnboardingProgress);
+        }
       }
     } catch (error) {
       console.error('Error fetching onboarding progress:', error);
@@ -74,9 +78,12 @@ export const useOnboardingProgress = () => {
 
     try {
       if (user) {
+        // Convert to proper format for JSONB storage
+        const progressForDb = updatedProgress as unknown as Record<string, any>;
+        
         await supabase
           .from('profiles')
-          .update({ onboarding_progress: updatedProgress })
+          .update({ onboarding_progress: progressForDb })
           .eq('id', user.id);
       }
     } catch (error) {
