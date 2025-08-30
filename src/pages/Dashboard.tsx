@@ -10,6 +10,7 @@ import { useStudents } from "@/hooks/useStudents";
 import { useWorksheetHistory } from "@/hooks/useWorksheetHistory";
 import { AddStudentButton } from "@/components/dashboard/AddStudentButton";
 import { StudentCard } from "@/components/dashboard/StudentCard";
+import { StudentSelector } from "@/components/StudentSelector";
 import { useProfile } from "@/hooks/useProfile";
 import { format } from "date-fns";
 import { 
@@ -31,7 +32,7 @@ const Dashboard = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
   const { tokenLeft, profile } = useTokenSystem(user?.id);
   const { students, loading: studentsLoading, refetch: refetchStudents } = useStudents();
-  const { worksheets, loading: historyLoading } = useWorksheetHistory();
+  const { worksheets, loading: historyLoading, refetch: refetchWorksheets } = useWorksheetHistory();
   const { thisMonthCount, loading: statsLoading } = useWorksheetStats();
   const { profile: userProfile } = useProfile();
   const navigate = useNavigate();
@@ -273,11 +274,18 @@ const Dashboard = () => {
                       >
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <h3 className="font-medium text-base">
+                            <h3 className="font-medium text-base flex items-center">
                               {formatWorksheetTitle(worksheet)}
                               {studentName && (
-                                <span className="text-primary ml-2">
+                                <span className="text-primary ml-2 flex items-center">
                                   for {studentName}
+                                  <StudentSelector
+                                    worksheetId={worksheet.id}
+                                    currentStudentId={worksheet.student_id}
+                                    worksheetTitle={formatWorksheetTitle(worksheet)}
+                                    onTransferSuccess={refetchWorksheets}
+                                    className="ml-1"
+                                  />
                                 </span>
                               )}
                             </h3>

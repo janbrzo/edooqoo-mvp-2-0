@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -88,6 +87,93 @@ export async function updateWorksheetAPI(
     
   } catch (error) {
     console.error('💥 Update worksheet error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Updates the student assignment for a worksheet
+ */
+export async function updateWorksheetStudentAPI(
+  worksheetId: string, 
+  studentId: string | null, 
+  userId: string
+) {
+  try {
+    console.log('🔄 Updating worksheet student assignment:', { worksheetId, studentId, userId });
+    
+    // Check if worksheet exists and user owns it
+    const { data: existingWorksheet, error: checkError } = await supabase
+      .from('worksheets')
+      .select('id, title, teacher_id, student_id')
+      .eq('id', worksheetId)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('❌ Error checking worksheet:', checkError);
+      throw new Error(`Failed to check worksheet: ${checkError.message}`);
+    }
+
+    if (!existingWorksheet) {
+      console.error('❌ Worksheet not found:', worksheetId);
+      throw new Error('Worksheet not found');
+    }
+
+    if (existingWorksheet.teacher_id !== userId) {
+      console.error('❌ User does not own worksheet:', {
+        worksheetTeacherId: existingWorksheet.teacher_id,
+        currentUserId: userId
+      });
+      throw new Error('You do not have permission to modify this worksheet');
+    }
+
+    // If studentId is provided, verify the student belongs to this teacher
+    if (studentId) {
+      const { data: student, error: studentError } = await supabase
+        .from('students')
+        .select('id, teacher_id')
+        .eq('id', studentId)
+        .eq('teacher_id', userId)
+        .maybeSingle();
+
+      if (studentError) {
+        console.error('❌ Error checking student:', studentError);
+        throw new Error('Failed to verify student');
+      }
+
+      if (!student) {
+        console.error('❌ Student not found or does not belong to user:', studentId);
+        throw new Error('Student not found or access denied');
+      }
+    }
+
+    // Update the student assignment
+    const { data, error } = await supabase
+      .from('worksheets')
+      .update({ 
+        student_id: studentId,
+        last_modified_at: new Date().toISOString()
+      })
+      .eq('id', worksheetId)
+      .eq('teacher_id', userId)
+      .select('id, title, student_id, last_modified_at')
+      .maybeSingle();
+
+    if (error) {
+      console.error('❌ Error updating worksheet student:', error);
+      throw new Error(`Failed to update worksheet assignment: ${error.message}`);
+    }
+
+    if (!data) {
+      console.error('❌ Update returned no data');
+      throw new Error('Update operation failed');
+    }
+
+    console.log('✅ Worksheet student assignment updated:', data);
+    return { success: true, data };
+    
+  } catch (error) {
+    console.error('💥 Update worksheet student error:', error);
     throw error;
   }
 }

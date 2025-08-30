@@ -3,6 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Zap, Database, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
+import { StudentSelector } from "@/components/StudentSelector";
 
 interface WorksheetHeaderProps {
   onBack: () => void;
@@ -10,6 +11,8 @@ interface WorksheetHeaderProps {
   sourceCount: number;
   inputParams: any;
   studentName?: string;
+  worksheetId?: string;
+  onStudentChange?: () => void;
 }
 
 function WorksheetHeader({
@@ -17,7 +20,9 @@ function WorksheetHeader({
   generationTime,
   sourceCount,
   inputParams,
-  studentName
+  studentName,
+  worksheetId,
+  onStudentChange
 }: WorksheetHeaderProps) {
   // Try to get student name from multiple sources
   const displayStudentName = studentName || 
@@ -29,6 +34,13 @@ function WorksheetHeader({
 
   const handleBack = () => {
     window.history.back();
+  };
+
+  const handleStudentTransferSuccess = () => {
+    // Update sessionStorage with new student info after transfer
+    if (onStudentChange) {
+      onStudentChange();
+    }
   };
 
   return (
@@ -44,20 +56,29 @@ function WorksheetHeader({
       <div className="bg-worksheet-purple rounded-lg p-6">
         <div className="flex flex-col md:flex-row justify-between">
           <div>
-            <h1 className="mb-1 font-bald text-white text-2xl font-semibold">
+            <h1 className="mb-1 font-bald text-white text-2xl font-semibold flex items-center">
               Your Generated Worksheet
-              {displayStudentName && studentId && (
-                <span className="text-yellow-300 ml-2">
-                  for <Link 
-                    to={`/student/${studentId}`} 
-                    className="hover:underline hover:text-yellow-200 transition-colors"
-                  >
-                    {displayStudentName}
-                  </Link>
+              {displayStudentName && (
+                <span className="text-yellow-300 ml-2 flex items-center">
+                  for {studentId ? (
+                    <Link 
+                      to={`/student/${studentId}`} 
+                      className="hover:underline hover:text-yellow-200 transition-colors"
+                    >
+                      {displayStudentName}
+                    </Link>
+                  ) : displayStudentName}
+                  {worksheetId && (
+                    <StudentSelector
+                      worksheetId={worksheetId}
+                      currentStudentId={studentId}
+                      worksheetTitle="Current Worksheet"
+                      onTransferSuccess={handleStudentTransferSuccess}
+                      className="ml-1 hover:bg-white/20"
+                      size="sm"
+                    />
+                  )}
                 </span>
-              )}
-              {displayStudentName && !studentId && (
-                <span className="text-yellow-300 ml-2">for {displayStudentName}</span>
               )}
             </h1>
           </div>

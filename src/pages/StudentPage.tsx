@@ -8,6 +8,7 @@ import { useStudents } from '@/hooks/useStudents';
 import { useWorksheetHistory } from '@/hooks/useWorksheetHistory';
 import { StudentEditDialog } from '@/components/StudentEditDialog';
 import { DeleteWorksheetButton } from '@/components/DeleteWorksheetButton';
+import { StudentSelector } from '@/components/StudentSelector';
 import { ArrowLeft, FileText, Calendar, User, BookOpen, Target, Edit, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { deepFixTextObjects } from '@/utils/textObjectFixer';
@@ -16,7 +17,7 @@ const StudentPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { students, updateStudent } = useStudents();
-  const { worksheets, loading, deleteWorksheet } = useWorksheetHistory(id || '');
+  const { worksheets, loading, deleteWorksheet, refetch: refetchWorksheets } = useWorksheetHistory(id || '');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const student = students.find(s => s.id === id);
@@ -209,6 +210,12 @@ const StudentPage = () => {
                               {format(new Date(worksheet.created_at), 'HH:mm')}
                             </div>
                           </div>
+                          <StudentSelector
+                            worksheetId={worksheet.id}
+                            currentStudentId={worksheet.student_id}
+                            worksheetTitle={worksheet.title || 'Untitled Worksheet'}
+                            onTransferSuccess={refetchWorksheets}
+                          />
                           <DeleteWorksheetButton
                             worksheetId={worksheet.id}
                             worksheetTitle={worksheet.title || 'Untitled Worksheet'}
