@@ -22,6 +22,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import SharedWorksheet from "./pages/SharedWorksheet";
 import CookieBanner from "./components/CookieBanner";
 import GlobalFooter from "./components/GlobalFooter";
+import OnboardingChecklist from "./components/OnboardingChecklist";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,7 @@ const App = () => (
             </Routes>
           </div>
           <GlobalFooter />
+          <OnboardingChecklist />
         </div>
         <CookieBanner />
       </BrowserRouter>
