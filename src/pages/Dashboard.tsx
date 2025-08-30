@@ -274,22 +274,22 @@ const Dashboard = () => {
                       >
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <h3 className="font-medium text-base flex items-center">
-                              {formatWorksheetTitle(worksheet)}
-                              {studentName && (
-                                <span className="text-primary ml-2 flex items-center">
-                                  for {studentName}
+                            <div className="flex items-center flex-1 min-w-0">
+                              <h3 className="font-medium text-base flex items-center gap-2 flex-1 min-w-0">
+                                <span className="truncate">{formatWorksheetTitle(worksheet)}</span>
+                                <span className="text-primary shrink-0 flex items-center gap-1">
+                                  for {studentName || "Unassigned"}
                                   <StudentSelector
                                     worksheetId={worksheet.id}
                                     currentStudentId={worksheet.student_id}
                                     worksheetTitle={formatWorksheetTitle(worksheet)}
                                     onTransferSuccess={refetchWorksheets}
-                                    className="ml-1"
+                                    className="hover:bg-muted"
                                   />
                                 </span>
-                              )}
-                            </h3>
-                            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              </h3>
+                            </div>
+                            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
                           </div>
                           {formatWorksheetDescription(worksheet) && (
                             <p className="text-sm text-muted-foreground">

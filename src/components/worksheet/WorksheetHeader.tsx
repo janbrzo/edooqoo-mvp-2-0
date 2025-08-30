@@ -56,30 +56,30 @@ function WorksheetHeader({
       <div className="bg-worksheet-purple rounded-lg p-6">
         <div className="flex flex-col md:flex-row justify-between">
           <div>
-            <h1 className="mb-1 font-bald text-white text-2xl font-semibold flex items-center">
-              Your Generated Worksheet
-              {displayStudentName && (
-                <span className="text-yellow-300 ml-2 flex items-center">
-                  for {studentId ? (
+            <h1 className="mb-1 font-bald text-white text-2xl font-semibold flex items-center gap-2">
+              <span>Your Generated Worksheet</span>
+              <span className="text-yellow-300 flex items-center gap-1">
+                for {displayStudentName ? (
+                  studentId ? (
                     <Link 
                       to={`/student/${studentId}`} 
                       className="hover:underline hover:text-yellow-200 transition-colors"
                     >
                       {displayStudentName}
                     </Link>
-                  ) : displayStudentName}
-                  {worksheetId && (
-                    <StudentSelector
-                      worksheetId={worksheetId}
-                      currentStudentId={studentId}
-                      worksheetTitle="Current Worksheet"
-                      onTransferSuccess={handleStudentTransferSuccess}
-                      className="ml-1 hover:bg-white/20"
-                      size="sm"
-                    />
-                  )}
-                </span>
-              )}
+                  ) : displayStudentName
+                ) : "Unassigned"}
+                {worksheetId && (
+                  <StudentSelector
+                    worksheetId={worksheetId}
+                    currentStudentId={studentId}
+                    worksheetTitle="Current Worksheet"
+                    onTransferSuccess={handleStudentTransferSuccess}
+                    className="hover:bg-white/20 text-yellow-300"
+                    size="sm"
+                  />
+                )}
+              </span>
             </h1>
           </div>
           <div className="flex gap-4 mt-4 md:mt-0">
