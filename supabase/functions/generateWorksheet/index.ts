@@ -111,11 +111,11 @@ serve(async (req) => {
           Your goal: produce a worksheet so compelling that a private tutor will happily pay for it and actually use it.
           Your output will be used immediately in a 1-on-1 lesson; exercises must be ready-to-print without structural edits.
 
-          CRITICAL RULES AND REQUIREMENTS:
+CRITICAL RULES AND REQUIREMENTS:
 1. Create EXACTLY 8 exercises. No fewer, no more. Number them Exercise 1 through Exercise 8.
 2. Use EXACTLY these exercise types in this EXACT ORDER: reading, true-false, matching, fill-in-blanks, multiple-choice, dialogue, discussion, error-correction
-3. All exercises should be closely related to the specified topic and goal
-4. Include specific vocabulary, expressions, and language structures related to the topic.
+3. All exercises should be closely related to the specified lessonTopic, lessonGoal, grammarFocus and additionalInformation
+4. Include specific vocabulary, expressions, and language structures related to the specified lessonTopic, lessonGoal, grammarFocus and additionalInformation. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale
 5. Keep exercise instructions clear and concise. Students should understand tasks without additional explanation.
 6. DO NOT USE PLACEHOLDERS. Write full, complete, high-quality content for every field.
 
@@ -478,8 +478,8 @@ EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
 END OF EXAMPLE
 
 CRITICAL REQUIREMENTS VERIFICATION:
-1. Exercise 1 (reading): Content MUST have more than 320 words. Count words carefully.
-2. Exercise 2 (true-false): EXACTLY 10 statements ALL directly based on the reading text from Exercise 1. NO general knowledge questions.
+1. Exercise 1 (reading): MUST have content more than 300 words. Analyze the lessonTopic, lessonGoal, grammarFocus and additionalInformation to determine the most appropriate text format (article, review, interview, story, email, etc.). The reading text should exemplify the format students will encounter or create based on the lesson objectives.
+2. Exercise 2 (true-false): EXACTLY 10 statements ALL directly based on the reading text from Exercise 1. NO general knowledge questions. MUST be directly based on the reading text from Exercise 1. All statements should test comprehension of specific information, details, and facts mentioned in the reading passage. DO NOT include general knowledge questions.
 3. Exercise 3 (matching): EXACTLY 10 items to match.
 4. Exercise 4 (fill-in-blanks): EXACTLY 10 sentences and 10 words in word bank.
 5. Exercise 5 (multiple-choice): EXACTLY 10 questions with 4 options each. All 4 options must be completely different from each other – no duplicates or similar variations allowed. Only one option per question is correct.
