@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,12 +25,14 @@ import {
   Target,
   Coins
 } from "lucide-react";
+import { useWorksheetStats } from "@/hooks/useWorksheetStats";
 
 const Dashboard = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
   const { tokenLeft, profile } = useTokenSystem(user?.id);
   const { students, loading: studentsLoading, refetch: refetchStudents } = useStudents();
   const { worksheets, loading: historyLoading } = useWorksheetHistory();
+  const { thisMonthCount, loading: statsLoading } = useWorksheetStats();
   const { profile: userProfile } = useProfile();
   const navigate = useNavigate();
   const [selectedTimeFrame, setSelectedTimeFrame] = useState("month");
@@ -44,7 +45,7 @@ const Dashboard = () => {
   }, [loading, isRegisteredUser, navigate]);
 
   // Show loading state
-  if (loading || studentsLoading || historyLoading) {
+  if (loading || studentsLoading || historyLoading || statsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -64,16 +65,7 @@ const Dashboard = () => {
   const displayName = userProfile?.first_name || 'Teacher';
   const subscriptionType = profile?.subscription_type || 'Free Demo';
 
-  // Calculate monthly stats
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  
-  const monthlyWorksheets = worksheets.filter(w => {
-    const createdAt = new Date(w.created_at);
-    return createdAt >= startOfMonth;
-  });
-
-  const thisMonthCount = monthlyWorksheets.length;
+  // Use stats from the new hook instead of calculating from filtered worksheets
   const totalWorksheetsCreated = profile?.total_worksheets_created || 0;
 
   const handleGenerateWorksheet = () => {
