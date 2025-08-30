@@ -9,7 +9,6 @@ import { useAuthFlow } from "@/hooks/useAuthFlow";
 import { useTokenSystem } from "@/hooks/useTokenSystem";
 import { useStudents } from "@/hooks/useStudents";
 import { useWorksheetHistory } from "@/hooks/useWorksheetHistory";
-import { useWorksheetStats } from "@/hooks/useWorksheetStats";
 import { AddStudentButton } from "@/components/dashboard/AddStudentButton";
 import { StudentCard } from "@/components/dashboard/StudentCard";
 import { useProfile } from "@/hooks/useProfile";
@@ -32,8 +31,7 @@ const Dashboard = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
   const { tokenLeft, profile } = useTokenSystem(user?.id);
   const { students, loading: studentsLoading, refetch: refetchStudents } = useStudents();
-  const { worksheets, loading: historyLoading } = useWorksheetHistory(); // For Recent Worksheets list (filtered)
-  const { stats, loading: statsLoading } = useWorksheetStats(); // For statistics (all worksheets)
+  const { worksheets, loading: historyLoading } = useWorksheetHistory();
   const { profile: userProfile } = useProfile();
   const navigate = useNavigate();
   const [selectedTimeFrame, setSelectedTimeFrame] = useState("month");
@@ -46,7 +44,7 @@ const Dashboard = () => {
   }, [loading, isRegisteredUser, navigate]);
 
   // Show loading state
-  if (loading || studentsLoading || historyLoading || statsLoading) {
+  if (loading || studentsLoading || historyLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -66,9 +64,17 @@ const Dashboard = () => {
   const displayName = userProfile?.first_name || 'Teacher';
   const subscriptionType = profile?.subscription_type || 'Free Demo';
 
-  // Use stats from useWorksheetStats (includes deleted worksheets for accurate counts)
-  const thisMonthCount = stats.thisMonthCount;
-  const totalWorksheetsCreated = stats.totalFromProfile;
+  // Calculate monthly stats
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  const monthlyWorksheets = worksheets.filter(w => {
+    const createdAt = new Date(w.created_at);
+    return createdAt >= startOfMonth;
+  });
+
+  const thisMonthCount = monthlyWorksheets.length;
+  const totalWorksheetsCreated = profile?.total_worksheets_created || 0;
 
   const handleGenerateWorksheet = () => {
     sessionStorage.setItem('forceNewWorksheet', 'true');
