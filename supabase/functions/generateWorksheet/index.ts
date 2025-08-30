@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import OpenAI from "https://esm.sh/openai@4.28.0";
@@ -117,15 +118,34 @@ serve(async (req) => {
 4. Include specific vocabulary, expressions, and language structures related to the topic.
 5. Keep exercise instructions clear and concise. Students should understand tasks without additional explanation.
 6. DO NOT USE PLACEHOLDERS. Write full, complete, high-quality content for every field.
-7. Write tasks using natural, spoken English that reflects how real people talk. Avoid robotic AI or textbook-style phrases. Use contractions, informal structures, and natural flow. Keep it appropriate for the learner's level, but make it sound like a real-life conversation, not a scripted monologue.
-8. DO NOT include any text outside of the JSON structure.
-9. Exercise 1 (Reading Comprehension) MUST have content more than 300 words. Analyze the lessonTopic, lessonGoal and additionalInformation to determine the most appropriate text format (article, review, interview, story, email, etc.). The reading text should exemplify the format students will encounter or create based on the lesson objectives.
-10. Exercise 2 (True or False) MUST be directly based on the reading text from Exercise 1. All statements should test comprehension of specific information, details, and facts mentioned in the reading passage. DO NOT include general knowledge questions.
-11. Focus on overall flow, coherence and pedagogical value.
-12. ADAPT TO USER'S INPUT: Carefully analyze all information from the USER MESSAGE. The 'lessonTopic' and 'lessonGoal' must define the theme of all exercises. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale.
+
+NATURAL HUMAN-LIKE CONTENT REQUIREMENTS:
+7. Write all content as if created by an experienced human teacher, not AI. Use natural, authentic language that reflects real-world conversations and situations.
+8. Avoid robotic, perfect, or overly polished AI-style language. Include natural imperfections, contractions, and conversational flow that real people use.
+9. Create realistic scenarios with genuine human problems, emotions, and motivations. People should sound like real individuals with personalities, not textbook characters.
+10. Use everyday vocabulary mixed with target language appropriately. Avoid consistently "educational" tone - make it engaging and relatable.
+11. Include cultural references, current events, and contemporary contexts that students actually encounter in real life.
+12. Make dialogue sound like authentic conversations people would actually have, with natural pauses, interruptions, and realistic speech patterns.
+
+CRITICAL DIVERSITY REQUIREMENTS:
+13. NEVER repeat the same examples, scenarios, names, places, or contexts across different exercises within the same worksheet.
+14. Use completely different characters, locations, and situations for each exercise. If Exercise 1 mentions "John at a restaurant," Exercise 2 cannot use restaurants, John, or similar dining scenarios.
+15. Ensure vocabulary examples in different exercises cover diverse topics, professions, and life situations.
+16. Vary the complexity and style of content across exercises while maintaining the appropriate English level.
+17. Create unique, fresh content for each exercise type that doesn't echo or repeat themes from other exercises.
+
+AUTHENTICITY CHECK:
+Before generating content, ask yourself:
+- Would a real person actually say/write this?
+- Does this sound like something from real life, not a textbook?
+- Are the scenarios believable and relatable?
+- Do the characters have realistic motivations and personalities?
+- Is the language natural and conversational, not artificial or perfect?
+
+18. ADAPT TO USER'S INPUT: Carefully analyze all information from the USER MESSAGE. The 'lessonTopic' and 'lessonGoal' must define the theme of all exercises. The 'englishLevel' must dictate the complexity of vocabulary and grammar according to CEFR scale.
 
 ${hasGrammarFocus ? `
-13. GRAMMAR FOCUS REQUIREMENT: The user has specified a grammar focus: "${grammarFocus}". You MUST:
+19. GRAMMAR FOCUS REQUIREMENT: The user has specified a grammar focus: "${grammarFocus}". You MUST:
     - ENSURE grammar complexity matches CERF level: "${formData.englishLevel}"
     - Include a "grammar_rules" section in the JSON with detailed explanation of this grammar topic
     - Design ALL exercises to practice and reinforce this specific grammar point
@@ -133,10 +153,10 @@ ${hasGrammarFocus ? `
     - Make this grammar topic the central pedagogical focus of the entire worksheet
     -provide a detailed and comprehensive explanation about the grammatical topic, including a thorough introduction explaining its usage, importance, and general overview, written in the style of well-known grammar reference books (such as My Grammar Lab, Cambridge Grammar, or Virginia Evans).
 ` : `
-13. NO GRAMMAR FOCUS: The user has not specified a grammar focus, so create a general worksheet focused on the topic and goal without emphasizing any particular grammar point.
+19. NO GRAMMAR FOCUS: The user has not specified a grammar focus, so create a general worksheet focused on the topic and goal without emphasizing any particular grammar point.
 `}
 
-14. Generate a structured JSON worksheet with this EXACT format:
+20. Generate a structured JSON worksheet with this EXACT format:
 EXAMPLE OUTPUT (IGNORE CONTENT, FOCUS ON STRUCTURE):
 {
   "title": "In a restaurant",

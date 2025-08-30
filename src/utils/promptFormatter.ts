@@ -25,12 +25,6 @@ export const formatPromptForAI = (data: FormData): string => {
     promptLines.push(`additionalInformation: ${data.additionalInformation}`);
   }
 
-  // Add comprehensive instructions for content quality and diversity
-  promptLines.push(`\nCONTENT QUALITY INSTRUCTIONS:`);
-  promptLines.push(`- DIVERSITY: Ensure each exercise has completely different examples, scenarios, and contexts. Never repeat similar situations, names, places, or topics across exercises.`);
-  promptLines.push(`- VARIETY: Use diverse vocabulary, varied sentence structures, and different real-life contexts in each exercise.`);
-  promptLines.push(`- NATURAL LANGUAGE: Write in natural, authentic English that people actually use in real conversations and situations.`);
-  
   // Add language style specific instructions
   promptLines.push(`\nLANGUAGE STYLE GUIDELINES (${languageStyle}/10):`);
   if (languageStyle <= 3) {
