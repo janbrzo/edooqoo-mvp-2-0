@@ -47,7 +47,8 @@ function WorksheetHeader({
     worksheetId,
     displayStudentName,
     studentId,
-    inputParams
+    inputParams,
+    hasWorksheetId: !!worksheetId
   });
 
   return (
@@ -77,6 +78,7 @@ function WorksheetHeader({
                     </Link>
                   ) : displayStudentName
                 ) : "Unassigned"}
+                {/* Always show StudentSelector if we have worksheetId */}
                 {worksheetId && (
                   <StudentSelector
                     worksheetId={worksheetId}

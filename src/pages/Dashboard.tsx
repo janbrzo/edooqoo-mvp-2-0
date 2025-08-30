@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,7 +93,9 @@ const Dashboard = () => {
     
     const parts = [];
     if (formData.lessonTopic) parts.push(`Topic: ${formData.lessonTopic}`);
+    // Check for both grammar field names for compatibility
     if (formData.grammar) parts.push(`Grammar: ${formData.grammar}`);
+    else if (formData.lessonGoal) parts.push(`Grammar: ${formData.lessonGoal}`);
     
     return parts.join(' • ');
   };
@@ -273,26 +276,24 @@ const Dashboard = () => {
                       >
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center flex-1 min-w-0">
-                              <div 
-                                className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:text-primary transition-colors"
-                                onClick={() => handleWorksheetOpen(worksheet)}
-                              >
-                                <h3 className="font-medium text-base truncate">{formatWorksheetTitle(worksheet)}</h3>
-                                <span className="text-primary shrink-0">
-                                  for {studentName || "Unassigned"}
-                                </span>
-                              </div>
-                              <div className="ml-2 flex items-center gap-2">
-                                <StudentSelector
-                                  worksheetId={worksheet.id}
-                                  currentStudentId={worksheet.student_id}
-                                  worksheetTitle={formatWorksheetTitle(worksheet)}
-                                  onTransferSuccess={refetchWorksheets}
-                                  className="hover:bg-muted"
-                                />
-                                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                              </div>
+                            <div 
+                              className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleWorksheetOpen(worksheet)}
+                            >
+                              <h3 className="font-medium text-base truncate">{formatWorksheetTitle(worksheet)}</h3>
+                              <span className="text-primary shrink-0">
+                                for {studentName || "Unassigned"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 ml-2">
+                              <StudentSelector
+                                worksheetId={worksheet.id}
+                                currentStudentId={worksheet.student_id}
+                                worksheetTitle={formatWorksheetTitle(worksheet)}
+                                onTransferSuccess={refetchWorksheets}
+                                className="hover:bg-muted"
+                              />
+                              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                             </div>
                           </div>
                           {formatWorksheetDescription(worksheet) && (

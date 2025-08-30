@@ -197,7 +197,9 @@ const StudentPage = () => {
                             </h3>
                             <p className="text-sm text-muted-foreground">
                               {worksheet.form_data?.lessonTopic && `Topic: ${worksheet.form_data.lessonTopic}`}
+                              {/* Check for both grammar field names for compatibility */}
                               {worksheet.form_data?.grammar && ` • Grammar: ${worksheet.form_data.grammar}`}
+                              {!worksheet.form_data?.grammar && worksheet.form_data?.lessonGoal && ` • Grammar: ${worksheet.form_data.lessonGoal}`}
                             </p>
                           </div>
                         </div>

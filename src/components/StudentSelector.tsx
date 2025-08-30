@@ -38,11 +38,13 @@ export const StudentSelector: React.FC<StudentSelectorProps> = ({
     setIsOpen(false);
   });
 
-  console.log('🔍 StudentSelector debug:', {
+  console.log('🔍 StudentSelector render debug:', {
     worksheetId,
     currentStudentId,
     studentsCount: students?.length || 0,
-    students: students?.map(s => ({ id: s.id, name: s.name })) || []
+    students: students?.map(s => ({ id: s.id, name: s.name })) || [],
+    isOpen,
+    user: !!user
   });
 
   const handleStudentChange = async (newStudentId: string) => {
@@ -74,11 +76,19 @@ export const StudentSelector: React.FC<StudentSelectorProps> = ({
     }
   };
 
-  // Handle click to prevent event bubbling
+  // Handle click with proper event stopping
   const handleClick = (e: React.MouseEvent) => {
-    console.log('🎯 StudentSelector clicked');
+    console.log('🎯 StudentSelector clicked - stopping propagation');
     e.stopPropagation();
     e.preventDefault();
+  };
+
+  // Handle popover trigger click
+  const handlePopoverTrigger = (e: React.MouseEvent) => {
+    console.log('🎯 Popover trigger clicked, current isOpen:', isOpen);
+    e.stopPropagation();
+    e.preventDefault();
+    setIsOpen(!isOpen);
   };
 
   const currentStudent = currentStudentId 
@@ -89,7 +99,7 @@ export const StudentSelector: React.FC<StudentSelectorProps> = ({
   const iconSize = size === 'sm' ? 'h-3 w-3' : 'h-4 w-4';
 
   return (
-    <div onClick={handleClick} className="inline-flex">
+    <div onClick={handleClick} className="inline-flex" style={{ pointerEvents: 'auto' }}>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -98,7 +108,7 @@ export const StudentSelector: React.FC<StudentSelectorProps> = ({
             className={`${buttonSize} p-0 hover:bg-muted ${className}`}
             disabled={isLoading}
             title="Transfer to another student"
-            onClick={handleClick}
+            onClick={handlePopoverTrigger}
           >
             {isLoading ? (
               <Loader2 className={`${iconSize} animate-spin`} />
