@@ -74,7 +74,7 @@ const OnboardingChecklist: React.FC = () => {
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center flex-1 min-w-0">
-              <CardTitle className="text-sm whitespace-nowrap truncate">Get started</CardTitle>
+              <CardTitle className="text-sm whitespace-nowrap truncate">Get started with Edooqoo 🚀</CardTitle>
             </div>
             <div className="flex items-center flex-shrink-0">
               <Button
