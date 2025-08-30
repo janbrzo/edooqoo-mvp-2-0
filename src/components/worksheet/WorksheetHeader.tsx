@@ -1,8 +1,8 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Zap, Database, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
-import { StudentSelector } from '@/components/StudentSelector';
 
 interface WorksheetHeaderProps {
   onBack: () => void;
@@ -31,13 +31,6 @@ function WorksheetHeader({
     window.history.back();
   };
 
-  const handleStudentChange = () => {
-    // Refresh the page to update the header
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
-  };
-
   return (
     <div className="mb-6">
       <div className="flex gap-2 mb-4">
@@ -54,31 +47,17 @@ function WorksheetHeader({
             <h1 className="mb-1 font-bald text-white text-2xl font-semibold">
               Your Generated Worksheet
               {displayStudentName && studentId && (
-                <span className="text-yellow-300 ml-2 flex items-center gap-2">
+                <span className="text-yellow-300 ml-2">
                   for <Link 
                     to={`/student/${studentId}`} 
                     className="hover:underline hover:text-yellow-200 transition-colors"
                   >
                     {displayStudentName}
                   </Link>
-                  <StudentSelector
-                    worksheetId={inputParams?.worksheetId || ''}
-                    currentStudentId={studentId}
-                    onStudentChange={handleStudentChange}
-                    size="sm"
-                  />
                 </span>
               )}
               {displayStudentName && !studentId && (
-                <span className="text-yellow-300 ml-2 flex items-center gap-2">
-                  for {displayStudentName}
-                  <StudentSelector
-                    worksheetId={inputParams?.worksheetId || ''}
-                    currentStudentId={studentId}
-                    onStudentChange={handleStudentChange}
-                    size="sm"
-                  />
-                </span>
+                <span className="text-yellow-300 ml-2">for {displayStudentName}</span>
               )}
             </h1>
           </div>

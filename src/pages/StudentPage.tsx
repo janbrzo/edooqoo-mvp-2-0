@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,6 @@ import { DeleteWorksheetButton } from '@/components/DeleteWorksheetButton';
 import { ArrowLeft, FileText, Calendar, User, BookOpen, Target, Edit, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { deepFixTextObjects } from '@/utils/textObjectFixer';
-import { StudentSelector } from '@/components/StudentSelector';
 
 const StudentPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -68,13 +68,6 @@ const StudentPage = () => {
     }));
     sessionStorage.setItem('forceNewWorksheet', 'true');
     navigate('/');
-  };
-
-  const handleStudentChange = (worksheetId: string) => {
-    // Refresh the page to update the worksheets list
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
   };
 
   const formatGoal = (goal: string) => {
@@ -198,14 +191,8 @@ const StudentPage = () => {
                         >
                           <FileText className="h-5 w-5 text-primary" />
                           <div>
-                            <h3 className="font-medium flex items-center gap-2">
+                            <h3 className="font-medium">
                               {worksheet.title || 'Untitled Worksheet'}
-                              <StudentSelector
-                                worksheetId={worksheet.id}
-                                currentStudentId={worksheet.student_id}
-                                onStudentChange={() => handleStudentChange(worksheet.id)}
-                                size="sm"
-                              />
                             </h3>
                             <p className="text-sm text-muted-foreground">
                               {worksheet.form_data?.lessonTopic && `Topic: ${worksheet.form_data.lessonTopic}`}

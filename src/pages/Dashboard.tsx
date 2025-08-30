@@ -26,7 +26,6 @@ import {
   Coins
 } from "lucide-react";
 import { useWorksheetStats } from "@/hooks/useWorksheetStats";
-import { StudentSelector } from '@/components/StudentSelector';
 
 const Dashboard = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
@@ -77,13 +76,6 @@ const Dashboard = () => {
   const handleWorksheetOpen = (worksheet: any) => {
     sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheet));
     navigate('/');
-  };
-
-  const handleStudentChange = (worksheetId: string) => {
-    // Refresh worksheets after student change
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
   };
 
   const formatWorksheetTitle = (worksheet: any) => {
@@ -284,23 +276,9 @@ const Dashboard = () => {
                             <h3 className="font-medium text-base">
                               {formatWorksheetTitle(worksheet)}
                               {studentName && (
-                                <span className="text-primary ml-2 flex items-center gap-1">
+                                <span className="text-primary ml-2">
                                   for {studentName}
-                                  <StudentSelector
-                                    worksheetId={worksheet.id}
-                                    currentStudentId={worksheet.student_id}
-                                    onStudentChange={() => handleStudentChange(worksheet.id)}
-                                    size="sm"
-                                  />
                                 </span>
-                              )}
-                              {!studentName && (
-                                <StudentSelector
-                                  worksheetId={worksheet.id}
-                                  currentStudentId={worksheet.student_id}
-                                  onStudentChange={() => handleStudentChange(worksheet.id)}
-                                  size="sm"
-                                />
                               )}
                             </h3>
                             <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
