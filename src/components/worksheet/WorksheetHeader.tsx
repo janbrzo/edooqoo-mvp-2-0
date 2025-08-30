@@ -78,10 +78,10 @@ function WorksheetHeader({
                     </Link>
                   ) : displayStudentName
                 ) : "Unassigned"}
-                {/* Always show StudentSelector if we have worksheetId */}
-                {worksheetId && (
+                {/* Show StudentSelector when we have worksheetId OR fallback for anonymous users */}
+                {(worksheetId || !studentId) && (
                   <StudentSelector
-                    worksheetId={worksheetId}
+                    worksheetId={worksheetId || 'temp-id'}
                     currentStudentId={studentId}
                     worksheetTitle="Current Worksheet"
                     onTransferSuccess={handleStudentTransferSuccess}

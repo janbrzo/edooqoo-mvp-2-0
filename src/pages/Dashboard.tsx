@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +27,7 @@ import {
   Coins
 } from "lucide-react";
 import { useWorksheetStats } from "@/hooks/useWorksheetStats";
+import { DeleteWorksheetButton } from "@/components/DeleteWorksheetButton";
 
 const Dashboard = () => {
   const { user, loading, isRegisteredUser } = useAuthFlow();
@@ -78,6 +78,11 @@ const Dashboard = () => {
   const handleWorksheetOpen = (worksheet: any) => {
     sessionStorage.setItem('restoredWorksheet', JSON.stringify(worksheet));
     navigate('/');
+  };
+
+  const handleDeleteWorksheet = async (worksheetId: string) => {
+    const result = await refetchWorksheets();
+    return result ? { success: true } : { success: false, error: 'Failed to refresh worksheets' };
   };
 
   const formatWorksheetTitle = (worksheet: any) => {
@@ -285,7 +290,7 @@ const Dashboard = () => {
                                 for {studentName || "Unassigned"}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 ml-2">
+                            <div className="flex items-center gap-2 ml-2 pointer-events-auto">
                               <StudentSelector
                                 worksheetId={worksheet.id}
                                 currentStudentId={worksheet.student_id}
@@ -293,7 +298,13 @@ const Dashboard = () => {
                                 onTransferSuccess={refetchWorksheets}
                                 className="hover:bg-muted"
                               />
-                              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <DeleteWorksheetButton
+                                worksheetId={worksheet.id}
+                                worksheetTitle={formatWorksheetTitle(worksheet)}
+                                onDelete={handleDeleteWorksheet}
+                                variant="ghost"
+                                size="sm"
+                              />
                             </div>
                           </div>
                           {formatWorksheetDescription(worksheet) && (

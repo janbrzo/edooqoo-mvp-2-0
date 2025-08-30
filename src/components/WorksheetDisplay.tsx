@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDownloadTracking } from "@/hooks/useDownloadTracking";
@@ -55,6 +54,7 @@ interface WorksheetDisplayProps {
   setEditableWorksheet: (worksheet: any) => void;
   userId?: string;
   studentName?: string;
+  onStudentChange?: () => void;
 }
 
 export default function WorksheetDisplay({
@@ -70,7 +70,8 @@ export default function WorksheetDisplay({
   editableWorksheet,
   setEditableWorksheet,
   userId,
-  studentName
+  studentName,
+  onStudentChange
 }: WorksheetDisplayProps) {
   const [viewMode, setViewMode] = useState<'student' | 'teacher'>('student');
   const [isEditing, setIsEditing] = useState(false);
@@ -257,6 +258,8 @@ export default function WorksheetDisplay({
             sourceCount={sourceCount}
             inputParams={inputParams}
             studentName={studentName}
+            worksheetId={worksheetId}
+            onStudentChange={onStudentChange}
           />
           <InputParamsCard inputParams={inputParams} />
           <WorksheetToolbar
