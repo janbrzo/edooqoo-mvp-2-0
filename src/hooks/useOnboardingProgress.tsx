@@ -34,9 +34,10 @@ export const useOnboardingProgress = () => {
 
   // Load progress from profile or localStorage
   useEffect(() => {
-    if (profile?.onboarding_progress) {
+    const profileWithOnboarding = profile as any;
+    if (profileWithOnboarding?.onboarding_progress) {
       try {
-        const savedProgress = profile.onboarding_progress as unknown as OnboardingProgress;
+        const savedProgress = profileWithOnboarding.onboarding_progress as OnboardingProgress;
         setProgress(savedProgress);
       } catch (error) {
         console.error('Error parsing onboarding progress:', error);
@@ -120,7 +121,7 @@ export const useOnboardingProgress = () => {
           .from('profiles')
           .update({ 
             onboarding_progress: newProgress as any
-          })
+          } as any)
           .eq('id', profile.id);
       } catch (error) {
         console.error('Error saving onboarding progress:', error);
