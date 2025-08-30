@@ -81,8 +81,8 @@ const Dashboard = () => {
   };
 
   const handleDeleteWorksheet = async (worksheetId: string) => {
-    const result = await refetchWorksheets();
-    return result ? { success: true } : { success: false, error: 'Failed to refresh worksheets' };
+    await refetchWorksheets();
+    return { success: true };
   };
 
   const formatWorksheetTitle = (worksheet: any) => {
