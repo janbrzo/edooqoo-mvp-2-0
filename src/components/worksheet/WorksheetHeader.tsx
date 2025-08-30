@@ -43,6 +43,13 @@ function WorksheetHeader({
     }
   };
 
+  console.log('🔍 WorksheetHeader debug:', {
+    worksheetId,
+    displayStudentName,
+    studentId,
+    inputParams
+  });
+
   return (
     <div className="mb-6">
       <div className="flex gap-2 mb-4">
@@ -58,8 +65,9 @@ function WorksheetHeader({
           <div>
             <h1 className="mb-1 font-bald text-white text-2xl font-semibold flex items-center gap-2">
               <span>Your Generated Worksheet</span>
-              <span className="text-yellow-300 flex items-center gap-1">
-                for {displayStudentName ? (
+              <span className="text-yellow-300 flex items-center gap-2">
+                <span>for</span>
+                {displayStudentName ? (
                   studentId ? (
                     <Link 
                       to={`/student/${studentId}`} 

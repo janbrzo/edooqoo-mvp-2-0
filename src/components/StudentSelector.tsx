@@ -38,6 +38,13 @@ export const StudentSelector: React.FC<StudentSelectorProps> = ({
     setIsOpen(false);
   });
 
+  console.log('🔍 StudentSelector debug:', {
+    worksheetId,
+    currentStudentId,
+    studentsCount: students?.length || 0,
+    students: students?.map(s => ({ id: s.id, name: s.name })) || []
+  });
+
   const handleStudentChange = async (newStudentId: string) => {
     if (!user?.id) return;
     
@@ -69,14 +76,10 @@ export const StudentSelector: React.FC<StudentSelectorProps> = ({
 
   // Handle click to prevent event bubbling
   const handleClick = (e: React.MouseEvent) => {
+    console.log('🎯 StudentSelector clicked');
     e.stopPropagation();
     e.preventDefault();
   };
-
-  // Don't render if no students available
-  if (!students || students.length === 0) {
-    return null;
-  }
 
   const currentStudent = currentStudentId 
     ? students.find(s => s.id === currentStudentId) 
@@ -115,13 +118,19 @@ export const StudentSelector: React.FC<StudentSelectorProps> = ({
                 <SelectItem value="unassigned">
                   <span className="text-muted-foreground">Unassigned</span>
                 </SelectItem>
-                {students
-                  .filter(student => student.id !== currentStudentId)
-                  .map((student) => (
-                    <SelectItem key={student.id} value={student.id}>
-                      {student.name}
-                    </SelectItem>
-                  ))}
+                {students && students.length > 0 ? (
+                  students
+                    .filter(student => student.id !== currentStudentId)
+                    .map((student) => (
+                      <SelectItem key={student.id} value={student.id}>
+                        {student.name}
+                      </SelectItem>
+                    ))
+                ) : (
+                  <SelectItem value="no-students" disabled>
+                    <span className="text-muted-foreground">No students available</span>
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
             {currentStudent && (

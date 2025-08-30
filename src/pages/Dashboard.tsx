@@ -92,7 +92,7 @@ const Dashboard = () => {
     
     const parts = [];
     if (formData.lessonTopic) parts.push(`Topic: ${formData.lessonTopic}`);
-    if (formData.lessonGoal) parts.push(`Goal: ${formData.lessonGoal}`);
+    if (formData.grammar) parts.push(`Grammar: ${formData.grammar}`);
     
     return parts.join(' • ');
   };
@@ -269,27 +269,31 @@ const Dashboard = () => {
                     return (
                       <div
                         key={worksheet.id}
-                        className="p-4 bg-muted/20 rounded-lg cursor-pointer hover:bg-muted/30 transition-colors border border-border/50"
-                        onClick={() => handleWorksheetOpen(worksheet)}
+                        className="p-4 bg-muted/20 rounded-lg border border-border/50"
                       >
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center flex-1 min-w-0">
-                              <h3 className="font-medium text-base flex items-center gap-2 flex-1 min-w-0">
-                                <span className="truncate">{formatWorksheetTitle(worksheet)}</span>
-                                <span className="text-primary shrink-0 flex items-center gap-1">
+                              <div 
+                                className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:text-primary transition-colors"
+                                onClick={() => handleWorksheetOpen(worksheet)}
+                              >
+                                <h3 className="font-medium text-base truncate">{formatWorksheetTitle(worksheet)}</h3>
+                                <span className="text-primary shrink-0">
                                   for {studentName || "Unassigned"}
-                                  <StudentSelector
-                                    worksheetId={worksheet.id}
-                                    currentStudentId={worksheet.student_id}
-                                    worksheetTitle={formatWorksheetTitle(worksheet)}
-                                    onTransferSuccess={refetchWorksheets}
-                                    className="hover:bg-muted"
-                                  />
                                 </span>
-                              </h3>
+                              </div>
+                              <div className="ml-2 flex items-center gap-2">
+                                <StudentSelector
+                                  worksheetId={worksheet.id}
+                                  currentStudentId={worksheet.student_id}
+                                  worksheetTitle={formatWorksheetTitle(worksheet)}
+                                  onTransferSuccess={refetchWorksheets}
+                                  className="hover:bg-muted"
+                                />
+                                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              </div>
                             </div>
-                            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
                           </div>
                           {formatWorksheetDescription(worksheet) && (
                             <p className="text-sm text-muted-foreground">
