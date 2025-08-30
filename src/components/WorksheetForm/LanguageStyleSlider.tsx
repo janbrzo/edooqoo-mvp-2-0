@@ -11,10 +11,10 @@ const LanguageStyleSlider: React.FC<LanguageStyleSliderProps> = ({ value, onChan
   const isMobile = useIsMobile();
 
   const getStyleDescription = (value: number) => {
-    if (value <= 2) return "Very casual (slang, contractions)";
-    if (value <= 4) return "Casual (relaxed, friendly)";
-    if (value <= 6) return "Neutral (balanced style)";
-    if (value <= 8) return "Formal (professional tone)";
+    if (value === 1) return "Very casual (slang, contractions)";
+    if (value === 2) return "Casual (relaxed, friendly)";
+    if (value === 3) return "Neutral (balanced style)";
+    if (value === 4) return "Formal (professional tone)";
     return "Very formal (academic style)";
   };
 
@@ -25,15 +25,15 @@ const LanguageStyleSlider: React.FC<LanguageStyleSliderProps> = ({ value, onChan
           Language Style:
         </label>
         <div className="flex justify-between text-xs text-gray-600 mb-2">
-          <span>Casual</span>
-          <span>Formal</span>
+          <span>Very Casual</span>
+          <span>Very Formal</span>
         </div>
       </div>
       
       <Slider
         value={[value]}
         onValueChange={(values) => onChange(values[0])}
-        max={10}
+        max={5}
         min={1}
         step={1}
         className="mb-2"
@@ -41,7 +41,7 @@ const LanguageStyleSlider: React.FC<LanguageStyleSliderProps> = ({ value, onChan
       
       <div className="flex justify-between items-center">
         <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 font-medium`}>
-          {value}/10
+          {value}/5
         </span>
         <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 italic`}>
           {getStyleDescription(value)}

@@ -52,7 +52,23 @@ export const useWorksheetState = (authLoading: boolean) => {
             setEditableWorksheet(parsedWorksheet);
           }
           
-          setInputParams(JSON.parse(savedInputParams));
+          // Migrate old language style values (1-10) to new scale (1-5)
+          const parsedInputParams = JSON.parse(savedInputParams);
+          if (parsedInputParams.languageStyle && parsedInputParams.languageStyle > 5) {
+            // Convert 1-10 scale to 1-5 scale
+            const oldValue = parsedInputParams.languageStyle;
+            let newValue;
+            if (oldValue <= 2) newValue = 1;        // very casual
+            else if (oldValue <= 4) newValue = 2;   // casual  
+            else if (oldValue <= 6) newValue = 3;   // neutral
+            else if (oldValue <= 8) newValue = 4;   // formal
+            else newValue = 5;                      // very formal
+            
+            parsedInputParams.languageStyle = newValue;
+            console.log(`Migrated language style from ${oldValue}/10 to ${newValue}/5`);
+          }
+          
+          setInputParams(parsedInputParams);
           setGenerationTime(savedGenerationTime ? parseInt(savedGenerationTime) : 0);
           setSourceCount(savedSourceCount ? parseInt(savedSourceCount) : 0);
           setWorksheetId(savedWorksheetId);
