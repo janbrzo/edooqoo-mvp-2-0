@@ -12,6 +12,7 @@ import Confetti from 'react-confetti';
 const OnboardingChecklist: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [completionAnimation, setCompletionAnimation] = useState(false);
   const [windowDimensions, setWindowDimensions] = useState({
     width: window.innerWidth,
     height: window.innerHeight
@@ -33,21 +34,30 @@ const OnboardingChecklist: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Show confetti when completed
+  // Show confetti and completion animation when completed
   useEffect(() => {
-    if (progress.completed && !progress.dismissed) {
+    if (progress.completed && !progress.dismissed && !completionAnimation) {
       setShowConfetti(true);
+      setCompletionAnimation(true);
       setIsExpanded(true);
       
-      // Auto-dismiss after 3 seconds
-      const timer = setTimeout(() => {
+      // Start fade-out after 4 seconds
+      const fadeTimer = setTimeout(() => {
+        setCompletionAnimation(false);
+      }, 4000);
+
+      // Auto-dismiss after 5 seconds total
+      const dismissTimer = setTimeout(() => {
         setShowConfetti(false);
         dismissOnboarding();
-      }, 3000);
+      }, 5000);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(fadeTimer);
+        clearTimeout(dismissTimer);
+      };
     }
-  }, [progress.completed, progress.dismissed, dismissOnboarding]);
+  }, [progress.completed, progress.dismissed, completionAnimation, dismissOnboarding]);
 
   if (loading || !shouldShow()) {
     return null;
@@ -91,7 +101,9 @@ const OnboardingChecklist: React.FC = () => {
         />
       )}
       
-      <div className="fixed bottom-6 right-6 z-50 w-80 animate-fade-in">
+      <div className={`fixed bottom-6 right-6 z-50 w-80 transition-opacity duration-1000 ${
+        completionAnimation === false && progress.completed ? 'animate-fade-out opacity-0' : 'animate-fade-in opacity-100'
+      }`}>
         <Card className="shadow-lg border-2 border-primary/20 bg-white/95 backdrop-blur-sm">
           {/* Minimized Header */}
           <CardHeader 
@@ -99,13 +111,13 @@ const OnboardingChecklist: React.FC = () => {
             onClick={() => setIsExpanded(!isExpanded)}
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <CardTitle className="text-lg">Get started with Edooqoo🚀</CardTitle>
-                <Badge variant="secondary" className="text-xs">
+              <div className="flex items-center space-x-2 flex-1 min-w-0">
+                <CardTitle className="text-sm whitespace-nowrap truncate">Get started 🚀</CardTitle>
+                <Badge variant="secondary" className="text-xs flex-shrink-0">
                   {completionPercentage}%
                 </Badge>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 flex-shrink-0">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -134,12 +146,14 @@ const OnboardingChecklist: React.FC = () => {
             <CardContent className="pt-0 animate-accordion-down">
               <div className="space-y-3">
                 {progress.completed && (
-                  <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                    <div className="text-green-700 font-medium mb-2">
+                  <div className={`text-center p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-200 transition-all duration-500 ${
+                    completionAnimation ? 'animate-scale-in' : ''
+                  }`}>
+                    <div className="text-green-700 font-bold mb-2 text-lg">
                       🎉 Congratulations! You're all set up!
                     </div>
                     <div className="text-sm text-green-600">
-                      You've completed all the onboarding steps. Happy teaching!
+                      You've completed all the onboarding steps. Happy teaching with Edooqoo!
                     </div>
                   </div>
                 )}
