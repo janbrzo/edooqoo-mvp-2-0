@@ -1,0 +1,15 @@
+-- ===== WŁĄCZENIE RLS NA WSZYSTKICH TABELACH =====
+-- KRYTYCZNE: Tabele mają policies ale RLS nie jest włączony!
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.worksheets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.feedbacks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.token_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subscription_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.processed_upgrade_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.export_payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.download_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_events ENABLE ROW LEVEL SECURITY;
