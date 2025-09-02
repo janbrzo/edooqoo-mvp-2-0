@@ -19,7 +19,13 @@ serve(async (req) => {
   }
 
   try {
-    logStep('Webhook received');
+    // ENHANCED DEBUG LOGGING
+    logStep('=== WEBHOOK RECEIVED ===', {
+      method: req.method,
+      url: req.url,
+      headers: Object.fromEntries(req.headers.entries()),
+      timestamp: new Date().toISOString()
+    });
 
     const stripeKey = Deno.env.get('Stripe_Secret_Key');
     if (!stripeKey) {
