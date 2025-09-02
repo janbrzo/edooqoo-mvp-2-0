@@ -38,7 +38,9 @@ serve(async (req) => {
       )
     }
 
-    const { sessionId } = await req.json()
+    const requestBody = await req.json()
+    // Obsługuj oba formaty: sessionId (camelCase) i session_id (snake_case)
+    const sessionId = requestBody.sessionId || requestBody.session_id
 
     if (!sessionId) {
       return new Response(
