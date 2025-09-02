@@ -162,6 +162,7 @@ export type Database = {
           last_name: string | null
           monthly_worksheet_limit: number | null
           monthly_worksheets_used: number
+          onboarding_progress: Json | null
           rollover_tokens: number
           school_institution: string | null
           subscription_expires_at: string | null
@@ -185,6 +186,7 @@ export type Database = {
           last_name?: string | null
           monthly_worksheet_limit?: number | null
           monthly_worksheets_used?: number
+          onboarding_progress?: Json | null
           rollover_tokens?: number
           school_institution?: string | null
           subscription_expires_at?: string | null
@@ -208,6 +210,7 @@ export type Database = {
           last_name?: string | null
           monthly_worksheet_limit?: number | null
           monthly_worksheets_used?: number
+          onboarding_progress?: Json | null
           rollover_tokens?: number
           school_institution?: string | null
           subscription_expires_at?: string | null
@@ -252,15 +255,7 @@ export type Database = {
           teacher_id?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "students_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       subscription_events: {
         Row: {
@@ -344,15 +339,7 @@ export type Database = {
           teacher_id?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "subscriptions_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       token_transactions: {
         Row: {
@@ -385,15 +372,7 @@ export type Database = {
           teacher_id?: string
           transaction_type?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "token_transactions_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_events: {
         Row: {
@@ -534,15 +513,7 @@ export type Database = {
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "worksheets_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
