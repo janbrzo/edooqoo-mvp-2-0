@@ -631,8 +631,16 @@ export type Database = {
           title: string
         }[]
       }
+      is_user_anonymous: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       reactivate_user_account: {
         Args: { user_email: string }
+        Returns: boolean
+      }
+      should_show_onboarding: {
+        Args: { user_id: string }
         Returns: boolean
       }
       soft_delete_user_account: {

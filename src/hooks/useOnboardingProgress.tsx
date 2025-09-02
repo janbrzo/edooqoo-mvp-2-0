@@ -146,7 +146,9 @@ export const useOnboardingProgress = () => {
   };
 
   const shouldShow = () => {
-    return !progress.dismissed && !progress.completed && profile?.id;
+    // Nie pokazuj onboarding dla anonimowych użytkowników (bez email)
+    const isAnonymous = !profile?.email || profile.email === '';
+    return !progress.dismissed && !progress.completed && profile?.id && !isAnonymous;
   };
 
   return {
