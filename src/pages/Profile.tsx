@@ -86,54 +86,40 @@ const Profile = () => {
           // Mark as processing in sessionStorage
           sessionStorage.setItem(processedKey, 'true');
           
-          console.log('[Profile] Attempting to finalize upgrade...');
-          const { data: upgradeData, error: upgradeError } = await supabase.functions.invoke('finalize-upgrade', {
-            body: { session_id: sessionId }
-          });
+          console.log('[Profile] Waiting for Stripe webhook to process upgrade...');
+          // Wait for webhook to process (no more finalize-upgrade call)
+          await new Promise(resolve => setTimeout(resolve, 3000));
           
-          if (!upgradeError && upgradeData?.success) {
-            console.log('[Profile] Upgrade finalized successfully:', upgradeData);
+          // Sync subscription status after webhook processing
+          console.log('[Profile] Syncing subscription status after webhook...');
+          const { data: syncData, error: syncError } = await supabase.functions.invoke('check-subscription-status');
+          
+          if (!syncError && syncData?.subscribed) {
+            console.log('[Profile] Subscription synced successfully:', syncData);
             
-            if (upgradeData.already_processed) {
-              toast({
-                title: "Upgrade Already Processed",
-                description: "Your subscription upgrade has already been processed successfully.",
-              });
-            } else {
-              toast({
-                title: "Upgrade Successful!",
-                description: `Your subscription has been upgraded! ${upgradeData.tokens_added || 0} tokens added.`,
-              });
-            }
+            toast({
+              title: "Upgrade Successful!",
+              description: "Your subscription upgrade has been processed successfully.",
+            });
+            
+            // Refresh profile data after upgrade
+            await refetch();
           } else {
-            console.log('[Profile] Not an upgrade session or upgrade failed:', upgradeError);
+            console.log('[Profile] Sync completed but no subscription found');
             toast({
               title: "Payment Successful!",
               description: "Your payment has been processed successfully.",
             });
           }
-          
-          // Always sync subscription status after payment
-          console.log('[Profile] Syncing subscription status...');
-          await supabase.functions.invoke('check-subscription-status');
-          
-          // Refresh profile data
-          await refetch();
-          
         } catch (error) {
-          console.error('[Profile] Error processing payment return:', error);
+          console.error('[Profile] Error processing webhook response:', error);
           toast({
             title: "Payment Processed",
             description: "Your payment was successful. It may take a moment to update your account.",
           });
           
-          // Still try to sync
-          try {
-            await supabase.functions.invoke('check-subscription-status');
-            await refetch();
-          } catch (syncError) {
-            console.error('[Profile] Error syncing after payment:', syncError);
-          }
+          // Still try to refresh
+          await refetch();
         } finally {
           // Clear URL parameters
           const newUrl = window.location.pathname;
