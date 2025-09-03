@@ -112,7 +112,7 @@ export const useOnboardingProgress = () => {
       setProgress(newProgress);
       saveProgress(newProgress);
     }
-  }, [students.length, profile?.total_worksheets_created, profile?.id, loading, progress.dismissed, progress.completed, progress.steps]);
+  }, [students.length, profile?.total_worksheets_created, profile?.id, loading, progress.dismissed, progress.completed]); // FIXED: Removed progress.steps from dependencies
 
   // Initial check and dependencies effect
   useEffect(() => {
@@ -176,11 +176,11 @@ export const useOnboardingProgress = () => {
       )
       .subscribe();
 
-    // Periodic check every 5 seconds when onboarding is active
+    // Periodic check every 3 seconds when onboarding is active - FASTER for immediate feedback
     intervalRef.current = setInterval(() => {
       console.log('[Onboarding] Periodic check triggered');
       checkSteps();
-    }, 5000);
+    }, 3000); // FIXED: Reduced from 5 seconds to 3 seconds
 
     return () => {
       console.log('[Onboarding] Cleaning up subscriptions and interval');
