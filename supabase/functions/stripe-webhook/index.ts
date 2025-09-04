@@ -183,12 +183,6 @@ serve(async (req) => {
           if (updateError) {
             logStep('ERROR: Failed to update profile after upgrade', updateError);
             throw updateError;
-          } else {
-            logStep('Profile updated successfully after upgrade', {
-              subscriptionType,
-              newAvailableTokens,
-              newTotalReceived
-            });
           }
 
           // FIXED: Update subscriptions table with full subscription type name
@@ -214,13 +208,8 @@ serve(async (req) => {
 
           if (subError) {
             logStep('ERROR: Failed to update subscriptions table', subError);
-            throw subError; // FIXED: Make this a hard error since it's critical
           } else {
-            logStep('Subscriptions table updated successfully after upgrade', {
-              teacherId: profile.id,
-              subscriptionType,
-              monthlyLimit: targetMonthlyLimit
-            });
+            logStep('Subscriptions table updated after upgrade with full type name');
           }
 
           // Log upgrade event
@@ -244,8 +233,6 @@ serve(async (req) => {
 
           if (eventError) {
             logStep('WARNING: Failed to log upgrade event', eventError);
-          } else {
-            logStep('Subscription event logged successfully for upgrade');
           }
 
           // Add token transaction record
@@ -253,7 +240,6 @@ serve(async (req) => {
             .from('token_transactions')
             .insert({
               teacher_id: profile.id,
-              teacher_email: email, // FIXED: Add email for consistency
               transaction_type: 'purchase',
               amount: upgradeTokens,
               description: `Upgrade to ${subscriptionType} - tokens added`,
@@ -262,8 +248,6 @@ serve(async (req) => {
 
           if (transactionError) {
             logStep('WARNING: Failed to log upgrade token transaction', transactionError);
-          } else {
-            logStep('Token transaction logged successfully for upgrade');
           }
 
           logStep('Upgrade processed successfully', { 

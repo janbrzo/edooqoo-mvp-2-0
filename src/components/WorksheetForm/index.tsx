@@ -11,7 +11,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useEventTracking } from "@/hooks/useEventTracking";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 import { useStudents } from "@/hooks/useStudents";
-import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type { FormData };
@@ -40,7 +39,6 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
   const { trackEvent } = useEventTracking();
   const { userId } = useAnonymousAuth();
   const { students } = useStudents();
-  const { refreshProgress } = useOnboardingProgress();
 
   useEffect(() => {
     if (preSelectedStudent) {
@@ -121,13 +119,6 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
       languageStyle,
       studentId: selectedStudentId === "no-student" ? undefined : selectedStudentId || undefined
     });
-    
-    // FIXED: Refresh onboarding progress after worksheet generation starts
-    // Small delay to allow generation to complete and database to be updated
-    setTimeout(() => {
-      console.log('🎯 Refreshing onboarding progress after worksheet submission...');
-      refreshProgress();
-    }, 2000);
   };
 
   const refreshSuggestions = () => {

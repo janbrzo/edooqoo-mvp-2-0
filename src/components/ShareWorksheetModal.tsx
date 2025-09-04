@@ -6,7 +6,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Copy, Share2, ExternalLink, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { isValidUUID } from '@/utils/securityUtils';
-import { useOnboardingProgress } from '@/hooks/useOnboardingProgress';
 
 interface ShareWorksheetModalProps {
   isOpen: boolean;
@@ -19,7 +18,6 @@ const ShareWorksheetModal = ({ isOpen, onClose, worksheetId, worksheetTitle }: S
   const [shareUrl, setShareUrl] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
-  const { refreshProgress } = useOnboardingProgress();
 
   const generateShareLink = async () => {
     setIsGenerating(true);
@@ -88,10 +86,6 @@ const ShareWorksheetModal = ({ isOpen, onClose, worksheetId, worksheetTitle }: S
         description: "Your worksheet share link is ready (expires in 7 days)",
         className: "bg-green-50 border-green-200"
       });
-
-      // FIXED: Refresh onboarding progress immediately after worksheet is shared
-      console.log('🎯 Refreshing onboarding progress after worksheet shared...');
-      refreshProgress();
 
     } catch (error) {
       console.error('Share link generation failed:', error);
