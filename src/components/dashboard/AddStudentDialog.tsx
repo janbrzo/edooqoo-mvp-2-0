@@ -60,10 +60,11 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
       setCustomGoal('');
       setOpen(false);
       
-      // Refresh onboarding progress immediately
-      setTimeout(() => {
-        refreshProgress();
-      }, 500);
+      // ENHANCED: Immediate onboarding refresh with multiple triggers
+      console.log('[AddStudentDialog] Triggering onboarding refresh after student added');
+      refreshProgress();
+      setTimeout(refreshProgress, 500);   // Additional refresh after 500ms
+      setTimeout(refreshProgress, 1500);  // Another refresh after 1.5s
       
       // Notify parent component that student was added
       if (onStudentAdded) {

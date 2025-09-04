@@ -192,16 +192,25 @@ export const useOnboardingProgress = () => {
       )
       .subscribe();
 
-    // Shortened periodic check to 2 seconds for faster responsiveness
+    // Shortened periodic check to 1 second for immediate responsiveness
     intervalRef.current = setInterval(() => {
       console.log('[Onboarding] Periodic check triggered');
       checkSteps();
-    }, 2000);
+    }, 1000);
+    
+    // ADDED: Force refresh on window focus for better responsiveness
+    const handleWindowFocus = () => {
+      console.log('[Onboarding] Window focus detected, force refreshing');
+      setTimeout(checkSteps, 500);
+    };
+    
+    window.addEventListener('focus', handleWindowFocus);
 
     return () => {
       console.log('[Onboarding] Cleaning up subscriptions and interval');
       supabase.removeChannel(worksheetChannel);
       supabase.removeChannel(studentChannel);
+      window.removeEventListener('focus', handleWindowFocus);  // ADDED: cleanup
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }

@@ -82,6 +82,11 @@ const Profile = () => {
         
         console.log('[Profile] Detected return from Stripe with session_id:', sessionId);
         
+        // ENHANCED DEBUG: Add comprehensive logging for troubleshooting
+        console.log('[Profile] DEBUG: URL params:', { sessionId, success });
+        console.log('[Profile] DEBUG: User info:', { userId: user?.id, email: user?.email });
+        console.log('[Profile] DEBUG: Current profile:', { profile });
+        
         try {
           // Mark as processing in sessionStorage
           sessionStorage.setItem(processedKey, 'true');

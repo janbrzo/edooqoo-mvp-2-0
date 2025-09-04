@@ -278,7 +278,7 @@ serve(async (req) => {
 
     logStep('Profile updated successfully');
 
-    // Update subscriptions table with correct data
+    // Update subscriptions table with correct data - FIXED: Use correct onConflict key
     const { error: subError } = await supabaseService
       .from('subscriptions')
       .upsert({
@@ -293,7 +293,7 @@ serve(async (req) => {
         current_period_end: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
         updated_at: new Date().toISOString()
       }, { 
-        onConflict: 'teacher_id',
+        onConflict: 'stripe_subscription_id',  // FIXED: Use correct unique constraint
         ignoreDuplicates: false 
       });
 

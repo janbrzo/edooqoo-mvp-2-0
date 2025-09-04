@@ -83,10 +83,11 @@ const ShareWorksheetModal = ({ isOpen, onClose, worksheetId, worksheetTitle }: S
       
       console.log('Generated share URL:', url);
       
-      // Refresh onboarding progress to check share_worksheet step
-      setTimeout(() => {
-        refreshProgress();
-      }, 500);
+      // ENHANCED: Immediate onboarding refresh after sharing with multiple triggers
+      console.log('[ShareWorksheet] Triggering onboarding refresh after share link generation');
+      refreshProgress();
+      setTimeout(refreshProgress, 500);   // Additional refresh after 500ms
+      setTimeout(refreshProgress, 1500);  // Another refresh after 1.5s
       
       toast({
         title: "Share link generated",

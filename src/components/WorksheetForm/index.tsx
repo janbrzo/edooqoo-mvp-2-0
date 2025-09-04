@@ -122,10 +122,11 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
       studentId: selectedStudentId === "no-student" ? undefined : selectedStudentId || undefined
     };
 
-    // Refresh onboarding progress to check generate_worksheet step
-    setTimeout(() => {
-      refreshProgress();
-    }, 1000); // Small delay to ensure profile is updated
+    // ENHANCED: Immediate onboarding refresh after successful worksheet generation
+    console.log('[WorksheetForm] Triggering onboarding refresh after worksheet generation');
+    refreshProgress();
+    setTimeout(refreshProgress, 1000);  // Additional refresh after 1s
+    setTimeout(refreshProgress, 2000);  // Another refresh after 2s
     
     onSubmit(formData);
   };
