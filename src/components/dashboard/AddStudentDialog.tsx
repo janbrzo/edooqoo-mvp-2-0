@@ -61,7 +61,9 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
       setOpen(false);
       
       // Refresh onboarding progress immediately
-      refreshProgress();
+      setTimeout(() => {
+        refreshProgress();
+      }, 500);
       
       // Notify parent component that student was added
       if (onStudentAdded) {

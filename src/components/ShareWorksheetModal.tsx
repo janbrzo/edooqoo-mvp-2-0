@@ -84,7 +84,9 @@ const ShareWorksheetModal = ({ isOpen, onClose, worksheetId, worksheetTitle }: S
       console.log('Generated share URL:', url);
       
       // Refresh onboarding progress to check share_worksheet step
-      refreshProgress();
+      setTimeout(() => {
+        refreshProgress();
+      }, 500);
       
       toast({
         title: "Share link generated",

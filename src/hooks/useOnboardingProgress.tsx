@@ -66,9 +66,9 @@ export const useOnboardingProgress = () => {
     setLoading(false);
   }, [profile]);
 
-  // Check step completion function
+  // Check step completion function - FIXED: removed circular dependency
   const checkSteps = useCallback(async () => {
-    if (loading || progress.dismissed || progress.completed) return;
+    if (loading) return;
 
     console.log('[Onboarding] Checking steps...', { 
       studentsCount: students.length, 
@@ -98,30 +98,46 @@ export const useOnboardingProgress = () => {
     }
 
     const allCompleted = Object.values(newSteps).every(step => step);
-    const hasChanges = JSON.stringify(newSteps) !== JSON.stringify(progress.steps);
+    
+    // Use setProgress with function to avoid stale closures
+    setProgress(currentProgress => {
+      const hasChanges = JSON.stringify(newSteps) !== JSON.stringify(currentProgress.steps);
+      
+      console.log('[Onboarding] Step check results:', { 
+        newSteps, 
+        allCompleted, 
+        hasChanges,
+        currentDismissed: currentProgress.dismissed,
+        currentCompleted: currentProgress.completed
+      });
 
-    console.log('[Onboarding] Step check results:', { newSteps, allCompleted, hasChanges });
+      if (currentProgress.dismissed || (currentProgress.completed && allCompleted)) {
+        return currentProgress; // No changes needed
+      }
 
-    if (hasChanges || (allCompleted && !progress.completed)) {
-      const newProgress: OnboardingProgress = {
-        ...progress,
-        steps: newSteps,
-        completed: allCompleted
-      };
+      if (hasChanges || (allCompleted && !currentProgress.completed)) {
+        const newProgress: OnboardingProgress = {
+          ...currentProgress,
+          steps: newSteps,
+          completed: allCompleted
+        };
 
-      setProgress(newProgress);
-      saveProgress(newProgress);
-    }
-  }, [students.length, profile?.total_worksheets_created, profile?.id, loading, progress.dismissed, progress.completed]);
+        saveProgress(newProgress);
+        return newProgress;
+      }
+
+      return currentProgress;
+    });
+  }, [students.length, profile?.total_worksheets_created, profile?.id, loading]);
 
   // Initial check and dependencies effect
   useEffect(() => {
     checkSteps();
   }, [students, profile, loading]);
 
-  // Real-time subscriptions and periodic checking
+  // Real-time subscriptions and periodic checking - FIXED: simpler dependency management
   useEffect(() => {
-    if (loading || progress.dismissed || progress.completed || !profile?.id) return;
+    if (loading || !profile?.id) return;
 
     console.log('[Onboarding] Setting up real-time subscriptions and periodic check');
 
@@ -176,11 +192,11 @@ export const useOnboardingProgress = () => {
       )
       .subscribe();
 
-    // Periodic check every 3 seconds when onboarding is active
+    // Shortened periodic check to 2 seconds for faster responsiveness
     intervalRef.current = setInterval(() => {
       console.log('[Onboarding] Periodic check triggered');
       checkSteps();
-    }, 3000);
+    }, 2000);
 
     return () => {
       console.log('[Onboarding] Cleaning up subscriptions and interval');
@@ -190,7 +206,7 @@ export const useOnboardingProgress = () => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [profile?.id, progress.dismissed, progress.completed, loading, checkSteps]);
+  }, [profile?.id, loading, checkSteps]);
 
   const saveProgress = async (newProgress: OnboardingProgress) => {
     // Save to localStorage as fallback

@@ -122,17 +122,29 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.retrieve(session_id);
     logStep('Retrieved checkout session', { sessionId: session.id, metadata: session.metadata });
 
-    if (!session.metadata?.action || session.metadata.action !== 'upgrade') {
-      logStep('Not an upgrade session');
-      throw new Error('Invalid session - not an upgrade');
+    // FIXED: Handle both upgrade and new subscription cases
+    const isUpgrade = session.metadata?.is_upgrade === 'true' || session.metadata?.action === 'upgrade';
+    const isNewSubscription = session.metadata?.is_upgrade === 'false'; // Free Demo → paid plan
+    
+    if (!isUpgrade && !isNewSubscription) {
+      logStep('Not a subscription session', { metadata: session.metadata });
+      throw new Error('Invalid session - not a subscription or upgrade');
     }
 
-    const subscriptionId = session.metadata.subscription_id;
-    const targetPlanType = session.metadata.target_plan_type;
-    const targetPlanName = session.metadata.target_plan_name;
-    const targetPlanPrice = parseFloat(session.metadata.target_plan_price || '0');
-    const targetMonthlyLimit = parseInt(session.metadata.target_monthly_limit || '0');
-    const upgradeTokens = parseInt(session.metadata.upgrade_tokens || '0');
+    // For new subscriptions (Free Demo → paid), get data from session metadata
+    let subscriptionId = session.metadata?.subscription_id;
+    
+    // If no subscription_id in metadata, get it from subscription (for new subscriptions)
+    if (!subscriptionId && session.subscription) {
+      subscriptionId = session.subscription as string;
+      logStep('Using subscription ID from session', { subscriptionId });
+    }
+
+    const targetPlanType = session.metadata?.target_plan_type || session.metadata?.plan_type;
+    const targetPlanName = session.metadata?.target_plan_name || session.metadata?.plan_name;
+    const targetPlanPrice = parseFloat(session.metadata?.target_plan_price || session.metadata?.price || '0');
+    const targetMonthlyLimit = parseInt(session.metadata?.target_monthly_limit || session.metadata?.monthly_limit || '0');
+    const upgradeTokens = parseInt(session.metadata?.upgrade_tokens || session.metadata?.upgrade_tokens || '0');
 
     if (!subscriptionId) {
       logStep('Missing subscription ID in metadata');

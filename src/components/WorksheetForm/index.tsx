@@ -123,7 +123,9 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
     };
 
     // Refresh onboarding progress to check generate_worksheet step
-    refreshProgress();
+    setTimeout(() => {
+      refreshProgress();
+    }, 1000); // Small delay to ensure profile is updated
     
     onSubmit(formData);
   };
