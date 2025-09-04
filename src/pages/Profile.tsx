@@ -86,12 +86,29 @@ const Profile = () => {
           // Mark as processing in sessionStorage
           sessionStorage.setItem(processedKey, 'true');
           
-          console.log('[Profile] Waiting for Stripe webhook to process upgrade...');
-          // Wait for webhook to process (no more finalize-upgrade call)
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          console.log('[Profile] Calling finalize-upgrade to process all tables...');
+          // Call finalize-upgrade as primary mechanism to update all tables
+          let upgradeData = null;
+          try {
+            const { data: finalizeData, error: finalizeError } = await supabase.functions.invoke('finalize-upgrade', {
+              body: { session_id: sessionId }
+            });
+            
+            if (finalizeError) {
+              console.error('[Profile] Finalize-upgrade error:', finalizeError);
+              throw finalizeError;
+            }
+            
+            upgradeData = finalizeData;
+            console.log('[Profile] Finalize-upgrade successful:', upgradeData);
+          } catch (finalizeErr) {
+            console.error('[Profile] Finalize-upgrade failed, falling back to webhook processing:', finalizeErr);
+            // Wait for webhook to process as fallback
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
           
-          // Sync subscription status after webhook processing
-          console.log('[Profile] Syncing subscription status after webhook...');
+          // Sync subscription status after processing
+          console.log('[Profile] Syncing subscription status after processing...');
           const { data: syncData, error: syncError } = await supabase.functions.invoke('check-subscription-status');
           
           if (!syncError && syncData?.subscribed) {

@@ -11,6 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useEventTracking } from "@/hooks/useEventTracking";
 import { useAnonymousAuth } from "@/hooks/useAnonymousAuth";
 import { useStudents } from "@/hooks/useStudents";
+import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type { FormData };
@@ -39,6 +40,7 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
   const { trackEvent } = useEventTracking();
   const { userId } = useAnonymousAuth();
   const { students } = useStudents();
+  const { refreshProgress } = useOnboardingProgress();
 
   useEffect(() => {
     if (preSelectedStudent) {
@@ -109,7 +111,7 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
       }
     });
 
-    onSubmit({
+    const formData = {
       lessonTime,
       lessonTopic,
       lessonGoal,
@@ -118,7 +120,12 @@ export default function WorksheetForm({ onSubmit, onStudentChange, preSelectedSt
       englishLevel,
       languageStyle,
       studentId: selectedStudentId === "no-student" ? undefined : selectedStudentId || undefined
-    });
+    };
+
+    // Refresh onboarding progress to check generate_worksheet step
+    refreshProgress();
+    
+    onSubmit(formData);
   };
 
   const refreshSuggestions = () => {

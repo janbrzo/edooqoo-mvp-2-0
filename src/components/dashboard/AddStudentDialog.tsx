@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useStudents } from '@/hooks/useStudents';
+import { useOnboardingProgress } from '@/hooks/useOnboardingProgress';
 import { Plus } from 'lucide-react';
 
 const ENGLISH_LEVELS = [
@@ -42,6 +43,7 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
   const [customGoal, setCustomGoal] = useState('');
   const [loading, setLoading] = useState(false);
   const { addStudent } = useStudents();
+  const { refreshProgress } = useOnboardingProgress();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +59,9 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
       setMainGoal('');
       setCustomGoal('');
       setOpen(false);
+      
+      // Refresh onboarding progress immediately
+      refreshProgress();
       
       // Notify parent component that student was added
       if (onStudentAdded) {
