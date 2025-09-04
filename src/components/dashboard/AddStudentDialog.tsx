@@ -42,7 +42,7 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
   const [mainGoal, setMainGoal] = useState('');
   const [customGoal, setCustomGoal] = useState('');
   const [loading, setLoading] = useState(false);
-  const { addStudent } = useStudents();
+  const { addStudent, refetch } = useStudents();
   const { refreshProgress } = useOnboardingProgress();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,11 +60,23 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
       setCustomGoal('');
       setOpen(false);
       
-      // ENHANCED: Immediate onboarding refresh with multiple triggers
-      console.log('[AddStudentDialog] Triggering onboarding refresh after student added');
-      refreshProgress();
-      setTimeout(refreshProgress, 500);   // Additional refresh after 500ms
-      setTimeout(refreshProgress, 1500);  // Another refresh after 1.5s
+      // ENHANCED: Force refresh students hook first, then onboarding
+      console.log('[AddStudentDialog] Force refreshing students hook before onboarding refresh');
+      
+      // Force refresh students hook to update local state immediately
+      setTimeout(async () => {
+        try {
+          await refetch();  // Force refresh students
+          console.log('[AddStudentDialog] Students refreshed, now triggering onboarding refresh');
+          refreshProgress();
+          setTimeout(refreshProgress, 500);   // Additional refresh after 500ms
+          setTimeout(refreshProgress, 1500);  // Another refresh after 1.5s
+        } catch (error) {
+          console.error('[AddStudentDialog] Error refreshing students:', error);
+          // Still try onboarding refresh even if students refresh fails
+          refreshProgress();
+        }
+      }, 100);
       
       // Notify parent component that student was added
       if (onStudentAdded) {

@@ -449,6 +449,33 @@ serve(async (req) => {
             // Cancellation - subscription was active, now cancelled
             oldPlanType = profile.subscription_type || subscriptionType;
             logStep('Detected cancellation - subscription was active, now cancelled', { oldPlanType });
+            
+            // ADDED: Log subscription_events for cancel action
+            const eventNewPlanType = `${subscriptionType}_cancelled`;
+            const { error: cancelEventError } = await supabaseService
+              .from('subscription_events')
+              .insert({
+                teacher_id: profile.id,
+                email: email,
+                event_type: 'customer.subscription.updated',
+                old_plan_type: oldPlanType,
+                new_plan_type: eventNewPlanType,
+                tokens_added: 0,
+                stripe_event_id: event.id,
+                event_data: {
+                  subscription_id: subscription.id,
+                  customer_id: customer.id,
+                  cancel_at_period_end: subscription.cancel_at_period_end,
+                  status: subscription.status,
+                  action: 'cancellation'
+                }
+              });
+              
+            if (cancelEventError) {
+              logStep('WARNING: Failed to log cancellation event', cancelEventError);
+            } else {
+              logStep('Cancellation event logged successfully', { eventNewPlanType });
+            }
           } else {
             // Other changes - use current type from profile
             oldPlanType = profile.subscription_type || subscriptionType;
@@ -611,7 +638,7 @@ serve(async (req) => {
       const { error: subError } = await supabaseService
         .from('subscriptions')
         .upsert(subscriptionData, { 
-          onConflict: 'teacher_id',
+          onConflict: 'stripe_subscription_id',  // FIXED: Use correct unique constraint
           ignoreDuplicates: false 
         });
 
@@ -714,7 +741,13 @@ serve(async (req) => {
         logStep('Cancellation event logged successfully');
       }
 
-      // Update subscriptions table status with correct status
+      // FIXED: Update subscriptions table status with correct unique key
+      logStep('Updating subscriptions table for cancellation', { 
+        subscriptionId: subscription.id, 
+        finalStatus, 
+        shouldSetCancelled 
+      });
+      
       const { error: subError } = await supabaseService
         .from('subscriptions')
         .update({
@@ -722,7 +755,7 @@ serve(async (req) => {
           subscription_type: shouldSetCancelled ? 'inactive' : undefined,
           updated_at: new Date().toISOString()
         })
-        .eq('teacher_id', profile.id);
+        .eq('stripe_subscription_id', subscription.id);  // FIXED: Use correct unique constraint
 
       if (subError) {
         logStep('WARNING: Failed to update subscriptions table on cancellation', subError);

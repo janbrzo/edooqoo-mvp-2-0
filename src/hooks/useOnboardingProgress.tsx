@@ -75,8 +75,24 @@ export const useOnboardingProgress = () => {
       totalWorksheets: profile?.total_worksheets_created || 0 
     });
 
+    // ENHANCED: Check students directly from database for accuracy
+    let studentsCount = students.length;
+    if (profile?.id) {
+      try {
+        const { data: dbStudents } = await supabase
+          .from('students')
+          .select('id')
+          .eq('teacher_id', profile.id);
+        studentsCount = dbStudents?.length || 0;
+        console.log('[Onboarding] Direct DB check - students count:', studentsCount);
+      } catch (error) {
+        console.error('[Onboarding] Error checking students from DB:', error);
+        // Fallback to local state if DB check fails
+      }
+    }
+
     const newSteps: OnboardingStep = {
-      add_student: students.length > 0,
+      add_student: studentsCount > 0,  // FIXED: Use DB count instead of local state
       generate_worksheet: (profile?.total_worksheets_created || 0) > 0,
       share_worksheet: false // Will be checked separately
     };
