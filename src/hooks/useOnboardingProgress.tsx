@@ -66,85 +66,94 @@ export const useOnboardingProgress = () => {
     setLoading(false);
   }, [profile]);
 
-  // Check step completion function - FIXED: removed circular dependency
+  // Check step completion function - ENHANCED for immediate database checking
   const checkSteps = useCallback(async () => {
-    if (loading) return;
+    if (loading || !profile?.id) {
+      console.log('[Onboarding] Skipping checkSteps - loading or no profile', { loading, profileId: profile?.id });
+      return;
+    }
 
-    console.log('[Onboarding] Checking steps...', { 
+    console.log('[Onboarding] Checking steps directly from database...', { 
       studentsCount: students.length, 
       totalWorksheets: profile?.total_worksheets_created || 0 
     });
 
-    // ENHANCED: Check students directly from database for accuracy
-    let studentsCount = students.length;
-    if (profile?.id) {
-      try {
-        const { data: dbStudents } = await supabase
-          .from('students')
-          .select('id')
-          .eq('teacher_id', profile.id);
-        studentsCount = dbStudents?.length || 0;
-        console.log('[Onboarding] Direct DB check - students count:', studentsCount);
-      } catch (error) {
-        console.error('[Onboarding] Error checking students from DB:', error);
-        // Fallback to local state if DB check fails
-      }
-    }
-
-    const newSteps: OnboardingStep = {
-      add_student: studentsCount > 0,  // FIXED: Use DB count instead of local state
-      generate_worksheet: (profile?.total_worksheets_created || 0) > 0,
-      share_worksheet: false // Will be checked separately
-    };
-
-    // Check if any worksheet has been shared
-    if (newSteps.generate_worksheet && profile?.id) {
-      try {
-        const { data: sharedWorksheets } = await supabase
-          .from('worksheets')
-          .select('id')
-          .eq('teacher_id', profile.id)
-          .not('share_token', 'is', null)
-          .limit(1);
+    try {
+      // CRITICAL: Always check students directly from database for real-time accuracy
+      const { data: dbStudents, error: studentsError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('teacher_id', profile.id);
         
-        newSteps.share_worksheet = (sharedWorksheets?.length || 0) > 0;
-      } catch (error) {
-        console.error('Error checking shared worksheets:', error);
+      if (studentsError) {
+        console.error('[Onboarding] Error checking students from DB:', studentsError);
+        return;
       }
-    }
-
-    const allCompleted = Object.values(newSteps).every(step => step);
-    
-    // Use setProgress with function to avoid stale closures
-    setProgress(currentProgress => {
-      const hasChanges = JSON.stringify(newSteps) !== JSON.stringify(currentProgress.steps);
       
-      console.log('[Onboarding] Step check results:', { 
-        newSteps, 
-        allCompleted, 
-        hasChanges,
-        currentDismissed: currentProgress.dismissed,
-        currentCompleted: currentProgress.completed
+      const studentsCount = dbStudents?.length || 0;
+      console.log('[Onboarding] Direct DB check - students count:', studentsCount);
+
+      // CRITICAL: Always check worksheets directly from database for real-time accuracy
+      const { data: dbWorksheets, error: worksheetsError } = await supabase
+        .from('worksheets')
+        .select('id, share_token')
+        .eq('teacher_id', profile.id)
+        .is('deleted_at', null);
+        
+      if (worksheetsError) {
+        console.error('[Onboarding] Error checking worksheets from DB:', worksheetsError);
+        return;
+      }
+      
+      const worksheetsCount = dbWorksheets?.length || 0;
+      const sharedWorksheetsCount = dbWorksheets?.filter(w => w.share_token)?.length || 0;
+
+      console.log('[Onboarding] Direct DB check - worksheets:', { 
+        total: worksheetsCount, 
+        shared: sharedWorksheetsCount 
       });
 
-      if (currentProgress.dismissed || (currentProgress.completed && allCompleted)) {
-        return currentProgress; // No changes needed
-      }
+      const newSteps: OnboardingStep = {
+        add_student: studentsCount > 0,
+        generate_worksheet: worksheetsCount > 0,
+        share_worksheet: sharedWorksheetsCount > 0
+      };
 
-      if (hasChanges || (allCompleted && !currentProgress.completed)) {
-        const newProgress: OnboardingProgress = {
-          ...currentProgress,
-          steps: newSteps,
-          completed: allCompleted
-        };
+      const allCompleted = Object.values(newSteps).every(step => step);
+      
+      // Use setProgress with function to avoid stale closures
+      setProgress(currentProgress => {
+        const hasChanges = JSON.stringify(newSteps) !== JSON.stringify(currentProgress.steps);
+        
+        console.log('[Onboarding] Step check results:', { 
+          newSteps, 
+          allCompleted, 
+          hasChanges,
+          currentDismissed: currentProgress.dismissed,
+          currentCompleted: currentProgress.completed
+        });
 
-        saveProgress(newProgress);
-        return newProgress;
-      }
+        if (currentProgress.dismissed || (currentProgress.completed && allCompleted)) {
+          return currentProgress; // No changes needed
+        }
 
-      return currentProgress;
-    });
-  }, [students.length, profile?.total_worksheets_created, profile?.id, loading]);
+        if (hasChanges || (allCompleted && !currentProgress.completed)) {
+          const newProgress: OnboardingProgress = {
+            ...currentProgress,
+            steps: newSteps,
+            completed: allCompleted
+          };
+
+          saveProgress(newProgress);
+          return newProgress;
+        }
+
+        return currentProgress;
+      });
+    } catch (error) {
+      console.error('[Onboarding] Error in checkSteps:', error);
+    }
+  }, [profile?.id, loading, students.length]); // Removed circular dependency
 
   // Initial check and dependencies effect
   useEffect(() => {
@@ -208,11 +217,11 @@ export const useOnboardingProgress = () => {
       )
       .subscribe();
 
-    // Shortened periodic check to 1 second for immediate responsiveness
+    // Shortened periodic check to 500ms for immediate responsiveness - ENHANCED
     intervalRef.current = setInterval(() => {
-      console.log('[Onboarding] Periodic check triggered');
+      console.log('[Onboarding] Periodic check triggered - immediate mode');
       checkSteps();
-    }, 1000);
+    }, 500);  // SHORTENED: 500ms for ultra-fast response
     
     // ADDED: Force refresh on window focus for better responsiveness
     const handleWindowFocus = () => {

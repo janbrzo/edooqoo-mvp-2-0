@@ -304,11 +304,12 @@ serve(async (req) => {
 
     logStep('Subscriptions table updated successfully');
 
-    // Add token transaction record
+    // Add token transaction record with teacher_email - FIXED
     const { error: transactionError } = await supabaseService
       .from('token_transactions')
       .insert({
         teacher_id: user.id,
+        teacher_email: user.email,  // FIXED: Add teacher_email
         transaction_type: 'purchase',
         amount: upgradeTokens,
         description: `Upgrade to ${targetPlanName} - tokens added`,

@@ -60,23 +60,33 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
       setCustomGoal('');
       setOpen(false);
       
-      // ENHANCED: Force refresh students hook first, then onboarding
-      console.log('[AddStudentDialog] Force refreshing students hook before onboarding refresh');
+      // ULTRA-ENHANCED: Multiple aggressive refresh attempts for immediate onboarding update
+      console.log('[AddStudentDialog] Force refreshing students hook and onboarding - ULTRA MODE');
+      
+      // Immediate refresh
+      refreshProgress();
       
       // Force refresh students hook to update local state immediately
       setTimeout(async () => {
         try {
           await refetch();  // Force refresh students
-          console.log('[AddStudentDialog] Students refreshed, now triggering onboarding refresh');
-          refreshProgress();
-          setTimeout(refreshProgress, 500);   // Additional refresh after 500ms
-          setTimeout(refreshProgress, 1500);  // Another refresh after 1.5s
+          console.log('[AddStudentDialog] Students refreshed, now triggering multiple onboarding refreshes');
+          
+          // Multiple refresh attempts at different intervals for maximum responsiveness
+          refreshProgress();                              // Immediate
+          setTimeout(refreshProgress, 200);              // 200ms
+          setTimeout(refreshProgress, 500);              // 500ms  
+          setTimeout(refreshProgress, 1000);             // 1s
+          setTimeout(refreshProgress, 2000);             // 2s
+          
         } catch (error) {
           console.error('[AddStudentDialog] Error refreshing students:', error);
           // Still try onboarding refresh even if students refresh fails
           refreshProgress();
+          setTimeout(refreshProgress, 500);
+          setTimeout(refreshProgress, 1500);
         }
-      }, 100);
+      }, 50);  // Almost immediate, just enough to avoid race conditions
       
       // Notify parent component that student was added
       if (onStudentAdded) {

@@ -235,11 +235,12 @@ serve(async (req) => {
             logStep('WARNING: Failed to log upgrade event', eventError);
           }
 
-          // Add token transaction record
+          // Add token transaction record with teacher_email - FIXED
           const { error: transactionError } = await supabaseService
             .from('token_transactions')
             .insert({
               teacher_id: profile.id,
+              teacher_email: email,  // FIXED: Add teacher_email
               transaction_type: 'purchase',
               amount: upgradeTokens,
               description: `Upgrade to ${subscriptionType} - tokens added`,
@@ -599,6 +600,7 @@ serve(async (req) => {
           .from('token_transactions')
           .insert({
             teacher_id: profile.id,
+            teacher_email: email,  // FIXED: Add teacher_email
             transaction_type: 'purchase',
             amount: tokensToAdd,
             description: `Subscription tokens added - ${subscriptionType}`,
