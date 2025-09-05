@@ -60,33 +60,43 @@ export const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
       setCustomGoal('');
       setOpen(false);
       
-      // ULTRA-ENHANCED: Multiple aggressive refresh attempts for immediate onboarding update
-      console.log('[AddStudentDialog] Force refreshing students hook and onboarding - ULTRA MODE');
+      // MAXIMUM-ENHANCED: Extreme aggressive refresh for INSTANT onboarding update
+      console.log('[AddStudentDialog] Force refreshing students hook and onboarding - MAXIMUM MODE');
       
-      // Immediate refresh
+      // Immediate multiple refresh bursts
       refreshProgress();
+      refreshProgress(); // Double immediate
       
-      // Force refresh students hook to update local state immediately
-      setTimeout(async () => {
+      // Force refresh students hook MULTIPLE TIMES to ensure update
+      const performRefreshCycle = async () => {
         try {
+          console.log('[AddStudentDialog] Starting refresh cycle...');
           await refetch();  // Force refresh students
-          console.log('[AddStudentDialog] Students refreshed, now triggering multiple onboarding refreshes');
           
-          // Multiple refresh attempts at different intervals for maximum responsiveness
-          refreshProgress();                              // Immediate
-          setTimeout(refreshProgress, 200);              // 200ms
-          setTimeout(refreshProgress, 500);              // 500ms  
-          setTimeout(refreshProgress, 1000);             // 1s
-          setTimeout(refreshProgress, 2000);             // 2s
+          console.log('[AddStudentDialog] Students refreshed, now triggering EXTREME onboarding refreshes');
+          
+          // EXTREME refresh pattern for maximum responsiveness
+          refreshProgress();                              // 0ms - Immediate
+          setTimeout(refreshProgress, 50);               // 50ms - Super fast
+          setTimeout(refreshProgress, 100);              // 100ms - Fast
+          setTimeout(refreshProgress, 200);              // 200ms - Quick
+          setTimeout(refreshProgress, 400);              // 400ms - Medium
+          setTimeout(refreshProgress, 800);              // 800ms - Delayed
+          setTimeout(refreshProgress, 1500);             // 1.5s - Final
           
         } catch (error) {
           console.error('[AddStudentDialog] Error refreshing students:', error);
-          // Still try onboarding refresh even if students refresh fails
+          // STILL try multiple onboarding refreshes even on error
           refreshProgress();
-          setTimeout(refreshProgress, 500);
-          setTimeout(refreshProgress, 1500);
+          setTimeout(refreshProgress, 100);
+          setTimeout(refreshProgress, 300);
+          setTimeout(refreshProgress, 1000);
         }
-      }, 50);  // Almost immediate, just enough to avoid race conditions
+      };
+      
+      // Start refresh immediately AND with small delay
+      performRefreshCycle();
+      setTimeout(performRefreshCycle, 100);  // Backup refresh cycle
       
       // Notify parent component that student was added
       if (onStudentAdded) {

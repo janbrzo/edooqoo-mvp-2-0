@@ -66,7 +66,7 @@ export const useOnboardingProgress = () => {
     setLoading(false);
   }, [profile]);
 
-  // Check step completion function - ENHANCED for immediate database checking
+  // ULTRA-ENHANCED: Check step completion with IMMEDIATE database sync and forced refresh
   const checkSteps = useCallback(async () => {
     if (loading || !profile?.id) {
       console.log('[Onboarding] Skipping checkSteps - loading or no profile', { loading, profileId: profile?.id });
@@ -121,6 +121,13 @@ export const useOnboardingProgress = () => {
 
       const allCompleted = Object.values(newSteps).every(step => step);
       
+      // CRITICAL: Force refresh onboarding progress from database immediately after checking steps
+      const { data: currentOnboardingData } = await supabase
+        .from('profiles')
+        .select('onboarding_progress')
+        .eq('id', profile.id)
+        .single();
+      
       // Use setProgress with function to avoid stale closures
       setProgress(currentProgress => {
         const hasChanges = JSON.stringify(newSteps) !== JSON.stringify(currentProgress.steps);
@@ -133,18 +140,32 @@ export const useOnboardingProgress = () => {
           currentCompleted: currentProgress.completed
         });
 
-        if (currentProgress.dismissed || (currentProgress.completed && allCompleted)) {
-          return currentProgress; // No changes needed
+        // ADDED: Force update if dismissed status changed - FIXED TypeScript casting
+        let dbProgress: OnboardingProgress | null = null;
+        try {
+          if (currentOnboardingData?.onboarding_progress && typeof currentOnboardingData.onboarding_progress === 'object') {
+            dbProgress = currentOnboardingData.onboarding_progress as unknown as OnboardingProgress;
+          }
+        } catch (e) {
+          console.warn('[Onboarding] Failed to parse onboarding_progress from DB:', e);
+        }
+        
+        const dismissedChanged = dbProgress && (dbProgress.dismissed !== currentProgress.dismissed);
+
+        if (currentProgress.dismissed && !dismissedChanged) {
+          return currentProgress; // No changes needed if truly dismissed
         }
 
-        if (hasChanges || (allCompleted && !currentProgress.completed)) {
+        if (hasChanges || (allCompleted && !currentProgress.completed) || dismissedChanged) {
           const newProgress: OnboardingProgress = {
             ...currentProgress,
             steps: newSteps,
-            completed: allCompleted
+            completed: allCompleted,
+            dismissed: dbProgress?.dismissed || currentProgress.dismissed // Sync dismissed state from DB
           };
 
-          saveProgress(newProgress);
+          // ADDED: Always save progress after checking steps for immediate sync
+          setTimeout(() => saveProgress(newProgress), 100);
           return newProgress;
         }
 
@@ -153,7 +174,7 @@ export const useOnboardingProgress = () => {
     } catch (error) {
       console.error('[Onboarding] Error in checkSteps:', error);
     }
-  }, [profile?.id, loading, students.length]); // Removed circular dependency
+  }, [profile?.id, loading]); // SIMPLIFIED: Removed students.length to avoid circular deps
 
   // Initial check and dependencies effect
   useEffect(() => {
@@ -217,11 +238,11 @@ export const useOnboardingProgress = () => {
       )
       .subscribe();
 
-    // Shortened periodic check to 500ms for immediate responsiveness - ENHANCED
+    // ULTRA-FAST: 200ms periodic check for INSTANT responsiveness
     intervalRef.current = setInterval(() => {
       console.log('[Onboarding] Periodic check triggered - immediate mode');
       checkSteps();
-    }, 500);  // SHORTENED: 500ms for ultra-fast response
+    }, 200);  // ULTRA-SHORTENED: 200ms for INSTANT response after adding student
     
     // ADDED: Force refresh on window focus for better responsiveness
     const handleWindowFocus = () => {
